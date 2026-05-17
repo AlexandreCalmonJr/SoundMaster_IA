@@ -8,10 +8,11 @@
         <!-- Ferramentas da IA -->
         <div class="xl:col-span-1 space-y-6">
             <div class="bg-slate-800/40 border border-white/10 rounded-2xl p-5">
-                <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">Canal Alvo</h3>
+                <label for="ai-target-channel" class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4 block">Canal Alvo</label>
                 <div class="flex items-center gap-3">
                     <input id="ai-target-channel" type="number" min="1" max="24" value="1"
-                        class="bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-cyan-400 font-mono w-20 focus:border-cyan-500 outline-none">
+                        class="bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-cyan-400 font-mono w-20 focus:border-cyan-500 outline-none" 
+                        aria-label="Selecionar canal de áudio alvo (1-24)">
                     <span class="text-slate-400 text-sm">canal selecionado</span>
                 </div>
             </div>
@@ -33,25 +34,25 @@
             <div class="bg-slate-800/40 border border-white/10 rounded-2xl p-5">
                 <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">Ações Rápidas Ui</h3>
                 <div class="grid grid-cols-2 gap-2">
-                    <button id="btn-ai-clean-channel" class="p-2 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/40 text-[10px] uppercase font-bold border border-cyan-500/30 text-cyan-400 transition-all">Som Limpo</button>
-                    <button id="btn-ai-hpf" class="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600 text-[10px] uppercase font-bold border border-white/5 transition-all">HPF 100Hz</button>
-                    <button id="btn-ai-gate" class="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600 text-[10px] uppercase font-bold border border-white/5 transition-all">Gate Leve</button>
-                    <button id="btn-ai-eq-mud" class="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600 text-[10px] uppercase font-bold border border-white/5 transition-all">Cortar 250Hz</button>
-                    <button id="btn-ai-eq-harsh" class="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600 text-[10px] uppercase font-bold border border-white/5 transition-all">Cortar 3.2kHz</button>
-                    <button id="btn-ai-afs-on" class="p-2 rounded-lg bg-cyan-900/40 hover:bg-cyan-800/40 text-[10px] uppercase font-bold border border-cyan-500/30 text-cyan-400 transition-all">Ativar AFS2</button>
-                    <button id="btn-ai-afs-off" class="p-2 rounded-lg bg-red-900/40 hover:bg-red-800/40 text-[10px] uppercase font-bold border border-red-500/30 text-red-400 transition-all">Desativar AFS2</button>
+                    <button id="btn-ai-clean-channel" class="p-2 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/40 text-xs uppercase font-bold border border-cyan-500/30 text-cyan-400 transition-all" aria-label="Aplicar preset de som limpo ao canal">Som Limpo</button>
+                    <button id="btn-ai-hpf" class="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600 text-xs uppercase font-bold border border-white/5 transition-all" aria-label="Ativar filtro passa-altos a 100Hz">HPF 100Hz</button>
+                    <button id="btn-ai-gate" class="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600 text-xs uppercase font-bold border border-white/5 transition-all" aria-label="Ativar noise gate leve">Gate Leve</button>
+                    <button id="btn-ai-eq-mud" class="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600 text-xs uppercase font-bold border border-white/5 transition-all" aria-label="Cortar frequência de 250Hz para reduzir mudez">Cortar 250Hz</button>
+                    <button id="btn-ai-eq-harsh" class="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600 text-xs uppercase font-bold border border-white/5 transition-all" aria-label="Cortar frequência de 3.2kHz para reduzir aspureza">Cortar 3.2kHz</button>
+                    <button id="btn-ai-afs-on" class="p-2 rounded-lg bg-cyan-900/40 hover:bg-cyan-800/40 text-xs uppercase font-bold border border-cyan-500/30 text-cyan-400 transition-all" aria-label="Ativar supressor automático de feedback">Ativar AFS2</button>
+                    <button id="btn-ai-afs-off" class="p-2 rounded-lg bg-red-900/40 hover:bg-red-800/40 text-xs uppercase font-bold border border-red-500/30 text-red-400 transition-all" aria-label="Desativar supressor automático de feedback">Desativar AFS2</button>
                 </div>
             </div>
         </div>
 
         <!-- Chat Principal -->
-        <div class="xl:col-span-2 flex flex-col h-[600px] bg-slate-900/50 border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+        <div class="xl:col-span-2 flex flex-col min-h-96 max-h-[calc(100vh-250px)] bg-slate-900/50 border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
             <div class="px-6 py-4 bg-slate-800/80 border-bottom border-white/10 flex justify-between items-center">
                 <div class="flex items-center gap-3">
                     <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
                     <span id="chat-status" class="text-sm font-bold">SoundMaster AI</span>
                 </div>
-                <button id="btn-clear-chat" class="text-[10px] uppercase tracking-wider font-bold text-slate-500 hover:text-white transition-colors">Limpar Conversa</button>
+                <button id="btn-clear-chat" class="text-xs uppercase tracking-wider font-bold text-slate-500 hover:text-white transition-colors" aria-label="Limpar histórico da conversa">Limpar Conversa</button>
             </div>
             
             <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4">
@@ -60,10 +61,12 @@
 
             <div class="p-4 bg-slate-800/40 border-t border-white/10">
                 <div class="flex gap-3">
+                    <label for="chat-input" class="sr-only">Digite sua mensagem para a IA</label>
                     <input type="text" id="chat-input" 
                         class="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-cyan-500 outline-none transition-all"
-                        placeholder="Ex: A voz está embolada e metálica...">
-                    <button id="btn-chat-send" class="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-cyan-900/30">Enviar</button>
+                        placeholder="Ex: A voz está embolada e metálica..."
+                        aria-label="Digite sua mensagem para a IA analisar">
+                    <button id="btn-chat-send" class="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-cyan-900/30" aria-label="Enviar mensagem para a IA">Enviar</button>
                 </div>
             </div>
         </div>

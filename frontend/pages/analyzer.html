@@ -1,7 +1,7 @@
 <section id="analyzer" class="module page-section">
     <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
         <div class="flex items-center gap-4">
-            <span class="p-3 bg-cyan-900/40 rounded-2xl text-2xl">🔬</span>
+            <span class="p-3 bg-cyan-900/40 rounded-2xl text-2xl" aria-label="Analisador">🔬</span>
             <div>
                 <h2 class="text-3xl font-black text-white tracking-tighter">Analisador de Áudio</h2>
                 <p class="text-slate-400 font-medium">Espectro em tempo real & Detecção de Feedback</p>
@@ -10,8 +10,8 @@
         
         <!-- Quick Tip -->
         <div class="flex items-center gap-3 bg-amber-900/20 border border-amber-500/20 px-4 py-2 rounded-xl max-w-sm">
-            <span class="text-lg">💡</span>
-            <p class="text-[10px] text-amber-200/70 font-medium leading-tight">
+            <span class="text-lg" aria-label="Dica útil">💡</span>
+            <p class="text-xs text-amber-100 font-medium leading-tight">
                 <b>Dica:</b> Use o modo <b>High-Res (32k)</b> na aba Calibração para detectar ressonâncias graves com precisão de 1.3Hz.
             </p>
         </div>
@@ -33,12 +33,12 @@
             
             <!-- Microphone Selector -->
             <div class="flex items-center gap-3 px-4 py-2 bg-black/40 border border-white/5 rounded-xl">
-                <span class="text-[10px] font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">Hardware In:</span>
-                <select id="mic-select" class="flex-1 bg-transparent text-xs text-cyan-400 font-bold outline-none cursor-pointer">
+                <label for="mic-select" class="text-xs font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">Hardware In:</label>
+                <select id="mic-select" class="flex-1 bg-transparent text-xs text-cyan-400 font-bold outline-none cursor-pointer" aria-label="Selecionar entrada de microfone">
                     <option value="default">Microfone Padrão</option>
                 </select>
                 <div class="h-4 w-px bg-white/10"></div>
-                <div class="text-[9px] text-slate-500 font-mono">FFT: 32768 (1.3Hz res)</div>
+                <div class="text-xs text-slate-500 font-mono">FFT: 32768 (1.3Hz res)</div>
             </div>
         </div>
 
@@ -46,26 +46,26 @@
             <!-- Gráfico de Magnitude -->
             <div class="relative bg-black rounded-2xl border border-white/10 p-4">
                 <div class="flex justify-between items-center mb-2 px-2">
-                    <h4 class="text-[9px] font-black uppercase text-slate-500 tracking-widest">Magnitude (Transfer Function)</h4>
-                    <span class="text-[9px] font-mono text-cyan-400">dB / Hz</span>
+                    <h4 class="text-xs font-black uppercase text-slate-500 tracking-widest">Magnitude (Transfer Function)</h4>
+                    <span class="text-xs font-mono text-cyan-400">dB / Hz</span>
                 </div>
-                <canvas id="tf-magnitude-canvas" class="w-full h-48 md:h-64"></canvas>
+                <canvas id="tf-magnitude-canvas" class="w-full h-48 md:h-64" aria-label="Gráfico de magnitude (função de transferência)"></canvas>
             </div>
 
             <!-- Gráfico de Fase -->
             <div class="relative bg-black rounded-2xl border border-white/10 p-4">
                 <div class="flex justify-between items-center mb-2 px-2">
-                    <h4 class="text-[9px] font-black uppercase text-purple-500 tracking-widest">Resposta de Fase</h4>
-                    <span class="text-[9px] font-mono text-purple-400">Deg / Hz</span>
+                    <h4 class="text-xs font-black uppercase text-purple-500 tracking-widest">Resposta de Fase</h4>
+                    <span class="text-xs font-mono text-purple-400">Deg / Hz</span>
                 </div>
-                <canvas id="tf-phase-canvas" class="w-full h-48 md:h-64"></canvas>
+                <canvas id="tf-phase-canvas" class="w-full h-48 md:h-64" aria-label="Gráfico de resposta de fase"></canvas>
             </div>
         </div>
 
         <div class="relative bg-black rounded-2xl border border-white/10 p-4 mb-2">
-            <h4 class="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-2 px-2">RTA (Real Time Analyzer)</h4>
-            <canvas id="fft-canvas" class="w-full h-40 md:h-48"></canvas>
-            <div class="flex justify-between mt-4 text-[10px] uppercase tracking-wider text-slate-500 font-bold px-2">
+            <h4 class="text-xs font-black uppercase text-slate-500 tracking-widest mb-2 px-2">RTA (Real Time Analyzer)</h4>
+            <canvas id="fft-canvas" class="w-full h-40 md:h-48" aria-label="Analisador de tempo real - Espectro de frequências"></canvas>
+            <div class="flex justify-between mt-4 text-xs uppercase tracking-wider text-slate-500 font-bold px-2">
                 <span>Sub</span>
                 <span>Low</span>
                 <span>Mid</span>
@@ -76,8 +76,8 @@
 
         <!-- Waterfall History -->
         <div class="bg-black rounded-2xl border border-white/10 p-4 mb-6">
-            <h4 class="text-[8px] font-black uppercase text-slate-700 tracking-widest mb-2 px-2">Histórico Waterfall (Últimos 10s)</h4>
-            <canvas id="waterfall-canvas" class="w-full h-24 rounded-lg"></canvas>
+            <h4 class="text-xs font-black uppercase text-slate-700 tracking-widest mb-2 px-2">Histórico Waterfall (Últimos 10s)</h4>
+            <canvas id="waterfall-canvas" class="w-full h-24 rounded-lg" aria-label="Histórico waterfall do espectro de áudio"></canvas>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
