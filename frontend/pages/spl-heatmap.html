@@ -1,17 +1,17 @@
-<section class="p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+﻿<section id="spl-heatmap" class="module page-section">
     <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-12">
         <div class="flex items-center gap-4">
-            <span class="p-3 bg-red-900/40 rounded-2xl text-2xl" aria-label="Mapa de calor">🔥</span>
+            <span class="p-3 bg-red-900/40 rounded-2xl text-2xl" aria-label="Mapa de calor">ðŸ”¥</span>
             <div>
                 <h2 class="text-3xl font-black text-white tracking-tighter">Mapa de Calor SPL</h2>
-                <p class="text-slate-400 font-medium">Distribuição de pressão sonora e cobertura no salão</p>
+                <p class="text-slate-400 font-medium">DistribuiÃ§Ã£o de pressÃ£o sonora e cobertura no salÃ£o</p>
             </div>
         </div>
     </header>
 
     <div class="bg-slate-900/60 border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
         <div class="flex flex-col md:flex-row justify-between mb-8 gap-4">
-            <h3 class="text-xs font-black uppercase tracking-widest text-slate-500">Cobertura do Salão Principal</h3>
+            <h3 class="text-xs font-black uppercase tracking-widest text-slate-500">Cobertura do SalÃ£o Principal</h3>
             <div class="flex items-center gap-4 bg-black/40 px-4 py-2 rounded-xl">
                 <span class="text-xs text-slate-400 font-bold">ESCALA:</span>
                 <div class="flex h-2 w-48 rounded-full bg-gradient-to-r from-blue-500 via-green-500 via-yellow-500 to-red-500"></div>
@@ -21,39 +21,39 @@
 
         <!-- Heatmap Tooling Controls -->
         <div class="flex gap-2 mb-6">
-            <button id="btn-heatmap-upload" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all border border-white/5" aria-label="Carregar planta baixa do salão">
-                <span aria-hidden="true">🖼️</span> Planta Baixa
+            <button id="btn-heatmap-upload" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all border border-white/5" aria-label="Carregar planta baixa do salÃ£o">
+                <span aria-hidden="true">ðŸ–¼ï¸</span> Planta Baixa
             </button>
             <button id="btn-clear-heatmap" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all border border-white/5" aria-label="Limpar dados do mapa de calor">
-                <span aria-hidden="true">🧹</span> Limpar Mapa
+                <span aria-hidden="true">ðŸ§¹</span> Limpar Mapa
             </button>
             <input type="file" id="heatmap-image-upload" class="hidden" accept="image/*">
             <div class="ml-auto flex items-center gap-3">
-                <span class="text-xs text-slate-400 font-bold uppercase">Última Leitura:</span>
+                <span class="text-xs text-slate-400 font-bold uppercase">Ãšltima Leitura:</span>
                 <span id="heatmap-last-val" class="text-lg font-black text-cyan-400">-- dB</span>
             </div>
         </div>
 
         <!-- Heatmap Container -->
         <div id="heatmap-container" class="aspect-video bg-black/40 rounded-2xl relative border border-white/5 overflow-hidden cursor-crosshair max-w-4xl mx-auto">
-            <img id="heatmap-bg" class="absolute inset-0 w-full h-full object-contain hidden" alt="Planta baixa do salão para mapeamento">
+            <img id="heatmap-bg" class="absolute inset-0 w-full h-full object-contain hidden" alt="Planta baixa do salÃ£o para mapeamento">
             <div id="heatmap-placeholder" class="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div class="text-center opacity-40">
-                    <span class="text-4xl block mb-4" aria-hidden="true">📍</span>
+                    <span class="text-4xl block mb-4" aria-hidden="true">ðŸ“</span>
                     <p class="text-xs font-bold text-white uppercase tracking-widest">Clique no mapa para medir SPL</p>
                 </div>
             </div>
-            <canvas id="heatmap-canvas" class="absolute inset-0 w-full h-full pointer-events-none" aria-label="Mapa de calor SPL interativo do salão"></canvas>
+            <canvas id="heatmap-canvas" class="absolute inset-0 w-full h-full pointer-events-none" aria-label="Mapa de calor SPL interativo do salÃ£o"></canvas>
             <div id="heatmap-pins-layer" class="absolute inset-0 w-full h-full pointer-events-none"></div>
         </div>
 
         <div class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
             <div class="p-4 bg-white/5 rounded-2xl text-center">
-                <span class="text-xs text-slate-400 font-bold uppercase block mb-1">Diferença L/R</span>
+                <span class="text-xs text-slate-400 font-bold uppercase block mb-1">DiferenÃ§a L/R</span>
                 <span class="text-lg font-black text-white">1.2 dB</span>
             </div>
             <div class="p-4 bg-white/5 rounded-2xl text-center">
-                <span class="text-xs text-slate-400 font-bold uppercase block mb-1">Média Central</span>
+                <span class="text-xs text-slate-400 font-bold uppercase block mb-1">MÃ©dia Central</span>
                 <span class="text-lg font-black text-white">94 dB</span>
             </div>
             <div class="p-4 bg-white/5 rounded-2xl text-center border border-red-500/20">

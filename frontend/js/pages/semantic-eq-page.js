@@ -1,116 +1,43 @@
-/**
- * SoundMaster — Semantic EQ Page Module
- * Binds DOM events para a página de EQ Semântico (NLP).
- */
-
-'use strict';
-
+﻿'use strict';
 (function () {
-
-    let _listeners = [];
-
-    function _on(target, event, handler) {
-        if (!target) return;
-        target.addEventListener(event, handler);
-        _listeners.push({ target, event, handler });
-    }
+    var pm = createPageModule();
 
     async function _sendCommand() {
-        const input = document.getElementById('seq-input');
-        const text = input?.value?.trim();
+        var input = pm._el('seq-input'), text = input ? input.value.trim() : '';
         if (!text) return;
-
-        const channel = parseInt(document.getElementById('seq-channel')?.value) || 1;
+        var channel = parseInt(pm._el('seq-channel') ? pm._el('seq-channel').value : 1) || 1;
         input.value = '';
-
-        if (window.SemanticEqUI) {
-            SemanticEqUI.addMessage('user', text);
-            SemanticEqUI.setStatus('Pensando...', true);
-        }
-
+        pm._safeCall('SemanticEqUI', 'addMessage', 'user', text);
+        pm._safeCall('SemanticEqUI', 'setStatus', 'Pensando...', true);
         if (window.AIService) {
             try {
-                const result = await AIService.ask(text, channel);
-                if (window.SemanticEqUI) {
-                    SemanticEqUI.addMessage('ai', result.text);
-                    if (result.command) SemanticEqUI.showPlan(result.command);
-                    SemanticEqUI.setStatus('Pronto', false);
-                }
-            } catch (err) {
-                if (window.SemanticEqUI) {
-                    SemanticEqUI.addMessage('ai', 'Erro ao comunicar com a IA: ' + err.message);
-                    SemanticEqUI.setStatus('Erro', false);
-                }
-            }
-        } else {
-            if (window.SemanticEqUI) {
-                SemanticEqUI.addMessage('ai', 'AIService não disponível.');
-                SemanticEqUI.setStatus('Offline', false);
-            }
-        }
+                var result = await AIService.ask(text, channel);
+                pm._safeCall('SemanticEqUI', 'addMessage', 'ai', result.text);
+                if (result.command) pm._safeCall('SemanticEqUI', 'showPlan', result.command);
+                pm._safeCall('SemanticEqUI', 'setStatus', 'Pronto', false);
+            } catch (err) { pm._safeCall('SemanticEqUI', 'addMessage', 'ai', 'Erro ao comunicar com a IA: ' + err.message); pm._safeCall('SemanticEqUI', 'setStatus', 'Erro', false); }
+        } else { pm._safeCall('SemanticEqUI', 'addMessage', 'ai', 'AIService n\u00E3o dispon\u00EDvel.'); pm._safeCall('SemanticEqUI', 'setStatus', 'Offline', false); }
     }
 
     function _applyToMixer() {
-        const command = window.SemanticEqUI ? SemanticEqUI.getPendingCommand() : null;
+        var command = pm._safeCall('SemanticEqUI', 'getPendingCommand');
         if (!command || !command.action) return;
-        if (window.MixerService) {
-            MixerService.executeAICommand(command);
-            if (window.AppStore) AppStore.addLog('[Semantic EQ] Comando aplicado: ' + command.desc);
-            SemanticEqUI.hidePlan();
-        }
+        if (window.MixerService) { MixerService.executeAICommand(command); pm._safeCall('AppStore', 'addLog', '[Semantic EQ] Comando aplicado: ' + command.desc); pm._safeCall('SemanticEqUI', 'hidePlan'); }
     }
 
     function init() {
-        console.log('[SemanticEqPage] Initializing...');
-
-        _on(document.getElementById('btn-seq-send'), 'click', _sendCommand);
-
-        _on(document.getElementById('seq-input'), 'keydown', function (e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                _sendCommand();
-            }
-        });
-
-        _on(document.getElementById('btn-seq-clear'), 'click', function () {
-            if (window.SemanticEqUI) SemanticEqUI.clearChat();
-        });
-
-        _on(document.getElementById('btn-seq-apply'), 'click', _applyToMixer);
-
-        // Category buttons
-        document.querySelectorAll('.seq-category').forEach(function (btn) {
-            _on(btn, 'click', function () {
-                const desc = this.getAttribute('data-desc');
-                const input = document.getElementById('seq-input');
-                if (input) input.value = desc;
-                _sendCommand();
-            });
-        });
-
-        // Channel preview update
-        _on(document.getElementById('seq-channel'), 'change', function () {
-            const ch = parseInt(this.value) || 1;
-            if (window.SemanticEqUI) SemanticEqUI.updateChannelPreview(ch);
-        });
-
-        // Initial preview
-        const ch = parseInt(document.getElementById('seq-channel')?.value) || 1;
-        if (window.SemanticEqUI) {
-            SemanticEqUI.updateChannelPreview(ch);
-            SemanticEqUI.setStatus('Pronto', false);
-        }
-
-        console.log('[SemanticEqPage] Initialized.');
+        pm._on(pm._el('btn-seq-send'), 'click', _sendCommand);
+        pm._on(pm._el('seq-input'), 'keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); _sendCommand(); } });
+        pm._on(pm._el('btn-seq-clear'), 'click', function () { pm._safeCall('SemanticEqUI', 'clearChat'); });
+        pm._on(pm._el('btn-seq-apply'), 'click', _applyToMixer);
+        document.querySelectorAll('.seq-category').forEach(function (btn) { pm._on(btn, 'click', function () { var desc = this.getAttribute('data-desc'), input = pm._el('seq-input'); if (input) input.value = desc; _sendCommand(); }); });
+        pm._on(pm._el('seq-channel'), 'change', function () { var ch = parseInt(this.value) || 1; pm._safeCall('SemanticEqUI', 'updateChannelPreview', ch); });
+        var ch = parseInt(pm._el('seq-channel') ? pm._el('seq-channel').value : 1) || 1;
+        pm._safeCall('SemanticEqUI', 'updateChannelPreview', ch);
+        pm._safeCall('SemanticEqUI', 'setStatus', 'Pronto', false);
     }
 
-    function destroy() {
-        _listeners.forEach(({ target, event, handler }) => {
-            target.removeEventListener(event, handler);
-        });
-        _listeners = [];
-        console.log('[SemanticEqPage] Destroyed.');
-    }
+    function destroy() { pm.destroy(); }
 
-    window.SemanticEqPage = { init, destroy };
+    window.SemanticEqPage = { init: init, destroy: destroy };
 })();
