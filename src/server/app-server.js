@@ -10,6 +10,7 @@ const rateLimit = require('express-rate-limit');
 const db = require('./database');
 const { registerMappingsRoutes } = require('./mappings-routes');
 const { registerSocketHandlers } = require('./socket-handlers');
+const calculationRoutes = require('./calculation-routes');
 const { getPool } = require('./worker-pool');
 const mixerGit = require('./mixer-git');
 
@@ -52,6 +53,7 @@ function createAppServer({ app, rootDir, localIp, port, dbDir }) {
     db.initDatabase(dbDir);
     mixerGit.init(dbDir);
     registerMappingsRoutes(expressApp, db.mappings);
+    expressApp.use('/api/calculate', calculationRoutes);
 
     // ── Mixer Git REST API ───────────────────────────────────────────────────
     expressApp.get('/api/git/commits', async (req, res) => {

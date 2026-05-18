@@ -1,198 +1,99 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SoundMaster Pro - Painel de Diagnóstico</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background: #0f172a; color: #f1f5f9; }
-        .card { background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; padding: 1.5rem; }
-        .status-pill { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: bold; }
-        .status-ok { background: #065f46; color: #34d399; }
-        .status-warn { background: #92400e; color: #fbbf24; }
-        .status-fail { background: #991b1b; color: #f87171; }
-    </style>
-</head>
-<body class="p-8">
-    <div class="max-w-4xl mx-auto">
-        <header class="mb-8 flex justify-between items-center">
-            <div>
-                <h1 class="text-3xl font-black text-white">Diagnóstico Interno</h1>
-                <p class="text-slate-400">Verificação técnica pós-auditoria (SoundMaster Pro v2.5)</p>
-            </div>
-            <a href="index.html" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-sm transition">Voltar ao App</a>
-        </header>
+<section id="debug" class="module page-section">
+    <header class="mb-8 flex justify-between items-center">
+        <div>
+            <h2 class="text-3xl font-black text-white">Diagnóstico Interno</h2>
+            <p class="text-slate-400">Verificação técnica pós-auditoria (SoundMaster Pro v2.5)</p>
+        </div>
+        <a href="index.html" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-sm transition">Voltar ao App</a>
+    </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Camada Python AI -->
-            <div class="card">
-                <h3 class="text-lg font-bold mb-4 text-cyan-400">🐍 Backend Python (AI Engine)</h3>
-                <ul class="space-y-4">
-                    <li class="flex justify-between items-start">
-                        <div>
-                            <p class="text-sm font-medium">TTL de Sessões</p>
-                            <p class="text-xs text-slate-500">Limpeza de memória inativa > 1h</p>
-                        </div>
-                        <span id="check-python-ttl" class="status-pill status-ok">Verificado</span>
-                    </li>
-                    <li class="flex justify-between items-start">
-                        <div>
-                            <p class="text-sm font-medium">Divisão por Zero (RT60)</p>
-                            <p class="text-xs text-slate-500">Proteção em surface_area <= 0</p>
-                        </div>
-                        <span id="check-python-zero" class="status-pill status-ok">Protegido</span>
-                    </li>
-                    <li class="flex justify-between items-start">
-                        <div>
-                            <p class="text-sm font-medium">RT60 Schroeder (Peak Fix)</p>
-                            <p class="text-xs text-slate-500">Detecção de pico e integração reversa corrigida</p>
-                        </div>
-                        <span id="check-python-rt60" class="status-pill status-ok">Corrigido</span>
-                    </li>
-                    <li class="flex justify-between items-start">
-                        <div>
-                            <p class="text-sm font-medium">Q-Factor Variável</p>
-                            <p class="text-xs text-slate-500">Suporte a Line Array (Q=8-12) em Dc</p>
-                        </div>
-                        <span id="check-python-qfactor" class="status-pill status-ok">Ativo</span>
-                    </li>
-                    <li class="flex justify-between items-start">
-                        <div>
-                            <p class="text-sm font-medium">Modelo Local (GGUF)</p>
-                            <p class="text-xs text-slate-500">Inferência offline via TinyLlama-1.1B</p>
-                        </div>
-                        <span id="check-python-model" class="status-pill status-warn">Aguardando</span>
-                    </li>
-                </ul>
-                <button onclick="testPython()" class="mt-6 w-full bg-cyan-600 hover:bg-cyan-500 py-2 rounded-lg text-sm font-bold transition">Testar Conexão AI</button>
-            </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="debug-card">
+            <h3 class="text-lg font-bold mb-4 text-cyan-400">🐍 Backend Python (AI Engine)</h3>
+            <ul class="space-y-4">
+                <li class="flex justify-between items-start">
+                    <div><p class="text-sm font-medium">TTL de Sessões</p><p class="text-xs text-slate-500">Limpeza de memória inativa &gt; 1h</p></div>
+                    <span id="check-python-ttl" class="status-pill status-ok">Verificado</span>
+                </li>
+                <li class="flex justify-between items-start">
+                    <div><p class="text-sm font-medium">Divisão por Zero (RT60)</p><p class="text-xs text-slate-500">Proteção em surface_area &lt;= 0</p></div>
+                    <span id="check-python-zero" class="status-pill status-ok">Protegido</span>
+                </li>
+                <li class="flex justify-between items-start">
+                    <div><p class="text-sm font-medium">RT60 Schroeder (Peak Fix)</p><p class="text-xs text-slate-500">Detecção de pico e integração reversa corrigida</p></div>
+                    <span id="check-python-rt60" class="status-pill status-ok">Corrigido</span>
+                </li>
+                <li class="flex justify-between items-start">
+                    <div><p class="text-sm font-medium">Q-Factor Variável</p><p class="text-xs text-slate-500">Suporte a Line Array (Q=8-12) em Dc</p></div>
+                    <span id="check-python-qfactor" class="status-pill status-ok">Ativo</span>
+                </li>
+                <li class="flex justify-between items-start">
+                    <div><p class="text-sm font-medium">Modelo Local (GGUF)</p><p class="text-xs text-slate-500">Inferência offline via TinyLlama-1.1B</p></div>
+                    <span id="check-python-model" class="status-pill status-warn">Aguardando</span>
+                </li>
+            </ul>
+            <button id="btn-test-python" class="mt-6 w-full bg-cyan-600 hover:bg-cyan-500 py-2 rounded-lg text-sm font-bold transition">Testar Conexão AI</button>
+        </div>
 
-            <!-- Camada Node.js Server -->
-            <div class="card">
-                <h3 class="text-lg font-bold mb-4 text-emerald-400">🟢 Server Node.js (Core)</h3>
-                <ul class="space-y-4">
-                    <li class="flex justify-between items-start">
-                        <div>
-                            <p class="text-sm font-medium">Isolamento de Throttle</p>
-                            <p class="text-xs text-slate-500">Socket.id scope (VU/Master)</p>
-                        </div>
-                        <span id="check-node-throttle" class="status-pill status-ok">Isolado</span>
-                    </li>
-                    <li class="flex justify-between items-start">
-                        <div>
-                            <p class="text-sm font-medium">Allowlist de Comandos IA</p>
-                            <p class="text-xs text-slate-500">Zod validation (ALLOWED_AI_ACTIONS)</p>
-                        </div>
-                        <span id="check-node-allowlist" class="status-pill status-ok">Ativo</span>
-                    </li>
-                    <li class="flex justify-between items-start">
-                        <div>
-                            <p class="text-sm font-medium">Limite de Canais (Preset)</p>
-                            <p class="text-xs text-slate-500">Máximo 24 canais validado</p>
-                        </div>
-                        <span id="check-node-channels" class="status-pill status-ok">Validado</span>
-                    </li>
-                </ul>
-                <button onclick="testNode()" class="mt-6 w-full bg-emerald-600 hover:bg-emerald-500 py-2 rounded-lg text-sm font-bold transition">Verificar Status Server</button>
-            </div>
+        <div class="debug-card">
+            <h3 class="text-lg font-bold mb-4 text-emerald-400">🟢 Server Node.js (Core)</h3>
+            <ul class="space-y-4">
+                <li class="flex justify-between items-start">
+                    <div><p class="text-sm font-medium">Isolamento de Throttle</p><p class="text-xs text-slate-500">Socket.id scope (VU/Master)</p></div>
+                    <span id="check-node-throttle" class="status-pill status-ok">Isolado</span>
+                </li>
+                <li class="flex justify-between items-start">
+                    <div><p class="text-sm font-medium">Allowlist de Comandos IA</p><p class="text-xs text-slate-500">Zod validation (ALLOWED_AI_ACTIONS)</p></div>
+                    <span id="check-node-allowlist" class="status-pill status-ok">Ativo</span>
+                </li>
+                <li class="flex justify-between items-start">
+                    <div><p class="text-sm font-medium">Limite de Canais (Preset)</p><p class="text-xs text-slate-500">Máximo 24 canais validado</p></div>
+                    <span id="check-node-channels" class="status-pill status-ok">Validado</span>
+                </li>
+            </ul>
+            <button id="btn-test-node" class="mt-6 w-full bg-emerald-600 hover:bg-emerald-500 py-2 rounded-lg text-sm font-bold transition">Verificar Status Server</button>
+        </div>
 
-            <!-- Camada Frontend SPA -->
-            <div class="card">
-                <h3 class="text-lg font-bold mb-4 text-amber-400">🌐 Frontend SPA</h3>
-                <ul class="space-y-4">
-                    <li class="flex justify-between items-start">
-                        <div>
-                            <p class="text-sm font-medium">Script Execution</p>
-                            <p class="text-xs text-slate-500">Re-execução de scripts no router</p>
-                        </div>
-                        <span id="check-fe-scripts" class="status-pill status-ok">Ativo</span>
-                    </li>
-                    <li class="flex justify-between items-start">
-                        <div>
-                            <p class="text-sm font-medium">Quota LocalStorage</p>
-                            <p class="text-xs text-slate-500">Check de 2MB para Heatmap BG</p>
-                        </div>
-                        <span id="check-fe-quota" class="status-pill status-ok">Implementado</span>
-                    </li>
-                    <li class="flex justify-between items-start">
-                        <div>
-                            <p class="text-sm font-medium">Ponderação A (dBA)</p>
-                            <p class="text-xs text-slate-500">Normalização por percepção auditiva humana</p>
-                        </div>
-                        <span id="check-fe-dba" class="status-pill status-ok">Ativo</span>
-                    </li>
-                    <li class="flex justify-between items-start">
-                        <div>
-                            <p class="text-sm font-medium">Fator de Crista & Clipping</p>
-                            <p class="text-xs text-slate-500">Monitoramento de dinâmica e saturação digital</p>
-                        </div>
-                        <span id="check-fe-dynamics" class="status-pill status-ok">Implementado</span>
-                    </li>
-                    <li class="flex justify-between items-start">
-                        <div>
-                            <p class="text-sm font-medium">Validação SNR (RT60)</p>
-                            <p class="text-xs text-slate-500">Range dinâmico > 35dB para precisão técnica</p>
-                        </div>
-                        <span id="check-fe-snr" class="status-pill status-ok">Ativo</span>
-                    </li>
-                    <li class="flex justify-between items-start">
-                        <div>
-                            <p class="text-sm font-medium">Interpolação Linear (.cal)</p>
-                            <p class="text-xs text-slate-500">Resposta suave entre pontos de calibração</p>
-                        </div>
-                        <span id="check-fe-interp" class="status-pill status-ok">Implementado</span>
-                    </li>
-                    <li class="flex justify-between items-start">
-                        <div>
-                            <p class="text-sm font-medium">AudioWorklet Throttle</p>
-                            <p class="text-xs text-slate-500">Buffer de 4096 samples (redução de overhead)</p>
-                        </div>
-                        <span id="check-fe-worklet" class="status-pill status-ok">Otimizado</span>
-                    </li>
-                </ul>
-            </div>
+        <div class="debug-card">
+            <h3 class="text-lg font-bold mb-4 text-amber-400">🌐 Frontend SPA</h3>
+            <ul class="space-y-4">
+                <li class="flex justify-between items-start">
+                    <div><p class="text-sm font-medium">Script Execution</p><p class="text-xs text-slate-500">Re-execução de scripts no router</p></div>
+                    <span id="check-fe-scripts" class="status-pill status-ok">Ativo</span>
+                </li>
+                <li class="flex justify-between items-start">
+                    <div><p class="text-sm font-medium">Quota LocalStorage</p><p class="text-xs text-slate-500">Check de 2MB para Heatmap BG</p></div>
+                    <span id="check-fe-quota" class="status-pill status-ok">Implementado</span>
+                </li>
+                <li class="flex justify-between items-start">
+                    <div><p class="text-sm font-medium">Ponderação A (dBA)</p><p class="text-xs text-slate-500">Normalização por percepção auditiva humana</p></div>
+                    <span id="check-fe-dba" class="status-pill status-ok">Ativo</span>
+                </li>
+                <li class="flex justify-between items-start">
+                    <div><p class="text-sm font-medium">Fator de Crista &amp; Clipping</p><p class="text-xs text-slate-500">Monitoramento de dinâmica e saturação digital</p></div>
+                    <span id="check-fe-dynamics" class="status-pill status-ok">Implementado</span>
+                </li>
+                <li class="flex justify-between items-start">
+                    <div><p class="text-sm font-medium">Validação SNR (RT60)</p><p class="text-xs text-slate-500">Range dinâmico &gt; 35dB para precisão técnica</p></div>
+                    <span id="check-fe-snr" class="status-pill status-ok">Ativo</span>
+                </li>
+                <li class="flex justify-between items-start">
+                    <div><p class="text-sm font-medium">Interpolação Linear (.cal)</p><p class="text-xs text-slate-500">Resposta suave entre pontos de calibração</p></div>
+                    <span id="check-fe-interp" class="status-pill status-ok">Implementado</span>
+                </li>
+                <li class="flex justify-between items-start">
+                    <div><p class="text-sm font-medium">AudioWorklet Throttle</p><p class="text-xs text-slate-500">Buffer de 4096 samples (redução de overhead)</p></div>
+                    <span id="check-fe-worklet" class="status-pill status-ok">Otimizado</span>
+                </li>
+            </ul>
+        </div>
 
-            <!-- Console de Debug -->
-            <div class="card flex flex-col h-full">
-                <h3 class="text-lg font-bold mb-4 text-slate-300">💻 Console de Saída</h3>
-                <div id="debug-console" class="flex-grow bg-black/50 rounded-lg p-4 font-mono text-[10px] overflow-y-auto max-h-[160px] text-green-500">
-                    > Painel de Diagnóstico Carregado.<br>
-                    > Aguardando testes manuais...
-                </div>
+        <div class="debug-card flex flex-col h-full">
+            <h3 class="text-lg font-bold mb-4 text-slate-300">💻 Console de Saída</h3>
+            <div id="debug-console" class="flex-grow bg-black/50 rounded-lg p-4 font-mono text-[10px] overflow-y-auto max-h-[160px] text-green-500">
+                &gt; Painel de Diagnóstico Carregado.<br>
+                &gt; Aguardando testes manuais...
             </div>
         </div>
     </div>
-
-    <script>
-        const consoleEl = document.getElementById('debug-console');
-        function log(msg, type = 'info') {
-            const time = new Date().toLocaleTimeString();
-            const color = type === 'error' ? 'text-red-400' : (type === 'warn' ? 'text-amber-400' : 'text-green-400');
-            consoleEl.innerHTML += `<br><span class="${color}">[${time}] ${msg}</span>`;
-            consoleEl.scrollTop = consoleEl.scrollHeight;
-        }
-
-        async function testPython() {
-            log('Testando endpoint de diagnóstico Python...');
-            try {
-                const res = await fetch('/diagnose');
-                const data = await res.json();
-                log('Sucesso: ' + JSON.stringify(data));
-            } catch (e) {
-                log('Erro: ' + e.message, 'error');
-            }
-        }
-
-        async function testNode() {
-            log('Verificando status do servidor Node e Socket...');
-            // Simula verificação interna
-            setTimeout(() => {
-                log('Allowlist Zod: OK');
-                log('Throttle Scoping: OK');
-                log('Canal 24 Limit: OK');
-            }, 500);
-        }
-    </script>
-</body>
-</html>
+</section>

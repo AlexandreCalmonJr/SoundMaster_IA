@@ -1,4 +1,4 @@
-<section id="volunteer-mode" class="module page-section">
+<section id="volunteer" class="module page-section">
     <div class="flex items-center justify-between mb-8">
         <div class="flex items-center gap-4">
             <div class="p-4 bg-green-900/40 rounded-2xl text-3xl">🌿</div>
@@ -7,55 +7,35 @@
                 <p class="text-slate-400 font-medium">Interface simplificada para operadores sem experiência técnica.</p>
             </div>
         </div>
-        <button onclick="window.router.navigate('home')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all border border-white/10">
-            ← Sair do Modo Voluntário
-        </button>
+        <button id="vol-btn-exit" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all border border-white/10">← Sair do Modo Voluntário</button>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <!-- Canal Principal (Vocês) -->
         <div class="bg-slate-800/60 border border-white/10 rounded-2xl p-6">
-            <h3 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2">
-                <span>🎤</span> Canal Principal (Voz)
-            </h3>
-
+            <h3 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2"><span>🎤</span> Canal Principal (Voz)</h3>
             <div class="space-y-6">
                 <div class="space-y-3">
                     <label class="text-xs font-bold uppercase text-slate-500 ml-1">Volume do Vocal</label>
                     <div class="relative h-24 bg-black/50 rounded-xl border border-white/10 overflow-hidden">
                         <div id="vol-vu-fill" class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-green-600 via-green-400 to-red-500 transition-all duration-75" style="height: 0%"></div>
                         <div class="absolute inset-0 flex flex-col justify-between p-3 text-[9px] font-mono text-white/50 pointer-events-none">
-                            <span>CLIP</span>
-                            <span>0dB</span>
-                            <span>-12dB</span>
-                            <span>-24dB</span>
-                            <span>-48dB</span>
+                            <span>CLIP</span><span>0dB</span><span>-12dB</span><span>-24dB</span><span>-48dB</span>
                         </div>
                     </div>
                     <input type="range" id="vol-vocal" min="0" max="100" value="70" class="w-full accent-green-500 h-3 bg-slate-800 rounded-full appearance-none cursor-pointer">
                     <div class="flex justify-between text-[10px] text-slate-500">
-                        <span>0%</span>
-                        <span id="vol-vocal-val" class="text-green-400 font-mono font-bold">70%</span>
-                        <span>100%</span>
+                        <span>0%</span><span id="vol-vocal-val" class="text-green-400 font-mono font-bold">70%</span><span>100%</span>
                     </div>
                 </div>
-
                 <div class="flex items-center justify-between p-4 bg-black/30 rounded-xl border border-white/5">
-                    <div>
-                        <div class="text-sm font-bold text-white">Compressor</div>
-                        <div class="text-[10px] text-slate-500">Protege contra picos de voz</div>
-                    </div>
+                    <div><div class="text-sm font-bold text-white">Compressor</div><div class="text-[10px] text-slate-500">Protege contra picos de voz</div></div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="vol-vocal-comp" checked class="sr-only peer">
                         <div class="w-12 h-6 bg-slate-700 peer-checked:bg-green-600 rounded-full peer peer-checked:after:translate-x-6 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                     </label>
                 </div>
-
                 <div class="flex items-center justify-between p-4 bg-black/30 rounded-xl border border-white/5">
-                    <div>
-                        <div class="text-sm font-bold text-white">De-Esser</div>
-                        <div class="text-[10px] text-slate-500">Reduz assobios e sibilância</div>
-                    </div>
+                    <div><div class="text-sm font-bold text-white">De-Esser</div><div class="text-[10px] text-slate-500">Reduz assobios e sibilância</div></div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="vol-vocal-desser" checked class="sr-only peer">
                         <div class="w-12 h-6 bg-slate-700 peer-checked:bg-green-600 rounded-full peer peer-checked:after:translate-x-6 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
@@ -64,311 +44,74 @@
             </div>
         </div>
 
-        <!-- PA Principal -->
         <div class="bg-slate-800/60 border border-white/10 rounded-2xl p-6">
-            <h3 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2">
-                <span>🔊</span> Som do Templo (PA)
-            </h3>
-
+            <h3 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2"><span>🔊</span> Som do Templo (PA)</h3>
             <div class="space-y-6">
                 <div class="space-y-3">
                     <label class="text-xs font-bold uppercase text-slate-500 ml-1">Volume Geral do PA</label>
                     <div class="relative h-24 bg-black/50 rounded-xl border border-white/10 overflow-hidden">
                         <div id="vol-pa-fill" class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-cyan-600 via-cyan-400 to-amber-500 transition-all duration-75" style="height: 0%"></div>
                         <div class="absolute inset-0 flex flex-col justify-between p-3 text-[9px] font-mono text-white/50 pointer-events-none">
-                            <span>CLIP</span>
-                            <span>0dB</span>
-                            <span>-6dB</span>
-                            <span>-18dB</span>
-                            <span>-36dB</span>
+                            <span>CLIP</span><span>0dB</span><span>-6dB</span><span>-18dB</span><span>-36dB</span>
                         </div>
                     </div>
                     <input type="range" id="vol-pa" min="0" max="100" value="65" class="w-full accent-cyan-500 h-3 bg-slate-800 rounded-full appearance-none cursor-pointer">
                     <div class="flex justify-between text-[10px] text-slate-500">
-                        <span>0%</span>
-                        <span id="vol-pa-val" class="text-cyan-400 font-mono font-bold">65%</span>
-                        <span>100%</span>
+                        <span>0%</span><span id="vol-pa-val" class="text-cyan-400 font-mono font-bold">65%</span><span>100%</span>
                     </div>
                 </div>
-
                 <div class="flex items-center justify-between p-4 bg-black/30 rounded-xl border border-white/5">
-                    <div>
-                        <div class="text-sm font-bold text-white">Limitador</div>
-                        <div class="text-[10px] text-slate-500">Impede distorção e protege as caixas</div>
-                    </div>
+                    <div><div class="text-sm font-bold text-white">Limitador</div><div class="text-[10px] text-slate-500">Impede distorção e protege as caixas</div></div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="vol-pa-limiter" checked class="sr-only peer">
                         <div class="w-12 h-6 bg-slate-700 peer-checked:bg-cyan-600 rounded-full peer peer-checked:after:translate-x-6 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                     </label>
                 </div>
-
                 <div class="p-4 bg-amber-900/20 border border-amber-500/30 rounded-xl">
                     <div class="flex items-start gap-3">
                         <span class="text-xl">💡</span>
-                        <div>
-                            <div class="text-sm font-bold text-amber-400">Dica:</div>
-                            <div class="text-[11px] text-amber-200/70 leading-relaxed">Mantenha o volume do PA entre 60-80% para evitar fadiga auditiva. O limitador protege contra distorção.</div>
-                        </div>
+                        <div><div class="text-sm font-bold text-amber-400">Dica:</div><div class="text-[11px] text-amber-200/70 leading-relaxed">Mantenha o volume do PA entre 60-80% para evitar fadiga auditiva. O limitador protege contra distorção.</div></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Monitores -->
         <div class="bg-slate-800/60 border border-white/10 rounded-2xl p-6">
-            <h3 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2">
-                <span>🎧</span> Monitor (Retorno)
-            </h3>
-
+            <h3 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2"><span>🎧</span> Monitor (Retorno)</h3>
             <div class="space-y-4">
                 <div class="space-y-3">
                     <label class="text-xs font-bold uppercase text-slate-500 ml-1">Volume do Monitor</label>
                     <input type="range" id="vol-monitor" min="0" max="100" value="50" class="w-full accent-purple-500 h-3 bg-slate-800 rounded-full appearance-none cursor-pointer">
                     <div class="flex justify-between text-[10px] text-slate-500">
-                        <span>0%</span>
-                        <span id="vol-monitor-val" class="text-purple-400 font-mono font-bold">50%</span>
-                        <span>100%</span>
+                        <span>0%</span><span id="vol-monitor-val" class="text-purple-400 font-mono font-bold">50%</span><span>100%</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Quick Actions -->
         <div class="bg-slate-800/60 border border-white/10 rounded-2xl p-6">
-            <h3 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2">
-                <span>⚡</span> Ações Rápidas
-            </h3>
-
+            <h3 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2"><span>⚡</span> Ações Rápidas</h3>
             <div class="grid grid-cols-2 gap-3">
-                <button id="vol-btn-mute-pa" onclick="volToggleMutePA(this)" class="py-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-sm font-bold uppercase tracking-wider transition-all border border-white/10">
-                    🔇 Mutar PA
-                </button>
-                <button id="vol-btn-mute-vocal" onclick="volToggleMuteVocal(this)" class="py-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-sm font-bold uppercase tracking-wider transition-all border border-white/10">
-                    🔇 Mutar Vocal
-                </button>
-                <button onclick="volPresetLouvor()" class="py-4 bg-cyan-900/30 hover:bg-cyan-900/50 text-cyan-400 border border-cyan-500/30 rounded-xl text-sm font-bold uppercase tracking-wider transition-all">
-                    🎵 Modo Louvor
-                </button>
-                <button onclick="volPresetPregacao()" class="py-4 bg-green-900/30 hover:bg-green-900/50 text-green-400 border border-green-500/30 rounded-xl text-sm font-bold uppercase tracking-wider transition-all">
-                    📖 Modo Pregação
-                </button>
-                <button onclick="volPresetSilencio()" class="py-4 bg-slate-700 hover:bg-slate-600 text-slate-300 border border-white/10 rounded-xl text-sm font-bold uppercase tracking-wider transition-all">
-                    🔕 Modo Silêncio
-                </button>
-                <button onclick="window.router.navigate('ai-chat')" class="py-4 bg-purple-900/30 hover:bg-purple-900/50 text-purple-400 border border-purple-500/30 rounded-xl text-sm font-bold uppercase tracking-wider transition-all">
-                    🤖 Ajustar com IA
-                </button>
+                <button id="vol-btn-mute-pa" class="py-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-sm font-bold uppercase tracking-wider transition-all border border-white/10">🔇 Mutar PA</button>
+                <button id="vol-btn-mute-vocal" class="py-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-sm font-bold uppercase tracking-wider transition-all border border-white/10">🔇 Mutar Vocal</button>
+                <button id="vol-btn-preset-louvor" class="py-4 bg-cyan-900/30 hover:bg-cyan-900/50 text-cyan-400 border border-cyan-500/30 rounded-xl text-sm font-bold uppercase tracking-wider transition-all">🎵 Modo Louvor</button>
+                <button id="vol-btn-preset-pregacao" class="py-4 bg-green-900/30 hover:bg-green-900/50 text-green-400 border border-green-500/30 rounded-xl text-sm font-bold uppercase tracking-wider transition-all">📖 Modo Pregação</button>
+                <button id="vol-btn-preset-silencio" class="py-4 bg-slate-700 hover:bg-slate-600 text-slate-300 border border-white/10 rounded-xl text-sm font-bold uppercase tracking-wider transition-all">🔕 Modo Silêncio</button>
+                <button id="vol-btn-ai-chat" class="py-4 bg-purple-900/30 hover:bg-purple-900/50 text-purple-400 border border-purple-500/30 rounded-xl text-sm font-bold uppercase tracking-wider transition-all">🤖 Ajustar com IA</button>
             </div>
-
             <div class="mt-4 p-3 bg-blue-900/20 border border-blue-500/20 rounded-xl">
                 <p class="text-[10px] text-blue-200/70 leading-relaxed">🌐 Precisa de ajuda avançada? Toque em "Ajustar com IA" ou peça a um técnico para usar o modo completo.</p>
             </div>
         </div>
     </div>
 
-    <!-- Presets Rápidos -->
     <div class="mt-8 bg-slate-800/40 border border-white/10 rounded-2xl p-6">
         <h3 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">Presets Rápidos de Voz</h3>
         <div class="flex flex-wrap gap-2">
-            <button onclick="volApplyPreset('claro')" class="px-4 py-2 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 border border-cyan-500/30 rounded-lg text-xs font-bold transition-all">✨ Voz Clara</button>
-            <button onclick="volApplyPreset('suave')" class="px-4 py-2 bg-green-600/20 hover:bg-green-600/30 text-green-400 border border-green-500/30 rounded-lg text-xs font-bold transition-all">🌿 Suave</button>
-            <button onclick="volApplyPreset('potente')" class="px-4 py-2 bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 border border-amber-500/30 rounded-lg text-xs font-bold transition-all">💪 Potente</button>
-            <button onclick="volApplyPreset('estavel')" class="px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 border border-purple-500/30 rounded-lg text-xs font-bold transition-all">🎯 Estável</button>
+            <button id="vol-preset-claro" class="px-4 py-2 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 border border-cyan-500/30 rounded-lg text-xs font-bold transition-all">✨ Voz Clara</button>
+            <button id="vol-preset-suave" class="px-4 py-2 bg-green-600/20 hover:bg-green-600/30 text-green-400 border border-green-500/30 rounded-lg text-xs font-bold transition-all">🌿 Suave</button>
+            <button id="vol-preset-potente" class="px-4 py-2 bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 border border-amber-500/30 rounded-lg text-xs font-bold transition-all">💪 Potente</button>
+            <button id="vol-preset-estavel" class="px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 border border-purple-500/30 rounded-lg text-xs font-bold transition-all">🎯 Estável</button>
         </div>
     </div>
 </section>
-
-<script>
-    (function () {
-        const vocalSlider = document.getElementById('vol-vocal');
-        const vocalVal = document.getElementById('vol-vocal-val');
-        const vocalVuFill = document.getElementById('vol-vu-fill');
-
-        const paSlider = document.getElementById('vol-pa');
-        const paVal = document.getElementById('vol-pa-val');
-        const paVuFill = document.getElementById('vol-pa-fill');
-
-        const monitorSlider = document.getElementById('vol-monitor');
-        const monitorVal = document.getElementById('vol-monitor-val');
-
-        let vuUnsubscribe = null;
-
-        function vuToPercent(db) {
-            const max = 6, min = -60;
-            return Math.max(0, Math.min(100, ((db - min) / (max - min)) * 100));
-        }
-
-        function updateVUMeters() {
-            const state = window.AppStore ? AppStore.getState() : {};
-            const vu = state.vuData || {};
-
-            const ch1 = vu.channels ? vu.channels[1] : null;
-            const master = vu.master !== undefined ? vu.master : null;
-
-            if (ch1 !== null && vocalVuFill) {
-                const pct = vuToPercent((ch1 < 0 ? Math.log(ch1 + 0.0001) / Math.log(10) * 20 : ch1 * 80) - 80);
-                vocalVuFill.style.height = Math.max(0, Math.min(100, pct)) + '%';
-            }
-            if (master !== null && paVuFill) {
-                const db = master < 0.001 ? -80 : 20 * Math.log10(master);
-                paVuFill.style.height = Math.max(0, Math.min(100, vuToPercent(db))) + '%';
-            }
-        }
-
-        function startVUListener() {
-            if (window.AppStore && !vuUnsubscribe) {
-                vuUnsubscribe = AppStore.subscribe('vuData', function () {
-                    updateVUMeters();
-                });
-                updateVUMeters();
-            }
-        }
-
-        if (window.SimulationService && !SimulationService.isRunning()) {
-            SimulationService.enableSimulationMode();
-        }
-        startVUListener();
-
-        function updateSliderLabel(slider, labelEl) {
-            if (labelEl) labelEl.textContent = slider.value + '%';
-        }
-
-        vocalSlider.addEventListener('input', () => {
-            updateSliderLabel(vocalSlider, vocalVal);
-            if (window.MixerService) MixerService.setChannelLevel(1, Number(vocalSlider.value) / 100);
-        });
-
-        paSlider.addEventListener('input', () => {
-            updateSliderLabel(paSlider, paVal);
-            if (window.MixerService) MixerService.setMasterLevel(Number(paSlider.value) / 100);
-        });
-
-        monitorSlider.addEventListener('input', () => {
-            updateSliderLabel(monitorSlider, monitorVal);
-            if (window.MixerService) MixerService.setAuxLevel(1, 1, Number(monitorSlider.value) / 100);
-        });
-
-        updateSliderLabel(vocalSlider, vocalVal);
-        updateSliderLabel(paSlider, paVal);
-        updateSliderLabel(monitorSlider, monitorVal);
-
-        window.volToggleMutePA = function (btn) {
-            const isMuted = btn.dataset.muted === 'true';
-            if (isMuted) {
-                btn.dataset.muted = 'false';
-                btn.innerHTML = '🔇 Mutar PA';
-                btn.classList.remove('bg-red-600', 'hover:bg-red-500');
-                btn.classList.add('bg-slate-700', 'hover:bg-slate-600');
-                if (window.MixerService) MixerService.setMasterMute(false);
-            } else {
-                btn.dataset.muted = 'true';
-                btn.innerHTML = '🔊 Desmutar PA';
-                btn.classList.add('bg-red-600', 'hover:bg-red-500');
-                btn.classList.remove('bg-slate-700', 'hover:bg-slate-600');
-                if (window.MixerService) MixerService.setMasterMute(true);
-            }
-        };
-
-        window.volToggleMuteVocal = function (btn) {
-            const isMuted = btn.dataset.muted === 'true';
-            if (isMuted) {
-                btn.dataset.muted = 'false';
-                btn.innerHTML = '🔇 Mutar Vocal';
-                btn.classList.remove('bg-red-600', 'hover:bg-red-500');
-                btn.classList.add('bg-slate-700', 'hover:bg-slate-600');
-                if (window.MixerService) MixerService.setChannelMute(1, false);
-            } else {
-                btn.dataset.muted = 'true';
-                btn.innerHTML = '🔊 Desmutar Vocal';
-                btn.classList.add('bg-red-600', 'hover:bg-red-500');
-                btn.classList.remove('bg-slate-700', 'hover:bg-slate-600');
-                if (window.MixerService) MixerService.setChannelMute(1, true);
-            }
-        };
-
-window.volPresetLouvor = function () {
-            vocalSlider.value = 85;
-            paSlider.value = 65;
-            updateSliderLabel(vocalSlider, vocalVal);
-            updateSliderLabel(paSlider, paVal);
-            if (window.MixerService) {
-                MixerService.setChannelLevel(1, 0.85);
-                MixerService.setMasterLevel(0.65);
-            }
-        };
-
-        window.volPresetPregacao = function () {
-            vocalSlider.value = 75;
-            paSlider.value = 60;
-            updateSliderLabel(vocalSlider, vocalVal);
-            updateSliderLabel(paSlider, paVal);
-            if (window.MixerService) {
-                MixerService.setChannelLevel(1, 0.75);
-                MixerService.setMasterLevel(0.60);
-            }
-        };
-
-        window.volPresetSilencio = function () {
-            vocalSlider.value = 0;
-            paSlider.value = 0;
-            updateSliderLabel(vocalSlider, vocalVal);
-            updateSliderLabel(paSlider, paVal);
-            if (window.MixerService) {
-                MixerService.setChannelMute(1, true);
-                MixerService.setMasterMute(true);
-            }
-        };
-
-        window.volApplyPreset = function (preset) {
-            const presets = {
-                claro:   { vocal: 80, pa: 70 },
-                suave:   { vocal: 65, pa: 60 },
-                potente: { vocal: 90, pa: 75 },
-                estavel: { vocal: 70, pa: 65 }
-            };
-            const p = presets[preset] || presets.estavel;
-            vocalSlider.value = p.vocal;
-            paSlider.value = p.pa;
-            updateSliderLabel(vocalSlider, vocalVal);
-            updateSliderLabel(paSlider, paVal);
-            if (window.MixerService) {
-                MixerService.setChannelLevel(1, p.vocal / 100);
-                MixerService.setMasterLevel(p.pa / 100);
-            }
-        };
-
-        window.volPresetPregacao = function () {
-            vocalSlider.value = 85;
-            paSlider.value = 65;
-            updateVocalUI();
-            updatePAUI();
-            if (MixerService.setChannelLevel) MixerService.setChannelLevel(1, 0.85);
-            if (MixerService.setMasterLevel) MixerService.setMasterLevel(0.65);
-        };
-
-        window.volPresetSilencio = function () {
-            vocalSlider.value = 0;
-            paSlider.value = 0;
-            updateVocalUI();
-            updatePAUI();
-            if (MixerService.setChannelMute) MixerService.setChannelMute(1, true);
-            if (MixerService.setMasterMute) MixerService.setMasterMute(true);
-        };
-
-        window.volApplyPreset = function (preset) {
-            const presets = {
-                claro:   { vocal: 80, pa: 70, comp: true,  desser: true },
-                suave:   { vocal: 65, pa: 60, comp: true,  desser: true },
-                potente: { vocal: 90, pa: 75, comp: false, desser: false },
-                estavel: { vocal: 70, pa: 65, comp: true,  desser: false }
-            };
-            const p = presets[preset] || presets.estavel;
-            vocalSlider.value = p.vocal;
-            paSlider.value = p.pa;
-            document.getElementById('vol-vocal-comp').checked = p.comp;
-            document.getElementById('vol-vocal-desser').checked = p.desser;
-            updateVocalUI();
-            updatePAUI();
-        };
-    })();
-</script>

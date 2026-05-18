@@ -1,435 +1,48 @@
-<!DOCTYPE html>
-<div class="stage-plot-page" id="stage-plot-root">
-<style>
-.stage-plot-page { display:flex; gap:16px; padding:20px; height:calc(100vh - 80px); box-sizing:border-box; font-family:'Inter',sans-serif; }
-#sp-palette { width:120px; flex-shrink:0; display:flex; flex-direction:column; gap:8px; overflow-y:auto; }
-#sp-palette h4 { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:#94a3b8; margin:0 0 4px; }
-.sp-palette-item { display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 6px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:10px; cursor:grab; user-select:none; transition:background .15s,transform .1s; font-size:10px; color:#94a3b8; }
-.sp-palette-item:hover { background:rgba(6,182,212,.15); border-color:rgba(6,182,212,.4); color:#e2e8f0; transform:scale(1.04); }
-.sp-palette-item .sp-icon { font-size:26px; line-height:1; }
-#sp-stage-wrap { flex:1; display:flex; flex-direction:column; gap:10px; min-width:0; }
-#sp-toolbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-#sp-toolbar button { padding:6px 14px; border:none; border-radius:8px; font-size:11px; font-weight:600; cursor:pointer; transition:all .15s; }
-#sp-btn-clear  { background:rgba(239,68,68,.15); color:#f87171; border:1px solid rgba(239,68,68,.3); }
-#sp-btn-save   { background:rgba(6,182,212,.2); color:#22d3ee; border:1px solid rgba(6,182,212,.35); }
-#sp-btn-load   { background:rgba(255,255,255,.07); color:#94a3b8; border:1px solid rgba(255,255,255,.1); }
-#sp-btn-export { background:rgba(255,255,255,.07); color:#94a3b8; border:1px solid rgba(255,255,255,.1); }
-#sp-btn-spatial{ background:rgba(168,85,247,.15); color:#c084fc; border:1px solid rgba(168,85,247,.3); }
-#sp-toolbar button:hover { filter:brightness(1.2); transform:translateY(-1px); }
-#sp-canvas-wrap { flex:1; position:relative; background:linear-gradient(160deg,#0a0f1e 0%,#0d1a2e 100%); border:1px solid rgba(6,182,212,.18); border-radius:16px; overflow:hidden; box-shadow:0 0 60px rgba(6,182,212,.06); }
-#sp-canvas { width:100%; height:100%; display:block; }
-/* Stage zones */
-#sp-canvas-wrap::before { content:'FRENTE DA PLATEIA'; position:absolute; bottom:8px; left:50%; transform:translateX(-50%); font-size:9px; color:rgba(255,255,255,.15); font-weight:700; letter-spacing:.15em; pointer-events:none; }
-#sp-canvas-wrap::after  { content:'FUNDO DO PALCO'; position:absolute; top:8px; left:50%; transform:translateX(-50%); font-size:9px; color:rgba(255,255,255,.15); font-weight:700; letter-spacing:.15em; pointer-events:none; }
-/* Actors on stage */
-.sp-actor { position:absolute; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:grab; user-select:none; touch-action:none; transform:translate(-50%,-50%); z-index:10; }
-.sp-actor .sp-a-icon { font-size:32px; line-height:1; filter:drop-shadow(0 0 8px rgba(6,182,212,.7)); transition:filter .2s,transform .2s; }
-.sp-actor .sp-a-label { font-size:9px; font-weight:700; color:#e2e8f0; background:rgba(2,10,30,.8); border:1px solid rgba(6,182,212,.3); border-radius:6px; padding:2px 6px; white-space:nowrap; max-width:80px; overflow:hidden; text-overflow:ellipsis; }
-.sp-actor .sp-a-ch { font-size:8px; color:#22d3ee; font-weight:800; }
-.sp-actor:hover .sp-a-icon { filter:drop-shadow(0 0 14px rgba(6,182,212,1)); transform:scale(1.15); }
-.sp-actor.selected .sp-a-icon { filter:drop-shadow(0 0 18px rgba(251,191,36,1)) !important; transform:scale(1.2) !important; }
-.sp-actor .sp-a-remove { display:none; position:absolute; top:-10px; right:-10px; width:18px; height:18px; background:#ef4444; color:#fff; border-radius:50%; font-size:11px; line-height:18px; text-align:center; cursor:pointer; font-weight:700; }
-.sp-actor:hover .sp-a-remove { display:block; }
-/* Channel popup */
-#sp-ch-popup { position:fixed; z-index:9999; background:rgba(2,10,30,.97); border:1px solid rgba(6,182,212,.4); border-radius:14px; padding:16px; min-width:220px; box-shadow:0 20px 60px rgba(0,0,0,.6); backdrop-filter:blur(12px); display:none; }
-#sp-ch-popup h5 { margin:0 0 12px; font-size:12px; font-weight:700; color:#22d3ee; }
-#sp-ch-popup label { font-size:10px; color:#94a3b8; display:block; margin-bottom:4px; }
-#sp-ch-popup input[type=number], #sp-ch-popup input[type=text] { width:100%; padding:6px 10px; background:rgba(255,255,255,.06); border:1px solid rgba(6,182,212,.3); border-radius:8px; color:#e2e8f0; font-size:12px; outline:none; box-sizing:border-box; margin-bottom:10px; }
-#sp-ch-popup .sp-popup-btns { display:flex; gap:8px; }
-#sp-ch-popup .sp-popup-btns button { flex:1; padding:7px; border:none; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; }
-#sp-popup-confirm { background:rgba(6,182,212,.3); color:#22d3ee; border:1px solid rgba(6,182,212,.5) !important; }
-#sp-popup-open-ch { background:rgba(34,197,94,.2); color:#4ade80; border:1px solid rgba(34,197,94,.4) !important; }
-#sp-popup-cancel  { background:rgba(255,255,255,.07); color:#94a3b8; border:1px solid rgba(255,255,255,.15) !important; }
-/* Spatial avg badge */
-.sp-spatial-badge { position:absolute; top:10px; right:10px; background:rgba(168,85,247,.2); border:1px solid rgba(168,85,247,.4); border-radius:8px; padding:4px 10px; font-size:9px; color:#c084fc; font-weight:700; display:none; }
-</style>
+<section id="stage-plot" class="module page-section">
+    <div class="stage-plot-page" id="stage-plot-root">
+        <aside id="sp-palette">
+            <h4>Instrumentos</h4>
+            <div class="sp-palette-item" draggable="true" data-type="voice" data-icon="🎤" data-label="Voz"><span class="sp-icon">🎤</span>Voz</div>
+            <div class="sp-palette-item" draggable="true" data-type="pulpit" data-icon="🎙️" data-label="Púlpito"><span class="sp-icon">🎙️</span>Púlpito</div>
+            <div class="sp-palette-item" draggable="true" data-type="guitar" data-icon="🎸" data-label="Violão"><span class="sp-icon">🎸</span>Violão</div>
+            <div class="sp-palette-item" draggable="true" data-type="bass" data-icon="🎵" data-label="Baixo"><span class="sp-icon">🎵</span>Baixo</div>
+            <div class="sp-palette-item" draggable="true" data-type="keys" data-icon="🎹" data-label="Teclado"><span class="sp-icon">🎹</span>Teclado</div>
+            <div class="sp-palette-item" draggable="true" data-type="drums" data-icon="🥁" data-label="Bateria"><span class="sp-icon">🥁</span>Bateria</div>
+            <div class="sp-palette-item" draggable="true" data-type="violin" data-icon="🎻" data-label="Violino"><span class="sp-icon">🎻</span>Violino</div>
+            <div class="sp-palette-item" draggable="true" data-type="trumpet" data-icon="🎺" data-label="Trompete"><span class="sp-icon">🎺</span>Trompete</div>
+            <div class="sp-palette-item" draggable="true" data-type="speaker" data-icon="🔊" data-label="Monitor"><span class="sp-icon">🔊</span>Monitor</div>
+            <div class="sp-palette-item" draggable="true" data-type="di" data-icon="📦" data-label="DI Box"><span class="sp-icon">📦</span>DI Box</div>
+            <div class="sp-palette-item" draggable="true" data-type="mic_stand" data-icon="🎚️" data-label="Pedestal"><span class="sp-icon">🎚️</span>Pedestal</div>
+            <div class="sp-palette-item" draggable="true" data-type="piano" data-icon="🎼" data-label="Piano"><span class="sp-icon">🎼</span>Piano</div>
+        </aside>
 
-<!-- Palette -->
-<aside id="sp-palette">
-    <h4>Instrumentos</h4>
-    <div class="sp-palette-item" draggable="true" data-type="voice"    data-icon="🎤" data-label="Voz">       <span class="sp-icon">🎤</span>Voz</div>
-    <div class="sp-palette-item" draggable="true" data-type="pulpit"   data-icon="🎙️" data-label="Púlpito">  <span class="sp-icon">🎙️</span>Púlpito</div>
-    <div class="sp-palette-item" draggable="true" data-type="guitar"   data-icon="🎸" data-label="Violão">   <span class="sp-icon">🎸</span>Violão</div>
-    <div class="sp-palette-item" draggable="true" data-type="bass"     data-icon="🎵" data-label="Baixo">    <span class="sp-icon">🎵</span>Baixo</div>
-    <div class="sp-palette-item" draggable="true" data-type="keys"     data-icon="🎹" data-label="Teclado">  <span class="sp-icon">🎹</span>Teclado</div>
-    <div class="sp-palette-item" draggable="true" data-type="drums"    data-icon="🥁" data-label="Bateria">  <span class="sp-icon">🥁</span>Bateria</div>
-    <div class="sp-palette-item" draggable="true" data-type="violin"   data-icon="🎻" data-label="Violino">  <span class="sp-icon">🎻</span>Violino</div>
-    <div class="sp-palette-item" draggable="true" data-type="trumpet"  data-icon="🎺" data-label="Trompete"><span class="sp-icon">🎺</span>Trompete</div>
-    <div class="sp-palette-item" draggable="true" data-type="speaker"  data-icon="🔊" data-label="Monitor">  <span class="sp-icon">🔊</span>Monitor</div>
-    <div class="sp-palette-item" draggable="true" data-type="di"       data-icon="📦" data-label="DI Box">   <span class="sp-icon">📦</span>DI Box</div>
-    <div class="sp-palette-item" draggable="true" data-type="mic_stand"data-icon="🎚️" data-label="Pedestal"><span class="sp-icon">🎚️</span>Pedestal</div>
-    <div class="sp-palette-item" draggable="true" data-type="piano"    data-icon="🎼" data-label="Piano">    <span class="sp-icon">🎼</span>Piano</div>
-</aside>
+        <section id="sp-stage-wrap">
+            <div id="sp-toolbar">
+                <strong style="font-size:13px;color:#e2e8f0;font-weight:800">🎭 Palco Virtual</strong>
+                <button id="sp-btn-save">💾 Salvar Layout</button>
+                <button id="sp-btn-load">📂 Carregar</button>
+                <button id="sp-btn-clear">🗑️ Limpar</button>
+                <button id="sp-btn-export">📄 Exportar PDF</button>
+                <button id="sp-btn-spatial">🎙️ Ativar Média Espacial</button>
+                <span id="sp-actor-count" style="font-size:11px;color:#64748b;margin-left:auto;">0 instrumentos</span>
+            </div>
+            <div id="sp-canvas-wrap">
+                <canvas id="sp-canvas"></canvas>
+                <div class="sp-spatial-badge" id="sp-spatial-badge">📡 Spatial Averaging Ativo</div>
+            </div>
+        </section>
 
-<!-- Stage + Toolbar -->
-<section id="sp-stage-wrap">
-    <div id="sp-toolbar">
-        <strong style="font-size:13px;color:#e2e8f0;font-weight:800">🎭 Palco Virtual</strong>
-        <button id="sp-btn-save">💾 Salvar Layout</button>
-        <button id="sp-btn-load">📂 Carregar</button>
-        <button id="sp-btn-clear">🗑️ Limpar</button>
-        <button id="sp-btn-export">📄 Exportar PDF</button>
-        <button id="sp-btn-spatial" id="sp-btn-spatial">🎙️ Ativar Média Espacial</button>
-        <span id="sp-actor-count" style="font-size:11px;color:#64748b;margin-left:auto;">0 instrumentos</span>
-    </div>
-    <div id="sp-canvas-wrap">
-        <canvas id="sp-canvas"></canvas>
-        <div class="sp-spatial-badge" id="sp-spatial-badge">📡 Spatial Averaging Ativo</div>
+        <div id="sp-ch-popup">
+            <h5 id="sp-popup-title">⚙️ Configurar Instrumento</h5>
+            <label>Nome / Músico</label>
+            <input type="text" id="sp-popup-name" placeholder="Ex: João - Violão">
+            <label>Canal do Mixer (1–24)</label>
+            <input type="number" id="sp-popup-channel" min="1" max="24" placeholder="Ex: 5">
+            <div class="sp-popup-btns">
+                <button id="sp-popup-confirm">✅ OK</button>
+                <button id="sp-popup-open-ch">🎚️ Abrir Canal</button>
+                <button id="sp-popup-cancel">✕</button>
+            </div>
+        </div>
     </div>
 </section>
-
-<!-- Channel Popup -->
-<div id="sp-ch-popup">
-    <h5 id="sp-popup-title">⚙️ Configurar Instrumento</h5>
-    <label>Nome / Músico</label>
-    <input type="text"   id="sp-popup-name"    placeholder="Ex: João - Violão">
-    <label>Canal do Mixer (1–24)</label>
-    <input type="number" id="sp-popup-channel"  min="1" max="24" placeholder="Ex: 5">
-    <div class="sp-popup-btns">
-        <button id="sp-popup-confirm">✅ OK</button>
-        <button id="sp-popup-open-ch">🎚️ Abrir Canal</button>
-        <button id="sp-popup-cancel">✕</button>
-    </div>
-</div>
-
-<script>
-(function () {
-'use strict';
-
-// ─── Estado ───────────────────────────────────────────────────────────────────
-const STORAGE_KEY = 'sm_stage_plot_v2';
-let actors = [];          // [{ id, type, icon, label, name, channel, pct:{x,y} }]
-let nextId  = 1;
-let dragActor  = null;    // actor sendo arrastado (existente)
-let dragOffX   = 0, dragOffY = 0;
-let popupActor = null;    // actor no popup aberto
-let spatialActive = false;
-
-// ─── DOM refs ─────────────────────────────────────────────────────────────────
-const wrap     = document.getElementById('sp-canvas-wrap');
-const popup    = document.getElementById('sp-ch-popup');
-const popTitle = document.getElementById('sp-popup-title');
-const popName  = document.getElementById('sp-popup-name');
-const popCh    = document.getElementById('sp-popup-channel');
-const badge    = document.getElementById('sp-spatial-badge');
-const countEl  = document.getElementById('sp-actor-count');
-
-// ─── Utilitários ──────────────────────────────────────────────────────────────
-function pctToPos(pct) {
-    const r = wrap.getBoundingClientRect();
-    return { x: pct.x * r.width, y: pct.y * r.height };
-}
-function posToPct(x, y) {
-    const r = wrap.getBoundingClientRect();
-    return { x: Math.max(0, Math.min(1, x / r.width)), y: Math.max(0, Math.min(1, y / r.height)) };
-}
-function mkId() { return 'act_' + (nextId++) + '_' + Date.now(); }
-
-// ─── Render ───────────────────────────────────────────────────────────────────
-function renderAll() {
-    // Remove todos os elementos actor do wrap
-    wrap.querySelectorAll('.sp-actor').forEach(el => el.remove());
-    actors.forEach(renderActor);
-    countEl.textContent = `${actors.length} instrumento${actors.length !== 1 ? 's' : ''}`;
-}
-
-function renderActor(a) {
-    const pos = pctToPos(a.pct);
-    const el  = document.createElement('div');
-    el.className   = 'sp-actor';
-    el.id          = 'actor_' + a.id;
-    el.style.left  = pos.x + 'px';
-    el.style.top   = pos.y + 'px';
-    el.innerHTML   = `
-        <span class="sp-a-remove" title="Remover">✕</span>
-        <span class="sp-a-icon">${a.icon}</span>
-        <span class="sp-a-label">${a.name || a.label}</span>
-        ${a.channel ? `<span class="sp-a-ch">CH ${a.channel}</span>` : ''}
-    `;
-
-    // Drag start (mover existente)
-    el.addEventListener('pointerdown', e => {
-        if (e.target.classList.contains('sp-a-remove')) return;
-        e.preventDefault();
-        dragActor = a;
-        const r = el.getBoundingClientRect();
-        dragOffX  = e.clientX - r.left - r.width / 2;
-        dragOffY  = e.clientY - r.top  - r.height / 2;
-        el.style.zIndex = 999;
-        el.classList.add('selected');
-        el.setPointerCapture(e.pointerId);
-    });
-
-    el.addEventListener('pointermove', e => {
-        if (!dragActor || dragActor.id !== a.id) return;
-        const wrapRect = wrap.getBoundingClientRect();
-        const x = e.clientX - wrapRect.left - dragOffX;
-        const y = e.clientY - wrapRect.top  - dragOffY;
-        el.style.left = x + 'px';
-        el.style.top  = y + 'px';
-    });
-
-    el.addEventListener('pointerup', e => {
-        if (!dragActor || dragActor.id !== a.id) return;
-        const wrapRect = wrap.getBoundingClientRect();
-        const x = e.clientX - wrapRect.left - dragOffX;
-        const y = e.clientY - wrapRect.top  - dragOffY;
-        a.pct = posToPct(x, y);
-        dragActor = null;
-        el.classList.remove('selected');
-        el.style.zIndex = '';
-    });
-
-    // Click → abrir popup (apenas se não houve drag significativo)
-    let clickStartX, clickStartY;
-    el.addEventListener('pointerdown', e => { clickStartX = e.clientX; clickStartY = e.clientY; }, { passive: true });
-    el.addEventListener('click', e => {
-        if (e.target.classList.contains('sp-a-remove')) { removeActor(a.id); return; }
-        const dx = Math.abs(e.clientX - clickStartX), dy = Math.abs(e.clientY - clickStartY);
-        if (dx < 5 && dy < 5) openPopup(a, e.clientX, e.clientY);
-    });
-
-    wrap.appendChild(el);
-}
-
-// ─── Drag-drop da paleta ──────────────────────────────────────────────────────
-document.querySelectorAll('.sp-palette-item').forEach(item => {
-    item.addEventListener('dragstart', e => {
-        e.dataTransfer.setData('application/json', JSON.stringify({
-            type:  item.dataset.type,
-            icon:  item.dataset.icon,
-            label: item.dataset.label,
-        }));
-        e.dataTransfer.effectAllowed = 'copy';
-    });
-});
-
-wrap.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
-
-wrap.addEventListener('drop', e => {
-    e.preventDefault();
-    try {
-        const data    = JSON.parse(e.dataTransfer.getData('application/json'));
-        const wrapRect = wrap.getBoundingClientRect();
-        const x = e.clientX - wrapRect.left;
-        const y = e.clientY - wrapRect.top;
-        const actor = {
-            id:      mkId(),
-            type:    data.type,
-            icon:    data.icon,
-            label:   data.label,
-            name:    '',
-            channel: null,
-            pct:     posToPct(x, y),
-        };
-        actors.push(actor);
-        renderAll();
-        // Abre popup automaticamente para configurar canal
-        setTimeout(() => openPopup(actor, e.clientX, e.clientY), 80);
-    } catch (_) {}
-});
-
-// ─── Popup de configuração ────────────────────────────────────────────────────
-function openPopup(a, cx, cy) {
-    popupActor = a;
-    popTitle.textContent = `⚙️ ${a.icon} ${a.label}`;
-    popName.value = a.name || '';
-    popCh.value   = a.channel || '';
-
-    // Posiciona o popup próximo ao clique
-    const pw = 240, ph = 200;
-    const vw = window.innerWidth, vh = window.innerHeight;
-    popup.style.left    = Math.min(cx + 12, vw - pw - 12) + 'px';
-    popup.style.top     = Math.min(cy + 12, vh - ph - 12) + 'px';
-    popup.style.display = 'block';
-
-    setTimeout(() => popName.focus(), 50);
-}
-
-function closePopup() {
-    popup.style.display = 'none';
-    popupActor = null;
-}
-
-document.getElementById('sp-popup-confirm').addEventListener('click', () => {
-    if (!popupActor) return;
-    popupActor.name    = popName.value.trim() || popupActor.label;
-    popupActor.channel = parseInt(popCh.value) || null;
-    closePopup();
-    renderAll();
-    // Regista no SpatialAverager se ativo
-    _syncSpatialSources();
-});
-
-document.getElementById('sp-popup-open-ch').addEventListener('click', () => {
-    if (!popupActor || !popupActor.channel) {
-        alert('Defina um número de canal primeiro.');
-        return;
-    }
-    openMixerChannel(popupActor.channel);
-    closePopup();
-});
-
-document.getElementById('sp-popup-cancel').addEventListener('click', closePopup);
-
-// Fecha ao clicar fora
-document.addEventListener('click', e => {
-    if (!popup.contains(e.target) && !e.target.closest('.sp-actor')) closePopup();
-});
-
-// ─── Abrir canal no mixer ─────────────────────────────────────────────────────
-function openMixerChannel(ch) {
-    // 1. Navega para mixer-input
-    if (window.router) router.navigate('mixer-input');
-
-    // 2. Preenche o quick-channel e navega à aba correta no painel
-    setTimeout(() => {
-        const qch = document.getElementById('quick-channel-number');
-        if (qch) { qch.value = ch; qch.dispatchEvent(new Event('input')); }
-
-        // Abre a aba de Ações Rápidas no painel do mixer
-        const tab = document.querySelector('[data-tab="mixer-actions"]') ||
-                    document.querySelector('.mixer-tab-btn');
-        if (tab) tab.click();
-
-        // Dispara evento global para que outros módulos reajam
-        document.dispatchEvent(new CustomEvent('stage-plot-channel-open', {
-            detail: { channel: ch, actor: popupActor }
-        }));
-
-        AppStore?.addLog?.(`🎭 Stage Plot: Canal ${ch} aberto via palco.`);
-    }, 300);
-}
-
-// ─── Remover actor ────────────────────────────────────────────────────────────
-function removeActor(id) {
-    actors = actors.filter(a => a.id !== id);
-    document.getElementById('actor_' + id)?.remove();
-    countEl.textContent = `${actors.length} instrumento${actors.length !== 1 ? 's' : ''}`;
-    _syncSpatialSources();
-}
-
-// ─── Persistência ─────────────────────────────────────────────────────────────
-document.getElementById('sp-btn-save').addEventListener('click', () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(actors));
-    const btn = document.getElementById('sp-btn-save');
-    btn.textContent = '✅ Salvo!';
-    setTimeout(() => { btn.textContent = '💾 Salvar Layout'; }, 1500);
-});
-
-document.getElementById('sp-btn-load').addEventListener('click', () => {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) { alert('Nenhum layout salvo.'); return; }
-        actors = JSON.parse(raw);
-        // Recalcula nextId para evitar colisões
-        nextId = actors.reduce((m, a) => {
-            const n = parseInt(a.id?.split('_')[1]);
-            return n > m ? n + 1 : m;
-        }, 1);
-        renderAll();
-    } catch (e) {
-        alert('Erro ao carregar layout: ' + e.message);
-    }
-});
-
-document.getElementById('sp-btn-clear').addEventListener('click', () => {
-    if (!confirm('Limpar o palco?')) return;
-    actors = [];
-    wrap.querySelectorAll('.sp-actor').forEach(el => el.remove());
-    countEl.textContent = '0 instrumentos';
-});
-
-// ─── Exportar PDF (print) ────────────────────────────────────────────────────
-document.getElementById('sp-btn-export').addEventListener('click', () => {
-    window.print();
-});
-
-// ─── Botão Spatial Averaging ──────────────────────────────────────────────────
-document.getElementById('sp-btn-spatial').addEventListener('click', async () => {
-    if (!window.SpatialAverager) {
-        alert('SpatialAverager não disponível. Carregue a página de Análise primeiro.');
-        return;
-    }
-    if (spatialActive) {
-        await SpatialAverager.stop();
-        spatialActive = false;
-        badge.style.display = 'none';
-        document.getElementById('sp-btn-spatial').textContent = '🎙️ Ativar Média Espacial';
-    } else {
-        const mics = await SpatialAverager.startMultiDevice(Math.min(actors.filter(a => a.channel).length || 2, 8));
-        spatialActive = mics.length > 0;
-        badge.style.display = spatialActive ? 'block' : 'none';
-        document.getElementById('sp-btn-spatial').textContent = spatialActive ? '⏹ Parar Spatial Avg' : '🎙️ Ativar Média Espacial';
-        _syncSpatialSources();
-    }
-});
-
-function _syncSpatialSources() {
-    if (!window.SpatialAverager || !spatialActive) return;
-    // Regista todos os actors com canal como fontes identificadas
-    actors.filter(a => a.channel).forEach(a => {
-        const id = 'stage_' + a.channel;
-        if (!SpatialAverager.isActive()) return;
-        SpatialAverager.addSource(id, `CH${a.channel} ${a.name || a.label}`.slice(0, 14));
-    });
-}
-
-// ─── Desenha grid de referência no canvas ────────────────────────────────────
-const canvas = document.getElementById('sp-canvas');
-function resizeCanvas() {
-    canvas.width  = wrap.clientWidth;
-    canvas.height = wrap.clientHeight;
-    drawGrid();
-    renderAll(); // re-posiciona actors
-}
-
-function drawGrid() {
-    const ctx = canvas.getContext('2d');
-    const w = canvas.width, h = canvas.height;
-    ctx.clearRect(0, 0, w, h);
-
-    // Gradiente de fundo de palco
-    const grad = ctx.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0,   'rgba(6,182,212,.04)');
-    grad.addColorStop(0.5, 'rgba(0,0,0,0)');
-    grad.addColorStop(1,   'rgba(99,102,241,.04)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, w, h);
-
-    // Grid de referência (linhas de posição)
-    ctx.strokeStyle = 'rgba(255,255,255,.04)';
-    ctx.lineWidth = 1;
-    const cols = 8, rows = 6;
-    for (let c = 1; c < cols; c++) {
-        ctx.beginPath(); ctx.moveTo(c / cols * w, 0); ctx.lineTo(c / cols * w, h); ctx.stroke();
-    }
-    for (let r = 1; r < rows; r++) {
-        ctx.beginPath(); ctx.moveTo(0, r / rows * h); ctx.lineTo(w, r / rows * h); ctx.stroke();
-    }
-
-    // Linha de borda do palco
-    ctx.strokeStyle = 'rgba(6,182,212,.12)';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(2, 2, w - 4, h - 4);
-
-    // Área central do palco (tracejada)
-    ctx.setLineDash([6, 4]);
-    ctx.strokeStyle = 'rgba(6,182,212,.08)';
-    ctx.strokeRect(w * 0.1, h * 0.08, w * 0.8, h * 0.84);
-    ctx.setLineDash([]);
-}
-
-// Observa resize do container
-new ResizeObserver(resizeCanvas).observe(wrap);
-resizeCanvas();
-
-// ─── Auto-load se houver layout salvo ────────────────────────────────────────
-try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) { actors = JSON.parse(raw); renderAll(); }
-} catch (_) {}
-
-})();
-</script>
-</div>

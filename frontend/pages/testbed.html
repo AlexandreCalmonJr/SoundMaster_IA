@@ -18,14 +18,12 @@
     <div class="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6">
         <div class="xl:col-span-1 bg-slate-800/40 border border-white/10 rounded-2xl p-5">
             <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">🎭 Cenários</h3>
-            <div class="space-y-2" id="scene-buttons">
-            </div>
+            <div class="space-y-2" id="scene-buttons"></div>
         </div>
 
         <div class="xl:col-span-3 bg-slate-800/40 border border-white/10 rounded-2xl p-5">
             <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">📊 Mixer Simulado — Canais 1–12</h3>
-            <div id="sim-vu-grid" class="grid grid-cols-12 gap-2">
-            </div>
+            <div id="sim-vu-grid" class="grid grid-cols-12 gap-2"></div>
             <div class="mt-4 flex items-center gap-4">
                 <div class="flex items-center gap-2 flex-1">
                     <span class="text-xs text-slate-500 w-16">Master</span>
@@ -46,22 +44,10 @@
         <div class="bg-slate-800/40 border border-white/10 rounded-2xl p-5">
             <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">📈 Análise Acústica Simulada</h3>
             <div class="grid grid-cols-2 xl:grid-cols-4 gap-3">
-                <div class="bg-slate-900/60 rounded-xl p-3 text-center">
-                    <div class="text-2xl font-bold text-cyan-400" id="sim-rt60">--</div>
-                    <div class="text-[10px] text-slate-500 uppercase">RT60 (s)</div>
-                </div>
-                <div class="bg-slate-900/60 rounded-xl p-3 text-center">
-                    <div class="text-2xl font-bold text-emerald-400" id="sim-sti">--</div>
-                    <div class="text-[10px] text-slate-500 uppercase">STI</div>
-                </div>
-                <div class="bg-slate-900/60 rounded-xl p-3 text-center">
-                    <div class="text-2xl font-bold text-amber-400" id="sim-c50">--</div>
-                    <div class="text-[10px] text-slate-500 uppercase">C50 (dB)</div>
-                </div>
-                <div class="bg-slate-900/60 rounded-xl p-3 text-center">
-                    <div class="text-2xl font-bold text-purple-400" id="sim-peak">--</div>
-                    <div class="text-[10px] text-slate-500 uppercase">Pico (Hz)</div>
-                </div>
+                <div class="bg-slate-900/60 rounded-xl p-3 text-center"><div class="text-2xl font-bold text-cyan-400" id="sim-rt60">--</div><div class="text-[10px] text-slate-500 uppercase">RT60 (s)</div></div>
+                <div class="bg-slate-900/60 rounded-xl p-3 text-center"><div class="text-2xl font-bold text-emerald-400" id="sim-sti">--</div><div class="text-[10px] text-slate-500 uppercase">STI</div></div>
+                <div class="bg-slate-900/60 rounded-xl p-3 text-center"><div class="text-2xl font-bold text-amber-400" id="sim-c50">--</div><div class="text-[10px] text-slate-500 uppercase">C50 (dB)</div></div>
+                <div class="bg-slate-900/60 rounded-xl p-3 text-center"><div class="text-2xl font-bold text-purple-400" id="sim-peak">--</div><div class="text-[10px] text-slate-500 uppercase">Pico (Hz)</div></div>
             </div>
             <div class="mt-4">
                 <canvas id="sim-fft-canvas" width="500" height="80" class="w-full rounded-lg bg-black/60 border border-white/5"></canvas>
@@ -73,15 +59,13 @@
                 <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest">🤖 IA Simulada</h3>
                 <span class="text-[10px] text-slate-600">Respostas realistas em português</span>
             </div>
-            <div id="sim-chat-messages" class="h-[180px] overflow-y-auto p-4 space-y-3">
-            </div>
+            <div id="sim-chat-messages" class="h-[180px] overflow-y-auto p-4 space-y-3"></div>
             <div class="px-4 py-3 border-t border-white/5">
                 <div class="flex gap-2">
                     <input type="text" id="sim-chat-input" class="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 outline-none" placeholder="Digite um comando para a IA...">
                     <button id="btn-sim-chat" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold text-sm transition-all">Enviar</button>
                 </div>
-                <div class="mt-2 flex flex-wrap gap-1" id="sim-ai-prompts">
-                </div>
+                <div class="mt-2 flex flex-wrap gap-1" id="sim-ai-prompts"></div>
             </div>
         </div>
     </div>
@@ -125,321 +109,8 @@
         <div class="bg-slate-800/40 border border-white/10 rounded-2xl p-5">
             <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">📋 Log de Eventos</h3>
             <div id="sim-log" class="bg-black/40 rounded-lg p-3 font-mono text-[10px] text-green-400 h-[160px] overflow-y-auto space-y-1">
-                <div>> Simulação pronta. Clique em "Iniciar" para começar.</div>
+                <div>&gt; Simulação pronta. Clique em "Iniciar" para começar.</div>
             </div>
         </div>
     </div>
 </section>
-
-<script>
-(function () {
-    const NUM_CH = 12;
-    let animationFrameId = null;
-    let fftCtx = null;
-
-    function log(msg, type) {
-        const el = document.getElementById('sim-log');
-        if (!el) return;
-        const time = new Date().toLocaleTimeString('pt-BR');
-        const color = type === 'error' ? 'text-red-400' : type === 'warn' ? 'text-amber-400' : 'text-green-400';
-        el.innerHTML += `<div class="${color}">[${time}] ${msg}</div>`;
-        el.scrollTop = el.scrollHeight;
-    }
-
-    function initSceneButtons() {
-        const container = document.getElementById('scene-buttons');
-        const scenes = SimulationService.getScenes();
-        const activeScene = SimulationService.getActiveScene();
-
-        Object.entries(scenes).forEach(function ([id, scene]) {
-            const btn = document.createElement('button');
-            btn.className = 'sim-scene-btn w-full text-left p-3 rounded-xl border transition-all text-xs font-bold';
-            btn.setAttribute('data-scene', id);
-            btn.innerHTML = `<div class="text-sm">${scene.label}</div><div class="text-[10px] text-slate-500 mt-1">${scene.description}</div>`;
-            if (id === 'louvor') {
-                btn.className += ' bg-cyan-900/30 border-cyan-500/40 text-cyan-300';
-            } else {
-                btn.className += ' bg-slate-800/60 border-white/5 text-slate-300 hover:border-white/20';
-            }
-            btn.addEventListener('click', function () {
-                SimulationService.setScene(id);
-                updateSceneButtons();
-                updateAcousticDisplay();
-                log('Cenário alterado: ' + scene.label);
-            });
-            container.appendChild(btn);
-        });
-    }
-
-    function updateSceneButtons() {
-        const active = SimulationService.getActiveScene();
-        document.querySelectorAll('.sim-scene-btn').forEach(function (btn) {
-            const isActive = btn.getAttribute('data-scene') === 'louvor';
-            if (isActive) {
-                btn.className = 'sim-scene-btn w-full text-left p-3 rounded-xl border transition-all text-xs font-bold bg-cyan-900/30 border-cyan-500/40 text-cyan-300';
-            } else {
-                btn.className = 'sim-scene-btn w-full text-left p-3 rounded-xl border transition-all text-xs font-bold bg-slate-800/60 border-white/5 text-slate-300 hover:border-white/20';
-            }
-        });
-    }
-
-    function buildVuGrid() {
-        const grid = document.getElementById('sim-vu-grid');
-        grid.innerHTML = '';
-        for (let i = 1; i <= NUM_CH; i++) {
-            const div = document.createElement('div');
-            div.className = 'flex flex-col items-center gap-1';
-            div.innerHTML = `
-                <div class="text-[9px] text-slate-600 font-mono">${i}</div>
-                <div class="w-full h-24 bg-black/40 rounded-lg overflow-hidden relative flex flex-col justify-end" id="sim-ch-vu-${i}">
-                    <div class="sim-vu-bar w-full bg-cyan-500/70 transition-all" style="height:0%"></div>
-                    <div class="sim-vu-peak absolute left-0 right-0 h-0.5 bg-red-500 transition-all" style="bottom:0%"></div>
-                </div>
-                <div class="sim-vu-label text-[9px] text-slate-600 font-mono">-∞</div>
-            `;
-            grid.appendChild(div);
-        }
-    }
-
-    function updateVuGrid() {
-        if (!SimulationService.isRunning()) return;
-        const s = SimulationService.getState();
-        for (let i = 1; i <= NUM_CH; i++) {
-            const ch = s.channels[i - 1];
-            if (!ch) continue;
-            const vu = ch.vu;
-            const pct = Math.max(0, ((vu + 80) / 80) * 100);
-            const bar = document.querySelector(`#sim-ch-vu-${i} .sim-vu-bar`);
-            const peak = document.querySelector(`#sim-ch-vu-${i} .sim-vu-peak`);
-            const label = document.querySelector(`#sim-ch-vu-${i}`).parentElement.querySelector('.sim-vu-label');
-            if (bar) bar.style.height = pct + '%';
-            if (peak) peak.style.bottom = Math.max(0, ((ch.vuPeak + 80) / 80) * 100) + '%';
-            if (label) label.textContent = vu > -60 ? vu.toFixed(1) + 'dB' : '-∞';
-        }
-
-        const masterPct = s.master.level * 100;
-        const masterBar = document.getElementById('sim-master-bar');
-        const masterLabel = document.getElementById('sim-master-label');
-        if (masterBar) masterBar.style.width = masterPct + '%';
-        if (masterLabel) masterLabel.textContent = s.master.mute ? 'MUTE' : Math.round((s.master.level - 1) * 100) + 'dB';
-    }
-
-    function updateAcousticDisplay() {
-        const a = SimulationService.getFakeAnalysis();
-        document.getElementById('sim-rt60').textContent = a.rt60.toFixed(2);
-        document.getElementById('sim-sti').textContent = a.sti.toFixed(2);
-        document.getElementById('sim-c50').textContent = a.c50.toFixed(1);
-        document.getElementById('sim-peak').textContent = a.peakHz > 0 ? a.peakHz + 'Hz' : '--';
-        drawFft(a.spectrum_db);
-    }
-
-    function drawFft(spectrumData) {
-        const canvas = document.getElementById('sim-fft-canvas');
-        if (!canvas) return;
-        if (!fftCtx) fftCtx = canvas.getContext('2d');
-
-        const ctx = fftCtx;
-        const w = canvas.width;
-        const h = canvas.height;
-
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.fillRect(0, 0, w, h);
-
-        if (!spectrumData || spectrumData.length === 0) return;
-
-        const bars = spectrumData.length;
-        const barW = w / bars;
-
-        for (let i = 0; i < bars; i++) {
-            const db = spectrumData[i] || 0;
-            const barH = Math.max(2, ((db + 30) / 30) * h);
-            const x = i * barW;
-
-            const r = Math.round(_lerp(0, 8, i / bars));
-            const g = Math.round(_lerp(100, 200, i / bars));
-            const b = Math.round(_lerp(200, 80, i / bars));
-            ctx.fillStyle = `rgba(${r},${g},${b},0.9)`;
-            ctx.fillRect(x + 1, h - barH, barW - 2, barH);
-        }
-
-        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-        ctx.lineWidth = 0.5;
-        ctx.beginPath();
-        ctx.moveTo(0, h * 0.66);
-        ctx.lineTo(w, h * 0.66);
-        ctx.stroke();
-    }
-
-    function _lerp(a, b, t) { return a + (b - a) * t; }
-
-    function animate() {
-        updateVuGrid();
-        animationFrameId = requestAnimationFrame(animate);
-    }
-
-    function startSimulation() {
-        SimulationService.start();
-        updateSimUI();
-        animate();
-        updateAcousticDisplay();
-        log('Simulação iniciada', 'info');
-        SimulationService.askAI('status').then(function (r) {
-            addChatMessage('ai', r.text);
-        });
-    }
-
-    function stopSimulation() {
-        SimulationService.stop();
-        if (animationFrameId) cancelAnimationFrame(animationFrameId);
-        updateSimUI();
-        log('Simulação pausada', 'warn');
-    }
-
-    function resetSimulation() {
-        SimulationService.reset();
-        buildVuGrid();
-        updateAcousticDisplay();
-        updateSimUI();
-        log('Estado resetado', 'info');
-    }
-
-    function updateSimUI() {
-        const running = SimulationService.isRunning();
-        const dot = document.getElementById('sim-dot');
-        const text = document.getElementById('sim-status-text');
-        const startBtn = document.getElementById('btn-sim-start');
-        const stopBtn = document.getElementById('btn-sim-stop');
-
-        if (running) {
-            dot.className = 'w-3 h-3 rounded-full bg-green-500 animate-pulse';
-            text.textContent = 'ATIVO';
-            text.className = 'text-xs font-bold text-green-400';
-            startBtn.classList.add('hidden');
-            stopBtn.classList.remove('hidden');
-        } else {
-            dot.className = 'w-3 h-3 rounded-full bg-slate-600';
-            text.textContent = 'PAUSADO';
-            text.className = 'text-xs font-bold text-slate-400';
-            startBtn.classList.remove('hidden');
-            stopBtn.classList.add('hidden');
-        }
-    }
-
-    function addChatMessage(role, text) {
-        const container = document.getElementById('sim-chat-messages');
-        const div = document.createElement('div');
-        div.className = 'flex gap-2' + (role === 'user' ? ' flex-row-reverse' : '');
-        const avatar = role === 'user'
-            ? '<div class="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center text-[10px] font-bold flex-shrink-0">U</div>'
-            : '<div class="w-6 h-6 rounded-full bg-cyan-600/30 border border-cyan-500/30 flex items-center justify-center text-[10px] flex-shrink-0">AI</div>';
-        const bubble = role === 'user'
-            ? `<div class="bg-cyan-700/40 rounded-xl rounded-tr-none px-3 py-2 text-xs text-slate-100 max-w-[85%]">${text}</div>`
-            : `<div class="bg-slate-800/60 rounded-xl rounded-tl-none px-3 py-2 text-xs text-slate-300 max-w-[85%]">${text.replace(/\n/g, '<br>')}</div>`;
-        div.innerHTML = avatar + bubble;
-        container.appendChild(div);
-        container.scrollTop = container.scrollHeight;
-    }
-
-    function sendChat() {
-        const input = document.getElementById('sim-chat-input');
-        const text = input.value.trim();
-        if (!text) return;
-        input.value = '';
-        addChatMessage('user', text);
-        SimulationService.askAI(text, 1).then(function (res) {
-            addChatMessage('ai', res.text);
-            if (res.command) {
-                log('Comando gerado: ' + JSON.stringify(res.command), 'info');
-            }
-        });
-    }
-
-    function execCommand(cmd) {
-        const s = SimulationService.getState();
-        switch (cmd) {
-            case 'set_master_level': return log('> Master: ' + arguments[1] * 100 + '%', 'info');
-            case 'channel_mute':
-                SimulationService.setChannelMute(parseInt(arguments[1]), arguments[2] === 'true');
-                return log('> Canal ' + arguments[1] + (arguments[2] === 'true' ? ' MUTADO' : ' DESMUTADO'), 'info');
-            case 'set_channel_level':
-                SimulationService.setChannelLevel(parseInt(arguments[1]), parseFloat(arguments[2]));
-                return log('> Canal ' + arguments[1] + ': ' + (parseFloat(arguments[2]) * 100) + '%', 'info');
-            case 'eq_cut':
-                return log('> EQ Corte: ' + arguments[1] + 'Hz, ' + arguments[2] + 'dB', 'info');
-            case 'hpf':
-                return log('> HPF Canal ' + arguments[1] + ': ' + arguments[2] + 'Hz', 'info');
-            case 'comp':
-                return log('> Compressor Canal ' + arguments[1], 'info');
-            default:
-                return log('> Comando: ' + cmd, 'info');
-        }
-    }
-
-    function init() {
-        buildVuGrid();
-        initSceneButtons();
-        updateAcousticDisplay();
-        updateSimUI();
-
-        document.getElementById('btn-sim-start').addEventListener('click', startSimulation);
-        document.getElementById('btn-sim-stop').addEventListener('click', stopSimulation);
-        document.getElementById('btn-sim-reset').addEventListener('click', resetSimulation);
-
-        document.getElementById('btn-sim-chat').addEventListener('click', sendChat);
-        document.getElementById('sim-chat-input').addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') { e.preventDefault(); sendChat(); }
-        });
-
-        document.getElementById('btn-sim-mute').addEventListener('click', function () {
-            const s = SimulationService.getState();
-            SimulationService.setMasterMute(!s.master.mute);
-            log('Master ' + (!s.master.mute ? 'MUTADO' : 'DESMUTADO'), 'info');
-        });
-
-        document.getElementById('btn-sim-solo').addEventListener('click', function () {
-            SimulationService.setChannelMute(1, true);
-            log('Canal 1 SOLO', 'info');
-        });
-
-        document.getElementById('sim-fader-ch1').addEventListener('input', function () {
-            const val = parseInt(this.value) / 100;
-            SimulationService.setChannelLevel(1, val);
-            document.getElementById('sim-fader-ch1-val').textContent = this.value + '%';
-        });
-
-        document.getElementById('sim-fader-ch2').addEventListener('input', function () {
-            const val = parseInt(this.value) / 100;
-            SimulationService.setChannelLevel(2, val);
-            document.getElementById('sim-fader-ch2-val').textContent = this.value + '%';
-        });
-
-        document.getElementById('sim-fader-master').addEventListener('input', function () {
-            const val = parseInt(this.value) / 100;
-            SimulationService.setMasterLevel(val);
-            document.getElementById('sim-fader-master-val').textContent = this.value + '%';
-        });
-
-        document.querySelectorAll('.sim-cmd-btn').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                const cmd = this.getAttribute('data-cmd');
-                const ch = this.getAttribute('data-ch') || '1';
-                const val = this.getAttribute('data-val');
-                const hz = this.getAttribute('data-hz');
-                const gain = this.getAttribute('data-gain');
-                switch (cmd) {
-                    case 'set_master_level': SimulationService.setMasterLevel(parseFloat(val)); log('Master: ' + (parseFloat(val) * 100) + '%'); break;
-                    case 'channel_mute': SimulationService.setChannelMute(parseInt(ch), val === 'true'); log('Canal ' + ch + (val === 'true' ? ' MUTADO' : ' DESMUTADO')); break;
-                    case 'set_channel_level': SimulationService.setChannelLevel(parseInt(ch), parseFloat(val)); log('Canal ' + ch + ': ' + (parseFloat(val) * 100) + '%'); break;
-                    case 'eq_cut': log('EQ Corte: ' + hz + 'Hz, ' + gain + 'dB'); break;
-                    case 'hpf': log('HPF Canal ' + ch + ': ' + hz + 'Hz'); break;
-                    case 'comp': log('Compressor Canal ' + ch); break;
-                }
-            });
-        });
-    }
-
-    if (document.getElementById('sim-vu-grid')) {
-        init();
-    }
-})();
-</script>

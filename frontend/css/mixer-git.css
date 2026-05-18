@@ -1,0 +1,75 @@
+:root {
+    --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;--border:#30363d;
+    --accent:#58a6ff;--green:#3fb950;--red:#f85149;--yellow:#e3b341;
+    --purple:#bc8cff;--text:#c9d1d9;--sub:#8b949e;
+}
+
+.mixer-git-page * { box-sizing:border-box; margin:0; padding:0; }
+.mixer-git-page { background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif; }
+.mixer-git-page h1 { font-size:1.3rem; font-weight:700; margin-bottom:4px; }
+.mixer-git-page .subtitle { color:var(--sub); font-size:.8rem; margin-bottom:20px; }
+
+.mixer-git-page .layout { display:grid; grid-template-columns:280px 1fr; gap:16px; }
+@media(max-width:700px) { .mixer-git-page .layout { grid-template-columns:1fr; } }
+
+.mixer-git-page .toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+.mixer-git-page .btn { padding:7px 14px; border-radius:7px; border:none; cursor:pointer; font-size:.8rem; font-weight:600; transition:.15s; }
+.mixer-git-page .btn-primary { background:var(--accent); color:#0d1117; }
+.mixer-git-page .btn-primary:hover { filter:brightness(1.15); }
+.mixer-git-page .btn-green { background:var(--green); color:#0d1117; }
+.mixer-git-page .btn-green:hover { filter:brightness(1.15); }
+.mixer-git-page .btn-red { background:var(--red); color:#fff; }
+.mixer-git-page .btn-red:hover { filter:brightness(1.1); }
+.mixer-git-page .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+.mixer-git-page .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
+.mixer-git-page .btn:disabled { opacity:.4; cursor:not-allowed; }
+.mixer-git-page input[type="text"] { background:var(--surface2); border:1px solid var(--border); color:var(--text);
+    border-radius:6px; padding:6px 10px; font-size:.8rem; flex:1; min-width:140px; }
+
+.mixer-git-page .panel { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+.mixer-git-page .panel-header { padding:10px 14px; border-bottom:1px solid var(--border); font-size:.8rem; font-weight:700;
+    display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.mixer-git-page .commit-list { max-height:calc(100vh - 200px); overflow-y:auto; }
+.mixer-git-page .commit-item { padding:10px 14px; border-bottom:1px solid var(--border); cursor:pointer; transition:.12s;
+    display:flex; flex-direction:column; gap:3px; }
+.mixer-git-page .commit-item:hover { background:var(--surface2); }
+.mixer-git-page .commit-item.active { background:rgba(88,166,255,.08); border-left:3px solid var(--accent); }
+.mixer-git-page .commit-item.auto-badge::after { content:'auto'; font-size:.6rem; background:var(--surface2);
+    color:var(--sub); border:1px solid var(--border); border-radius:999px; padding:1px 6px; margin-left:6px; }
+.mixer-git-page .commit-hash { font-family:monospace; font-size:.72rem; color:var(--accent); }
+.mixer-git-page .commit-label { font-size:.82rem; font-weight:600; }
+.mixer-git-page .commit-ts { font-size:.7rem; color:var(--sub); }
+
+.mixer-git-page .main-panel { display:flex; flex-direction:column; gap:14px; }
+.mixer-git-page .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px; }
+.mixer-git-page .card h3 { font-size:.85rem; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+.mixer-git-page .badge { font-size:.65rem; background:var(--accent); color:#0d1117; border-radius:999px; padding:2px 8px; font-weight:700; }
+.mixer-git-page .badge-green { background:var(--green); }
+.mixer-git-page .badge-red { background:var(--red); }
+
+.mixer-git-page .diff-group { margin-bottom:14px; }
+.mixer-git-page .diff-group-title { font-size:.75rem; font-weight:700; color:var(--sub); text-transform:uppercase;
+    letter-spacing:.05em; margin-bottom:6px; padding-bottom:4px; border-bottom:1px solid var(--border); }
+.mixer-git-page .diff-row { display:flex; gap:8px; align-items:baseline; padding:4px 0; font-size:.8rem; border-bottom:1px solid #21262d; }
+.mixer-git-page .diff-row:last-child { border-bottom:none; }
+.mixer-git-page .diff-param { flex:1; color:var(--text); }
+.mixer-git-page .diff-arrow { color:var(--sub); font-size:.7rem; }
+.mixer-git-page .diff-from { color:var(--red); font-family:monospace; }
+.mixer-git-page .diff-to { color:var(--green); font-family:monospace; }
+.mixer-git-page .diff-empty { text-align:center; color:var(--sub); padding:30px; font-size:.85rem; }
+
+.mixer-git-page .scope-grid { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.mixer-git-page .scope-tag { padding:4px 10px; border-radius:999px; border:1px solid var(--border);
+    font-size:.75rem; cursor:pointer; transition:.12s; user-select:none; }
+.mixer-git-page .scope-tag.selected { background:var(--accent); color:#0d1117; border-color:var(--accent); }
+.mixer-git-page .scope-tag:hover:not(.selected) { border-color:var(--accent); color:var(--accent); }
+.mixer-git-page .rollback-result { font-size:.75rem; color:var(--sub); margin-top:8px; min-height:16px; }
+.mixer-git-page .rollback-result.ok { color:var(--green); }
+.mixer-git-page .rollback-result.err { color:var(--red); }
+
+.mixer-git-page .compare-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.mixer-git-page .compare-toolbar select { background:var(--surface2); border:1px solid var(--border); color:var(--text);
+    border-radius:6px; padding:5px 8px; font-size:.8rem; }
+
+.mixer-git-page .empty-state { text-align:center; color:var(--sub); padding:60px 20px; font-size:.9rem; line-height:1.6; }
+.mixer-git-page .empty-state .icon { font-size:2.5rem; margin-bottom:12px; }

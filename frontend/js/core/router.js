@@ -59,10 +59,15 @@ class Router {
             return;
         }
 
-        // ✅ T13: Dispatch page-unload para cleanup da página anterior (P24)
-        if (this.currentPage) {
-            window.dispatchEvent(new CustomEvent('page-unload', { detail: { pageId: this.currentPage } }));
-        }
+            // ✅ T13: Dispatch page-unload para cleanup da página anterior (P24)
+            if (this.currentPage) {
+                // Chama destroy() do page module se existir
+                const prevModule = window[this._getPageModuleName(this.currentPage)];
+                if (prevModule && typeof prevModule.destroy === 'function') {
+                    prevModule.destroy();
+                }
+                window.dispatchEvent(new CustomEvent('page-unload', { detail: { pageId: this.currentPage } }));
+            }
 
         const container = document.getElementById('agent-workspace');
         if (!container) return;
@@ -119,6 +124,12 @@ class Router {
                 }
             }));
 
+            // Chama init() do page module se existir
+            const pageModule = window[this._getPageModuleName(pageId)];
+            if (pageModule && typeof pageModule.init === 'function') {
+                pageModule.init();
+            }
+
             // Cleanup animation class after it completes
             setTimeout(() => container.classList.remove('page-enter'), 400);
 
@@ -173,6 +184,24 @@ class Router {
 
     _wait(ms) {
         return new Promise(r => setTimeout(r, ms));
+    }
+
+    _getPageModuleName(pageId) {
+        const map = {
+            'analyzer': 'AnalyzerPage',
+            'rt60': 'RT60Page',
+            'auto-eq': 'AutoEqPage',
+            'scene-builder': 'SceneBuilderPage',
+            'semantic-eq': 'SemanticEqPage',
+            'debug': 'DebugPage',
+            'systems': 'SystemsPage',
+            'volunteer-mode': 'VolunteerPage',
+            'automixer': 'AutomixerPage',
+            'mixer-git': 'MixerGitPage',
+            'testbed': 'TestbedPage',
+            'stage-plot': 'StagePlotPage',
+        };
+        return map[pageId] || null;
     }
 }
 

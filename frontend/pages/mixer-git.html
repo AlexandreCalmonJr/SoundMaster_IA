@@ -1,400 +1,52 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<title>Mixer Git — Versionamento de Snapshots</title>
-<style>
-  :root {
-    --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;--border:#30363d;
-    --accent:#58a6ff;--green:#3fb950;--red:#f85149;--yellow:#e3b341;
-    --purple:#bc8cff;--text:#c9d1d9;--sub:#8b949e;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;padding:20px;min-height:100vh;}
-  h1{font-size:1.3rem;font-weight:700;margin-bottom:4px;}
-  .subtitle{color:var(--sub);font-size:.8rem;margin-bottom:20px;}
+<section id="mixer-git" class="module page-section">
+    <header class="mb-6">
+        <h2 class="text-2xl font-bold text-white">🔀 Mixer Git — Versionamento de Snapshots</h2>
+        <p class="text-slate-400 text-sm mt-1">Capture o estado completo da mesa, compare versões e faça rollback seletivo por categoria.</p>
+    </header>
 
-  /* ─── layout ─── */
-  .layout{display:grid;grid-template-columns:280px 1fr;gap:16px;}
-  @media(max-width:700px){.layout{grid-template-columns:1fr;}}
-
-  /* ─── toolbar ─── */
-  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
-  .btn{padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-size:.8rem;font-weight:600;transition:.15s;}
-  .btn-primary{background:var(--accent);color:#0d1117;}
-  .btn-primary:hover{filter:brightness(1.15);}
-  .btn-green{background:var(--green);color:#0d1117;}
-  .btn-green:hover{filter:brightness(1.15);}
-  .btn-red{background:var(--red);color:#fff;}
-  .btn-red:hover{filter:brightness(1.1);}
-  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
-  .btn-outline:hover{border-color:var(--accent);color:var(--accent);}
-  .btn:disabled{opacity:.4;cursor:not-allowed;}
-  input[type="text"]{background:var(--surface2);border:1px solid var(--border);color:var(--text);
-    border-radius:6px;padding:6px 10px;font-size:.8rem;flex:1;min-width:140px;}
-
-  /* ─── commit list ─── */
-  .panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
-  .panel-header{padding:10px 14px;border-bottom:1px solid var(--border);font-size:.8rem;font-weight:700;
-    display:flex;align-items:center;justify-content:space-between;gap:8px;}
-  .commit-list{max-height:calc(100vh - 200px);overflow-y:auto;}
-  .commit-item{padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:.12s;
-    display:flex;flex-direction:column;gap:3px;}
-  .commit-item:hover{background:var(--surface2);}
-  .commit-item.active{background:rgba(88,166,255,.08);border-left:3px solid var(--accent);}
-  .commit-item.auto-badge::after{content:'auto';font-size:.6rem;background:var(--surface2);
-    color:var(--sub);border:1px solid var(--border);border-radius:999px;padding:1px 6px;margin-left:6px;}
-  .commit-hash{font-family:monospace;font-size:.72rem;color:var(--accent);}
-  .commit-label{font-size:.82rem;font-weight:600;}
-  .commit-ts{font-size:.7rem;color:var(--sub);}
-
-  /* ─── main panel ─── */
-  .main-panel{display:flex;flex-direction:column;gap:14px;}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;}
-  .card h3{font-size:.85rem;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
-  .badge{font-size:.65rem;background:var(--accent);color:#0d1117;border-radius:999px;padding:2px 8px;font-weight:700;}
-  .badge-green{background:var(--green);}
-  .badge-red{background:var(--red);}
-
-  /* ─── diff list ─── */
-  .diff-group{margin-bottom:14px;}
-  .diff-group-title{font-size:.75rem;font-weight:700;color:var(--sub);text-transform:uppercase;
-    letter-spacing:.05em;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--border);}
-  .diff-row{display:flex;gap:8px;align-items:baseline;padding:4px 0;font-size:.8rem;border-bottom:1px solid #21262d;}
-  .diff-row:last-child{border-bottom:none;}
-  .diff-param{flex:1;color:var(--text);}
-  .diff-arrow{color:var(--sub);font-size:.7rem;}
-  .diff-from{color:var(--red);font-family:monospace;}
-  .diff-to{color:var(--green);font-family:monospace;}
-  .diff-empty{text-align:center;color:var(--sub);padding:30px;font-size:.85rem;}
-
-  /* ─── rollback panel ─── */
-  .scope-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
-  .scope-tag{padding:4px 10px;border-radius:999px;border:1px solid var(--border);
-    font-size:.75rem;cursor:pointer;transition:.12s;user-select:none;}
-  .scope-tag.selected{background:var(--accent);color:#0d1117;border-color:var(--accent);}
-  .scope-tag:hover:not(.selected){border-color:var(--accent);color:var(--accent);}
-  .rollback-result{font-size:.75rem;color:var(--sub);margin-top:8px;min-height:16px;}
-  .rollback-result.ok{color:var(--green);}
-  .rollback-result.err{color:var(--red);}
-
-  /* ─── compare mode ─── */
-  .compare-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-  .compare-toolbar select{background:var(--surface2);border:1px solid var(--border);color:var(--text);
-    border-radius:6px;padding:5px 8px;font-size:.8rem;}
-
-  /* ─── empty state ─── */
-  .empty-state{text-align:center;color:var(--sub);padding:60px 20px;font-size:.9rem;line-height:1.6;}
-  .empty-state .icon{font-size:2.5rem;margin-bottom:12px;}
-</style>
-</head>
-<body>
-
-<h1>🔀 Mixer Git — Versionamento de Snapshots</h1>
-<p class="subtitle">Capture o estado completo da mesa, compare versões e faça rollback seletivo por categoria.</p>
-
-<!-- Toolbar -->
-<div class="toolbar">
-  <input type="text" id="git-label-input" placeholder="Mensagem do commit…">
-  <button class="btn btn-primary" id="git-commit-btn">💾 Commit</button>
-  <button class="btn btn-outline" id="git-refresh-btn">↻ Atualizar</button>
-  <button class="btn btn-outline" id="git-compare-toggle-btn">⚡ Modo Comparação</button>
-  <div id="git-compare-toolbar" style="display:none" class="compare-toolbar">
-    <span style="font-size:.78rem;color:var(--sub)">Comparar:</span>
-    <select id="git-compare-a"></select>
-    <span style="color:var(--sub)">↔</span>
-    <select id="git-compare-b"></select>
-    <button class="btn btn-outline" id="git-do-compare-btn">Ver Diff</button>
-  </div>
-</div>
-
-<div class="layout">
-  <!-- Commit List -->
-  <div class="panel">
-    <div class="panel-header">
-      <span>Commits <span class="badge" id="git-count-badge">0</span></span>
-      <button class="btn btn-outline" style="padding:3px 9px;font-size:.7rem" id="git-delete-btn" disabled>🗑 Apagar</button>
-    </div>
-    <div class="commit-list" id="git-commit-list">
-      <div class="empty-state"><div class="icon">📭</div>Sem commits ainda.<br>Clique em "Commit" para guardar o estado atual da mesa.</div>
-    </div>
-  </div>
-
-  <!-- Main Panel -->
-  <div class="main-panel">
-    <!-- Diff -->
-    <div class="card" id="git-diff-card">
-      <h3>📋 Diferenças <span class="badge" id="git-diff-badge">0</span></h3>
-      <div id="git-diff-content">
-        <div class="empty-state"><div class="icon">🔍</div>Selecione um commit à esquerda<br>para comparar com o estado atual da mesa.</div>
-      </div>
+    <div class="toolbar">
+        <input type="text" id="git-label-input" placeholder="Mensagem do commit…">
+        <button class="btn btn-primary" id="git-commit-btn">💾 Commit</button>
+        <button class="btn btn-outline" id="git-refresh-btn">↻ Atualizar</button>
+        <button class="btn btn-outline" id="git-compare-toggle-btn">⚡ Modo Comparação</button>
+        <div id="git-compare-toolbar" style="display:none" class="compare-toolbar">
+            <span style="font-size:.78rem;color:var(--sub)">Comparar:</span>
+            <select id="git-compare-a"></select>
+            <span style="color:var(--sub)">↔</span>
+            <select id="git-compare-b"></select>
+            <button class="btn btn-outline" id="git-do-compare-btn">Ver Diff</button>
+        </div>
     </div>
 
-    <!-- Rollback -->
-    <div class="card" id="git-rollback-card" style="display:none">
-      <h3>⏪ Rollback Seletivo</h3>
-      <p style="font-size:.78rem;color:var(--sub);margin-bottom:10px;">
-        Selecione as categorias a reverter. Sem seleção = reverter tudo.
-      </p>
-      <div class="scope-grid" id="git-scope-grid"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-red" id="git-rollback-btn">⚡ Executar Rollback</button>
-        <button class="btn btn-outline" id="git-rollback-clear-btn">Limpar Seleção</button>
-      </div>
-      <div class="rollback-result" id="git-rollback-result"></div>
+    <div class="layout">
+        <div class="panel">
+            <div class="panel-header">
+                <span>Commits <span class="badge" id="git-count-badge">0</span></span>
+                <button class="btn btn-outline" style="padding:3px 9px;font-size:.7rem" id="git-delete-btn" disabled>🗑 Apagar</button>
+            </div>
+            <div class="commit-list" id="git-commit-list">
+                <div class="empty-state"><div class="icon">📭</div>Sem commits ainda.<br>Clique em "Commit" para guardar o estado atual da mesa.</div>
+            </div>
+        </div>
+
+        <div class="main-panel">
+            <div class="card" id="git-diff-card">
+                <h3>📋 Diferenças <span class="badge" id="git-diff-badge">0</span></h3>
+                <div id="git-diff-content">
+                    <div class="empty-state"><div class="icon">🔍</div>Selecione um commit à esquerda<br>para comparar com o estado atual da mesa.</div>
+                </div>
+            </div>
+
+            <div class="card" id="git-rollback-card" style="display:none">
+                <h3>⏪ Rollback Seletivo</h3>
+                <p style="font-size:.78rem;color:var(--sub);margin-bottom:10px;">Selecione as categorias a reverter. Sem seleção = reverter tudo.</p>
+                <div class="scope-grid" id="git-scope-grid"></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button class="btn btn-red" id="git-rollback-btn">⚡ Executar Rollback</button>
+                    <button class="btn btn-outline" id="git-rollback-clear-btn">Limpar Seleção</button>
+                </div>
+                <div class="rollback-result" id="git-rollback-result"></div>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
-
-<script>
-(function () {
-  'use strict';
-
-  // ── State ──────────────────────────────────────────────────────────────────
-  let _commits      = [];
-  let _selectedId   = null;
-  let _diffData     = null;
-  let _selectedScope = new Set();
-  let _compareMode  = false;
-
-  // ── DOM ────────────────────────────────────────────────────────────────────
-  const labelInput     = document.getElementById('git-label-input');
-  const commitBtn      = document.getElementById('git-commit-btn');
-  const refreshBtn     = document.getElementById('git-refresh-btn');
-  const compareToggle  = document.getElementById('git-compare-toggle-btn');
-  const compareToolbar = document.getElementById('git-compare-toolbar');
-  const compareA       = document.getElementById('git-compare-a');
-  const compareB       = document.getElementById('git-compare-b');
-  const doCompareBtn   = document.getElementById('git-do-compare-btn');
-  const commitList     = document.getElementById('git-commit-list');
-  const countBadge     = document.getElementById('git-count-badge');
-  const deleteBtn      = document.getElementById('git-delete-btn');
-  const diffContent    = document.getElementById('git-diff-content');
-  const diffBadge      = document.getElementById('git-diff-badge');
-  const rollbackCard   = document.getElementById('git-rollback-card');
-  const scopeGrid      = document.getElementById('git-scope-grid');
-  const rollbackBtn    = document.getElementById('git-rollback-btn');
-  const rollbackClear  = document.getElementById('git-rollback-clear-btn');
-  const rollbackResult = document.getElementById('git-rollback-result');
-
-  // ── API helpers ───────────────────────────────────────────────────────────
-  async function api(method, path, body) {
-    const opts = { method, headers: { 'Content-Type': 'application/json' } };
-    if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(path, opts);
-    if (!res.ok) {
-      const e = await res.json().catch(() => ({ error: res.statusText }));
-      throw new Error(e.error || res.statusText);
-    }
-    return res.json();
-  }
-
-  // ── Load commits ──────────────────────────────────────────────────────────
-  async function loadCommits() {
-    _commits = await api('GET', '/api/git/commits');
-    countBadge.textContent = _commits.length;
-    _renderCommitList();
-    _populateCompareSelects();
-  }
-
-  function _renderCommitList() {
-    if (_commits.length === 0) {
-      commitList.innerHTML = '<div class="empty-state"><div class="icon">📭</div>Sem commits ainda.<br>Clique em "Commit" para guardar o estado atual da mesa.</div>';
-      return;
-    }
-    commitList.innerHTML = _commits.map(c => {
-      const date = new Date(c.createdAt).toLocaleString('pt-BR', { day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit' });
-      const active = c._id === _selectedId ? 'active' : '';
-      const autoCls = c.auto ? 'auto-badge' : '';
-      return `<div class="commit-item ${active} ${autoCls}" data-id="${c._id}">
-        <span class="commit-hash">${c.hash}</span>
-        <span class="commit-label">${_esc(c.label)}</span>
-        <span class="commit-ts">${date}</span>
-      </div>`;
-    }).join('');
-
-    commitList.querySelectorAll('.commit-item').forEach(el => {
-      el.addEventListener('click', () => selectCommit(el.dataset.id));
-    });
-  }
-
-  function _populateCompareSelects() {
-    const opts = _commits.map(c =>
-      `<option value="${c._id}">${c.hash} — ${_esc(c.label)}</option>`
-    ).join('');
-    compareA.innerHTML = opts;
-    compareB.innerHTML = opts;
-    if (_commits.length > 1) compareB.selectedIndex = 1;
-  }
-
-  // ── Commit ────────────────────────────────────────────────────────────────
-  commitBtn.addEventListener('click', async () => {
-    commitBtn.disabled = true;
-    try {
-      const label = labelInput.value.trim() || undefined;
-      await api('POST', '/api/git/commits', { label });
-      labelInput.value = '';
-      await loadCommits();
-      _showToast('✅ Commit guardado!');
-    } catch (e) { _showToast('❌ ' + e.message, true); }
-    finally { commitBtn.disabled = false; }
-  });
-
-  refreshBtn.addEventListener('click', loadCommits);
-
-  // ── Select commit ─────────────────────────────────────────────────────────
-  async function selectCommit(id) {
-    _selectedId = id;
-    deleteBtn.disabled = false;
-    _renderCommitList();
-
-    try {
-      const diffs = await api('GET', `/api/git/diff/${id}`);
-      _diffData = diffs;
-      _renderDiff(diffs);
-      _renderRollbackScope(diffs);
-    } catch (e) {
-      diffContent.innerHTML = `<div class="diff-empty">❌ Erro: ${_esc(e.message)}</div>`;
-    }
-  }
-
-  // ── Render Diff ───────────────────────────────────────────────────────────
-  function _renderDiff(diffs) {
-    diffBadge.textContent = diffs.length;
-    diffBadge.className   = 'badge ' + (diffs.length > 0 ? 'badge-red' : 'badge-green');
-
-    if (diffs.length === 0) {
-      diffContent.innerHTML = '<div class="diff-empty">✅ Sem diferenças — o estado atual é igual ao commit selecionado.</div>';
-      rollbackCard.style.display = 'none';
-      return;
-    }
-
-    // Agrupar por categoria
-    const groups = {};
-    diffs.forEach(d => {
-      if (!groups[d.category]) groups[d.category] = [];
-      groups[d.category].push(d);
-    });
-
-    let html = '';
-    Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)).forEach(([cat, items]) => {
-      html += `<div class="diff-group">
-        <div class="diff-group-title">${_esc(cat)} <span style="color:var(--accent);font-weight:400">(${items.length})</span></div>`;
-      items.forEach(d => {
-        html += `<div class="diff-row">
-          <span class="diff-param">${_esc(d.label)}</span>
-          <span class="diff-from">${_esc(d.fromFmt)}</span>
-          <span class="diff-arrow">→</span>
-          <span class="diff-to">${_esc(d.toFmt)}</span>
-        </div>`;
-      });
-      html += '</div>';
-    });
-
-    diffContent.innerHTML = html;
-    rollbackCard.style.display = '';
-  }
-
-  // ── Rollback scope ────────────────────────────────────────────────────────
-  function _renderRollbackScope(diffs) {
-    const cats = [...new Set(diffs.map(d => d.category))].sort();
-    _selectedScope.clear();
-    scopeGrid.innerHTML = cats.map(c =>
-      `<span class="scope-tag" data-cat="${_esc(c)}">${_esc(c)}</span>`
-    ).join('');
-    scopeGrid.querySelectorAll('.scope-tag').forEach(tag => {
-      tag.addEventListener('click', () => {
-        const cat = tag.dataset.cat;
-        if (_selectedScope.has(cat)) { _selectedScope.delete(cat); tag.classList.remove('selected'); }
-        else                         { _selectedScope.add(cat);    tag.classList.add('selected'); }
-      });
-    });
-    rollbackResult.textContent = '';
-  }
-
-  rollbackClear.addEventListener('click', () => {
-    _selectedScope.clear();
-    scopeGrid.querySelectorAll('.scope-tag').forEach(t => t.classList.remove('selected'));
-  });
-
-  rollbackBtn.addEventListener('click', async () => {
-    if (!_selectedId) return;
-    rollbackBtn.disabled = true;
-    rollbackResult.textContent = 'Aplicando…';
-    rollbackResult.className = 'rollback-result';
-    try {
-      const scope = [..._selectedScope];
-      const res   = await api('POST', `/api/git/rollback/${_selectedId}`, { scope });
-      rollbackResult.textContent = `✅ ${res.commands} comando(s) enviados à mesa.`;
-      rollbackResult.className = 'rollback-result ok';
-      // Recarrega diff após rollback
-      setTimeout(() => selectCommit(_selectedId), 800);
-    } catch (e) {
-      rollbackResult.textContent = '❌ ' + e.message;
-      rollbackResult.className = 'rollback-result err';
-    } finally { rollbackBtn.disabled = false; }
-  });
-
-  // ── Delete ────────────────────────────────────────────────────────────────
-  deleteBtn.addEventListener('click', async () => {
-    if (!_selectedId || !confirm('Apagar este commit?')) return;
-    await api('DELETE', `/api/git/commits/${_selectedId}`);
-    _selectedId = null;
-    deleteBtn.disabled = true;
-    diffContent.innerHTML = '<div class="diff-empty">Commit apagado.</div>';
-    rollbackCard.style.display = 'none';
-    await loadCommits();
-  });
-
-  // ── Compare mode ──────────────────────────────────────────────────────────
-  compareToggle.addEventListener('click', () => {
-    _compareMode = !_compareMode;
-    compareToolbar.style.display = _compareMode ? '' : 'none';
-    compareToggle.textContent = _compareMode ? '✕ Fechar Comparação' : '⚡ Modo Comparação';
-  });
-
-  doCompareBtn.addEventListener('click', async () => {
-    const idA = compareA.value, idB = compareB.value;
-    if (!idA || !idB || idA === idB) { _showToast('Selecione dois commits diferentes.', true); return; }
-    try {
-      const diffs = await api('GET', `/api/git/diff/${idA}/${idB}`);
-      _diffData = diffs;
-      _renderDiff(diffs);
-      _renderRollbackScope(diffs);
-      _selectedId = idA; // rollback volta ao commit A
-      deleteBtn.disabled = false;
-    } catch (e) { _showToast('❌ ' + e.message, true); }
-  });
-
-  // ── Toast ─────────────────────────────────────────────────────────────────
-  function _showToast(msg, err = false) {
-    let t = document.getElementById('git-toast');
-    if (!t) {
-      t = document.createElement('div');
-      t.id = 'git-toast';
-      Object.assign(t.style, {
-        position:'fixed',bottom:'20px',left:'50%',transform:'translateX(-50%) translateY(80px)',
-        padding:'8px 20px',borderRadius:'999px',fontSize:'12px',fontWeight:'700',
-        zIndex:'9999',transition:'transform .3s cubic-bezier(.34,1.56,.64,1)',pointerEvents:'none',
-        backdropFilter:'blur(8px)',boxShadow:'0 4px 24px rgba(0,0,0,.4)',color:'#fff',
-      });
-      document.body.appendChild(t);
-    }
-    t.textContent = msg;
-    t.style.background = err ? 'rgba(248,81,73,.92)' : 'rgba(63,185,80,.92)';
-    t.style.transform = 'translateX(-50%) translateY(0)';
-    clearTimeout(t._tmr);
-    t._tmr = setTimeout(() => { t.style.transform = 'translateX(-50%) translateY(80px)'; }, 2800);
-  }
-
-  function _esc(s) {
-    return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  }
-
-  // ── Init ──────────────────────────────────────────────────────────────────
-  loadCommits();
-
-})();
-</script>
-</body>
-</html>
+</section>
