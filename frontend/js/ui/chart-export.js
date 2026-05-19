@@ -5,6 +5,18 @@
 (function() {
     'use strict';
 
+    /**
+     * Busca elemento pelo ID, tentando primeiro no iframe e depois no parent.
+     */
+    function _el(id) {
+        const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
+        if (iframe && iframe.contentDocument) {
+            const el = iframe.contentDocument.getElementById(id);
+            if (el) return el;
+        }
+        return document.getElementById(id);
+    }
+
     const CHART_CANVAS_IDS = {
         heatmap: 'heatmap-canvas',
         schroeder: 'schroeder-canvas',
@@ -22,7 +34,7 @@
     };
 
     function getCanvasDataUrl(canvasId) {
-        const canvas = document.getElementById(canvasId);
+        const canvas = _el(canvasId);
         if (!canvas) {
             console.warn(`[ChartExport] Canvas não encontrado: ${canvasId}`);
             return null;
@@ -201,15 +213,15 @@
     function getAvailableCharts() {
         const available = [];
         for (const [name, id] of Object.entries(CHART_CANVAS_IDS)) {
-            const canvas = document.getElementById(id);
+            const canvas = _el(id);
             if (canvas) available.push(name);
         }
         return available;
     }
 
     function bindExportButtons() {
-        const btnPng = document.getElementById('btn-export-png');
-        const btnPdf = document.getElementById('btn-export-pdf');
+        const btnPng = _el('btn-export-png');
+        const btnPdf = _el('btn-export-pdf');
         
         if (btnPng) {
             btnPng.addEventListener('click', () => {
@@ -238,7 +250,7 @@
 
     // Também inicializa quando carregado diretamente no iframe
     (function autoInitExport() {
-        if (document.getElementById('btn-export-png') || document.getElementById('btn-export-pdf')) {
+        if (_el('btn-export-png') || _el('btn-export-pdf')) {
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', () => setTimeout(bindExportButtons, 300));
             } else {

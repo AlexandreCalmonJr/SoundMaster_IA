@@ -5,6 +5,18 @@
 (function () {
     'use strict';
 
+    /**
+     * Busca elemento pelo ID, tentando primeiro no iframe e depois no parent.
+     */
+    function _el(id) {
+        const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
+        if (iframe && iframe.contentDocument) {
+            const el = iframe.contentDocument.getElementById(id);
+            if (el) return el;
+        }
+        return document.getElementById(id);
+    }
+
     let magCanvas, magCtx, phaseCanvas, phaseCtx;
     const minFreq = 20;
     const maxFreq = 20000;
@@ -19,8 +31,8 @@
 
     function init() {
         console.log('[TF-Visualizer] Inicializando canvases...');
-        magCanvas = document.getElementById('tf-magnitude-canvas');
-        phaseCanvas = document.getElementById('tf-phase-canvas');
+        magCanvas = _el('tf-magnitude-canvas');
+        phaseCanvas = _el('tf-phase-canvas');
         if (magCanvas) magCtx = magCanvas.getContext('2d');
         if (phaseCanvas) phaseCtx = phaseCanvas.getContext('2d');
 
@@ -108,7 +120,7 @@
     }
 
     function updateTraceCount() {
-        const btn = document.getElementById('btn-capture-tf');
+        const btn = _el('btn-capture-tf');
         if (btn) btn.title = `${capturedTraces.length}/${traceLimit} traces capturados`;
     }
 

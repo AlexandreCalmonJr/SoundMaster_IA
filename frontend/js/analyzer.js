@@ -58,6 +58,21 @@ let sweepRecordingBuffer = null;
 let sweepRecordingIdx = 0;
 let sweepCaptureActive = false;
 
+// Iframe shell: referência ao iframe que contém a página analyzer
+let _analyzerIframe = null;
+
+/**
+ * Busca elemento pelo ID, tentando primeiro no iframe (página analyzer)
+ * e depois no documento parent (header global).
+ */
+function _el(id) {
+    if (_analyzerIframe && _analyzerIframe.contentDocument) {
+        const el = _analyzerIframe.contentDocument.getElementById(id);
+        if (el) return el;
+    }
+    return document.getElementById(id);
+}
+
 // --- Estado Auto-Cut ---
 let isAutoCutEnabled = false;
 let autoCutHistory = {}; // { '1000': -3 }
@@ -125,10 +140,10 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
     // Controles Manuais (Ferramentas Técnicas)
     // -------------------------------------------------------------------------
     function _initManualControls() {
-        const btnPink = document.getElementById('btn-toggle-pink-noise');
-        const sliderPink = document.getElementById('pink-noise-level');
-        const valPink = document.getElementById('pink-noise-val');
-        const btnDiag = document.getElementById('btn-manual-diagnostic');
+        const btnPink = _el('btn-toggle-pink-noise');
+        const sliderPink = _el('pink-noise-level');
+        const valPink = _el('pink-noise-val');
+        const btnDiag = _el('btn-manual-diagnostic');
 
         if (btnPink) {
             btnPink.addEventListener('change', (e) => {
@@ -156,7 +171,7 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
                     alert('Ative o microfone primeiro para realizar a análise.');
                     return;
                 }
-                const summaryEl = document.getElementById('acoustic-summary');
+                const summaryEl = _el('acoustic-summary');
                 if (summaryEl) {
                     summaryEl.innerHTML = `<strong>Diagnóstico Manual:</strong> ${lastAnalysis.text}`;
                     summaryEl.classList.add('text-cyan-400');
@@ -166,8 +181,8 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
         }
 
         // --- Range de Decibéis ---
-        const inputMinDb = document.getElementById('input-min-db');
-        const inputMaxDb = document.getElementById('input-max-db');
+        const inputMinDb = _el('input-min-db');
+        const inputMaxDb = _el('input-max-db');
         
         if (inputMinDb && inputMaxDb) {
             const updateRange = () => {
@@ -186,8 +201,8 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
         }
 
         // --- Leq Logging ---
-        const btnToggleLeq = document.getElementById('btn-toggle-leq');
-        const btnExportLeq = document.getElementById('btn-export-leq');
+        const btnToggleLeq = _el('btn-toggle-leq');
+        const btnExportLeq = _el('btn-export-leq');
 
         if (btnToggleLeq) {
             btnToggleLeq.addEventListener('click', () => {
@@ -229,11 +244,11 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
     }
 
     function _initAutomixControls() {
-        const btnToggle = document.getElementById('btn-toggle-automix');
-        const sliderSpeed = document.getElementById('automix-speed-slider');
-        const valSpeed = document.getElementById('automix-speed-val');
-        const btnGroupA = document.getElementById('btn-automix-group-a');
-        const btnGroupB = document.getElementById('btn-automix-group-b');
+        const btnToggle = _el('btn-toggle-automix');
+        const sliderSpeed = _el('automix-speed-slider');
+        const valSpeed = _el('automix-speed-val');
+        const btnGroupA = _el('btn-automix-group-a');
+        const btnGroupB = _el('btn-automix-group-b');
 
         let currentGroup = 'a';
 
@@ -348,7 +363,7 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
         });
 
         tfCanvases.forEach(id => {
-            const el = document.getElementById(id);
+            const el = _el(id);
             if (!el) return;
             const rect = el.getBoundingClientRect();
             const w = Math.floor(rect.width * dpr);
@@ -364,7 +379,7 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
 
     function initAnalyzer() {
         console.log('[Analyzer] Inicializando elementos do DOM...');
-        canvas = document.getElementById('fft-canvas');
+        canvas = _el('fft-canvas');
         if (!canvas) return;
 
         canvasCtx = canvas.getContext('2d');
@@ -379,7 +394,7 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
             rtaCrosshairY = -1;
         });
 
-        waterfallCanvasEl = document.getElementById('waterfall-canvas');
+        waterfallCanvasEl = _el('waterfall-canvas');
         if (waterfallCanvasEl) waterfallCtx = waterfallCanvasEl.getContext('2d');
 
         _resizeCanvases();
@@ -391,23 +406,23 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
         if (window.SoundMasterVisualizer) window.SoundMasterVisualizer.init();
         
         // Captura de elementos
-        rmsBar = document.getElementById('rms-bar');
-        feedbackAlert = document.getElementById('feedback-alert');
-        analysisSummaryText = document.getElementById('acoustic-summary');
-        analysisDetailList = document.getElementById('acoustic-detail-list');
-        btnSendAnalysis = document.getElementById('btn-send-analysis');
-        btnMeasurePink = document.getElementById('btn-measure-pink');
-        btnDesktopPink = document.getElementById('btn-desktop-pink-noise');
-        btnLogSweep = document.getElementById('btn-log-sweep');
-        micSelect = document.getElementById('mic-select');
-        pinkMeasureSummary = document.getElementById('pink-measure-summary');
+        rmsBar = _el('rms-bar');
+        feedbackAlert = _el('feedback-alert');
+        analysisSummaryText = _el('acoustic-summary');
+        analysisDetailList = _el('acoustic-detail-list');
+        btnSendAnalysis = _el('btn-send-analysis');
+        btnMeasurePink = _el('btn-measure-pink');
+        btnDesktopPink = _el('btn-desktop-pink-noise');
+        btnLogSweep = _el('btn-log-sweep');
+        micSelect = _el('mic-select');
+        pinkMeasureSummary = _el('pink-measure-summary');
 
         // Novos elementos de sugestão IA
-        const aiBox = document.getElementById('ai-suggestions-box');
-        const aiText = document.getElementById('ai-suggestions-text');
+        const aiBox = _el('ai-suggestions-box');
+        const aiText = _el('ai-suggestions-text');
 
         // Toggle de Auto-Cut
-        const btnToggleAutoCut = document.getElementById('btn-toggle-auto-cut');
+        const btnToggleAutoCut = _el('btn-toggle-auto-cut');
         if (btnToggleAutoCut) {
             btnToggleAutoCut.addEventListener('change', (e) => {
                 isAutoCutEnabled = e.target.checked;
@@ -416,8 +431,8 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
         }
 
         // Listeners locais da página de análise (usando clone para evitar duplicatas)
-        const btnStart = document.getElementById('btn-start-audio');
-        const btnStop = document.getElementById('btn-stop-audio');
+        const btnStart = _el('btn-start-audio');
+        const btnStop = _el('btn-stop-audio');
         if (btnStart) {
             const newBtn = btnStart.cloneNode(true);
             btnStart.parentNode.replaceChild(newBtn, btnStart);
@@ -440,9 +455,9 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
         _populateDeviceList();
 
         // Sinais
-        btnPink = document.getElementById('btn-pink-noise');
-        btnSine = document.getElementById('btn-sine-wave');
-        sineFreqInput = document.getElementById('sine-freq');
+        btnPink = _el('btn-pink-noise');
+        btnSine = _el('btn-sine-wave');
+        sineFreqInput = _el('sine-freq');
 
         btnPink?.addEventListener('click', () => {
             ensureAudioCtx();
@@ -489,7 +504,7 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
         _initGlobalListeners();
 
         // 1. Global Mic Toggle Header (Sempre presente no index.html)
-        const btnMic = document.getElementById('btn-toggle-mic');
+        const btnMic = _el('btn-toggle-mic');
         if (btnMic) {
             btnMic.removeEventListener('click', toggleAnalyzer);
             btnMic.addEventListener('click', toggleAnalyzer);
@@ -607,7 +622,7 @@ async function startAnalyzer() {
                 numberOfInputs: 2,
                 numberOfOutputs: 1
             });
-            const avgSelect = document.getElementById('tf-avg-select');
+            const avgSelect = _el('tf-avg-select');
             transferFunctionNode.port.postMessage({
                 type: 'set-avg',
                 seconds: avgSelect ? Number(avgSelect.value) : 2
@@ -703,14 +718,14 @@ async function startAnalyzer() {
         isAnalyzing = true;
         
         // Update UI - Header
-        const dot = document.getElementById('mic-status-dot');
-        const text = document.getElementById('mic-status-text');
+        const dot = _el('mic-status-dot');
+        const text = _el('mic-status-text');
         if (dot) dot.classList.add('online');
         if (text) text.innerText = 'Mic Online';
 
         // Update UI - Page Buttons
-        const btnStart = document.getElementById('btn-start-audio');
-        const btnStop = document.getElementById('btn-stop-audio');
+        const btnStart = _el('btn-start-audio');
+        const btnStop = _el('btn-stop-audio');
         if (btnStart) btnStart.disabled = true;
         if (btnStop) btnStop.disabled = false;
         
@@ -791,14 +806,14 @@ async function stopAnalyzer() {
     if (rmsBar) rmsBar.style.width = '0%';
     
     // Update UI - Header
-    const dot = document.getElementById('mic-status-dot');
-    const text = document.getElementById('mic-status-text');
+    const dot = _el('mic-status-dot');
+    const text = _el('mic-status-text');
     if (dot) dot.classList.remove('online');
     if (text) text.innerText = 'Mic Offline';
     
     // Update UI - Page Buttons
-    const btnStart = document.getElementById('btn-start-audio');
-    const btnStop = document.getElementById('btn-stop-audio');
+    const btnStart = _el('btn-start-audio');
+    const btnStop = _el('btn-stop-audio');
     if (btnStart) btnStart.disabled = false;
     if (btnStop) btnStop.disabled = true;
     
@@ -1335,7 +1350,7 @@ function _handleTransferFunctionData(data) {
     const { magnitude, phase, coherence, delayMs, sampleRate } = data;
     
     // 1. Atualiza o valor do Delay Finder na UI
-    const delayEl = document.getElementById('delay-finder-value');
+    const delayEl = _el('delay-finder-value');
     if (delayEl) {
         delayEl.innerText = `${delayMs.toFixed(2)} ms`;
         // Se o delay for muito alto (> 100ms), destaca em amarelo
@@ -1344,7 +1359,7 @@ function _handleTransferFunctionData(data) {
 
     // 2. Atualiza a Coerência Média (Avg Coherence)
     const avgCoherence = coherence.reduce((a, b) => a + b, 0) / coherence.length;
-    const coherenceEl = document.getElementById('coherence-value');
+    const coherenceEl = _el('coherence-value');
     if (coherenceEl) {
         coherenceEl.innerText = `${avgCoherence.toFixed(0)}%`;
         // Escala de cor para coerência
@@ -1736,7 +1751,7 @@ function analyze() {
     }
     renderAnalysisDetails(summary, pinkReport);
     
-    const btnAutoCut = document.getElementById('btn-auto-cut');
+    const btnAutoCut = _el('btn-auto-cut');
     
     // ✅ Correção Auditoria: Feedback detectado no analisador rápido (latência mínima)
     const isFeedback = feedbackDetector.analyze(currentFastPeakHz, peakDb, -20);
@@ -1835,11 +1850,11 @@ async function sendAnalysisToAI() {
         return;
     }
 
-    const channelInput = document.getElementById('ai-target-channel');
+    const channelInput = _el('ai-target-channel');
     const channel = channelInput ? Number(channelInput.value) : 1;
     
-    const aiBox = document.getElementById('ai-suggestions-box');
-    const aiText = document.getElementById('ai-suggestions-text');
+    const aiBox = _el('ai-suggestions-box');
+    const aiText = _el('ai-suggestions-text');
     
     if (aiBox) aiBox.classList.remove('hidden');
     if (aiText) aiText.innerText = 'Processando dados com IA...';
@@ -1860,7 +1875,7 @@ async function sendAnalysisToAI() {
         spectrum_db: lastAnalysis.details.spectrum_v11 || {},
         bands: lastAnalysis.details.bands,
         position: getCurrentMeasurementPosition(),
-        crowdStatus: document.getElementById('crowd-status')?.value || 'empty',
+        crowdStatus: _el('crowd-status')?.value || 'empty',
         timestamp: new Date().toISOString()
     };
 
@@ -1883,7 +1898,7 @@ async function sendAnalysisToAI() {
         const result = await AIService.ask('Análise acústica do ambiente', channel, payload);
         if (aiText) aiText.innerText = result.text || result.answer;
         
-        const actionsArea = document.getElementById('ai-actions');
+        const actionsArea = _el('ai-actions');
         if (actionsArea && result.command) {
             actionsArea.innerHTML = '';
             const button = document.createElement('button');
@@ -1945,7 +1960,7 @@ async function startSweepMeasurement() {
     isSweepActive = true;
     sweepCaptureActive = true;
 
-    const summaryEl = document.getElementById('pink-measure-summary');
+    const summaryEl = _el('pink-measure-summary');
     if (summaryEl) summaryEl.innerText = 'Iniciando Log-Sine Sweep...';
 
     try {
@@ -2086,7 +2101,7 @@ function _onSweepWorkletDone(recording, reference, sampleRate) {
         sweepNode = null;
     }
 
-    const summaryEl = document.getElementById('pink-measure-summary');
+    const summaryEl = _el('pink-measure-summary');
     if (summaryEl) summaryEl.innerText = '⚙️ Deconvoluindo IR...';
 
     console.log(`[Sweep] Done: rec=${recording.length} ref=${reference.length} fs=${sampleRate}`);
@@ -2122,7 +2137,7 @@ function _handleSweepAnalysisResult(result) {
     console.log('[SweepAnalysis Result]', result);
 
     if (result.error) {
-        const summaryEl = document.getElementById('pink-measure-summary');
+        const summaryEl = _el('pink-measure-summary');
         if (summaryEl) summaryEl.innerHTML = `<span class="text-red-400">Erro: ${result.error}</span>`;
         if (audioWorkletNode) {
             triggerImpulseMeasure._fallback = true;
@@ -2133,7 +2148,7 @@ function _handleSweepAnalysisResult(result) {
     lastRt60Result = result;
     lastRt60 = result.t30 || result.t20 || 0;
 
-    const summaryEl = document.getElementById('pink-measure-summary');
+    const summaryEl = _el('pink-measure-summary');
     if (summaryEl) {
         summaryEl.innerHTML = `
             <div class="space-y-2">
@@ -2144,7 +2159,7 @@ function _handleSweepAnalysisResult(result) {
         `;
     }
 
-    const rt60El = document.getElementById('rt60-result');
+    const rt60El = _el('rt60-result');
     if (rt60El) {
         rt60El.classList.remove('hidden');
         rt60El.innerHTML = `
@@ -2190,7 +2205,7 @@ function _handleRT60Result(result) {
     lastRt60Result = result; // ✅ Guarda para o payload da IA
     lastRt60 = result.rt60 || 0;
     lastRt60Multiband = result.multiband || {};
-    const resultEl = document.getElementById('rt60-result');
+    const resultEl = _el('rt60-result');
     if (resultEl) {
         resultEl.classList.remove('hidden');
         resultEl.innerHTML = `
@@ -2286,21 +2301,34 @@ window.SoundMasterAnalyzer = {
     // A inicialização é feita pela função runInit() definida anteriormente.
     // Este bloco é mantido apenas como fallback de segurança.
 
-    // Auto-init quando o script é carregado dentro do iframe da página analyzer
+    // Auto-init: detecta quando a página analyzer é carregada no iframe
     (function autoInit() {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                if (document.getElementById('fft-canvas')) {
-                    initGlobalAnalyzer();
-                    initAnalyzer();
-                }
-            });
-        } else {
-            if (document.getElementById('fft-canvas')) {
+        function tryInit() {
+            _analyzerIframe = document.getElementById('agent-workspace-iframe');
+            if (_el('fft-canvas')) {
                 initGlobalAnalyzer();
                 initAnalyzer();
+                return true;
             }
+            return false;
         }
+
+        // Tenta init imediato (caso a página já esteja carregada)
+        if (tryInit()) return;
+
+        // Escuta o evento do router quando a página analyzer é carregada
+        document.addEventListener('page-loaded', (e) => {
+            if (e.detail.pageId === 'analyzer') {
+                setTimeout(tryInit, 100);
+            }
+        });
+
+        // Fallback: escuta também o iframe-loaded
+        document.addEventListener('iframe-loaded', (e) => {
+            if (e.detail.pageId === 'analyzer') {
+                setTimeout(tryInit, 100);
+            }
+        });
     })();
 
     return {

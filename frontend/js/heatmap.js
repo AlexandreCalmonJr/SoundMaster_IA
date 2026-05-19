@@ -1,4 +1,17 @@
 (function() {
+
+    /**
+     * Busca elemento pelo ID, tentando primeiro no iframe e depois no parent.
+     */
+    function _el(id) {
+        const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
+        if (iframe && iframe.contentDocument) {
+            const el = iframe.contentDocument.getElementById(id);
+            if (el) return el;
+        }
+        return document.getElementById(id);
+    }
+
     let points = [];
     let bgImageSrc = null;
     let persistedHeatmapId = null;
@@ -13,10 +26,10 @@
     const ISO_LEVELS = [75, 80, 85, 90, 95, 100, 105];
 
     function initHeatmap() {
-        const upload = document.getElementById('heatmap-image-upload');
-        const btnUpload = document.getElementById('btn-heatmap-upload');
-        const container = document.getElementById('heatmap-container');
-        const btnClear = document.getElementById('btn-clear-heatmap');
+        const upload = _el('heatmap-image-upload');
+        const btnUpload = _el('btn-heatmap-upload');
+        const container = _el('heatmap-container');
+        const btnClear = _el('btn-clear-heatmap');
         
         if(btnUpload && upload) btnUpload.onclick = () => upload.click();
         if(upload) upload.addEventListener('change', handleImageUpload);
@@ -85,11 +98,11 @@
     }
     
     function addHeatmapControls() {
-        const container = document.getElementById('heatmap-container');
+        const container = _el('heatmap-container');
         if (!container) return;
         
         // Barra de controles inferior
-        let controlsBar = document.getElementById('heatmap-controls');
+        let controlsBar = _el('heatmap-controls');
         if (!controlsBar) {
             controlsBar = document.createElement('div');
             controlsBar.id = 'heatmap-controls';
@@ -98,7 +111,7 @@
         }
         
         // Toggle isocinias
-        let btnIsolines = document.getElementById('btn-toggle-isolines');
+        let btnIsolines = _el('btn-toggle-isolines');
         if (!btnIsolines) {
             btnIsolines = document.createElement('button');
             btnIsolines.id = 'btn-toggle-isolines';
@@ -115,7 +128,7 @@
         }
         
         // Botão Régua
-        let btnRuler = document.getElementById('btn-toggle-ruler');
+        let btnRuler = _el('btn-toggle-ruler');
         if (!btnRuler) {
             btnRuler = document.createElement('button');
             btnRuler.id = 'btn-toggle-ruler';
@@ -136,7 +149,7 @@
         }
         
         // Botão Calibrar Escala
-        let btnCalibrate = document.getElementById('btn-calibrate-scale');
+        let btnCalibrate = _el('btn-calibrate-scale');
         if (!btnCalibrate) {
             btnCalibrate = document.createElement('button');
             btnCalibrate.id = 'btn-calibrate-scale';
@@ -156,7 +169,7 @@
     
     function handleRulerStart(e) {
         if (!rulerMode) return;
-        const container = document.getElementById('heatmap-container');
+        const container = _el('heatmap-container');
         const rect = container.getBoundingClientRect();
         rulerStart = {
             x: (e.clientX - rect.left) / rect.width,
@@ -167,7 +180,7 @@
     
     function handleRulerMove(e) {
         if (!rulerMode || !isDragging || !rulerStart) return;
-        const container = document.getElementById('heatmap-container');
+        const container = _el('heatmap-container');
         const rect = container.getBoundingClientRect();
         rulerEnd = {
             x: (e.clientX - rect.left) / rect.width,
@@ -186,7 +199,7 @@
     }
     
     function showRulerResult() {
-        const container = document.getElementById('heatmap-container');
+        const container = _el('heatmap-container');
         const width = container.clientWidth;
         const height = container.clientHeight;
         
@@ -201,7 +214,7 @@
     function renderRulerLine() {
         if (!rulerStart || !rulerEnd) return;
         
-        const canvas = document.getElementById('heatmap-canvas');
+        const canvas = _el('heatmap-canvas');
         const ctx = canvas?.getContext('2d');
         if (!ctx) return;
         
@@ -315,8 +328,8 @@
     }
 
     function showImage() {
-        const img = document.getElementById('heatmap-bg');
-        const placeholder = document.getElementById('heatmap-placeholder');
+        const img = _el('heatmap-bg');
+        const placeholder = _el('heatmap-placeholder');
         if(img && bgImageSrc) {
             img.src = bgImageSrc;
             img.classList.remove('hidden');
@@ -331,14 +344,14 @@
             _persistHeatmap();
             renderHeatmap();
             renderPins();
-            document.getElementById('heatmap-last-val').innerText = '-- dB';
+            _el('heatmap-last-val').innerText = '-- dB';
         }
     }
 
     function handleContainerClick(e) {
         if(e.target.classList.contains('heatmap-pin')) return;
 
-        const container = document.getElementById('heatmap-container');
+        const container = _el('heatmap-container');
         const rect = container.getBoundingClientRect();
         
         const x = (e.clientX - rect.left) / rect.width;
@@ -357,7 +370,7 @@
             return;
         }
 
-        document.getElementById('heatmap-last-val').innerText = `${db.toFixed(1)} dB`;
+        _el('heatmap-last-val').innerText = `${db.toFixed(1)} dB`;
 
         const point = {
             x,
@@ -400,7 +413,7 @@
     }
 
     function renderPins() {
-        const layer = document.getElementById('heatmap-pins-layer');
+        const layer = _el('heatmap-pins-layer');
         if(!layer) return;
         layer.innerHTML = '';
         
@@ -417,8 +430,8 @@
     }
 
     function renderHeatmap() {
-        const canvas = document.getElementById('heatmap-canvas');
-        const container = document.getElementById('heatmap-container');
+        const canvas = _el('heatmap-canvas');
+        const container = _el('heatmap-container');
         if(!canvas || !container) return;
 
         const ctx = canvas.getContext('2d');
@@ -608,7 +621,7 @@
 
     // Também inicializa quando carregado diretamente no iframe (analyzer page)
     (function autoInitHeatmap() {
-        if (document.getElementById('heatmap-canvas') || document.getElementById('heatmap-container')) {
+        if (_el('heatmap-canvas') || _el('heatmap-container')) {
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', () => setTimeout(initHeatmap, 200));
             } else {

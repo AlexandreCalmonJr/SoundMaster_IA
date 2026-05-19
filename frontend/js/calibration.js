@@ -37,6 +37,18 @@
 
 (function () {
 
+    /**
+     * Busca elemento pelo ID, tentando primeiro no iframe e depois no parent.
+     */
+    function _el(id) {
+        const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
+        if (iframe && iframe.contentDocument) {
+            const el = iframe.contentDocument.getElementById(id);
+            if (el) return el;
+        }
+        return document.getElementById(id);
+    }
+
     // ─── Estado interno ───────────────────────────────────────────────────────
 
     let _points    = [];     // [{ hz: number, offsetDb: number }] — ordenado por hz
@@ -336,7 +348,7 @@
         _splOffset   = REF_DB - currentRawDb;
         _cache.clear();
 
-        const disp = document.getElementById('spl-offset-display');
+        const disp = _el('spl-offset-display');
         if (disp) disp.innerText = `${_splOffset.toFixed(1)} dB`;
 
         _persist();
@@ -355,7 +367,7 @@
         _updateUI();
         _persist();
 
-        const input = document.getElementById('cal-file-input');
+        const input = _el('cal-file-input');
         if (input) input.value = '';
 
         console.log('[Calibration] Calibração removida.');
@@ -364,8 +376,8 @@
     // ─── UI ───────────────────────────────────────────────────────────────────
 
     function _updateUI() {
-        const status = document.getElementById('cal-status');
-        const disp   = document.getElementById('spl-offset-display');
+        const status = _el('cal-status');
+        const disp   = _el('spl-offset-display');
 
         if (status) {
             if (_active) {
@@ -454,7 +466,7 @@
         if (e.detail.pageId !== 'analyzer') return;
 
         // Upload de ficheiro .cal
-        const input = document.getElementById('cal-file-input');
+        const input = _el('cal-file-input');
         if (input) {
             input.addEventListener('change', async (ev) => {
                 const file = ev.target.files[0];
@@ -470,11 +482,11 @@
         }
 
         // Botão limpar
-        const btnClear = document.getElementById('btn-clear-calibration');
+        const btnClear = _el('btn-clear-calibration');
         if (btnClear) btnClear.addEventListener('click', clearCalibration);
 
         // Botão calibrar SPL (tom de 94dB)
-        const btnSpl = document.getElementById('btn-calibrate-spl');
+        const btnSpl = _el('btn-calibrate-spl');
         if (btnSpl) {
             btnSpl.addEventListener('click', () => {
                 const rms = window.currentGlobalRMS;
@@ -489,7 +501,7 @@
         }
 
         // Dropdown de perfis embutidos
-        const selectPreset = document.getElementById('cal-preset-select');
+        const selectPreset = _el('cal-preset-select');
         if (selectPreset) {
             // Popula o select com os perfis disponíveis
             Object.entries(BUILTIN_PROFILES).forEach(([key, profile]) => {
@@ -509,10 +521,10 @@
 
     // Também inicializa quando carregado diretamente no iframe da página analyzer
     (function autoInitCalibration() {
-        if (document.getElementById('cal-file-input') || document.getElementById('btn-calibrate-spl')) {
+        if (_el('cal-file-input') || _el('btn-calibrate-spl')) {
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', () => {
-                    const input = document.getElementById('cal-file-input');
+                    const input = _el('cal-file-input');
                     if (input) {
                         input.addEventListener('change', async (ev) => {
                             const file = ev.target.files[0];
@@ -526,9 +538,9 @@
                             }
                         });
                     }
-                    const btnClear = document.getElementById('btn-clear-calibration');
+                    const btnClear = _el('btn-clear-calibration');
                     if (btnClear) btnClear.addEventListener('click', window.AcousticCalibration.clearCalibration);
-                    const btnSpl = document.getElementById('btn-calibrate-spl');
+                    const btnSpl = _el('btn-calibrate-spl');
                     if (btnSpl) {
                         btnSpl.addEventListener('click', () => {
                             const rms = window.currentGlobalRMS;
@@ -541,7 +553,7 @@
                             alert(`✅ Offset SPL: ${window.AcousticCalibration.getCurrentSplOffset().toFixed(1)} dB`);
                         });
                     }
-                    const selectPreset = document.getElementById('cal-preset-select');
+                    const selectPreset = _el('cal-preset-select');
                     if (selectPreset) {
                         const BUILTIN_PROFILES = window.AcousticCalibration?.BUILTIN_PROFILES || {};
                         Object.entries(BUILTIN_PROFILES).forEach(([key, profile]) => {
