@@ -8,9 +8,8 @@
 (function () {
 'use strict';
 
-// Previne inicialização múltipla se o script for re-executado pelo roteador SPA
-if (window.SoundMasterAnalyzerInitialized) return;
-window.SoundMasterAnalyzerInitialized = true;
+// O script é carregado dinamicamente no iframe da página analyzer.
+// O IIFE já protege contra execução duplicada no mesmo documento.
 
 // Analisador de Áudio em Tempo Real (Web Audio API)
 let audioCtx;
@@ -269,6 +268,63 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
     }
 
     let SoundMasterAnalyzerReady = false;
+    let _globalListenersInitialized = false;
+
+    function _initGlobalListeners() {
+        if (_globalListenersInitialized) return;
+        _globalListenersInitialized = true;
+
+        // ✅ Listener Único para Áudio de Referência (Loopback)
+        SocketService.on('reference_audio_stream', (data) => {
+            if (!data || !data.samples) return;
+            refAudioQueue.push(...data.samples);
+            if (refAudioQueue.length > 48000) {
+                refAudioQueue.splice(0, refAudioQueue.length - 48000);
+            }
+        });
+
+        SocketService.on('sweep_analysis_result', (result) => {
+            _handleSweepAnalysisResult(result);
+        });
+
+        // ✅ Delegação de Eventos Global para Botões da Transfer Function
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('button');
+            if (!btn || !btn.id) return;
+
+            if (btn.id === 'btn-capture-tf') {
+                console.log('[Analyzer] Capturando trace...');
+                if (latestTFData && window.SoundMasterVisualizer) {
+                    window.SoundMasterVisualizer.captureCurrentTrace(
+                        latestTFData.magnitude,
+                        latestTFData.phase,
+                        latestTFData.coherence,
+                        { sampleRate: latestTFData.sampleRate || audioCtx?.sampleRate || 48000 }
+                    );
+                }
+            } else if (btn.id === 'btn-clear-tf-traces') {
+                if (window.SoundMasterVisualizer) window.SoundMasterVisualizer.clearTraces();
+            } else if (btn.id === 'btn-demo-tf') {
+                isDemoMode = !isDemoMode;
+                btn.classList.toggle('bg-amber-500/20', isDemoMode);
+                btn.classList.toggle('text-amber-300', isDemoMode);
+                console.log(`[Analyzer] Modo Demo: ${isDemoMode ? 'ON' : 'OFF'}`);
+
+                if (transferFunctionNode) {
+                    transferFunctionNode.port.postMessage({ type: 'set-demo-mode', value: isDemoMode });
+                }
+            }
+        });
+
+        document.addEventListener('change', (e) => {
+            if (e.target?.id !== 'tf-avg-select') return;
+            const seconds = Number(e.target.value);
+            if (transferFunctionNode && Number.isFinite(seconds)) {
+                transferFunctionNode.port.postMessage({ type: 'set-avg', seconds });
+                console.log(`[Analyzer] TF averaging: ${seconds}s`);
+            }
+        });
+    }
 
     function _resizeCanvases() {
         const dpr = window.devicePixelRatio || 1;
@@ -429,12 +485,12 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
      */
     function initGlobalAnalyzer() {
         console.log('[Analyzer] Inicializando serviços globais de áudio...');
-        
-        // 1. Global Mic Toggle Header (Sempre presente no index.html)
+
+        _initGlobalListeners();
+
         // 1. Global Mic Toggle Header (Sempre presente no index.html)
         const btnMic = document.getElementById('btn-toggle-mic');
         if (btnMic) {
-            // Remove anterior para evitar duplicidade caso o init seja chamado via console/re-entry
             btnMic.removeEventListener('click', toggleAnalyzer);
             btnMic.addEventListener('click', toggleAnalyzer);
         }
@@ -501,22 +557,6 @@ async function _populateDeviceList() {
         console.error('[Analyzer] Erro ao listar dispositivos:', err);
     }
 }
-
-// Ouvir evento do roteador
-document.addEventListener('page-loaded', (e) => {
-    // Sempre inicializa os serviços globais se ainda não foram
-    if (!acousticWorker) initGlobalAnalyzer();
-
-    if (e.detail.pageId === 'analyzer') {
-        initAnalyzer();
-    }
-    if (e.detail.pageId === 'rt60') {
-        // Inicializa controles de RT60 na página específica
-        document.getElementById('btn-trigger-pulse')?.addEventListener('click', () => {
-            window.SoundMasterAnalyzer.triggerImpulse();
-        });
-    }
-});
 
 // Cleanup global ao sair da página ou fechar aba
 window.addEventListener('beforeunload', () => {
@@ -2243,62 +2283,25 @@ window.SoundMasterAnalyzer = {
         isPlayingAnySignal: () => isPinkNoisePlaying || isWhiteNoisePlaying || isMLSPlaying || isChirpPlaying || isDualTonePlaying || isSineWavePlaying
     };
 
-    // ✅ Listener Único para Áudio de Referência (Loopback)
-    // Previne que múltiplas instâncias do analisador criem listeners redundantes
-    SocketService.on('reference_audio_stream', (data) => {
-        if (!data || !data.samples) return;
-        refAudioQueue.push(...data.samples);
-        if (refAudioQueue.length > 48000) {
-            refAudioQueue.splice(0, refAudioQueue.length - 48000);
-        }
-    });
+    // A inicialização é feita pela função runInit() definida anteriormente.
+    // Este bloco é mantido apenas como fallback de segurança.
 
-    SocketService.on('sweep_analysis_result', (result) => {
-        _handleSweepAnalysisResult(result);
-    });
-
-    // ✅ Delegação de Eventos Global para Botões da Transfer Function (mais robusto para SPA)
-    document.addEventListener('click', (e) => {
-        const btn = e.target.closest('button');
-        if (!btn || !btn.id) return;
-
-        if (btn.id === 'btn-capture-tf') {
-            console.log('[Analyzer] Capturando trace...');
-            if (latestTFData && window.SoundMasterVisualizer) {
-                window.SoundMasterVisualizer.captureCurrentTrace(
-                    latestTFData.magnitude, 
-                    latestTFData.phase, 
-                    latestTFData.coherence,
-                    { sampleRate: latestTFData.sampleRate || audioCtx?.sampleRate || 48000 }
-                );
-            }
-        } else if (btn.id === 'btn-clear-tf-traces') {
-            if (window.SoundMasterVisualizer) window.SoundMasterVisualizer.clearTraces();
-        } else if (btn.id === 'btn-demo-tf') {
-            isDemoMode = !isDemoMode;
-            btn.classList.toggle('bg-amber-500/20', isDemoMode);
-            btn.classList.toggle('text-amber-300', isDemoMode);
-            console.log(`[Analyzer] Modo Demo: ${isDemoMode ? 'ON' : 'OFF'}`);
-            
-            if (transferFunctionNode) {
-                transferFunctionNode.port.postMessage({ type: 'set-demo-mode', value: isDemoMode });
+    // Auto-init quando o script é carregado dentro do iframe da página analyzer
+    (function autoInit() {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                if (document.getElementById('fft-canvas')) {
+                    initGlobalAnalyzer();
+                    initAnalyzer();
+                }
+            });
+        } else {
+            if (document.getElementById('fft-canvas')) {
+                initGlobalAnalyzer();
+                initAnalyzer();
             }
         }
-    });
-
-    document.addEventListener('change', (e) => {
-        if (e.target?.id !== 'tf-avg-select') return;
-        const seconds = Number(e.target.value);
-        if (transferFunctionNode && Number.isFinite(seconds)) {
-            transferFunctionNode.port.postMessage({ type: 'set-avg', seconds });
-            console.log(`[Analyzer] TF averaging: ${seconds}s`);
-        }
-    });
-
-    // Se o script for carregado e a página já for a de analyzer, inicializa
-    if (document.getElementById('fft-canvas')) {
-        initAnalyzer();
-    }
+    })();
 
     return {
     isAnalyzing: () => isAnalyzing,

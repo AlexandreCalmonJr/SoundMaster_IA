@@ -19,7 +19,7 @@
             'SocketService',
             'MixerService',
             'SignalGeneratorService',
-            'SoundMasterAnalyzer',
+            // SoundMasterAnalyzer é carregado diretamente no iframe da página analyzer
             'SimulationService',
             'SoundMasterVisualizer',
             'Crosshair',
@@ -83,5 +83,25 @@
             }
             return confirm(message);
         };
+
+        // Proxy para SoundMasterAnalyzer: tenta iframe primeiro, depois fallback para parent
+        Object.defineProperty(window, 'SoundMasterAnalyzer', {
+            get: () => {
+                const iframe = window.parent.document?.getElementById('agent-workspace-iframe');
+                if (iframe && iframe.contentWindow && iframe.contentWindow.SoundMasterAnalyzer) {
+                    return iframe.contentWindow.SoundMasterAnalyzer;
+                }
+                return window.parent.SoundMasterAnalyzer;
+            },
+            set: (value) => {
+                const iframe = window.parent.document?.getElementById('agent-workspace-iframe');
+                if (iframe && iframe.contentWindow) {
+                    iframe.contentWindow.SoundMasterAnalyzer = value;
+                }
+                window.parent.SoundMasterAnalyzer = value;
+            },
+            configurable: true,
+            enumerable: true
+        });
     }
 })();

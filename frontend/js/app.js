@@ -76,4 +76,24 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     console.log('[SoundMaster] App Shell v2 inicializado com sucesso.');
+
+    // Proxy para SoundMasterAnalyzer: acessa a instância dentro do iframe
+    // O analyzer.js agora roda no contexto do iframe da página analyzer
+    Object.defineProperty(window, 'SoundMasterAnalyzer', {
+        get: () => {
+            const iframe = document.getElementById('agent-workspace-iframe');
+            if (iframe && iframe.contentWindow && iframe.contentWindow.SoundMasterAnalyzer) {
+                return iframe.contentWindow.SoundMasterAnalyzer;
+            }
+            return undefined;
+        },
+        set: (value) => {
+            const iframe = document.getElementById('agent-workspace-iframe');
+            if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.SoundMasterAnalyzer = value;
+            }
+        },
+        configurable: true,
+        enumerable: true
+    });
 });

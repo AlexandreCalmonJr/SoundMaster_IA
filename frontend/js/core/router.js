@@ -122,6 +122,20 @@ class Router {
                 scriptTags += `<script src="${scriptPath}"></script>`;
             }
 
+            if (pageId === 'analyzer') {
+                const analyzerDeps = [
+                    'js/analyzer.js',
+                    'js/calibration.js',
+                    'js/heatmap.js',
+                    'js/ui/tf-visualizer.js',
+                    'js/ui/crosshair.js',
+                    'js/ui/chart-export.js',
+                ];
+                analyzerDeps.forEach(dep => {
+                    scriptTags += `<script src="${dep}"></script>`;
+                });
+            }
+
             // Inline script inside the iframe to trigger init and notify parent
             scriptTags += `
                 <script>

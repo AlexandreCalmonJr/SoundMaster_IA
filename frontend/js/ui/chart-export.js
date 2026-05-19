@@ -236,6 +236,17 @@
         }
     });
 
+    // Também inicializa quando carregado diretamente no iframe
+    (function autoInitExport() {
+        if (document.getElementById('btn-export-png') || document.getElementById('btn-export-pdf')) {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => setTimeout(bindExportButtons, 300));
+            } else {
+                setTimeout(bindExportButtons, 300);
+            }
+        }
+    })();
+
     window.ChartExport = {
         exportCharts,
         exportAsPNG,

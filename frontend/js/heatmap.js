@@ -606,5 +606,16 @@
         }
     });
 
+    // Também inicializa quando carregado diretamente no iframe (analyzer page)
+    (function autoInitHeatmap() {
+        if (document.getElementById('heatmap-canvas') || document.getElementById('heatmap-container')) {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => setTimeout(initHeatmap, 200));
+            } else {
+                setTimeout(initHeatmap, 200);
+            }
+        }
+    })();
+
     // Observer removido: page-loaded é suficiente com setTimeout
 })();
