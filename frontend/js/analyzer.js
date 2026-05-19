@@ -18,9 +18,11 @@ let analyser;
 let analyserFast; // Novo: Analisador rápido para detecção técnica
 let source;
 let stream;
+let monitorGain = null;
 let isAnalyzing = false;
 let animationId;
 let lastAnalysis = null;
+let silentFrameCount = 0;
 let pinkMeasurementActive = false;
 let pinkMeasurementCount = 0;
 let pinkMeasurementSum = null;
@@ -461,19 +463,39 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
 
 async function _populateDeviceList() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
-    
+
     try {
+        const selectedDevice = micSelect?.value || 'default';
         const devices = await navigator.mediaDevices.enumerateDevices();
         const audioInputs = devices.filter(device => device.kind === 'audioinput');
-        
+
         if (micSelect) {
             micSelect.innerHTML = '';
-            audioInputs.forEach(device => {
+            const defaultOption = document.createElement('option');
+            defaultOption.value = 'default';
+            defaultOption.text = 'Microfone Padrão';
+            micSelect.appendChild(defaultOption);
+
+            audioInputs.forEach((device, index) => {
                 const option = document.createElement('option');
                 option.value = device.deviceId;
-                option.text = device.label || `Microfone ${micSelect.length + 1}`;
+                option.text = device.label || `Microfone ${index + 1}`;
                 micSelect.appendChild(option);
             });
+
+            if ([...micSelect.options].some(opt => opt.value === selectedDevice)) {
+                micSelect.value = selectedDevice;
+            } else {
+                micSelect.value = 'default';
+            }
+
+            if (audioInputs.length === 0) {
+                const noDevice = document.createElement('option');
+                noDevice.value = 'default';
+                noDevice.text = 'Nenhum microfone detectado';
+                noDevice.disabled = true;
+                micSelect.appendChild(noDevice);
+            }
         }
     } catch (err) {
         console.error('[Analyzer] Erro ao listar dispositivos:', err);
@@ -503,6 +525,7 @@ window.addEventListener('beforeunload', () => {
 
 async function startAnalyzer() {
     try {
+        console.log('[Analyzer] startAnalyzer() chamado. Seleção de microfone:', micSelect?.value || 'default');
         const deviceId = micSelect?.value || 'default';
         const constraints = {
             audio: {
@@ -519,6 +542,9 @@ async function startAnalyzer() {
         }
 
         stream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log('[Analyzer] getUserMedia OK, tracks:', stream.getTracks().map(t => `${t.kind}:${t.readyState}:${t.enabled}`).join(', '));
+        silentFrameCount = 0;
+        await _populateDeviceList();
         
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
@@ -566,7 +592,26 @@ async function startAnalyzer() {
         analyser.maxDecibels = -10;
         
         source = audioCtx.createMediaStreamSource(stream);
+        try {
+            source.channelCountMode = 'explicit';
+            source.channelCount = 1;
+            source.channelInterpretation = 'discrete';
+        } catch (e) {
+            console.warn('[Analyzer] Não foi possível forçar mono no source:', e);
+        }
+        console.log('[Analyzer] MediaStreamSource criado. channelCount:', source.channelCount, 'channelInterpretation:', source.channelInterpretation);
         source.connect(analyser);
+
+        const analyserGain = audioCtx.createGain();
+        analyserGain.gain.value = 0;
+        analyser.connect(analyserGain);
+        analyserGain.connect(audioCtx.destination);
+        console.log('[Analyzer] AnalyserNode conectado ao destino silencioso.');
+
+        monitorGain = audioCtx.createGain();
+        monitorGain.gain.value = 0;
+        source.connect(monitorGain);
+        monitorGain.connect(audioCtx.destination);
 
         if (audioWorkletNode) {
             source.connect(audioWorkletNode);
@@ -593,6 +638,11 @@ async function startAnalyzer() {
         analyserFast.minDecibels = -100;
         analyserFast.maxDecibels = -10;
         source.connect(analyserFast);
+        const fastGain = audioCtx.createGain();
+        fastGain.gain.value = 0;
+        analyserFast.connect(fastGain);
+        fastGain.connect(audioCtx.destination);
+        console.log('[Analyzer] AnalyserFast conectado ao destino silencioso.');
 
         // ── SPL Logger (IEC 61672): inicializa e arranca ticker de 1s ───────────
         if (window.SplLogger) {
@@ -659,6 +709,15 @@ async function stopAnalyzer() {
             }
         }
         audioCtx = null;
+    }
+
+    if (monitorGain) {
+        try {
+            monitorGain.disconnect();
+        } catch (e) {
+            console.warn('[Analyzer] Falha ao desconectar monitorGain:', e);
+        }
+        monitorGain = null;
     }
 
     // Limpeza de nós específicos
@@ -1326,6 +1385,19 @@ function analyze() {
         
         analyser.getFloatFrequencyData(freqData);
         
+        if (freqData.every(value => value === analyser.minDecibels)) {
+            console.warn('[Analyzer] freqData todos no valor mínimo, possível sinal ausente ou source desconectado. isAnalyzing=', isAnalyzing);
+        }
+        
+        if (freqData.every(v => !isFinite(v))) {
+            silentFrameCount += 1;
+            if (silentFrameCount === 10) {
+                console.warn('[Analyzer] Nenhum dado de frequência recebido do microfone; verificando conexões.');
+            }
+        } else {
+            silentFrameCount = 0;
+        }
+        
         // ✅ Novo: Captura dados do analisador rápido para detecção técnica/feedback
         const fastBufferLength = analyserFast.frequencyBinCount;
         const fastFreqData = new Float32Array(fastBufferLength);
@@ -1795,6 +1867,7 @@ window.SoundMasterAnalyzer = {
 };
 
 function toggleAnalyzer() {
+    console.log('[Analyzer] toggleAnalyzer() chamado. isAnalyzing=', isAnalyzing);
     if (isAnalyzing) {
         stopAnalyzer();
     } else {
