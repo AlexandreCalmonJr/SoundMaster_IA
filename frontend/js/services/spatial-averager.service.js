@@ -392,8 +392,9 @@
         let devices;
         try {
             // Pede permissão inicial para enumerar com labels
-            await navigator.mediaDevices.getUserMedia({ audio: true });
+            const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const allDevices = await navigator.mediaDevices.enumerateDevices();
+            tempStream.getTracks().forEach(t => t.stop());
             devices = allDevices.filter(d => d.kind === 'audioinput').slice(0, maxMics);
         } catch (e) {
             console.error('[SpatialAvg] Erro ao enumerar dispositivos:', e);

@@ -36,6 +36,7 @@
         loadProfilesFromStorage();
         resizeCanvas();
         
+        window.removeEventListener('resize', resizeCanvas);
         window.addEventListener('resize', resizeCanvas);
         
         console.log('[RT60-Mapping] Módulo inicializado');

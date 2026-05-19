@@ -268,16 +268,49 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
 
     let SoundMasterAnalyzerReady = false;
 
+    function _resizeCanvases() {
+        const dpr = window.devicePixelRatio || 1;
+        const canvases = [
+            { el: canvas },
+            { el: waterfallCanvasEl }
+        ];
+        const tfCanvases = ['tf-magnitude-canvas', 'tf-phase-canvas'];
+        
+        canvases.forEach(({ el }) => {
+            if (!el) return;
+            const rect = el.getBoundingClientRect();
+            const w = Math.floor(rect.width * dpr);
+            const h = Math.floor(rect.height * dpr);
+            if (el.width !== w || el.height !== h) {
+                el.width = w;
+                el.height = h;
+                el.style.width = rect.width + 'px';
+                el.style.height = rect.height + 'px';
+            }
+        });
+
+        tfCanvases.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const rect = el.getBoundingClientRect();
+            const w = Math.floor(rect.width * dpr);
+            const h = Math.floor(rect.height * dpr);
+            if (el.width !== w || el.height !== h) {
+                el.width = w;
+                el.height = h;
+                el.style.width = rect.width + 'px';
+                el.style.height = rect.height + 'px';
+            }
+        });
+    }
+
     function initAnalyzer() {
-        if (SoundMasterAnalyzerReady) return;
-        SoundMasterAnalyzerReady = true;
         console.log('[Analyzer] Inicializando elementos do DOM...');
         canvas = document.getElementById('fft-canvas');
         if (!canvas) return;
 
         canvasCtx = canvas.getContext('2d');
         
-        // Setup Crosshair listener for RTA
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
             rtaCrosshairX = (e.clientX - rect.left) * (canvas.width / rect.width);
@@ -287,6 +320,11 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
             rtaCrosshairX = -1;
             rtaCrosshairY = -1;
         });
+
+        waterfallCanvasEl = document.getElementById('waterfall-canvas');
+        if (waterfallCanvasEl) waterfallCtx = waterfallCanvasEl.getContext('2d');
+
+        _resizeCanvases();
 
         _initManualControls();
         _initAutomixControls();
@@ -305,8 +343,6 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
         btnLogSweep = document.getElementById('btn-log-sweep');
         micSelect = document.getElementById('mic-select');
         pinkMeasureSummary = document.getElementById('pink-measure-summary');
-        waterfallCanvasEl = document.getElementById('waterfall-canvas');
-        if (waterfallCanvasEl) waterfallCtx = waterfallCanvasEl.getContext('2d');
 
         // Novos elementos de sugestão IA
         const aiBox = document.getElementById('ai-suggestions-box');
@@ -321,9 +357,21 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
             });
         }
 
-        // Listeners locais da página de análise
-        document.getElementById('btn-start-audio')?.addEventListener('click', startAnalyzer);
-        document.getElementById('btn-stop-audio')?.addEventListener('click', stopAnalyzer);
+        // Listeners locais da página de análise (usando clone para evitar duplicatas)
+        const btnStart = document.getElementById('btn-start-audio');
+        const btnStop = document.getElementById('btn-stop-audio');
+        if (btnStart) {
+            const newBtn = btnStart.cloneNode(true);
+            btnStart.parentNode.replaceChild(newBtn, btnStart);
+            newBtn.addEventListener('click', startAnalyzer);
+            newBtn.disabled = isAnalyzing;
+        }
+        if (btnStop) {
+            const newBtn = btnStop.cloneNode(true);
+            btnStop.parentNode.replaceChild(newBtn, btnStop);
+            newBtn.addEventListener('click', stopAnalyzer);
+            newBtn.disabled = !isAnalyzing;
+        }
         btnSendAnalysis?.addEventListener('click', sendAnalysisToAI);
         btnMeasurePink?.addEventListener('click', startPinkNoiseMeasurement);
         btnLogSweep?.addEventListener('click', startLogarithmicSweep);
@@ -474,6 +522,13 @@ async function startAnalyzer() {
         
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
+        if (audioCtx.state === 'suspended') {
+            await audioCtx.resume();
+        }
+        if (audioCtx.state !== 'running') {
+            throw new Error('AudioContext não pôde ser iniciado. Verifique as permissões do navegador.');
+        }
+        
         // Carrega AudioWorklets para processamento em thread separada
         try {
             await audioCtx.audioWorklet.addModule('js/core/audio-processor.js');
@@ -569,6 +624,7 @@ async function startAnalyzer() {
         if (btnStart) btnStart.disabled = true;
         if (btnStop) btnStop.disabled = false;
         
+        _resizeCanvases();
         analyze();
     } catch (err) {
         console.error("Erro ao acessar microfone:", err);
@@ -1258,21 +1314,22 @@ function _drawWaterfallTimeAxis(ctx, x, y, width, height) {
 function analyze() {
     if (!isAnalyzing) return;
     
-    animationId = requestAnimationFrame(analyze);
-    
-    // ✅ Inicializa arrays se necessário
-    if (!freqData || freqData.length !== analyser.frequencyBinCount) {
-        bufferLength = analyser.frequencyBinCount;
-        freqData = new Float32Array(bufferLength);
-        timeData = new Float32Array(analyser.fftSize);
-    }
-    
-    analyser.getFloatFrequencyData(freqData);
-    
-    // ✅ Novo: Captura dados do analisador rápido para detecção técnica/feedback
-    const fastBufferLength = analyserFast.frequencyBinCount;
-    const fastFreqData = new Float32Array(fastBufferLength);
-    analyserFast.getFloatFrequencyData(fastFreqData);
+    try {
+        animationId = requestAnimationFrame(analyze);
+        
+        // ✅ Inicializa arrays se necessário
+        if (!freqData || freqData.length !== analyser.frequencyBinCount) {
+            bufferLength = analyser.frequencyBinCount;
+            freqData = new Float32Array(bufferLength);
+            timeData = new Float32Array(analyser.fftSize);
+        }
+        
+        analyser.getFloatFrequencyData(freqData);
+        
+        // ✅ Novo: Captura dados do analisador rápido para detecção técnica/feedback
+        const fastBufferLength = analyserFast.frequencyBinCount;
+        const fastFreqData = new Float32Array(fastBufferLength);
+        analyserFast.getFloatFrequencyData(fastFreqData);
 
     // Aplica correção de microfone e calibração SPL
     // ✅ FIX P0: fftSize obrigatório para cálculo correto de hzPerBin na curva de calibração
@@ -1650,6 +1707,12 @@ function analyze() {
         if (btnAutoCut && !isAutoCutEnabled) {
             btnAutoCut.style.display = 'none';
             btnAutoCut.innerText = '🪄 Cortar Frequência na Mesa';
+        }
+    }
+    } catch (err) {
+        console.error('[Analyzer] analyze() error:', err);
+        if (isAnalyzing) {
+            animationId = requestAnimationFrame(analyze);
         }
     }
 }
