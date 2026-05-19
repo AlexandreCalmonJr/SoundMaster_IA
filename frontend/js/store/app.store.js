@@ -3,6 +3,13 @@
  * Estado global reativo com observer pattern.
  * Substitui a passagem de callbacks entre módulos (appendMixerLog, appendAISuggestion, etc.)
  *
+ * FEATURES:
+ *   - Subscribe por chave com unsubscribe
+ *   - setState patch com notificação automática
+ *   - Persistência declarativa em localStorage
+ *   - Deep clone em getState() para evitar mutação acidental
+ *   - Cross-frame sync via postMessage (parent ↔ iframe)
+ *
  * USO:
  *   AppStore.subscribe('mixerConnected', (val) => { ... });
  *   AppStore.setState({ mixerConnected: true });
@@ -10,6 +17,47 @@
  */
 (function () {
     'use strict';
+
+    // -------------------------------------------------------------------------
+    // Persistência declarativa
+    // -------------------------------------------------------------------------
+    const PERSIST_KEYS = [
+        'userMode', 'volunteerChannels', 'faderCeiling',
+        'autoEqTarget', 'mtwWindow', 'splWeighting',
+    ];
+
+    function _loadPersisted(key, fallback) {
+        try {
+            const v = localStorage.getItem('sm-' + key);
+            return v !== null ? JSON.parse(v) : fallback;
+        } catch (e) {
+            return fallback;
+        }
+    }
+
+    function _persist(patch) {
+        Object.keys(patch).forEach(function (key) {
+            if (PERSIST_KEYS.includes(key)) {
+                try {
+                    localStorage.setItem('sm-' + key, JSON.stringify(patch[key]));
+                } catch (e) {
+                    console.warn('[AppStore] Falha ao persistir', key, e);
+                }
+            }
+        });
+    }
+
+    // -------------------------------------------------------------------------
+    // Deep clone para getState()
+    // -------------------------------------------------------------------------
+    function _deepClone(obj) {
+        if (obj === null || typeof obj !== 'object') return obj;
+        if (obj instanceof Float32Array) return new Float32Array(obj);
+        if (Array.isArray(obj)) return obj.map(_deepClone);
+        const clone = {};
+        for (const k of Object.keys(obj)) clone[k] = _deepClone(obj[k]);
+        return clone;
+    }
 
     // -------------------------------------------------------------------------
     // Estado inicial
@@ -40,17 +88,17 @@
         feedbackHz: null,     // Hz do pico detectado ou null
 
         // SPL Logger (IEC 61672)
-        splWeighting: 'A',    // 'A' | 'C' | 'Z'
+        splWeighting: _loadPersisted('splWeighting', 'A'),    // 'A' | 'C' | 'Z'
         splStats: null,       // { leqTotal, leq1, leq10, lmax, lmin, ldose, dose8h, lden, elapsedSec }
         splAlert: null,       // { level, message, ts } ou null
         splHistory: null,     // referência ao getter — não guarda array aqui
 
         // MTW Spectrum (Multi-Time Windowing)
         mtwSpectrum: null,    // { frequencies: Float32Array, magnitudes: Float32Array }
-        mtwWindow: 'blackman', // janela activa
+        mtwWindow: _loadPersisted('mtwWindow', 'blackman'), // janela activa
 
         // Auto-EQ / Target Curve Matching
-        autoEqTarget: 'flat',  // curva alvo activa
+        autoEqTarget: _loadPersisted('autoEqTarget', 'flat'),  // curva alvo activa
         autoEqResult: null,    // { peq, geq, curve, diff, stats }
 
         // Spatial Averaging
@@ -60,15 +108,18 @@
         mixerLog: [],         // [{ time, text }]
 
         // Modo de Permissão (Tópico 15)
-        userMode: localStorage.getItem('sm-user-mode') || 'technician', // 'technician' | 'volunteer'
-        volunteerChannels: JSON.parse(localStorage.getItem('sm-volunteer-channels') || '[1,2,3,4]'), // canais visíveis no modo voluntário
-        faderCeiling: 0.85, // ~0dB: teto do fader no modo voluntário (0.0–1.0)
+        userMode: _loadPersisted('userMode', 'technician'),
+        volunteerChannels: _loadPersisted('volunteerChannels', [1, 2, 3, 4]),
+        faderCeiling: _loadPersisted('faderCeiling', 0.85),
     };
 
     // -------------------------------------------------------------------------
     // Listeners por chave
     // -------------------------------------------------------------------------
     const _listeners = {};
+
+    // Flag para evitar loop infinito no cross-frame sync
+    let _syncingFromFrame = false;
 
     // -------------------------------------------------------------------------
     // API pública
@@ -84,8 +135,23 @@
         if (!_listeners[key]) _listeners[key] = [];
         _listeners[key].push(fn);
         return function unsubscribe() {
-            _listeners[key] = _listeners[key].filter(f => f !== fn);
+            _listeners[key] = _listeners[key].filter(function (f) { return f !== fn; });
         };
+    }
+
+    /**
+     * Notificar subscribers de uma chave.
+     * @param {string} key
+     * @param {Object} patch
+     */
+    function _notify(key, patch) {
+        if (_listeners[key]) {
+            _listeners[key].forEach(function (fn) {
+                try { fn(_state[key], _state); } catch (e) {
+                    console.error('[AppStore] Erro no subscriber de "' + key + '":', e);
+                }
+            });
+        }
     }
 
     /**
@@ -93,24 +159,40 @@
      * @param {Object} patch - Objeto parcial com as mudanças
      */
     function setState(patch) {
+        if (_syncingFromFrame) {
+            // Já estamos aplicando um patch vindo do iframe — só notifica local
+            Object.assign(_state, patch);
+            Object.keys(patch).forEach(function (key) { _notify(key, patch); });
+            return;
+        }
+
         Object.assign(_state, patch);
-        Object.keys(patch).forEach(function (key) {
-            if (_listeners[key]) {
-                _listeners[key].forEach(function (fn) {
-                    try { fn(_state[key], _state); } catch (e) {
-                        console.error('[AppStore] Erro no subscriber de "' + key + '":', e);
-                    }
-                });
+        _persist(patch);
+
+        const keys = Object.keys(patch);
+        keys.forEach(function (key) { _notify(key, patch); });
+
+        // Cross-frame: notificar iframe ativo sobre a mudança
+        const iframe = document.getElementById('agent-workspace-iframe');
+        if (iframe && iframe.contentWindow) {
+            try {
+                iframe.contentWindow.postMessage({
+                    type: 'APPSTORE_UPDATE',
+                    keys: keys,
+                    patch: patch,
+                }, '*');
+            } catch (e) {
+                console.warn('[AppStore] Falha ao notificar iframe:', e);
             }
-        });
+        }
     }
 
     /**
-     * Retorna uma cópia rasa do estado atual.
+     * Retorna uma cópia profunda do estado atual.
      * @returns {Object}
      */
     function getState() {
-        return Object.assign({}, _state);
+        return _deepClone(_state);
     }
 
     /**
@@ -134,6 +216,17 @@
         const list = [suggestion].concat(_state.aiSuggestions).slice(0, 10);
         setState({ aiSuggestions: list });
     }
+
+    // -------------------------------------------------------------------------
+    // Cross-frame: escutar patches vindos do iframe
+    // -------------------------------------------------------------------------
+    window.addEventListener('message', function (e) {
+        if (e.data && e.data.type === 'APPSTORE_PATCH') {
+            _syncingFromFrame = true;
+            setState(e.data.patch);
+            _syncingFromFrame = false;
+        }
+    });
 
     window.AppStore = { subscribe, setState, getState, addLog, addAISuggestion };
 })();
