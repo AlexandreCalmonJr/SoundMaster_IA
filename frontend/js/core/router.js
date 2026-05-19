@@ -1,7 +1,9 @@
 /**
- * SoundMaster SPA Router
- * Manages dynamic page loading with transitions and breadcrumb data.
+ * SoundMaster Iframe Shell Router
+ * Manages dynamic page loading inside an isolated iframe with transitions and breadcrumb data.
  */
+
+'use strict';
 
 const ROUTE_MAP = {
     'home':              { path: 'pages/home.html',              title: 'Dashboard',           category: null },
@@ -37,6 +39,22 @@ class Router {
         this.currentPage = null;
         this.routes = {};
 
+        // Script paths mapping for dynamic import in iframe
+        this.scriptPaths = {
+            'analyzer': 'js/pages/analyzer-page.js',
+            'rt60': 'js/pages/rt60-page.js',
+            'auto-eq': 'js/pages/auto-eq-page.js',
+            'scene-builder': 'js/pages/scene-builder-page.js',
+            'semantic-eq': 'js/pages/semantic-eq-page.js',
+            'debug': 'js/pages/debug-page.js',
+            'systems': 'js/pages/systems-page.js',
+            'volunteer-mode': 'js/pages/volunteer-page.js',
+            'automixer': 'js/pages/automixer-page.js',
+            'mixer-git': 'js/pages/mixer-git-page.js',
+            'testbed': 'js/pages/testbed-page.js',
+            'stage-plot': 'js/pages/stage-plot-page.js',
+        };
+
         // Build simple route map for backward compat
         for (const [id, data] of Object.entries(ROUTE_MAP)) {
             this.routes[id] = data.path;
@@ -61,11 +79,23 @@ class Router {
 
         // ✅ T13: Dispatch page-unload para cleanup da página anterior (P24)
         if (this.currentPage) {
+            const iframe = document.getElementById('agent-workspace-iframe');
+            if (iframe && iframe.contentWindow) {
+                const prevModule = iframe.contentWindow[this._getPageModuleName(this.currentPage)];
+                if (prevModule && typeof prevModule.destroy === 'function') {
+                    try {
+                        prevModule.destroy();
+                    } catch (e) {
+                        console.error('[Router] Erro ao destruir modulo anterior:', e);
+                    }
+                }
+            }
             window.dispatchEvent(new CustomEvent('page-unload', { detail: { pageId: this.currentPage } }));
         }
 
         const container = document.getElementById('agent-workspace');
-        if (!container) return;
+        const iframe = document.getElementById('agent-workspace-iframe');
+        if (!container || !iframe) return;
 
         try {
             console.log(`[Router] Navegando para: ${pageId}`);
@@ -75,31 +105,86 @@ class Router {
             container.classList.add('page-exit');
             await this._wait(200);
 
-            // Fetch new page
+            // Fetch new page HTML fragment
             const response = await fetch(this.routes[pageId]);
             if (!response.ok) throw new Error(`Erro ao carregar: ${pageId}`);
-
             const html = await response.text();
-            
-            // ✅ Sanitização básica via DOMParser
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            
-            // Verificar se o parse retornou algo válido e seguro
-            if (doc.body.children.length === 0 && html.trim().length > 0) {
-                 container.textContent = 'Erro ao processar conteúdo da página.';
-            } else {
-                container.replaceChildren(...Array.from(doc.body.children).map(child => child.cloneNode(true)));
-                
-                // ✅ Re-executar scripts inline para garantir que a lógica da página funcione
-                container.querySelectorAll('script').forEach(oldScript => {
-                    const newScript = document.createElement('script');
-                    Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-                    newScript.textContent = oldScript.textContent;
-                    oldScript.replaceWith(newScript);
-                });
+
+            // Prepare the HTML content with styles and page bridge
+            const scriptPath = this._getPageScriptPath(pageId);
+            const moduleName = this._getPageModuleName(pageId);
+
+            let scriptTags = `
+                <script src="js/core/page-bridge.js"></script>
+                <script src="js/page-utils.js"></script>
+            `;
+            if (scriptPath) {
+                scriptTags += `<script src="${scriptPath}"></script>`;
             }
-            
+
+            // Inline script inside the iframe to trigger init and notify parent
+            scriptTags += `
+                <script>
+                    document.addEventListener('DOMContentLoaded', () => {
+                        const moduleName = '${moduleName || ''}';
+                        if (moduleName && window[moduleName] && typeof window[moduleName].init === 'function') {
+                            try {
+                                window[moduleName].init();
+                            } catch (e) {
+                                console.error('[Iframe] Erro ao inicializar modulo ' + moduleName + ':', e);
+                            }
+                        }
+                        
+                        // Notify parent router that the page is fully loaded and initialized
+                        const event = new CustomEvent('iframe-loaded', {
+                            detail: { pageId: '${pageId}' }
+                        });
+                        window.parent.document.dispatchEvent(event);
+                    });
+                </script>
+            `;
+
+            const fullHtml = `
+            <!DOCTYPE html>
+            <html lang="pt-br">
+            <head>
+                <meta charset="UTF-8">
+                <link rel="stylesheet" href="css/styles.css">
+                <link rel="stylesheet" href="css/app-layout.css">
+                <link rel="stylesheet" href="css/auto-eq.css">
+                <link rel="stylesheet" href="css/pages.css">
+                <link rel="stylesheet" href="css/components.css">
+                <link rel="stylesheet" href="css/mixer-git.css">
+                <link rel="stylesheet" href="css/stage-plot.css">
+                <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400&display=swap" rel="stylesheet">
+                ${scriptTags}
+            </head>
+            <body class="bg-transparent text-slate-200" style="margin: 0; padding: 0; overflow-x: hidden;">
+                ${html}
+            </body>
+            </html>
+            `;
+
+            // We set up a one-time listener for the custom 'iframe-loaded' event
+            const loadPromise = new Promise((resolve) => {
+                const onIframeLoaded = (e) => {
+                    if (e.detail.pageId === pageId) {
+                        document.removeEventListener('iframe-loaded', onIframeLoaded);
+                        resolve();
+                    }
+                };
+                document.addEventListener('iframe-loaded', onIframeLoaded);
+            });
+
+            // Write full HTML content to iframe
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            iframeDoc.open();
+            iframeDoc.write(fullHtml);
+            iframeDoc.close();
+
+            // Wait for the DOMContentLoaded and script init to complete inside the iframe
+            await loadPromise;
+
             this.currentPage = pageId;
 
             // Enter animation
@@ -125,16 +210,25 @@ class Router {
         } catch (error) {
             console.error('[Router] Erro na navegação:', error);
             container.classList.remove('page-exit');
-            container.innerHTML = `
-                <div class="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            iframeDoc.open();
+            iframeDoc.write(`
+                <html lang="pt-br">
+                <head>
+                    <link rel="stylesheet" href="css/styles.css">
+                    <link rel="stylesheet" href="css/app-layout.css">
+                </head>
+                <body class="bg-transparent text-slate-200 flex flex-col items-center justify-center min-h-[60vh] gap-4">
                     <div class="text-6xl">⚠️</div>
                     <h2 class="text-2xl font-black text-white">Página não encontrada</h2>
                     <p class="text-slate-400 text-sm">Não foi possível carregar esta página.</p>
-                    <button onclick="history.back()" class="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold transition-all mt-4">
+                    <button onclick="window.parent.history.back()" class="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold transition-all mt-4">
                         Voltar
                     </button>
-                </div>
-            `;
+                </body>
+                </html>
+            `);
+            iframeDoc.close();
         }
     }
 
@@ -173,6 +267,28 @@ class Router {
 
     _wait(ms) {
         return new Promise(r => setTimeout(r, ms));
+    }
+
+    _getPageModuleName(pageId) {
+        const map = {
+            'analyzer': 'AnalyzerPage',
+            'rt60': 'RT60Page',
+            'auto-eq': 'AutoEqPage',
+            'scene-builder': 'SceneBuilderPage',
+            'semantic-eq': 'SemanticEqPage',
+            'debug': 'DebugPage',
+            'systems': 'SystemsPage',
+            'volunteer-mode': 'VolunteerPage',
+            'automixer': 'AutomixerPage',
+            'mixer-git': 'MixerGitPage',
+            'testbed': 'TestbedPage',
+            'stage-plot': 'StagePlotPage',
+        };
+        return map[pageId] || null;
+    }
+
+    _getPageScriptPath(pageId) {
+        return this.scriptPaths[pageId] || null;
     }
 }
 

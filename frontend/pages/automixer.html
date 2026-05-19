@@ -16,7 +16,7 @@
                 <div id="am-b-dot" class="w-3 h-3 rounded-full bg-slate-600"></div>
                 <span class="text-xs font-bold text-slate-400">Grupo B</span>
                 <div id="am-b-meter" class="w-20 h-2 rounded-full bg-black/40 overflow-hidden">
-                    <div id="am-b-bar" class="h-full bg-purple-500 rounded-full transition-all" style="width:0%"></div>
+                    <div id="am-b-bar" class="h-full bg-emerald-500 rounded-full transition-all" style="width:0%"></div>
                 </div>
             </div>
         </div>
@@ -27,7 +27,6 @@
             <div class="flex items-center justify-between">
                 <span class="text-sm font-bold text-slate-500 uppercase tracking-widest">Controle Global</span>
             </div>
-
             <div class="space-y-3">
                 <div class="flex items-center justify-between">
                     <span class="text-xs text-slate-400">Grupo A</span>
@@ -42,7 +41,6 @@
                     </button>
                 </div>
             </div>
-
             <div class="border-t border-white/5 pt-4">
                 <label class="text-xs text-slate-400 mb-2 block">Tempo de Resposta</label>
                 <div class="flex items-center gap-3">
@@ -50,7 +48,6 @@
                     <span id="am-response-val" class="text-xs text-cyan-400 font-mono w-14 text-right">500ms</span>
                 </div>
             </div>
-
             <div class="border-t border-white/5 pt-4">
                 <label class="text-xs text-slate-400 mb-2 block">Peso Master</label>
                 <div class="flex items-center gap-3">
@@ -58,17 +55,10 @@
                     <span id="am-master-weight-val" class="text-xs text-cyan-400 font-mono w-14 text-right">50%</span>
                 </div>
             </div>
-
             <div class="border-t border-white/5 pt-4 space-y-2">
-                <button id="am-activate-all" class="w-full py-2 rounded-xl bg-cyan-600/30 hover:bg-cyan-600/50 text-xs font-bold text-cyan-400 border border-cyan-500/30 transition-all">
-                    Ativar Todos (A)
-                </button>
-                <button id="am-deactivate-all" class="w-full py-2 rounded-xl bg-slate-700/50 hover:bg-slate-600 text-xs font-bold text-slate-300 border border-white/5 transition-all">
-                    Desativar Todos
-                </button>
-                <button id="am-reset" class="w-full py-2 rounded-xl bg-red-900/30 hover:bg-red-900/50 text-xs font-bold text-red-400 border border-red-500/30 transition-all">
-                    Resetar Pesos
-                </button>
+                <button id="am-activate-all" class="w-full py-2 rounded-xl bg-cyan-600/30 hover:bg-cyan-600/50 text-xs font-bold text-cyan-400 border border-cyan-500/30 transition-all">Ativar Todos (A)</button>
+                <button id="am-deactivate-all" class="w-full py-2 rounded-xl bg-slate-700/50 hover:bg-slate-600 text-xs font-bold text-slate-300 border border-white/5 transition-all">Desativar Todos</button>
+                <button id="am-reset" class="w-full py-2 rounded-xl bg-red-900/30 hover:bg-red-900/50 text-xs font-bold text-red-400 border border-red-500/30 transition-all">Resetar Pesos</button>
             </div>
         </div>
 
@@ -78,271 +68,13 @@
                     <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Canais</span>
                     <span class="text-xs text-slate-600">Grupo = cor do canal | Barra = redução de ganho</span>
                 </div>
-                <div id="am-channels-grid" class="p-4 grid grid-cols-4 xl:grid-cols-8 gap-3">
-                </div>
+                <div id="am-channels-grid" class="p-4 grid grid-cols-4 xl:grid-cols-8 gap-3"></div>
             </div>
         </div>
     </div>
 
     <div class="bg-slate-800/40 border border-white/10 rounded-2xl p-5">
         <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">Grupos</h3>
-        <div id="am-groups" class="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        </div>
+        <div id="am-groups" class="grid grid-cols-2 xl:grid-cols-4 gap-4"></div>
     </div>
 </section>
-
-<script>
-(function () {
-    'use strict';
-
-    const NUM_CHANNELS = 16;
-    const channelState = {};
-    const groupAssignments = { a: new Set(), b: new Set() };
-    const channelWeights = {};
-
-    function init() {
-        buildChannelGrid();
-        buildGroups();
-        bindControls();
-        updateChannelStates();
-    }
-
-    function buildChannelGrid() {
-        const grid = document.getElementById('am-channels-grid');
-        grid.innerHTML = '';
-        for (let i = 1; i <= NUM_CHANNELS; i++) {
-            channelState[i] = { enabled: false, group: 'none', weight: 0.5, reduction: 0 };
-            channelWeights[i] = 0.5;
-            const card = document.createElement('div');
-            card.className = 'am-channel-card bg-slate-900/50 border border-white/5 rounded-xl p-3 flex flex-col items-center gap-2 transition-all cursor-pointer hover:border-white/15';
-            card.id = 'am-ch-' + i;
-            card.innerHTML = `
-                <div class="w-8 h-8 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-xs font-bold text-slate-400" data-ch="${i}">${i}</div>
-                <div class="w-full h-16 bg-black/30 rounded-lg overflow-hidden relative flex flex-col justify-end" title="Redução de ganho">
-                    <div class="am-reduction-bar absolute inset-0 bg-red-500/0 transition-all" style="width:0%"></div>
-                    <div class="am-level-fill w-full bg-cyan-500/60 transition-all" style="height:0%"></div>
-                </div>
-                <div class="w-full flex gap-1 justify-center">
-                    <button class="am-group-btn w-6 h-6 rounded text-[8px] font-bold border border-slate-600 bg-slate-800 text-slate-500 hover:bg-cyan-900/50 hover:border-cyan-500/50 hover:text-cyan-400 transition-all" data-ch="${i}" data-group="a" title="Grupo A">A</button>
-                    <button class="am-group-btn w-6 h-6 rounded text-[8px] font-bold border border-slate-600 bg-slate-800 text-slate-500 hover:bg-purple-900/50 hover:border-purple-500/50 hover:text-purple-400 transition-all" data-ch="${i}" data-group="b" title="Grupo B">B</button>
-                </div>
-                <div class="w-full">
-                    <input type="range" class="am-weight-slider w-full h-1 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500" data-ch="${i}" min="0" max="100" value="50">
-                </div>
-                <div class="am-reduction-text text-[9px] text-slate-600 font-mono">0dB</div>
-            `;
-            card.addEventListener('click', function (e) {
-                if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-                toggleChannel(i);
-            });
-            grid.appendChild(card);
-        }
-    }
-
-    function buildGroups() {
-        const container = document.getElementById('am-groups');
-        container.innerHTML = '';
-        ['a', 'b'].forEach(function (g) {
-            const group = document.createElement('div');
-            group.className = 'bg-slate-900/50 border border-white/5 rounded-xl p-4';
-            group.innerHTML = `
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-sm font-bold text-${g === 'a' ? 'cyan' : 'purple'}-400">Grupo ${g.toUpperCase()}</span>
-                    <button class="am-activate-group text-[10px] font-bold px-3 py-1 rounded-lg bg-${g === 'a' ? 'cyan' : 'purple'}-900/30 border border-${g === 'a' ? 'cyan' : 'purple'}-500/30 text-${g === 'a' ? 'cyan' : 'purple'}-400 hover:bg-${g === 'a' ? 'cyan' : 'purple'}-900/50 transition-all" data-group="${g}">Ativar Canais</button>
-                </div>
-                <div class="text-xs text-slate-500 mb-2">Canais: <span id="am-group-${g}-ch-list" class="text-slate-300">nenhum</span></div>
-                <div class="text-xs text-slate-500">Total de redução: <span id="am-group-${g}-total-reduction" class="text-red-400 font-mono">0dB</span></div>
-            `;
-            container.appendChild(group);
-        });
-
-        document.querySelectorAll('.am-activate-group').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                const g = this.getAttribute('data-group');
-                const enabled = groupAssignments[g].size > 0;
-                groupAssignments[g].forEach(function (ch) {
-                    channelState[ch].enabled = !enabled;
-                });
-                updateChannelStates();
-                sendAutomixUpdate();
-            });
-        });
-    }
-
-    function toggleChannel(ch) {
-        channelState[ch].enabled = !channelState[ch].enabled;
-        updateChannelStates();
-        sendAutomixUpdate();
-    }
-
-    function assignChannelGroup(ch, group) {
-        if (channelState[ch].group === group) {
-            channelState[ch].group = 'none';
-            groupAssignments.a.delete(ch);
-            groupAssignments.b.delete(ch);
-        } else {
-            channelState[ch].group = group;
-            groupAssignments.a.delete(ch);
-            groupAssignments.b.delete(ch);
-            groupAssignments[group].add(ch);
-        }
-        updateChannelStates();
-        sendAutomixUpdate();
-    }
-
-    function updateChannelStates() {
-        for (let i = 1; i <= NUM_CHANNELS; i++) {
-            const s = channelState[i];
-            const card = document.getElementById('am-ch-' + i);
-            if (!card) continue;
-
-            card.classList.toggle('am-enabled', s.enabled);
-            if (s.enabled) {
-                card.classList.add('border-cyan-500/30');
-            } else {
-                card.classList.remove('border-cyan-500/30');
-            }
-
-            const groupColorMap = { a: 'cyan', b: 'purple' };
-            document.querySelectorAll('.am-group-btn').forEach(function (btn) {
-                if (parseInt(btn.getAttribute('data-ch')) === i) {
-                    const g = btn.getAttribute('data-group');
-                    const isActive = s.group === g;
-                    btn.style.backgroundColor = isActive ? (g === 'a' ? 'rgba(8,145,178,0.3)' : 'rgba(147,51,234,0.3)') : '';
-                    btn.style.borderColor = isActive ? (g === 'a' ? '#06b6d4' : '#a855f7') : '';
-                    btn.style.color = isActive ? (g === 'a' ? '#22d3ee' : '#c084fc') : '';
-                }
-            });
-
-            const reduction = s.enabled ? (1 - s.weight) * 20 : 0;
-            card.querySelector('.am-reduction-bar').style.height = reduction + '%';
-            card.querySelector('.am-reduction-text').textContent = '-' + reduction.toFixed(1) + 'dB';
-        }
-
-        updateGroupDisplays();
-    }
-
-    function updateGroupDisplays() {
-        ['a', 'b'].forEach(function (g) {
-            const list = Array.from(groupAssignments[g]).join(', ') || 'nenhum';
-            const listEl = document.getElementById('am-group-' + g + '-ch-list');
-            if (listEl) listEl.textContent = list;
-        });
-    }
-
-    function bindControls() {
-        document.getElementById('am-toggle-a').addEventListener('click', function () {
-            toggleGroup('a');
-        });
-        document.getElementById('am-toggle-b').addEventListener('click', function () {
-            toggleGroup('b');
-        });
-
-        document.getElementById('am-response').addEventListener('input', function () {
-            const val = parseInt(this.value);
-            document.getElementById('am-response-val').textContent = val + 'ms';
-            sendAutomixUpdate();
-        });
-
-        document.getElementById('am-master-weight').addEventListener('input', function () {
-            document.getElementById('am-master-weight-val').textContent = this.value + '%';
-        });
-
-        document.querySelectorAll('.am-group-btn').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                const ch = parseInt(this.getAttribute('data-ch'));
-                const group = this.getAttribute('data-group');
-                assignChannelGroup(ch, group);
-            });
-        });
-
-        document.querySelectorAll('.am-weight-slider').forEach(function (slider) {
-            slider.addEventListener('input', function () {
-                const ch = parseInt(this.getAttribute('data-ch'));
-                channelState[ch].weight = parseInt(this.value) / 100;
-                updateChannelStates();
-                sendAutomixUpdate();
-            });
-        });
-
-        document.getElementById('am-activate-all').addEventListener('click', function () {
-            for (let i = 1; i <= NUM_CHANNELS; i++) channelState[i].enabled = true;
-            updateChannelStates();
-            sendAutomixUpdate();
-        });
-
-        document.getElementById('am-deactivate-all').addEventListener('click', function () {
-            for (let i = 1; i <= NUM_CHANNELS; i++) channelState[i].enabled = false;
-            updateChannelStates();
-            sendAutomixUpdate();
-        });
-
-        document.getElementById('am-reset').addEventListener('click', function () {
-            for (let i = 1; i <= NUM_CHANNELS; i++) {
-                channelState[i].weight = 0.5;
-                channelState[i].reduction = 0;
-                const slider = document.querySelector('.am-weight-slider[data-ch="' + i + '"]');
-                if (slider) slider.value = 50;
-            }
-            updateChannelStates();
-            sendAutomixUpdate();
-        });
-    }
-
-    function toggleGroup(group) {
-        const btn = document.getElementById('am-toggle-' + group);
-        const dot = document.getElementById('am-' + group + '-dot');
-        const bar = document.getElementById('am-' + group + '-bar');
-        const isActive = btn.classList.contains('active');
-
-        if (isActive) {
-            btn.classList.remove('active');
-            btn.style.backgroundColor = '';
-            dot.classList.remove('bg-green-500');
-            dot.classList.add('bg-slate-600');
-        } else {
-            btn.classList.add('active');
-            btn.style.backgroundColor = group === 'a' ? 'rgba(6,182,212,0.3)' : 'rgba(168,85,247,0.3)';
-            dot.classList.remove('bg-slate-600');
-            dot.classList.add('bg-green-500');
-        }
-
-        if (window.MixerService) {
-            const action = isActive ? 'disable_' + group : 'enable_' + group;
-            MixerService.automixControl(action, null);
-        }
-    }
-
-    function sendAutomixUpdate() {
-        if (!window.MixerService) return;
-        const response = parseInt(document.getElementById('am-response').value);
-        MixerService.automixControl('set_response', response);
-        for (let i = 1; i <= NUM_CHANNELS; i++) {
-            const s = channelState[i];
-            if (s.group !== 'none' && s.enabled) {
-                SocketService.emit('automix_assign', {
-                    channel: i,
-                    group: s.group,
-                    weight: s.weight
-                });
-            } else {
-                SocketService.emit('automix_assign', {
-                    channel: i,
-                    group: 'none',
-                    weight: 0.5
-                });
-            }
-        }
-    }
-
-    document.addEventListener('page-loaded', function () {
-        if (document.getElementById('am-channels-grid')) {
-            init();
-        }
-    });
-
-    if (document.getElementById('am-channels-grid')) {
-        init();
-    }
-})();
-</script>

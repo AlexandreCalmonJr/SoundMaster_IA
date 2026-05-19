@@ -6,11 +6,11 @@
         </div>
         <div class="flex gap-3">
             <button id="sb-new-scene" class="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-cyan-900/30 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 Nova Cena
             </button>
-            <button id="sb-ai-generate" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-purple-900/30 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            <button id="sb-ai-generate" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-900/30 flex items-center gap-2">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
                 Gerar com IA
             </button>
         </div>
@@ -28,10 +28,10 @@
             <div class="bg-slate-800/40 border border-white/10 rounded-2xl p-5">
                 <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Quick Presets</h3>
                 <div class="grid grid-cols-2 gap-2">
-                    <button class="sb-quick-preset p-2 rounded-xl bg-cyan-900/20 border border-cyan-500/20 text-[10px] font-bold text-cyan-400 hover:bg-cyan-900/40 transition-all" data-preset="louvor">Louvor</button>
-                    <button class="sb-quick-preset p-2 rounded-xl bg-orange-900/20 border border-orange-500/20 text-[10px] font-bold text-orange-400 hover:bg-orange-900/40 transition-all" data-preset="pregacao">Pregação</button>
-                    <button class="sb-quick-preset p-2 rounded-xl bg-slate-700/50 border border-white/5 text-[10px] font-bold text-slate-300 hover:bg-slate-600 transition-all" data-preset="silencio">Silêncio</button>
-                    <button class="sb-quick-preset p-2 rounded-xl bg-purple-900/20 border border-purple-500/20 text-[10px] font-bold text-purple-400 hover:bg-purple-900/40 transition-all" data-preset="transicao">Transição</button>
+                    <button class="sb-quick-preset p-2 rounded-xl bg-cyan-900/20 border border-cyan-500/20 text-xs font-bold text-cyan-400 hover:bg-cyan-900/40 transition-all" data-preset="louvor">Louvor</button>
+                    <button class="sb-quick-preset p-2 rounded-xl bg-orange-900/20 border border-orange-500/20 text-xs font-bold text-orange-400 hover:bg-orange-900/40 transition-all" data-preset="pregacao">Pregação</button>
+                    <button class="sb-quick-preset p-2 rounded-xl bg-slate-700/50 border border-white/5 text-xs font-bold text-slate-300 hover:bg-slate-600 transition-all" data-preset="silencio">Silêncio</button>
+                    <button class="sb-quick-preset p-2 rounded-xl bg-teal-900/20 border border-teal-500/20 text-xs font-bold text-teal-400 hover:bg-teal-900/40 transition-all" data-preset="transicao">Transição</button>
                 </div>
             </div>
         </div>
@@ -49,7 +49,7 @@
                     </div>
                 </div>
                 <div id="sb-preview-content" class="flex-1 p-6 flex flex-col items-center justify-center text-slate-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                     <p class="mt-4 text-sm">Clique em uma cena para visualizar</p>
                 </div>
                 <div id="sb-preview-actions" class="px-6 py-4 border-t border-white/5 flex gap-3 hidden">
@@ -72,11 +72,11 @@
         <h3 class="text-lg font-bold text-white mb-5">Nova Cena</h3>
         <div class="space-y-4">
             <div>
-                <label class="text-xs text-slate-400 mb-2 block">Nome da Cena</label>
+                <label for="sb-new-name" class="text-xs text-slate-400 mb-2 block">Nome da Cena</label>
                 <input type="text" id="sb-new-name" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500 outline-none" placeholder="Ex: Louvor Manhã">
             </div>
             <div>
-                <label class="text-xs text-slate-400 mb-2 block">Gênero / Estilo</label>
+                <label for="sb-new-genre" class="text-xs text-slate-400 mb-2 block">Gênero / Estilo</label>
                 <select id="sb-new-genre" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500 outline-none appearance-none">
                     <option value="louvor">Louvor</option>
                     <option value="pregacao">Pregação</option>
@@ -87,7 +87,7 @@
                 </select>
             </div>
             <div>
-                <label class="text-xs text-slate-400 mb-2 block">Descrição (opcional)</label>
+                <label for="sb-new-desc" class="text-xs text-slate-400 mb-2 block">Descrição (opcional)</label>
                 <textarea id="sb-new-desc" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500 outline-none resize-none" rows="2" placeholder="Ex: Mix completo com reverb e delay"></textarea>
             </div>
         </div>
@@ -103,285 +103,26 @@
         <h3 class="text-lg font-bold text-white mb-5">Gerar Cena com IA</h3>
         <div class="space-y-4">
             <div>
-                <label class="text-xs text-slate-400 mb-2 block">Descreva o momento do culto</label>
-                <textarea id="sb-ai-prompt" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-purple-500 outline-none resize-none" rows="3" placeholder="Ex: Louvor de abertura com banda completa, preciso de um som energico e aberto..."></textarea>
+                <label for="sb-ai-prompt" class="text-xs text-slate-400 mb-2 block">Descreva o momento do culto</label>
+                <textarea id="sb-ai-prompt" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500 outline-none resize-none" rows="3" placeholder="Ex: Louvor de abertura com banda completa, preciso de um som energico e aberto…"></textarea>
             </div>
             <div>
-                <label class="text-xs text-slate-400 mb-2 block">Instrumentos Presentes</label>
+                <span class="text-xs text-slate-400 mb-2 block font-medium">Instrumentos Presentes</span>
                 <div class="flex flex-wrap gap-2" id="sb-ai-instruments">
-                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-[10px] font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="vocals">Vocais</button>
-                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-[10px] font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="guitar">Guitarra</button>
-                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-[10px] font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="keys">Teclado</button>
-                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-[10px] font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="bass">Baixo</button>
-                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-[10px] font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="drums">Bateria</button>
-                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-[10px] font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="media">Media</button>
+                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-xs font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="vocals">Vocais</button>
+                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-xs font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="guitar">Guitarra</button>
+                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-xs font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="keys">Teclado</button>
+                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-xs font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="bass">Baixo</button>
+                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-xs font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="drums">Bateria</button>
+                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-xs font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="media">Media</button>
                 </div>
             </div>
         </div>
         <div id="sb-ai-result" class="mt-4 hidden bg-slate-900/60 rounded-xl p-3 text-xs text-slate-300 max-h-40 overflow-y-auto"></div>
         <div class="flex gap-3 mt-6">
             <button id="sb-cancel-ai" class="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold text-sm transition-all">Cancelar</button>
-            <button id="sb-generate-ai" class="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold text-sm transition-all">Gerar</button>
+            <button id="sb-generate-ai" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm transition-all">Gerar</button>
         </div>
     </div>
 </div>
 
-<script>
-(function () {
-    'use strict';
-
-    const STORAGE_KEY = 'soundmaster_scenes';
-    let scenes = [];
-    let selectedScene = null;
-    let selectedInstruments = new Set();
-
-    function loadScenes() {
-        try {
-            scenes = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-        } catch (_) {
-            scenes = [];
-        }
-    }
-
-    function saveScenes() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(scenes));
-    }
-
-    function renderSceneList() {
-        const container = document.getElementById('sb-scene-list');
-        if (scenes.length === 0) {
-            container.innerHTML = '<div class="text-center text-slate-600 text-xs py-8">Nenhuma cena salva</div>';
-            return;
-        }
-        container.innerHTML = scenes.map(function (s, i) {
-            const colorMap = { louvor: 'cyan', pregacao: 'orange', musica: 'green', transicao: 'purple', intervalo: 'slate', geral: 'slate' };
-            const color = colorMap[s.genre] || 'slate';
-            return '<button class="sb-scene-item w-full text-left p-3 rounded-xl bg-slate-800/60 hover:bg-slate-700/60 border border-white/5 hover:border-' + color + '-500/30 transition-all" data-index="' + i + '">' +
-                '<div class="text-sm font-bold text-' + color + '-400">' + escapeHtml(s.name) + '</div>' +
-                '<div class="text-[10px] text-slate-500 mt-1">' + escapeHtml(s.genre || '') + ' • ' + (s.timestamp ? formatDate(s.timestamp) : '--') + '</div>' +
-                '</button>';
-        }).join('');
-
-        container.querySelectorAll('.sb-scene-item').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                selectScene(parseInt(this.getAttribute('data-index')));
-            });
-        });
-    }
-
-    function renderThumbnails() {
-        const container = document.getElementById('sb-thumbnails');
-        if (scenes.length === 0) {
-            container.innerHTML = '<div class="col-span-full text-center text-slate-600 text-xs py-8">Sem miniaturas</div>';
-            return;
-        }
-        container.innerHTML = scenes.map(function (s, i) {
-            const colors = { louvor: '#06b6d4', pregacao: '#f97316', musica: '#22c55e', transicao: '#a855f7', intervalo: '#64748b', geral: '#64748b' };
-            const color = colors[s.genre] || '#64748b';
-            return '<div class="sb-thumbnail aspect-video rounded-lg cursor-pointer hover:ring-2 transition-all relative overflow-hidden" data-index="' + i + '" style="background: linear-gradient(135deg, ' + color + '22, ' + color + '44); border: 1px solid ' + color + '33;">' +
-                '<div class="absolute inset-0 flex items-center justify-center">' +
-                '<div class="w-8 h-8 rounded-full border-2" style="border-color:' + color + '66; background: ' + color + '22;"></div>' +
-                '</div>' +
-                '<div class="absolute bottom-1 left-1 right-1 text-[8px] font-bold text-white truncate">' + escapeHtml(s.name) + '</div>' +
-                '</div>';
-        }).join('');
-
-        container.querySelectorAll('.sb-thumbnail').forEach(function (th) {
-            th.addEventListener('click', function () {
-                selectScene(parseInt(this.getAttribute('data-index')));
-            });
-        });
-    }
-
-    function selectScene(index) {
-        selectedScene = scenes[index];
-        const previewName = document.getElementById('sb-preview-name');
-        const previewContent = document.getElementById('sb-preview-content');
-        const previewActions = document.getElementById('sb-preview-actions');
-        const previewMeta = document.getElementById('sb-preview-meta');
-
-        previewName.textContent = selectedScene.name;
-        previewMeta.innerHTML = '<div>' + escapeHtml(selectedScene.genre || '') + '</div><div>' + formatDate(selectedScene.timestamp) + '</div>';
-
-        previewContent.innerHTML = '<div class="w-full space-y-3">' +
-            (selectedScene.description ? '<p class="text-sm text-slate-400">' + escapeHtml(selectedScene.description) + '</p>' : '') +
-            '<div class="grid grid-cols-3 gap-3">' +
-            '<div class="bg-slate-800/40 rounded-xl p-3 text-center"><div class="text-xs text-slate-500 mb-1">Estilo</div><div class="text-sm font-bold text-cyan-400">' + escapeHtml(selectedScene.genre || '--') + '</div></div>' +
-            '<div class="bg-slate-800/40 rounded-xl p-3 text-center"><div class="text-xs text-slate-500 mb-1">Canais</div><div class="text-sm font-bold text-cyan-400">' + (selectedScene.channels || 16) + '</div></div>' +
-            '<div class="bg-slate-800/40 rounded-xl p-3 text-center"><div class="text-xs text-slate-500 mb-1">Mix</div><div class="text-sm font-bold text-cyan-400">' + (selectedScene.mixType || 'Estereo') + '</div></div>' +
-            '</div>' +
-            (selectedScene.aiData ? '<div class="bg-purple-900/20 border border-purple-500/20 rounded-xl p-3 text-xs text-slate-400"><strong class="text-purple-400">IA:</strong> ' + escapeHtml(selectedScene.aiData) + '</div>' : '') +
-            '</div>';
-
-        previewActions.classList.remove('hidden');
-    }
-
-    function formatDate(ts) {
-        if (!ts) return '--';
-        return new Date(ts).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-    }
-
-    function escapeHtml(str) {
-        return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
-
-    function applyScene() {
-        if (!selectedScene) return;
-        if (window.MixerService) {
-            if (selectedScene.mixerCommand) {
-                MixerService.executeAICommand(selectedScene.mixerCommand);
-                AppStore.addLog('[Scene Builder] Cena "' + selectedScene.name + '" aplicada.');
-            } else {
-                AppStore.addLog('[Scene Builder] Cena "' + selectedScene.name + '" aplicada (sem comandos de mixer).');
-            }
-        }
-    }
-
-    function deleteScene() {
-        if (!selectedScene) return;
-        const idx = scenes.indexOf(selectedScene);
-        if (idx > -1) {
-            scenes.splice(idx, 1);
-            saveScenes();
-            selectedScene = null;
-            renderSceneList();
-            renderThumbnails();
-            document.getElementById('sb-preview-name').textContent = 'Selecione uma cena';
-            document.getElementById('sb-preview-content').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><p class="mt-4 text-sm">Clique em uma cena para visualizar</p>';
-            document.getElementById('sb-preview-actions').classList.add('hidden');
-            AppStore.addLog('[Scene Builder] Cena excluída.');
-        }
-    }
-
-    function openNewModal() {
-        document.getElementById('sb-new-scene-modal').classList.remove('hidden');
-        document.getElementById('sb-new-scene-modal').classList.add('flex');
-        document.getElementById('sb-new-name').value = '';
-        document.getElementById('sb-new-desc').value = '';
-    }
-
-    function closeNewModal() {
-        document.getElementById('sb-new-scene-modal').classList.add('hidden');
-        document.getElementById('sb-new-scene-modal').classList.remove('flex');
-    }
-
-    function openAIModal() {
-        document.getElementById('sb-ai-modal').classList.remove('hidden');
-        document.getElementById('sb-ai-modal').classList.add('flex');
-        document.getElementById('sb-ai-prompt').value = '';
-        document.getElementById('sb-ai-result').classList.add('hidden');
-    }
-
-    function closeAIModal() {
-        document.getElementById('sb-ai-modal').classList.add('hidden');
-        document.getElementById('sb-ai-modal').classList.remove('flex');
-    }
-
-    async function generateAI() {
-        const prompt = document.getElementById('sb-ai-prompt').value.trim();
-        const result = document.getElementById('sb-ai-result');
-        if (!prompt) return;
-
-        result.classList.remove('hidden');
-        result.innerHTML = '<span class="text-purple-400 animate-pulse">Gerando com IA...</span>';
-
-        const insts = Array.from(selectedInstruments).join(', ');
-
-        if (window.AIService) {
-            try {
-                const response = await AIService.ask('Gere uma cena de mixer para: ' + prompt + '. Instrumentos: ' + insts, 1);
-                result.innerHTML = '<pre class="whitespace-pre-wrap text-slate-300">' + escapeHtml(response.text) + '</pre>';
-
-                const sceneName = 'IA: ' + prompt.substring(0, 30);
-                scenes.push({
-                    name: sceneName,
-                    genre: 'louvor',
-                    description: prompt,
-                    mixType: 'Estereo',
-                    channels: 16,
-                    timestamp: Date.now(),
-                    aiData: response.text,
-                    mixerCommand: response.command
-                });
-                saveScenes();
-                renderSceneList();
-                renderThumbnails();
-                closeAIModal();
-                AppStore.addLog('[Scene Builder] Cena gerada pela IA.');
-            } catch (err) {
-                result.innerHTML = '<span class="text-red-400">Erro: ' + escapeHtml(err.message) + '</span>';
-            }
-        } else {
-            result.innerHTML = '<span class="text-yellow-400">AIService não disponível.</span>';
-        }
-    }
-
-    function saveNewScene() {
-        const name = document.getElementById('sb-new-name').value.trim();
-        if (!name) return;
-        scenes.push({
-            name: name,
-            genre: document.getElementById('sb-new-genre').value,
-            description: document.getElementById('sb-new-desc').value.trim(),
-            mixType: 'Estereo',
-            channels: 16,
-            timestamp: Date.now()
-        });
-        saveScenes();
-        renderSceneList();
-        renderThumbnails();
-        closeNewModal();
-        AppStore.addLog('[Scene Builder] Cena "' + name + '" salva.');
-    }
-
-    function applyPreset(preset) {
-        const presets = {
-            louvor: { name: 'Louvor', genre: 'louvor', description: 'Mix completo com energia', channels: 16, mixType: 'Estereo' },
-            pregacao: { name: 'Pregação', genre: 'pregacao', description: 'Foco em voz e monitor', channels: 8, mixType: 'Estereo' },
-            silencio: { name: 'Silêncio', genre: 'intervalo', description: 'Sem som', channels: 16, mixType: 'Mute' },
-            transicao: { name: 'Transição', genre: 'transicao', description: 'Fade e preparo', channels: 16, mixType: 'Estereo' }
-        };
-        const p = presets[preset];
-        if (!p) return;
-        scenes.push(Object.assign({}, p, { timestamp: Date.now() }));
-        saveScenes();
-        renderSceneList();
-        renderThumbnails();
-        AppStore.addLog('[Scene Builder] Preset "' + p.name + '" criado.');
-    }
-
-    document.getElementById('sb-new-scene').addEventListener('click', openNewModal);
-    document.getElementById('sb-ai-generate').addEventListener('click', openAIModal);
-    document.getElementById('sb-cancel-new').addEventListener('click', closeNewModal);
-    document.getElementById('sb-cancel-ai').addEventListener('click', closeAIModal);
-    document.getElementById('sb-save-new').addEventListener('click', saveNewScene);
-    document.getElementById('sb-generate-ai').addEventListener('click', generateAI);
-    document.getElementById('sb-apply-scene').addEventListener('click', applyScene);
-    document.getElementById('sb-delete-scene').addEventListener('click', deleteScene);
-
-    document.querySelectorAll('.sb-quick-preset').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            applyPreset(this.getAttribute('data-preset'));
-        });
-    });
-
-    document.querySelectorAll('.sb-ai-inst').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            const inst = this.getAttribute('data-inst');
-            if (selectedInstruments.has(inst)) {
-                selectedInstruments.delete(inst);
-                this.classList.remove('bg-cyan-900/30', 'border-cyan-500/30', 'text-cyan-400');
-                this.classList.add('bg-slate-700/50', 'border-white/5', 'text-slate-300');
-            } else {
-                selectedInstruments.add(inst);
-                this.classList.add('bg-cyan-900/30', 'border-cyan-500/30', 'text-cyan-400');
-                this.classList.remove('bg-slate-700/50', 'border-white/5', 'text-slate-300');
-            }
-        });
-    });
-
-    loadScenes();
-    renderSceneList();
-    renderThumbnails();
-})();
-</script>

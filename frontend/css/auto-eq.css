@@ -1,0 +1,137 @@
+/**
+ * SoundMaster — Auto-EQ Page Styles
+ * Estilos específicos para a página Auto-EQ / Target Curve Matching.
+ */
+
+/* PEQ Table */
+.peq-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+}
+
+.peq-table th {
+    color: #94a3b8;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: left;
+}
+
+.peq-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.peq-table tr:last-child td {
+    border-bottom: none;
+}
+
+.gain-pos { color: #f87171; }
+.gain-neg { color: #4ade80; }
+
+/* GEQ Bars */
+.geq-grid {
+    display: grid;
+    grid-template-columns: repeat(31, minmax(0, 1fr));
+    gap: 2px;
+    align-items: end;
+    height: 120px;
+}
+
+.geq-bar-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+}
+
+.geq-bar-track {
+    flex: 1;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.geq-bar-fill {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-radius: 2px;
+    transition: height 0.3s, top 0.3s;
+}
+
+.geq-bar-fill.pos {
+    background: #f87171;
+    bottom: 50%;
+}
+
+.geq-bar-fill.neg {
+    background: #4ade80;
+    top: 50%;
+}
+
+.geq-label {
+    font-size: 0.45rem;
+    color: #64748b;
+    margin-top: 2px;
+    white-space: nowrap;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* Status Messages */
+.status-msg {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-top: 6px;
+    min-height: 18px;
+}
+
+.status-msg.ok { color: #4ade80; }
+.status-msg.err { color: #f87171; }
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    color: #64748b;
+    padding: 40px 20px;
+    font-size: 0.85rem;
+}
+
+/* Custom Curve Area */
+#aeq-custom-area.visible {
+    display: flex !important;
+}
+
+/* Toolbar */
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+/* Canvas */
+.canvas-wrap canvas {
+    width: 100%;
+    height: 288px;
+    display: block;
+    border-radius: 8px;
+}
+
+/* Legend */
+.legend span::before {
+    content: '';
+    display: inline-block;
+    width: 16px;
+    height: 3px;
+    border-radius: 2px;
+    margin-right: 6px;
+    vertical-align: middle;
+}

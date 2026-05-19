@@ -1,7 +1,7 @@
-<section class="p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+<section id="settings" class="module page-section">
     <header class="mb-12">
         <div class="flex items-center gap-4 mb-4">
-            <span class="p-3 bg-slate-800 rounded-2xl text-2xl">⚙️</span>
+            <span class="p-3 bg-slate-800 rounded-2xl text-2xl" aria-label="Configurações">⚙️</span>
             <div>
                 <h2 class="text-3xl font-black text-white tracking-tighter">Configurações do SoundMaster</h2>
                 <p class="text-slate-400 font-medium">Preferências globais e gerenciamento de licença</p>
@@ -18,29 +18,33 @@
                 <div class="flex items-center justify-between py-4 border-b border-white/5">
                     <div>
                         <span class="text-sm font-bold text-white block">Auto-Iniciação</span>
-                        <p class="text-[10px] text-slate-500">Abrir o app e conectar à mesa automaticamente ao ligar o PC.</p>
+                        <p class="text-xs text-slate-400">Abrir o app e conectar à mesa automaticamente ao ligar o PC.</p>
                     </div>
-                    <div class="w-12 h-6 bg-cyan-600 rounded-full relative cursor-pointer">
-                        <div class="absolute right-1 top-1 w-4 h-4 bg-white rounded-full"></div>
-                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" class="sr-only peer" checked>
+                        <div class="w-12 h-6 bg-cyan-600 peer-unchecked:bg-slate-600 rounded-full transition-colors peer-focus:ring-2 peer-focus:ring-cyan-500/50"></div>
+                        <span class="sr-only">Auto-iniciação ao ligar PC</span>
+                    </label>
                 </div>
 
                 <div class="flex items-center justify-between py-4 border-b border-white/5">
                     <div>
                         <span class="text-sm font-bold text-white block">Modo de Alta Resolução FFT</span>
-                        <p class="text-[10px] text-slate-500">Aumenta o consumo de CPU para precisão máxima (32k bins).</p>
+                        <p class="text-xs text-slate-400">Aumenta o consumo de CPU para precisão máxima (32k bins).</p>
                     </div>
-                    <div class="w-12 h-6 bg-cyan-600 rounded-full relative cursor-pointer">
-                        <div class="absolute right-1 top-1 w-4 h-4 bg-white rounded-full"></div>
-                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" class="sr-only peer" checked>
+                        <div class="w-12 h-6 bg-cyan-600 peer-unchecked:bg-slate-600 rounded-full transition-colors peer-focus:ring-2 peer-focus:ring-cyan-500/50"></div>
+                        <span class="sr-only">Modo de alta resolução FFT</span>
+                    </label>
                 </div>
 
                 <div class="flex items-center justify-between py-4">
                     <div>
-                        <span class="text-sm font-bold text-white block">Unidade de Medida</span>
-                        <p class="text-[10px] text-slate-500">Mudar entre Metros e Pés para cálculos acústicos.</p>
+                        <label for="unit-select" class="text-sm font-bold text-white block">Unidade de Medida</label>
+                        <p class="text-xs text-slate-400">Mudar entre Metros e Pés para cálculos acústicos.</p>
                     </div>
-                    <select class="bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-xs text-white outline-none">
+                    <select id="unit-select" class="bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-xs text-white outline-none focus:border-cyan-500" aria-label="Selecionar unidade de medida para cálculos acústicos">
                         <option>Metros (m)</option>
                         <option>Pés (ft)</option>
                     </select>

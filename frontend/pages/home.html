@@ -8,39 +8,39 @@
         <div class="card bg-slate-800/50 p-6 rounded-xl border border-white/10 hover:border-cyan-500/50 transition-all"> 
             <h3 class="text-xl font-semibold mb-3">Iniciar Analisador</h3>
             <p class="text-slate-400 mb-4">Abra o analisador ao vivo para capturar ruído da igreja e gerar sugestões com IA.</p>
-            <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors" onclick="window.router.navigate('analyzer')">Ir para Analisador</button>
+            <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors" onclick="window.router.navigate('analyzer')" aria-label="Navegar para o analisador de áudio">Ir para Analisador</button>
         </div>
         <div class="card bg-slate-800/50 p-6 rounded-xl border border-white/10 hover:border-cyan-500/50 transition-all"> 
             <h3 class="text-xl font-semibold mb-3">Acústica do Salão</h3>
             <p class="text-slate-400 mb-4">Calcule RT60 e entenda como tratar reverberação e reflexões no espaço.</p>
-            <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors" onclick="window.router.navigate('rt60')">Ir para Acústica</button>
+            <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors" onclick="window.router.navigate('rt60')" aria-label="Navegar para análise de acústica RT60">Ir para Acústica</button>
         </div>
         <div class="card bg-slate-800/50 p-6 rounded-xl border border-white/10 hover:border-cyan-500/50 transition-all"> 
             <h3 class="text-xl font-semibold mb-3">Assistente IA</h3>
             <p class="text-slate-400 mb-4">Envie a análise acústica e o relatório de ruído rosa para obter recomendações práticas.</p>
-            <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors" onclick="window.router.navigate('ai-chat')">Abrir Assistente</button>
+            <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors" onclick="window.router.navigate('ai-chat')" aria-label="Abrir assistente IA para recomendações">Abrir Assistente</button>
         </div>
     </div>
 
     <div class="card alert-card bg-amber-900/20 border border-amber-500/30 p-6 rounded-xl mb-8">
         <h3 class="text-amber-400 font-semibold mb-2 flex items-center gap-2">
-            <span>💡</span> Dica do Contexto
+            <span aria-label="Dica">💡</span> Dica do Contexto
         </h3>
-        <p class="text-amber-200/80">Sua igreja possui muitas janelas, o que causa reverberação. Use o módulo <strong>Acústica (RT60)</strong> para ver dicas de tratamento ou ative o <strong>Analisador</strong> para evitar microfonias.</p>
+        <p class="text-amber-100">Sua igreja possui muitas janelas, o que causa reverberação. Use o módulo <strong>Acústica (RT60)</strong> para ver dicas de tratamento ou ative o <strong>Analisador</strong> para evitar microfonias.</p>
     </div>
 
     <div class="card info-card bg-cyan-900/20 border border-cyan-500/30 p-6 rounded-xl" id="local-ip-card" style="display: none;">
-        <h3 class="text-cyan-400 font-semibold mb-4">📱 Controle Remoto (iPads/Celulares)</h3>
+        <h3 class="text-cyan-400 font-semibold mb-4"><span aria-label="Controle remoto">📱</span> Controle Remoto (iPads/Celulares)</h3>
         <p class="text-slate-300 mb-4">Para abrir este assistente em outro dispositivo na mesma rede, acesse:</p>
         <div class="bg-black/40 p-4 rounded-lg mb-6 border border-white/5">
             <h2 id="server-ip-display" class="text-2xl font-mono text-center text-cyan-400">Aguardando IP...</h2>
         </div>
         <p class="text-slate-400 text-sm mb-4">Ou use este modo móvel direto:</p>
         <div class="flex flex-col sm:flex-row gap-6 items-center">
-            <a id="mobile-link" href="#" target="_blank" class="flex-1 w-full text-center py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors">Abrir modo mobile</a>
+            <a id="mobile-link" href="#" target="_blank" class="flex-1 w-full text-center py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors" aria-label="Abrir controle remoto em modo mobile">Abrir modo mobile</a>
             <div class="qr-code-card bg-white p-2 rounded-lg">
-                <img id="mobile-qr-code" src="" alt="QR Code" class="w-24 h-24" />
-                <span class="text-[10px] text-black text-center block mt-1">Leia no celular</span>
+                <img id="mobile-qr-code" src="" alt="Código QR para acesso remoto ao controle" class="w-20 h-20 sm:w-24 sm:h-24" />
+                <span class="text-xs text-black text-center block mt-1">Leia no celular</span>
             </div>
         </div>
     </div>

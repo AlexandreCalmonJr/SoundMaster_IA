@@ -35,7 +35,7 @@
         '#38bdf8',  // sky-400   — Mic 1
         '#34d399',  // emerald-400 — Mic 2
         '#fb923c',  // orange-400 — Mic 3
-        '#a78bfa',  // violet-400 — Mic 4
+        '#fbbf24',  // amber-400 — Mic 4
         '#f472b6',  // pink-400  — Mic 5
         '#facc15',  // yellow-400 — Mic 6
         '#22d3ee',  // cyan-400  — Mic 7
@@ -392,8 +392,9 @@
         let devices;
         try {
             // Pede permissão inicial para enumerar com labels
-            await navigator.mediaDevices.getUserMedia({ audio: true });
+            const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const allDevices = await navigator.mediaDevices.enumerateDevices();
+            tempStream.getTracks().forEach(t => t.stop());
             devices = allDevices.filter(d => d.kind === 'audioinput').slice(0, maxMics);
         } catch (e) {
             console.error('[SpatialAvg] Erro ao enumerar dispositivos:', e);

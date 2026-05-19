@@ -18,9 +18,11 @@ let analyser;
 let analyserFast; // Novo: Analisador rápido para detecção técnica
 let source;
 let stream;
+let monitorGain = null;
 let isAnalyzing = false;
 let animationId;
 let lastAnalysis = null;
+let silentFrameCount = 0;
 let pinkMeasurementActive = false;
 let pinkMeasurementCount = 0;
 let pinkMeasurementSum = null;
@@ -268,16 +270,49 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
 
     let SoundMasterAnalyzerReady = false;
 
+    function _resizeCanvases() {
+        const dpr = window.devicePixelRatio || 1;
+        const canvases = [
+            { el: canvas },
+            { el: waterfallCanvasEl }
+        ];
+        const tfCanvases = ['tf-magnitude-canvas', 'tf-phase-canvas'];
+        
+        canvases.forEach(({ el }) => {
+            if (!el) return;
+            const rect = el.getBoundingClientRect();
+            const w = Math.floor(rect.width * dpr);
+            const h = Math.floor(rect.height * dpr);
+            if (el.width !== w || el.height !== h) {
+                el.width = w;
+                el.height = h;
+                el.style.width = rect.width + 'px';
+                el.style.height = rect.height + 'px';
+            }
+        });
+
+        tfCanvases.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const rect = el.getBoundingClientRect();
+            const w = Math.floor(rect.width * dpr);
+            const h = Math.floor(rect.height * dpr);
+            if (el.width !== w || el.height !== h) {
+                el.width = w;
+                el.height = h;
+                el.style.width = rect.width + 'px';
+                el.style.height = rect.height + 'px';
+            }
+        });
+    }
+
     function initAnalyzer() {
-        if (SoundMasterAnalyzerReady) return;
-        SoundMasterAnalyzerReady = true;
         console.log('[Analyzer] Inicializando elementos do DOM...');
         canvas = document.getElementById('fft-canvas');
         if (!canvas) return;
 
         canvasCtx = canvas.getContext('2d');
         
-        // Setup Crosshair listener for RTA
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
             rtaCrosshairX = (e.clientX - rect.left) * (canvas.width / rect.width);
@@ -287,6 +322,11 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
             rtaCrosshairX = -1;
             rtaCrosshairY = -1;
         });
+
+        waterfallCanvasEl = document.getElementById('waterfall-canvas');
+        if (waterfallCanvasEl) waterfallCtx = waterfallCanvasEl.getContext('2d');
+
+        _resizeCanvases();
 
         _initManualControls();
         _initAutomixControls();
@@ -305,8 +345,6 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
         btnLogSweep = document.getElementById('btn-log-sweep');
         micSelect = document.getElementById('mic-select');
         pinkMeasureSummary = document.getElementById('pink-measure-summary');
-        waterfallCanvasEl = document.getElementById('waterfall-canvas');
-        if (waterfallCanvasEl) waterfallCtx = waterfallCanvasEl.getContext('2d');
 
         // Novos elementos de sugestão IA
         const aiBox = document.getElementById('ai-suggestions-box');
@@ -321,9 +359,21 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
             });
         }
 
-        // Listeners locais da página de análise
-        document.getElementById('btn-start-audio')?.addEventListener('click', startAnalyzer);
-        document.getElementById('btn-stop-audio')?.addEventListener('click', stopAnalyzer);
+        // Listeners locais da página de análise (usando clone para evitar duplicatas)
+        const btnStart = document.getElementById('btn-start-audio');
+        const btnStop = document.getElementById('btn-stop-audio');
+        if (btnStart) {
+            const newBtn = btnStart.cloneNode(true);
+            btnStart.parentNode.replaceChild(newBtn, btnStart);
+            newBtn.addEventListener('click', startAnalyzer);
+            newBtn.disabled = isAnalyzing;
+        }
+        if (btnStop) {
+            const newBtn = btnStop.cloneNode(true);
+            btnStop.parentNode.replaceChild(newBtn, btnStop);
+            newBtn.addEventListener('click', stopAnalyzer);
+            newBtn.disabled = !isAnalyzing;
+        }
         btnSendAnalysis?.addEventListener('click', sendAnalysisToAI);
         btnMeasurePink?.addEventListener('click', startPinkNoiseMeasurement);
         btnLogSweep?.addEventListener('click', startLogarithmicSweep);
@@ -413,19 +463,39 @@ const feedbackDetector = new FeedbackDetector(15); // Sensibilidade ajustada
 
 async function _populateDeviceList() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
-    
+
     try {
+        const selectedDevice = micSelect?.value || 'default';
         const devices = await navigator.mediaDevices.enumerateDevices();
         const audioInputs = devices.filter(device => device.kind === 'audioinput');
-        
+
         if (micSelect) {
             micSelect.innerHTML = '';
-            audioInputs.forEach(device => {
+            const defaultOption = document.createElement('option');
+            defaultOption.value = 'default';
+            defaultOption.text = 'Microfone Padrão';
+            micSelect.appendChild(defaultOption);
+
+            audioInputs.forEach((device, index) => {
                 const option = document.createElement('option');
                 option.value = device.deviceId;
-                option.text = device.label || `Microfone ${micSelect.length + 1}`;
+                option.text = device.label || `Microfone ${index + 1}`;
                 micSelect.appendChild(option);
             });
+
+            if ([...micSelect.options].some(opt => opt.value === selectedDevice)) {
+                micSelect.value = selectedDevice;
+            } else {
+                micSelect.value = 'default';
+            }
+
+            if (audioInputs.length === 0) {
+                const noDevice = document.createElement('option');
+                noDevice.value = 'default';
+                noDevice.text = 'Nenhum microfone detectado';
+                noDevice.disabled = true;
+                micSelect.appendChild(noDevice);
+            }
         }
     } catch (err) {
         console.error('[Analyzer] Erro ao listar dispositivos:', err);
@@ -455,6 +525,7 @@ window.addEventListener('beforeunload', () => {
 
 async function startAnalyzer() {
     try {
+        console.log('[Analyzer] startAnalyzer() chamado. Seleção de microfone:', micSelect?.value || 'default');
         const deviceId = micSelect?.value || 'default';
         const constraints = {
             audio: {
@@ -471,8 +542,18 @@ async function startAnalyzer() {
         }
 
         stream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log('[Analyzer] getUserMedia OK, tracks:', stream.getTracks().map(t => `${t.kind}:${t.readyState}:${t.enabled}`).join(', '));
+        silentFrameCount = 0;
+        await _populateDeviceList();
         
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        if (audioCtx.state === 'suspended') {
+            await audioCtx.resume();
+        }
+        if (audioCtx.state !== 'running') {
+            throw new Error('AudioContext não pôde ser iniciado. Verifique as permissões do navegador.');
+        }
         
         // Carrega AudioWorklets para processamento em thread separada
         try {
@@ -511,7 +592,26 @@ async function startAnalyzer() {
         analyser.maxDecibels = -10;
         
         source = audioCtx.createMediaStreamSource(stream);
+        try {
+            source.channelCountMode = 'explicit';
+            source.channelCount = 1;
+            source.channelInterpretation = 'discrete';
+        } catch (e) {
+            console.warn('[Analyzer] Não foi possível forçar mono no source:', e);
+        }
+        console.log('[Analyzer] MediaStreamSource criado. channelCount:', source.channelCount, 'channelInterpretation:', source.channelInterpretation);
         source.connect(analyser);
+
+        const analyserGain = audioCtx.createGain();
+        analyserGain.gain.value = 0;
+        analyser.connect(analyserGain);
+        analyserGain.connect(audioCtx.destination);
+        console.log('[Analyzer] AnalyserNode conectado ao destino silencioso.');
+
+        monitorGain = audioCtx.createGain();
+        monitorGain.gain.value = 0;
+        source.connect(monitorGain);
+        monitorGain.connect(audioCtx.destination);
 
         if (audioWorkletNode) {
             source.connect(audioWorkletNode);
@@ -538,6 +638,11 @@ async function startAnalyzer() {
         analyserFast.minDecibels = -100;
         analyserFast.maxDecibels = -10;
         source.connect(analyserFast);
+        const fastGain = audioCtx.createGain();
+        fastGain.gain.value = 0;
+        analyserFast.connect(fastGain);
+        fastGain.connect(audioCtx.destination);
+        console.log('[Analyzer] AnalyserFast conectado ao destino silencioso.');
 
         // ── SPL Logger (IEC 61672): inicializa e arranca ticker de 1s ───────────
         if (window.SplLogger) {
@@ -569,6 +674,7 @@ async function startAnalyzer() {
         if (btnStart) btnStart.disabled = true;
         if (btnStop) btnStop.disabled = false;
         
+        _resizeCanvases();
         analyze();
     } catch (err) {
         console.error("Erro ao acessar microfone:", err);
@@ -603,6 +709,15 @@ async function stopAnalyzer() {
             }
         }
         audioCtx = null;
+    }
+
+    if (monitorGain) {
+        try {
+            monitorGain.disconnect();
+        } catch (e) {
+            console.warn('[Analyzer] Falha ao desconectar monitorGain:', e);
+        }
+        monitorGain = null;
     }
 
     // Limpeza de nós específicos
@@ -1258,21 +1373,35 @@ function _drawWaterfallTimeAxis(ctx, x, y, width, height) {
 function analyze() {
     if (!isAnalyzing) return;
     
-    animationId = requestAnimationFrame(analyze);
-    
-    // ✅ Inicializa arrays se necessário
-    if (!freqData || freqData.length !== analyser.frequencyBinCount) {
-        bufferLength = analyser.frequencyBinCount;
-        freqData = new Float32Array(bufferLength);
-        timeData = new Float32Array(analyser.fftSize);
-    }
-    
-    analyser.getFloatFrequencyData(freqData);
-    
-    // ✅ Novo: Captura dados do analisador rápido para detecção técnica/feedback
-    const fastBufferLength = analyserFast.frequencyBinCount;
-    const fastFreqData = new Float32Array(fastBufferLength);
-    analyserFast.getFloatFrequencyData(fastFreqData);
+    try {
+        animationId = requestAnimationFrame(analyze);
+        
+        // ✅ Inicializa arrays se necessário
+        if (!freqData || freqData.length !== analyser.frequencyBinCount) {
+            bufferLength = analyser.frequencyBinCount;
+            freqData = new Float32Array(bufferLength);
+            timeData = new Float32Array(analyser.fftSize);
+        }
+        
+        analyser.getFloatFrequencyData(freqData);
+        
+        if (freqData.every(value => value === analyser.minDecibels)) {
+            console.warn('[Analyzer] freqData todos no valor mínimo, possível sinal ausente ou source desconectado. isAnalyzing=', isAnalyzing);
+        }
+        
+        if (freqData.every(v => !isFinite(v))) {
+            silentFrameCount += 1;
+            if (silentFrameCount === 10) {
+                console.warn('[Analyzer] Nenhum dado de frequência recebido do microfone; verificando conexões.');
+            }
+        } else {
+            silentFrameCount = 0;
+        }
+        
+        // ✅ Novo: Captura dados do analisador rápido para detecção técnica/feedback
+        const fastBufferLength = analyserFast.frequencyBinCount;
+        const fastFreqData = new Float32Array(fastBufferLength);
+        analyserFast.getFloatFrequencyData(fastFreqData);
 
     // Aplica correção de microfone e calibração SPL
     // ✅ FIX P0: fftSize obrigatório para cálculo correto de hzPerBin na curva de calibração
@@ -1652,6 +1781,12 @@ function analyze() {
             btnAutoCut.innerText = '🪄 Cortar Frequência na Mesa';
         }
     }
+    } catch (err) {
+        console.error('[Analyzer] analyze() error:', err);
+        if (isAnalyzing) {
+            animationId = requestAnimationFrame(analyze);
+        }
+    }
 }
 
 async function sendAnalysisToAI() {
@@ -1732,6 +1867,7 @@ window.SoundMasterAnalyzer = {
 };
 
 function toggleAnalyzer() {
+    console.log('[Analyzer] toggleAnalyzer() chamado. isAnalyzing=', isAnalyzing);
     if (isAnalyzing) {
         stopAnalyzer();
     } else {

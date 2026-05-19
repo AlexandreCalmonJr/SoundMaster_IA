@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SoundMaster Pro - Acoustic Intelligence</title>
+    <meta name="description" content="SoundMaster Pro - Acoustic Intelligence and Real-Time Sound Analysis Shell.">
+    <meta property="og:title" content="SoundMaster Pro">
+    <meta property="og:description" content="Acoustic Intelligence and Real-Time Sound Analysis Shell.">
+    <meta property="og:type" content="website">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/app-layout.css">
 </head>
 <body>
 
@@ -62,8 +65,8 @@
             <div class="content-viewport">
                 <!-- Central View -->
                 <main id="app-main">
-                    <div id="agent-workspace">
-                        <!-- Page content loaded here by Router -->
+                    <div id="agent-workspace" class="w-full h-full">
+                        <iframe id="agent-workspace-iframe" class="w-full h-full border-none bg-transparent" src="about:blank"></iframe>
                     </div>
                 </main>
 
@@ -94,6 +97,12 @@
     <script src="js/services/onboarding.service.js"></script>
     <script src="js/services/automixer.service.js"></script>
     <script src="js/services/scene-builder.service.js"></script>
+    <script src="js/services/feedback-detector.service.js"></script>
+    <script src="js/services/signal-generator.service.js"></script>
+    <script src="js/services/schroeder-renderer.service.js"></script>
+    <script src="js/services/auto-eq-renderer.service.js"></script>
+    <script src="js/services/semantic-eq-ui.service.js"></script>
+    <script src="js/services/heatmap-renderer.service.js"></script>
     <script src="js/services/volunteer-mode.js"></script>
     <script src="js/services/simulation.service.js"></script>
 
@@ -120,7 +129,12 @@
     <script src="js/rt60-mapping.js"></script>
     <script src="js/ui/ai-chat.ui.js"></script>
 
+    <!-- Page Utilities -->
+    <script src="js/page-utils.js"></script>
+
     <!-- App Entry Point -->
     <script src="js/app.js"></script>
 </body>
 </html>
+
+

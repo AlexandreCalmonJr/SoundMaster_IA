@@ -1,519 +1,98 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<title>Auto-EQ — Target Curve Matching</title>
-<style>
-  :root {
-    --bg: #0d1117; --surface: #161b22; --border: #30363d;
-    --accent: #58a6ff; --green: #3fb950; --red: #f85149;
-    --yellow: #e3b341; --text: #c9d1d9; --sub: #8b949e;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; padding: 20px; }
-
-  h1 { font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; }
-  .subtitle { color: var(--sub); font-size: .8rem; margin-bottom: 20px; }
-
-  /* ─── Toolbar ─── */
-  .toolbar {
-    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px; padding: 12px 16px; margin-bottom: 16px;
-  }
-  .toolbar label { font-size: .75rem; color: var(--sub); margin-right: 4px; }
-  select, input[type="number"] {
-    background: var(--bg); border: 1px solid var(--border); color: var(--text);
-    border-radius: 6px; padding: 6px 10px; font-size: .8rem;
-  }
-  .btn {
-    padding: 7px 14px; border-radius: 7px; border: none; cursor: pointer;
-    font-size: .8rem; font-weight: 600; transition: .15s;
-  }
-  .btn-primary { background: var(--accent); color: #0d1117; }
-  .btn-primary:hover { filter: brightness(1.15); }
-  .btn-green  { background: var(--green); color: #0d1117; }
-  .btn-green:hover { filter: brightness(1.15); }
-  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
-  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
-  .btn:disabled { opacity: .4; cursor: not-allowed; }
-
-  .sep { width: 1px; height: 28px; background: var(--border); margin: 0 4px; }
-
-  /* ─── Canvas ─── */
-  .canvas-wrap {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px; padding: 12px; margin-bottom: 16px; position: relative;
-  }
-  canvas { width: 100%; height: 300px; display: block; border-radius: 6px; }
-  .legend {
-    display: flex; gap: 16px; margin-top: 8px; font-size: .72rem; color: var(--sub);
-  }
-  .legend span::before { content: ''; display: inline-block; width: 12px; height: 3px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
-  .l-measured::before { background: var(--accent); }
-  .l-target::before   { background: var(--yellow); }
-  .l-correction::before { background: var(--green); }
-
-  /* ─── Stats bar ─── */
-  .stats-bar {
-    display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;
-  }
-  .stat-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 8px; padding: 10px 16px; flex: 1; min-width: 100px; text-align: center;
-  }
-  .stat-card .val { font-size: 1.4rem; font-weight: 700; }
-  .stat-card .lbl { font-size: .7rem; color: var(--sub); margin-top: 2px; }
-
-  /* ─── Grid PEQ / GEQ ─── */
-  .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 700px) { .results-grid { grid-template-columns: 1fr; } }
-
-  .card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px; padding: 14px;
-  }
-  .card h3 { font-size: .85rem; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-  .badge {
-    font-size: .65rem; background: var(--accent); color: #0d1117;
-    border-radius: 999px; padding: 2px 8px; font-weight: 700;
-  }
-
-  /* PEQ table */
-  .peq-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
-  .peq-table th { color: var(--sub); font-weight: 600; padding: 4px 8px; border-bottom: 1px solid var(--border); text-align: left; }
-  .peq-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); }
-  .peq-table tr:last-child td { border-bottom: none; }
-  .gain-pos { color: var(--red); }
-  .gain-neg { color: var(--green); }
-
-  /* GEQ bars */
-  .geq-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(28px, 1fr)); gap: 4px; align-items: end; height: 120px; }
-  .geq-bar-wrap { display: flex; flex-direction: column; align-items: center; height: 100%; }
-  .geq-bar-track {
-    flex: 1; width: 100%; background: var(--bg); border-radius: 3px;
-    position: relative; overflow: hidden; border: 1px solid var(--border);
-  }
-  .geq-bar-fill {
-    position: absolute; left: 0; right: 0; border-radius: 2px;
-    transition: height .3s, top .3s;
-  }
-  .geq-bar-fill.pos { background: var(--red); bottom: 50%; }
-  .geq-bar-fill.neg { background: var(--green); top: 50%; }
-  .geq-label { font-size: .5rem; color: var(--sub); margin-top: 2px; white-space: nowrap; }
-
-  /* Apply section */
-  .apply-row {
-    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
-    margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border);
-  }
-  .apply-row select { flex: 1; min-width: 120px; }
-
-  .status-msg { font-size: .75rem; color: var(--sub); margin-top: 6px; min-height: 18px; }
-  .status-msg.ok  { color: var(--green); }
-  .status-msg.err { color: var(--red); }
-
-  /* Custom curve input */
-  .custom-area {
-    display: none; flex-direction: column; gap: 8px;
-    background: var(--bg); border: 1px solid var(--border);
-    border-radius: 8px; padding: 12px; margin-top: 8px;
-  }
-  .custom-area.visible { display: flex; }
-  .custom-area textarea {
-    background: var(--bg); border: 1px solid var(--border); color: var(--text);
-    border-radius: 6px; padding: 8px; font-size: .75rem; font-family: monospace;
-    resize: vertical; min-height: 80px; width: 100%;
-  }
-  .custom-area .hint { font-size: .7rem; color: var(--sub); }
-
-  .empty-state { text-align: center; color: var(--sub); padding: 40px; font-size: .85rem; }
-</style>
-</head>
-<body>
-
-<h1>🎛️ Auto-EQ — Target Curve Matching</h1>
-<p class="subtitle">Compara o espectro medido (RTA) com uma curva alvo e gera filtros PEQ/GEQ de correção para a Soundcraft Ui24R.</p>
-
-<!-- Toolbar -->
-<div class="toolbar">
-  <label for="aeq-target-select">Curva Alvo</label>
-  <select id="aeq-target-select">
-    <option value="flat">Flat (0dB)</option>
-    <option value="tilt">Studio Tilt (−3dB/oct HF)</option>
-    <option value="smaart" selected>L'Acoustics / SMAART</option>
-    <option value="xcurve">X-Curve Cinema (SMPTE)</option>
-    <option value="presence">Realce de Voz (Púlpito)</option>
-    <option value="custom">Curva Customizada…</option>
-  </select>
-
-  <div class="sep"></div>
-
-  <label for="aeq-avg-select">Fonte de Dados</label>
-  <select id="aeq-avg-select">
-    <option value="longterm">RTA — Média Longa (Analisador)</option>
-    <option value="live">RTA — Tempo Real</option>
-  </select>
-
-  <div class="sep"></div>
-
-  <button class="btn btn-primary" id="aeq-analyze-btn">▶ Analisar</button>
-  <button class="btn btn-outline" id="aeq-export-btn" disabled>↓ Exportar GEQ CSV</button>
-</div>
-
-<!-- Custom curve area -->
-<div class="custom-area" id="aeq-custom-area">
-  <p class="hint">Insira pontos no formato JSON: [[Hz, dB], [Hz, dB], ...] — Exemplo: [[100, 2], [1000, 0], [10000, -3]]</p>
-  <textarea id="aeq-custom-json" placeholder='[[20,0],[100,2],[1000,0],[10000,-3],[20000,-6]]'></textarea>
-  <button class="btn btn-outline" id="aeq-apply-custom-btn">Aplicar Curva</button>
-</div>
-
-<!-- Graph -->
-<div class="canvas-wrap">
-  <canvas id="aeq-canvas"></canvas>
-  <div class="legend">
-    <span class="l-measured">Espectro Medido</span>
-    <span class="l-target">Curva Alvo</span>
-    <span class="l-correction">Correção Calculada</span>
-  </div>
-</div>
-
-<!-- Stats -->
-<div class="stats-bar">
-  <div class="stat-card">
-    <div class="val" id="aeq-stat-rms">—</div>
-    <div class="lbl">RMS do Desvio (dB)</div>
-  </div>
-  <div class="stat-card">
-    <div class="val" id="aeq-stat-max">—</div>
-    <div class="lbl">Desvio Máximo (dB)</div>
-  </div>
-  <div class="stat-card">
-    <div class="val" id="aeq-stat-bands">—</div>
-    <div class="lbl">Bandas com &gt;1dB de Desvio</div>
-  </div>
-  <div class="stat-card">
-    <div class="val" id="aeq-stat-target">—</div>
-    <div class="lbl">Curva Alvo Ativa</div>
-  </div>
-</div>
-
-<!-- Results -->
-<div class="results-grid">
-  <!-- PEQ -->
-  <div class="card">
-    <h3>Filtros PEQ <span class="badge" id="aeq-peq-badge">0</span></h3>
-    <div id="aeq-peq-content">
-      <div class="empty-state">Clique em "Analisar" para calcular os filtros.</div>
-    </div>
-
-    <!-- Apply to mixer -->
-    <div class="apply-row" id="aeq-apply-row" style="display:none">
-      <label>Destino:</label>
-      <select id="aeq-dest-select">
-        <option value="master">Master</option>
-        <option value="channel">Canal</option>
-      </select>
-      <input type="number" id="aeq-channel-input" min="1" max="24" value="1"
-             placeholder="Canal" style="width:64px;display:none">
-      <button class="btn btn-green" id="aeq-apply-btn">⚡ Aplicar à Mesa</button>
-    </div>
-    <div class="status-msg" id="aeq-status"></div>
-  </div>
-
-  <!-- GEQ -->
-  <div class="card">
-    <h3>GEQ — 31 Bandas ISO 1/3 Oitava <span class="badge" id="aeq-geq-badge">0</span></h3>
-    <div id="aeq-geq-content">
-      <div class="empty-state">Aguardando análise…</div>
-    </div>
-  </div>
-</div>
-
-<script>
-(function () {
-  'use strict';
-
-  // ── DOM ──────────────────────────────────────────────────────────────────────
-  const canvas      = document.getElementById('aeq-canvas');
-  const ctx         = canvas.getContext('2d');
-  const targetSel   = document.getElementById('aeq-target-select');
-  const avgSel      = document.getElementById('aeq-avg-select');
-  const analyzeBtn  = document.getElementById('aeq-analyze-btn');
-  const exportBtn   = document.getElementById('aeq-export-btn');
-  const customArea  = document.getElementById('aeq-custom-area');
-  const customJson  = document.getElementById('aeq-custom-json');
-  const customApply = document.getElementById('aeq-apply-custom-btn');
-  const destSel     = document.getElementById('aeq-dest-select');
-  const chInput     = document.getElementById('aeq-channel-input');
-  const applyBtn    = document.getElementById('aeq-apply-btn');
-  const applyRow    = document.getElementById('aeq-apply-row');
-  const statusMsg   = document.getElementById('aeq-status');
-
-  let _lastResult = null;
-
-  // ── Resize canvas ────────────────────────────────────────────────────────────
-  function resizeCanvas() {
-    const rect = canvas.parentElement.getBoundingClientRect();
-    canvas.width  = rect.width - 24;
-    canvas.height = 300;
-  }
-  resizeCanvas();
-  window.addEventListener('resize', () => { resizeCanvas(); if (_lastResult) drawGraph(_lastResult); });
-
-  // ── Show/hide custom curve ───────────────────────────────────────────────────
-  targetSel.addEventListener('change', () => {
-    customArea.classList.toggle('visible', targetSel.value === 'custom');
-    if (window.AutoEQ) AutoEQ.setTarget(targetSel.value);
-  });
-
-  customApply.addEventListener('click', () => {
-    try {
-      const pts = JSON.parse(customJson.value);
-      if (!Array.isArray(pts)) throw new Error('Deve ser array');
-      if (window.AutoEQ) AutoEQ.setTarget('custom', pts);
-      setStatus('Curva customizada aplicada.', 'ok');
-    } catch (e) {
-      setStatus('JSON inválido: ' + e.message, 'err');
-    }
-  });
-
-  // ── Show/hide channel input ───────────────────────────────────────────────────
-  destSel.addEventListener('change', () => {
-    chInput.style.display = destSel.value === 'channel' ? '' : 'none';
-  });
-
-  // ── Analyze ──────────────────────────────────────────────────────────────────
-  analyzeBtn.addEventListener('click', () => {
-    if (!window.AutoEQ) { setStatus('AutoEQ service não carregado.', 'err'); return; }
-
-    // Tenta obter dados do analisador
-    let freqData = null, sampleRate = 48000, fftSize = 8192;
-
-    const liveAnalyzer = window.SoundMasterAnalyzer;
-    if (liveAnalyzer && typeof liveAnalyzer.getFreqData === 'function') {
-      const snap = liveAnalyzer.getFreqData();
-      if (snap) { freqData = snap.data; sampleRate = snap.sampleRate || 48000; fftSize = snap.fftSize || 8192; }
-    }
-
-    // Fallback: dados do AppStore (média de longo prazo se disponível)
-    if (!freqData && window.AppStore) {
-      const st = AppStore.getState();
-      freqData = st.longTermFreqData || st.freqData || null;
-    }
-
-    if (!freqData || freqData.length === 0) {
-      // Demo com ruído rosa sintético para visualização
-      freqData = _demoFreqData(fftSize / 2, sampleRate);
-      setStatus('⚠️ Sem dados ao vivo — usando espectro de demonstração.', 'err');
-    } else {
-      setStatus('');
-    }
-
-    AutoEQ.setTarget(targetSel.value === 'custom' ? 'custom' : targetSel.value);
-    const result = AutoEQ.analyze(freqData, sampleRate, fftSize);
-    _lastResult = result;
-
-    renderStats(result.stats);
-    renderPEQ(result.peq);
-    renderGEQ(result.geq);
-    drawGraph(result, freqData, sampleRate, fftSize);
-
-    exportBtn.disabled = false;
-    applyRow.style.display = '';
-  });
-
-  // ── Export ───────────────────────────────────────────────────────────────────
-  exportBtn.addEventListener('click', () => {
-    if (!window.AutoEQ) return;
-    const csv = AutoEQ.exportGEQ();
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'auto-eq-geq.csv';
-    a.click();
-  });
-
-  // ── Apply to mixer ────────────────────────────────────────────────────────────
-  applyBtn.addEventListener('click', () => {
-    if (!_lastResult || !window.AutoEQ) return;
-    const dest = destSel.value;
-    const ch   = parseInt(chInput.value) || 1;
-    const res  = AutoEQ.applyToMixer(_lastResult.peq, dest, ch);
-    if (res && res.length) {
-      setStatus(`✅ ${res.length} filtro(s) PEQ enviado(s) para a mesa (${dest === 'master' ? 'Master' : 'Canal ' + ch}).`, 'ok');
-    } else {
-      setStatus('Nenhum filtro significativo para aplicar (desvio < 0.5dB).', 'err');
-    }
-  });
-
-  // ── Stats ─────────────────────────────────────────────────────────────────────
-  function renderStats(stats) {
-    document.getElementById('aeq-stat-rms').textContent    = stats.rms.toFixed(1) + ' dB';
-    document.getElementById('aeq-stat-max').textContent    = stats.max.toFixed(1) + ' dB';
-    document.getElementById('aeq-stat-bands').textContent  = stats.bands;
-    document.getElementById('aeq-stat-target').textContent = targetSel.options[targetSel.selectedIndex].text.split(' (')[0];
-  }
-
-  // ── PEQ table ─────────────────────────────────────────────────────────────────
-  function renderPEQ(peq) {
-    const el = document.getElementById('aeq-peq-content');
-    document.getElementById('aeq-peq-badge').textContent = peq.length;
-
-    if (peq.length === 0) {
-      el.innerHTML = '<div class="empty-state">✅ Espectro dentro da curva alvo (desvio &lt; 0.5dB).</div>';
-      return;
-    }
-    let html = '<table class="peq-table"><thead><tr><th>Banda</th><th>Freq</th><th>Ganho</th><th>Q</th><th>Zona</th></tr></thead><tbody>';
-    peq.forEach(f => {
-      const cls = f.gainDb > 0 ? 'gain-pos' : 'gain-neg';
-      html += `<tr>
-        <td>Band ${f.band}</td>
-        <td>${_fmtHz(f.hz)}</td>
-        <td class="${cls}">${f.gainDb > 0 ? '+' : ''}${f.gainDb} dB</td>
-        <td>${f.q}</td>
-        <td>${f.name}</td>
-      </tr>`;
-    });
-    html += '</tbody></table>';
-    el.innerHTML = html;
-  }
-
-  // ── GEQ bars ──────────────────────────────────────────────────────────────────
-  function renderGEQ(geq) {
-    const el = document.getElementById('aeq-geq-content');
-    document.getElementById('aeq-geq-badge').textContent = geq.filter(b => Math.abs(b.correctionDb) >= 0.5).length;
-
-    const maxDb = 12;
-    let html = '<div class="geq-grid">';
-    geq.forEach(b => {
-      const pct = Math.abs(b.correctionDb) / maxDb * 50; // 50% = metade do track
-      const isPos = b.correctionDb > 0;
-      const style = isPos
-        ? `height:${pct}%; bottom:0;`
-        : `height:${pct}%; top:0;`;
-      html += `<div class="geq-bar-wrap">
-        <div class="geq-bar-track">
-          <div class="geq-bar-fill ${isPos ? 'pos' : 'neg'}" style="${style}"></div>
+<section id="auto-eq" class="module page-section">
+    <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+        <div class="flex items-center gap-4">
+            <span class="p-3 bg-cyan-900/40 rounded-2xl text-2xl" aria-label="Auto Equalizador">🎛️</span>
+            <div>
+                <h2 class="text-3xl font-black text-white tracking-tighter">Auto-EQ — Target Curve Matching</h2>
+                <p class="text-slate-400 font-medium">Compara o espectro medido com uma curva alvo e gera filtros PEQ/GEQ</p>
+            </div>
         </div>
-        <div class="geq-label">${_fmtHzShort(b.hz)}</div>
-      </div>`;
-    });
-    html += '</div>';
+    </header>
 
-    // Scale hint
-    html += '<div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--sub);margin-top:6px;"><span>−12dB</span><span>0dB</span><span>+12dB</span></div>';
-    el.innerHTML = html;
-  }
+    <div class="toolbar flex flex-wrap gap-3 items-center bg-slate-800/50 border border-white/10 rounded-xl p-4 mb-6">
+        <label for="aeq-target-select" class="text-xs text-slate-400 font-bold">Curva Alvo</label>
+        <select id="aeq-target-select" class="bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-cyan-500">
+            <option value="flat">Flat (0dB)</option>
+            <option value="tilt">Studio Tilt (−3dB/oct HF)</option>
+            <option value="smaart" selected>L'Acoustics / SMAART</option>
+            <option value="xcurve">X-Curve Cinema (SMPTE)</option>
+            <option value="presence">Realce de Voz (Púlpito)</option>
+            <option value="custom">Curva Customizada…</option>
+        </select>
 
-  // ── Graph ─────────────────────────────────────────────────────────────────────
-  function drawGraph(result, freqData, sampleRate, fftSize) {
-    const W = canvas.width, H = canvas.height;
-    const PAD = { l: 48, r: 16, t: 16, b: 36 };
-    const iW = W - PAD.l - PAD.r, iH = H - PAD.t - PAD.b;
+        <div class="w-px h-6 bg-white/10"></div>
 
-    ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = '#0d1117';
-    ctx.fillRect(0, 0, W, H);
+        <label for="aeq-avg-select" class="text-xs text-slate-400 font-bold">Fonte de Dados</label>
+        <select id="aeq-avg-select" class="bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-cyan-500">
+            <option value="longterm">RTA — Média Longa</option>
+            <option value="live">RTA — Tempo Real</option>
+        </select>
 
-    const DB_MIN = -60, DB_MAX = 6;
+        <div class="w-px h-6 bg-white/10"></div>
 
-    function xForHz(hz) {
-      return PAD.l + (Math.log10(hz / 20) / Math.log10(20000 / 20)) * iW;
-    }
-    function yForDb(db) {
-      return PAD.t + (1 - (db - DB_MIN) / (DB_MAX - DB_MIN)) * iH;
-    }
+        <button id="aeq-analyze-btn" class="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-bold transition-colors">▶ Analisar</button>
+        <button id="aeq-export-btn" disabled class="px-5 py-2 bg-slate-700 text-slate-400 rounded-lg text-sm font-bold cursor-not-allowed transition-colors">↓ Exportar GEQ CSV</button>
+    </div>
 
-    // Grid
-    ctx.strokeStyle = '#21262d'; ctx.lineWidth = 1;
-    [DB_MIN, -48, -36, -24, -12, 0, DB_MAX].forEach(db => {
-      const y = yForDb(db);
-      ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(W - PAD.r, y); ctx.stroke();
-      ctx.fillStyle = '#8b949e'; ctx.font = '10px Inter';
-      ctx.fillText(db + 'dB', 2, y + 4);
-    });
+    <div id="aeq-custom-area" class="hidden flex flex-col gap-3 bg-slate-900/50 border border-white/10 rounded-xl p-4 mb-6">
+        <p class="text-xs text-slate-500">Insira pontos no formato JSON: [[Hz, dB], [Hz, dB], …]</p>
+        <textarea id="aeq-custom-json" aria-label="JSON customizado para curva alvo" class="bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white font-mono resize-none" rows="2" placeholder='[[20,0],[100,2],[1000,0],[10000,-3],[20000,-6]]'></textarea>
+        <button id="aeq-apply-custom-btn" class="self-start px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold transition-colors">Aplicar Curva</button>
+    </div>
 
-    const freqGridHz = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000];
-    freqGridHz.forEach(hz => {
-      const x = xForHz(hz);
-      ctx.beginPath(); ctx.moveTo(x, PAD.t); ctx.lineTo(x, H - PAD.b); ctx.stroke();
-      ctx.fillStyle = '#8b949e'; ctx.font = '9px Inter';
-      ctx.fillText(_fmtHzShort(hz), x - 8, H - 8);
-    });
+    <div class="canvas-wrap bg-slate-800/50 border border-white/10 rounded-xl p-4 mb-6">
+        <canvas id="aeq-canvas" class="w-full h-72" aria-label="Gráfico comparativo de Auto-EQ e curva alvo"></canvas>
+        <div class="legend flex gap-4 mt-3 text-xs text-slate-400">
+            <span class="flex items-center gap-2"><span class="inline-block w-4 h-0.5 bg-cyan-400"></span>Espectro Medido</span>
+            <span class="flex items-center gap-2"><span class="inline-block w-4 h-0.5 bg-yellow-400"></span>Curva Alvo</span>
+            <span class="flex items-center gap-2"><span class="inline-block w-4 h-0.5 bg-green-400"></span>Correção</span>
+        </div>
+    </div>
 
-    // Measured spectrum
-    if (freqData) {
-      const hzPerBin = sampleRate / fftSize;
-      ctx.beginPath(); ctx.strokeStyle = '#58a6ff'; ctx.lineWidth = 1.5;
-      let first = true;
-      for (let k = 1; k < freqData.length; k++) {
-        const hz = k * hzPerBin;
-        if (hz < 20 || hz > 20000) continue;
-        const x = xForHz(hz), y = yForDb(freqData[k]);
-        first ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-        first = false;
-      }
-      ctx.stroke();
-    }
+    <div class="stats-bar grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div class="stat-card bg-slate-800/50 border border-white/10 rounded-xl p-4 text-center">
+            <div class="text-xl font-black text-white" id="aeq-stat-rms">—</div>
+            <div class="text-xs text-slate-500 mt-1">RMS Desvio (dB)</div>
+        </div>
+        <div class="stat-card bg-slate-800/50 border border-white/10 rounded-xl p-4 text-center">
+            <div class="text-xl font-black text-white" id="aeq-stat-max">—</div>
+            <div class="text-xs text-slate-500 mt-1">Desvio Máx (dB)</div>
+        </div>
+        <div class="stat-card bg-slate-800/50 border border-white/10 rounded-xl p-4 text-center">
+            <div class="text-xl font-black text-white" id="aeq-stat-bands">—</div>
+            <div class="text-xs text-slate-500 mt-1">Bandas &gt;1dB</div>
+        </div>
+        <div class="stat-card bg-slate-800/50 border border-white/10 rounded-xl p-4 text-center">
+            <div class="text-xl font-black text-white" id="aeq-stat-target">—</div>
+            <div class="text-xs text-slate-500 mt-1">Curva Alvo</div>
+        </div>
+    </div>
 
-    // Target curve
-    if (result.curve) {
-      ctx.beginPath(); ctx.strokeStyle = '#e3b341'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
-      result.curve.forEach((pt, i) => {
-        const x = xForHz(pt.hz), y = yForDb(pt.targetDb);
-        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-      });
-      ctx.stroke(); ctx.setLineDash([]);
-    }
+    <div class="results-grid grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="card bg-slate-800/50 border border-white/10 rounded-xl p-5">
+            <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">Filtros PEQ <span id="aeq-peq-badge" class="text-xs bg-cyan-600 text-white rounded-full px-2 py-0.5">0</span></h3>
+            <div id="aeq-peq-content">
+                <div class="text-center text-slate-500 text-xs py-8">Clique em "Analisar" para calcular os filtros.</div>
+            </div>
+            <div id="aeq-apply-row" class="hidden flex flex-wrap gap-3 items-center mt-4 pt-4 border-t border-white/10">
+                <label for="aeq-dest-select" class="text-xs text-slate-400">Destino:</label>
+                <select id="aeq-dest-select" class="flex-1 bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none">
+                    <option value="master">Master</option>
+                    <option value="channel">Canal</option>
+                </select>
 
-    // Correction curve (GEQ)
-    if (result.geq) {
-      ctx.beginPath(); ctx.strokeStyle = '#3fb950'; ctx.lineWidth = 2;
-      result.geq.forEach((b, i) => {
-        const x = xForHz(b.hz), y = yForDb(b.correctionDb);
-        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-      });
-      ctx.stroke();
-    }
-  }
+                <input type="number" id="aeq-channel-input" min="1" max="24" value="1" aria-label="Número do canal de destino" class="w-16 bg-slate-900 border border-white/10 rounded-lg px-2 py-2 text-sm text-white text-center outline-none hidden">
+                <button id="aeq-apply-btn" class="px-5 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-bold transition-colors">⚡ Aplicar</button>
+            </div>
+            <div id="aeq-status" class="text-xs text-slate-500 mt-2 min-h-[18px]"></div>
+        </div>
 
-  // ── Demo freq data (pink noise-ish) ──────────────────────────────────────────
-  function _demoFreqData(binCount, sr) {
-    const data = new Float32Array(binCount);
-    const hzPerBin = sr / (binCount * 2);
-    for (let k = 1; k < binCount; k++) {
-      const hz = k * hzPerBin;
-      // Pink noise: -3dB/octave roll-off
-      const pink = -10 * Math.log10(Math.max(hz, 1) / 1000);
-      // Add room modes
-      const roomMode = 4 * Math.exp(-Math.pow((Math.log10(hz) - Math.log10(250)), 2) / 0.05);
-      data[k] = -40 + pink + roomMode + (Math.random() - 0.5) * 3;
-    }
-    return data;
-  }
+        <div class="card bg-slate-800/50 border border-white/10 rounded-xl p-5">
+            <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">GEQ — 31 Bandas <span id="aeq-geq-badge" class="text-xs bg-cyan-600 text-white rounded-full px-2 py-0.5">0</span></h3>
+            <div id="aeq-geq-content">
+                <div class="text-center text-slate-500 text-xs py-8">Aguardando análise…</div>
+            </div>
+        </div>
+    </div>
+</section>
 
-  // ── Helpers ───────────────────────────────────────────────────────────────────
-  function setStatus(msg, type = '') {
-    statusMsg.textContent = msg;
-    statusMsg.className = 'status-msg ' + type;
-  }
-  function _fmtHz(hz) {
-    return hz >= 1000 ? (hz / 1000).toFixed(hz % 1000 === 0 ? 0 : 1) + 'kHz' : hz + 'Hz';
-  }
-  function _fmtHzShort(hz) {
-    if (hz >= 10000) return (hz / 1000).toFixed(0) + 'k';
-    if (hz >= 1000)  return (hz / 1000).toFixed(1).replace('.0', '') + 'k';
-    return hz >= 100 ? hz.toString() : hz.toString();
-  }
-
-  // ── Init ──────────────────────────────────────────────────────────────────────
-  if (window.AutoEQ) {
-    AutoEQ.setTarget('smaart');
-  }
-  resizeCanvas();
-
-})();
-</script>
-</body>
-</html>

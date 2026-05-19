@@ -1,7 +1,7 @@
 <section id="rt60" class="module page-section">
     <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-12">
         <div class="flex items-center gap-4">
-            <span class="p-3 bg-cyan-900/40 rounded-2xl text-2xl">📐</span>
+            <span class="p-3 bg-cyan-900/40 rounded-2xl text-2xl" aria-label="Cálculo e Análise de RT60">📐</span>
             <div>
                 <h2 class="text-3xl font-black text-white tracking-tighter">Acústica & RT60</h2>
                 <p class="text-slate-400 font-medium">Análise de decaimento e inteligibilidade (STI)</p>
@@ -10,8 +10,8 @@
 
         <!-- Quick Tip -->
         <div class="flex items-center gap-3 bg-amber-900/20 border border-amber-500/20 px-4 py-2 rounded-xl max-w-sm">
-            <span class="text-lg">💡</span>
-            <p class="text-[10px] text-amber-200/70 font-medium leading-tight">
+            <span class="text-lg" aria-label="Dica útil">💡</span>
+            <p class="text-xs text-amber-100 font-medium leading-tight">
                 <b>Dica:</b> Para igrejas, busque um RT60 entre <b>1.4s e 1.6s</b>. <br> Valores muito altos (reverb longo) "embolam" a pregação.
             </p>
         </div>
@@ -23,44 +23,44 @@
             <h3 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-6">Medição Manual (Acústica)</h3>
             <div class="grid grid-cols-1 gap-4">
                 <button id="btn-trigger-pulse" class="py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-3 shadow-lg shadow-cyan-900/30">
-                    <span>🔊</span> Disparar Pulso de Medição
+                    <span aria-hidden="true">🔊</span> Disparar Pulso de Medição
                 </button>
                 <div class="grid grid-cols-2 gap-3">
-                    <button id="btn-calculate-rt60" class="py-3 bg-slate-800 hover:bg-slate-700 border border-white/10 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all">
+                    <button id="btn-calculate-rt60" class="py-3 bg-slate-800 hover:bg-slate-700 border border-white/10 rounded-xl text-xs font-bold uppercase tracking-wider transition-all">
                         Calcular RT60
                     </button>
-                    <button id="btn-clear-measurements" class="py-3 bg-red-900/20 hover:bg-red-900/40 border border-red-500/30 text-red-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all">
+                    <button id="btn-clear-measurements" class="py-3 bg-red-900/20 hover:bg-red-900/40 border border-red-500/30 text-red-400 rounded-xl text-xs font-bold uppercase tracking-wider transition-all">
                         Limpar Dados
                     </button>
                 </div>
             </div>
-            <p class="mt-4 text-[10px] text-slate-500 text-center italic">O pulso emitirá um som curto para medir o tempo de decaimento da sala.</p>
+            <p class="mt-4 text-xs text-slate-500 text-center italic">O pulso emitirá um som curto para medir o tempo de decaimento da sala.</p>
         </div>
 
         <div class="space-y-6 bg-slate-800/40 border border-white/10 rounded-2xl p-6">
             <div class="grid grid-cols-3 gap-4">
                 <div class="space-y-2">
-                    <label class="text-[10px] uppercase font-bold text-slate-500 ml-1">Comprimento (m)</label>
+                    <label for="rt-length" class="text-xs uppercase font-bold text-slate-400 ml-1">Comprimento (m)</label>
                     <input type="number" id="rt-length" value="20" class="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-cyan-500 outline-none transition-all">
                 </div>
                 <div class="space-y-2">
-                    <label class="text-[10px] uppercase font-bold text-slate-500 ml-1">Largura (m)</label>
+                    <label for="rt-width" class="text-xs uppercase font-bold text-slate-400 ml-1">Largura (m)</label>
                     <input type="number" id="rt-width" value="10" class="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-cyan-500 outline-none transition-all">
                 </div>
                 <div class="space-y-2">
-                    <label class="text-[10px] uppercase font-bold text-slate-500 ml-1">Altura (m)</label>
+                    <label for="rt-height" class="text-xs uppercase font-bold text-slate-400 ml-1">Altura (m)</label>
                     <input type="number" id="rt-height" value="5" class="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-cyan-500 outline-none transition-all">
                 </div>
             </div>
 
             <div class="space-y-2">
-                <label class="text-[10px] uppercase font-bold text-slate-500 ml-1">Distância PA até Auxiliares (m)</label>
+                <label for="rt-delay-dist" class="text-xs uppercase font-bold text-slate-400 ml-1">Distância PA até Auxiliares (m)</label>
                 <input type="number" id="rt-delay-dist" value="10" class="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-cyan-500 outline-none transition-all">
-                <p class="text-[10px] text-slate-500 mt-1">Deixe em 0 se não houver caixas de reforço.</p>
+                <p class="text-xs text-slate-500 mt-1">Deixe em 0 se não houver caixas de reforço.</p>
             </div>
 
             <div class="space-y-2">
-                <label class="text-[10px] uppercase font-bold text-slate-500 ml-1">Nível de Absorção Estimado</label>
+                <label for="rt-absorption" class="text-xs uppercase font-bold text-slate-400 ml-1">Nível de Absorção Estimado</label>
                 <select id="rt-absorption" class="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-cyan-500 outline-none transition-all appearance-none">
                     <option value="0.05">Baixa (Piso liso, muito vidro, paredes nuas)</option>
                     <option value="0.15" selected>Média (Cadeiras estofadas, pessoas, algumas cortinas)</option>
@@ -77,47 +77,49 @@
             <!-- Gráfico da Curva de Schroeder -->
             <div id="schroeder-chart-panel" class="hidden mt-4 bg-slate-900/70 border border-white/10 rounded-2xl p-5 shadow-xl">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-xs font-black uppercase tracking-widest text-slate-400">📉 Curva de Schroeder — Decaimento de Energia</h3>
-                    <div class="flex gap-3 text-[9px] font-bold text-slate-500">
+                    <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                        <span aria-hidden="true">📉</span> Curva de Schroeder — Decaimento de Energia
+                    </h3>
+                    <div class="flex gap-3 text-xs font-bold text-slate-500">
                         <span class="flex items-center gap-1"><span class="inline-block w-3 h-0.5 bg-cyan-400"></span> EDT</span>
                         <span class="flex items-center gap-1"><span class="inline-block w-3 h-0.5 bg-amber-400"></span> T20</span>
                         <span class="flex items-center gap-1"><span class="inline-block w-3 h-0.5 bg-red-400"></span> T30</span>
                     </div>
                 </div>
-                <canvas id="schroeder-canvas" class="w-full rounded-lg" style="height:160px"></canvas>
+                <canvas id="schroeder-canvas" class="w-full rounded-lg" style="height:160px" aria-label="Curva de decaimento acústico de Schroeder"></canvas>
                 <div class="grid grid-cols-4 gap-2 mt-3">
                     <div class="bg-black/30 rounded-lg p-2 text-center">
-                        <div class="text-[9px] text-slate-500 uppercase font-bold">EDT</div>
+                        <div class="text-xs text-slate-400 uppercase font-bold">EDT</div>
                         <div class="text-sm font-black text-cyan-400" id="schroeder-edt">--</div>
                     </div>
                     <div class="bg-black/30 rounded-lg p-2 text-center">
-                        <div class="text-[9px] text-slate-500 uppercase font-bold">T20</div>
+                        <div class="text-xs text-slate-400 uppercase font-bold">T20</div>
                         <div class="text-sm font-black text-amber-400" id="schroeder-t20">--</div>
                     </div>
                     <div class="bg-black/30 rounded-lg p-2 text-center">
-                        <div class="text-[9px] text-slate-500 uppercase font-bold">T30</div>
+                        <div class="text-xs text-slate-400 uppercase font-bold">T30</div>
                         <div class="text-sm font-black text-red-400" id="schroeder-t30">--</div>
                     </div>
                     <div class="bg-black/30 rounded-lg p-2 text-center">
-                        <div class="text-[9px] text-slate-500 uppercase font-bold">RT60</div>
+                        <div class="text-xs text-slate-400 uppercase font-bold">RT60</div>
                         <div class="text-sm font-black text-white" id="schroeder-rt60">--</div>
                     </div>
                 </div>
                 <div class="grid grid-cols-4 gap-2 mt-2">
                     <div class="bg-black/30 rounded-lg p-2 text-center">
-                        <div class="text-[8px] text-slate-500 uppercase font-bold">C50 (dB)</div>
-                        <div class="text-sm font-black text-purple-400" id="schroeder-c50">--</div>
+                        <div class="text-xs text-slate-400 uppercase font-bold">C50 (dB)</div>
+                        <div class="text-sm font-black text-cyan-400" id="schroeder-c50">--</div>
                     </div>
                     <div class="bg-black/30 rounded-lg p-2 text-center">
-                        <div class="text-[8px] text-slate-500 uppercase font-bold">C80 (dB)</div>
-                        <div class="text-sm font-black text-purple-400" id="schroeder-c80">--</div>
+                        <div class="text-xs text-slate-400 uppercase font-bold">C80 (dB)</div>
+                        <div class="text-sm font-black text-cyan-400" id="schroeder-c80">--</div>
                     </div>
                     <div class="bg-black/30 rounded-lg p-2 text-center">
-                        <div class="text-[8px] text-slate-500 uppercase font-bold">D50 (%)</div>
+                        <div class="text-xs text-slate-400 uppercase font-bold">D50 (%)</div>
                         <div class="text-sm font-black text-emerald-400" id="schroeder-d50">--</div>
                     </div>
                     <div class="bg-black/30 rounded-lg p-2 text-center">
-                        <div class="text-[8px] text-slate-500 uppercase font-bold">STI</div>
+                        <div class="text-xs text-slate-400 uppercase font-bold">STI</div>
                         <div class="text-sm font-black text-rose-400" id="schroeder-sti">--</div>
                     </div>
                 </div>
@@ -127,23 +129,23 @@
                 <h3 class="text-lg font-bold text-white mb-2">Mapa Visual de Cobertura</h3>
                 <p class="text-xs text-slate-500 mb-4">Clique no mapa para registrar uma análise acústica neste ponto.</p>
                 <div class="relative bg-black rounded-lg border border-white/10 overflow-hidden mb-4">
-                    <canvas id="mapping-canvas" class="w-full h-auto"></canvas>
+                    <canvas id="mapping-canvas" class="w-full h-auto" aria-label="Planta baixa e mapa de calor de decaimento acústico"></canvas>
                 </div>
-                <div id="mapping-legend" class="flex justify-center gap-6 text-[10px] uppercase font-bold text-slate-500 mb-6">
+                <div id="mapping-legend" class="flex justify-center gap-6 text-xs uppercase font-bold text-slate-400 mb-6">
                     <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-green-500"></span> Cobertura Boa</span>
                     <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-yellow-500"></span> Atenção</span>
                     <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-red-500"></span> Crítico / Microfonia</span>
                 </div>
 
                 <div class="grid grid-cols-3 gap-2">
-                    <button id="btn-import-floorplan" class="py-2 bg-slate-700/50 hover:bg-slate-700 text-white rounded-lg text-[10px] font-bold transition-all border border-white/5 flex flex-col items-center gap-1">
-                        <span>🖼️</span> Planta
+                    <button id="btn-import-floorplan" class="py-2 bg-slate-700/50 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition-all border border-white/5 flex flex-col items-center gap-1">
+                        <span aria-hidden="true">🖼️</span> Planta
                     </button>
-                    <button id="btn-clear-mapping" class="py-2 bg-slate-700/50 hover:bg-slate-700 text-white rounded-lg text-[10px] font-bold transition-all border border-white/5 flex flex-col items-center gap-1">
-                        <span>🧹</span> Limpar
+                    <button id="btn-clear-mapping" class="py-2 bg-slate-700/50 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition-all border border-white/5 flex flex-col items-center gap-1">
+                        <span aria-hidden="true">🧹</span> Limpar
                     </button>
-                    <button id="btn-export-mapping" class="py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-[10px] font-bold transition-all shadow-lg shadow-cyan-900/20 flex flex-col items-center gap-1">
-                        <span>📄</span> Exportar
+                    <button id="btn-export-mapping" class="py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-cyan-900/20 flex flex-col items-center gap-1">
+                        <span aria-hidden="true">📄</span> Exportar
                     </button>
                 </div>
                 <input type="file" id="input-floorplan" class="hidden" accept="image/*">
@@ -155,17 +157,17 @@
                 
                 <div class="grid grid-cols-2 gap-4 mb-6">
                     <div class="p-4 bg-black/40 rounded-xl border border-white/5">
-                        <span class="text-[10px] uppercase text-slate-500 font-bold">Média Templo Vazio</span>
+                        <span class="text-xs uppercase text-slate-400 font-bold">Média Templo Vazio</span>
                         <div class="text-2xl font-black text-cyan-400 mt-1" id="bench-empty-rt60">--s</div>
                     </div>
                     <div class="p-4 bg-black/40 rounded-xl border border-white/5">
-                        <span class="text-[10px] uppercase text-slate-500 font-bold">Média Templo Cheio</span>
+                        <span class="text-xs uppercase text-slate-400 font-bold">Média Templo Cheio</span>
                         <div class="text-2xl font-black text-green-400 mt-1" id="bench-full-rt60">--s</div>
                     </div>
                 </div>
 
                 <div class="space-y-3">
-                    <p class="text-[11px] text-slate-400 leading-relaxed">O corpo humano é um excelente absorvedor acústico. Use esta comparação para ajustar o reverb da mesa automaticamente durante o culto.</p>
+                    <p class="text-xs text-slate-400 leading-relaxed">O corpo humano é um excelente absorvedor acústico. Use esta comparação para ajustar o reverb da mesa automaticamente durante o culto.</p>
                 </div>
             </div>
 
@@ -175,17 +177,17 @@
                     <h3 class="text-xs font-black uppercase tracking-widest text-rose-500">Soundcheck Virtual (MTK)</h3>
                     <div id="rt-rec-status" class="flex items-center gap-2 px-2 py-1 bg-black/40 rounded-lg border border-white/5">
                         <div class="w-1.5 h-1.5 rounded-full bg-slate-500 animate-pulse" id="rt-rec-dot"></div>
-                        <span class="text-[8px] font-black text-slate-500 uppercase tracking-tighter" id="rt-rec-text">OFFLINE</span>
+                        <span class="text-xs font-black text-slate-400 uppercase tracking-tighter" id="rt-rec-text">OFFLINE</span>
                     </div>
                 </div>
                 
-                <p class="text-[10px] text-slate-400 mb-4 leading-tight">Grave o ensaio em Multitrack (USB) para realizar o ajuste acústico e mixagem sem a banda presente.</p>
+                <p class="text-xs text-slate-400 mb-4 leading-tight">Grave o ensaio em Multitrack (USB) para realizar o ajuste acústico e mixagem sem a banda presente.</p>
                 
                 <div class="grid grid-cols-1 gap-2">
                     <button id="btn-rt-rec-mtk" class="w-full py-3 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg shadow-rose-900/30">
-                        <span>🔴</span> Iniciar Gravação MTK
+                        <span aria-hidden="true">🔴</span> Iniciar Gravação MTK
                     </button>
-                    <button id="btn-rt-stop-mtk" class="w-full py-2 bg-slate-800 text-slate-500 rounded-xl text-[10px] font-bold uppercase cursor-not-allowed" disabled>
+                    <button id="btn-rt-stop-mtk" class="w-full py-2 bg-slate-800 text-slate-500 rounded-xl text-xs font-bold uppercase cursor-not-allowed" disabled>
                         Parar Gravação
                     </button>
                 </div>
@@ -194,146 +196,3 @@
     </div>
 </section>
 
-<script>
-    document.getElementById('btn-trigger-pulse')?.addEventListener('click', () => {
-        if (window.SoundMasterAnalyzer) {
-            window.SoundMasterAnalyzer.triggerImpulse();
-        }
-    });
-
-    // ── Gráfico da Curva de Schroeder ────────────────────────────────────────
-    /**
-     * Renderiza a curva de decaimento de Schroeder num canvas 2D.
-     * @param {number[]} curveDb  - array de dB (0 → -60) vindos do acoustic.worker.js
-     * @param {object}   params   - { rt60, t20, t30, edt, snr }
-     */
-    function drawSchroederCurve(curveDb, params) {
-        const panel  = document.getElementById('schroeder-chart-panel');
-        const canvas = document.getElementById('schroeder-canvas');
-        if (!panel || !canvas || !curveDb || curveDb.length === 0) return;
-
-        panel.classList.remove('hidden');
-
-        // Atualiza cards de métricas
-        const fmt = (v) => v != null ? `${parseFloat(v).toFixed(2)}s` : '--';
-        document.getElementById('schroeder-edt').textContent  = fmt(params.edt);
-        document.getElementById('schroeder-t20').textContent  = fmt(params.t20);
-        document.getElementById('schroeder-t30').textContent  = fmt(params.t30);
-        document.getElementById('schroeder-rt60').textContent = fmt(params.rt60);
-
-        // Setup canvas (DPI-aware)
-        const dpr  = window.devicePixelRatio || 1;
-        const rect = canvas.getBoundingClientRect();
-        canvas.width  = rect.width  * dpr;
-        canvas.height = rect.height * dpr;
-        const ctx = canvas.getContext('2d');
-        ctx.scale(dpr, dpr);
-
-        const W = rect.width;
-        const H = rect.height;
-        const PAD = { top: 10, right: 16, bottom: 24, left: 38 };
-        const plotW = W - PAD.left - PAD.right;
-        const plotH = H - PAD.top  - PAD.bottom;
-
-        const DB_MIN = -65;
-        const DB_MAX =   2;
-        const DB_RANGE = DB_MAX - DB_MIN;
-
-        // Fundo
-        ctx.fillStyle = '#0a0f1a';
-        ctx.fillRect(0, 0, W, H);
-
-        // Grade horizontal (dB)
-        const gridLevels = [0, -10, -20, -30, -40, -50, -60];
-        ctx.font = '9px monospace';
-        ctx.fillStyle = '#475569';
-        ctx.textAlign = 'right';
-        gridLevels.forEach(db => {
-            const y = PAD.top + plotH * (1 - (db - DB_MIN) / DB_RANGE);
-            ctx.strokeStyle = db === 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)';
-            ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + plotW, y); ctx.stroke();
-            ctx.fillText(`${db}`, PAD.left - 4, y + 3);
-        });
-
-        // Linhas de referência EDT (-10dB) e T20 (-25dB) e T30 (-35dB)
-        const refLines = [
-            { db: -10, color: 'rgba(34,211,238,0.5)',  label: '-10' },
-            { db: -25, color: 'rgba(251,191,36,0.5)',  label: '-25' },
-            { db: -35, color: 'rgba(248,113,113,0.5)', label: '-35' },
-        ];
-        refLines.forEach(({ db, color, label }) => {
-            const y = PAD.top + plotH * (1 - (db - DB_MIN) / DB_RANGE);
-            ctx.strokeStyle = color;
-            ctx.setLineDash([4, 4]);
-            ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + plotW, y); ctx.stroke();
-            ctx.setLineDash([]);
-        });
-
-        // Curva de Schroeder com gradiente de cor (cyan → amber → red)
-        const n = curveDb.length;
-        const grad = ctx.createLinearGradient(PAD.left, 0, PAD.left + plotW, 0);
-        grad.addColorStop(0,    '#22d3ee'); // cyan (início — energia alta)
-        grad.addColorStop(0.45, '#f59e0b'); // amber (meio — T20 zone)
-        grad.addColorStop(1,    '#ef4444'); // red (fim — noise floor)
-
-        ctx.beginPath();
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = 2;
-        ctx.shadowColor = '#22d3ee';
-        ctx.shadowBlur  = 4;
-
-        for (let i = 0; i < n; i++) {
-            const x = PAD.left + (i / (n - 1)) * plotW;
-            const dbClamped = Math.max(DB_MIN, Math.min(DB_MAX, curveDb[i] ?? DB_MIN));
-            const y = PAD.top + plotH * (1 - (dbClamped - DB_MIN) / DB_RANGE);
-            if (i === 0) ctx.moveTo(x, y);
-            else         ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-
-        // Eixo X — rótulos de tempo estimado (0, RT60/2, RT60)
-        ctx.fillStyle = '#64748b';
-        ctx.textAlign = 'center';
-        ctx.font = '9px monospace';
-        const rt = parseFloat(params.rt60) || 1.5;
-        [[0, '0s'], [0.5, `${(rt/2).toFixed(1)}s`], [1, `${rt.toFixed(1)}s`]].forEach(([pct, lbl]) => {
-            const x = PAD.left + pct * plotW;
-            ctx.fillText(lbl, x, H - 6);
-        });
-    }
-
-    // Escuta o evento disparado pelo analyzer ao receber resultado de RT60
-    document.addEventListener('rt60-result', (e) => {
-        const { curve, rt60, t20, t30, edt, snr, c50, c80, d50, sti, sti_category } = e.detail || {};
-        if (curve && curve.length > 0) {
-            drawSchroederCurve(curve, { rt60, t20, t30, edt, snr });
-        }
-        
-        // Atualiza métricas de clareza e inteligibilidade
-        if (c50 !== undefined) {
-            document.getElementById('schroeder-c50').textContent = c50 != null ? `${c50} dB` : '--';
-            const c50El = document.getElementById('schroeder-c50');
-            c50El.className = 'text-sm font-black ' + (c50 > 0 ? 'text-emerald-400' : c50 > -2 ? 'text-yellow-400' : 'text-red-400');
-        }
-        if (c80 !== undefined) {
-            document.getElementById('schroeder-c80').textContent = c80 != null ? `${c80} dB` : '--';
-            const c80El = document.getElementById('schroeder-c80');
-            c80El.className = 'text-sm font-black ' + (c80 > 2 ? 'text-emerald-400' : c80 > 0 ? 'text-yellow-400' : 'text-red-400');
-        }
-        if (d50 !== undefined) {
-            document.getElementById('schroeder-d50').textContent = d50 != null ? `${d50}%` : '--';
-            const d50El = document.getElementById('schroeder-d50');
-            d50El.className = 'text-sm font-black ' + (d50 > 50 ? 'text-emerald-400' : d50 > 35 ? 'text-yellow-400' : 'text-red-400');
-        }
-        if (sti !== undefined) {
-            const stiStr = sti != null ? `${sti}` : '--';
-            const stiCat = sti_category || '';
-            document.getElementById('schroeder-sti').textContent = stiStr + (stiCat ? ' (' + stiCat.charAt(0) + ')' : '');
-            const stiEl = document.getElementById('schroeder-sti');
-            stiEl.className = 'text-sm font-black ' + (sti >= 0.6 ? 'text-emerald-400' : sti >= 0.45 ? 'text-yellow-400' : 'text-red-400');
-        }
-    });
-</script>

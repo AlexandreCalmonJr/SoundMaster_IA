@@ -1,0 +1,37 @@
+.stage-plot-page { display:flex; gap:16px; padding:20px; height:calc(100vh - 80px); box-sizing:border-box; font-family:'Inter',sans-serif; }
+#sp-palette { width:120px; flex-shrink:0; display:flex; flex-direction:column; gap:8px; overflow-y:auto; }
+#sp-palette h4 { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:#94a3b8; margin:0 0 4px; }
+.sp-palette-item { display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 6px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:10px; cursor:grab; user-select:none; transition:background .15s,transform .1s; font-size:10px; color:#94a3b8; }
+.sp-palette-item:hover { background:rgba(6,182,212,.15); border-color:rgba(6,182,212,.4); color:#e2e8f0; transform:scale(1.04); }
+.sp-palette-item .sp-icon { font-size:26px; line-height:1; }
+#sp-stage-wrap { flex:1; display:flex; flex-direction:column; gap:10px; min-width:0; }
+#sp-toolbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+#sp-toolbar button { padding:6px 14px; border:none; border-radius:8px; font-size:11px; font-weight:600; cursor:pointer; transition:all .15s; }
+#sp-btn-clear  { background:rgba(239,68,68,.15); color:#f87171; border:1px solid rgba(239,68,68,.3); }
+#sp-btn-save   { background:rgba(6,182,212,.2); color:#22d3ee; border:1px solid rgba(6,182,212,.35); }
+#sp-btn-load   { background:rgba(255,255,255,.07); color:#94a3b8; border:1px solid rgba(255,255,255,.1); }
+#sp-btn-export { background:rgba(255,255,255,.07); color:#94a3b8; border:1px solid rgba(255,255,255,.1); }
+#sp-btn-spatial{ background:rgba(168,85,247,.15); color:#c084fc; border:1px solid rgba(168,85,247,.3); }
+#sp-toolbar button:hover { filter:brightness(1.2); transform:translateY(-1px); }
+#sp-canvas-wrap { flex:1; position:relative; background:linear-gradient(160deg,#0a0f1e 0%,#0d1a2e 100%); border:1px solid rgba(6,182,212,.18); border-radius:16px; overflow:hidden; box-shadow:0 0 60px rgba(6,182,212,.06); }
+#sp-canvas { width:100%; height:100%; display:block; }
+#sp-canvas-wrap::before { content:'FRENTE DA PLATEIA'; position:absolute; bottom:8px; left:50%; transform:translateX(-50%); font-size:9px; color:rgba(255,255,255,.15); font-weight:700; letter-spacing:.15em; pointer-events:none; }
+#sp-canvas-wrap::after  { content:'FUNDO DO PALCO'; position:absolute; top:8px; left:50%; transform:translateX(-50%); font-size:9px; color:rgba(255,255,255,.15); font-weight:700; letter-spacing:.15em; pointer-events:none; }
+.sp-actor { position:absolute; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:grab; user-select:none; touch-action:none; transform:translate(-50%,-50%); z-index:10; }
+.sp-actor .sp-a-icon { font-size:32px; line-height:1; filter:drop-shadow(0 0 8px rgba(6,182,212,.7)); transition:filter .2s,transform .2s; }
+.sp-actor .sp-a-label { font-size:9px; font-weight:700; color:#e2e8f0; background:rgba(2,10,30,.8); border:1px solid rgba(6,182,212,.3); border-radius:6px; padding:2px 6px; white-space:nowrap; max-width:80px; overflow:hidden; text-overflow:ellipsis; }
+.sp-actor .sp-a-ch { font-size:8px; color:#22d3ee; font-weight:800; }
+.sp-actor:hover .sp-a-icon { filter:drop-shadow(0 0 14px rgba(6,182,212,1)); transform:scale(1.15); }
+.sp-actor.selected .sp-a-icon { filter:drop-shadow(0 0 18px rgba(251,191,36,1)) !important; transform:scale(1.2) !important; }
+.sp-actor .sp-a-remove { display:none; position:absolute; top:-10px; right:-10px; width:18px; height:18px; background:#ef4444; color:#fff; border-radius:50%; font-size:11px; line-height:18px; text-align:center; cursor:pointer; font-weight:700; }
+.sp-actor:hover .sp-a-remove { display:block; }
+#sp-ch-popup { position:fixed; z-index:9999; background:rgba(2,10,30,.97); border:1px solid rgba(6,182,212,.4); border-radius:14px; padding:16px; min-width:220px; box-shadow:0 20px 60px rgba(0,0,0,.6); backdrop-filter:blur(12px); display:none; }
+#sp-ch-popup h5 { margin:0 0 12px; font-size:12px; font-weight:700; color:#22d3ee; }
+#sp-ch-popup label { font-size:10px; color:#94a3b8; display:block; margin-bottom:4px; }
+#sp-ch-popup input[type=number], #sp-ch-popup input[type=text] { width:100%; padding:6px 10px; background:rgba(255,255,255,.06); border:1px solid rgba(6,182,212,.3); border-radius:8px; color:#e2e8f0; font-size:12px; outline:none; box-sizing:border-box; margin-bottom:10px; }
+#sp-ch-popup .sp-popup-btns { display:flex; gap:8px; }
+#sp-ch-popup .sp-popup-btns button { flex:1; padding:7px; border:none; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; }
+#sp-popup-confirm { background:rgba(6,182,212,.3); color:#22d3ee; border:1px solid rgba(6,182,212,.5) !important; }
+#sp-popup-open-ch { background:rgba(34,197,94,.2); color:#4ade80; border:1px solid rgba(34,197,94,.4) !important; }
+#sp-popup-cancel  { background:rgba(255,255,255,.07); color:#94a3b8; border:1px solid rgba(255,255,255,.15) !important; }
+.sp-spatial-badge { position:absolute; top:10px; right:10px; background:rgba(168,85,247,.2); border:1px solid rgba(168,85,247,.4); border-radius:8px; padding:4px 10px; font-size:9px; color:#c084fc; font-weight:700; display:none; }

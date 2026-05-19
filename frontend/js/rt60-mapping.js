@@ -36,6 +36,7 @@
         loadProfilesFromStorage();
         resizeCanvas();
         
+        window.removeEventListener('resize', resizeCanvas);
         window.addEventListener('resize', resizeCanvas);
         
         console.log('[RT60-Mapping] Módulo inicializado');
@@ -245,7 +246,7 @@
             statsEl.className = 'grid grid-cols-4 gap-2 mt-4 p-3 bg-black/30 rounded-lg';
             statsEl.innerHTML = `
                 <div class="text-center"><div class="text-[8px] text-slate-500">Média RT60</div><div class="text-sm font-bold text-cyan-400">${avgRT60.toFixed(2)}s</div></div>
-                <div class="text-center"><div class="text-[8px] text-slate-500">Média C50</div><div class="text-sm font-bold text-purple-400">${avgC50.toFixed(1)} dB</div></div>
+                <div class="text-center"><div class="text-[8px] text-slate-500">Média C50</div><div class="text-sm font-bold text-amber-400">${avgC50.toFixed(1)} dB</div></div>
                 <div class="text-center"><div class="text-[8px] text-slate-500">Média D50</div><div class="text-sm font-bold text-emerald-400">${avgD50.toFixed(0)}%</div></div>
                 <div class="text-center"><div class="text-[8px] text-slate-500">Média STI</div><div class="text-sm font-bold text-rose-400">${avgSTI.toFixed(2)}</div></div>
             `;

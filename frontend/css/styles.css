@@ -1,3 +1,10 @@
+@import "app-layout.css";
+@import "auto-eq.css";
+@import "pages.css";
+@import "components.css";
+@import "mixer-git.css";
+@import "stage-plot.css";
+
 /*! tailwindcss v4.2.4 | MIT License | https://tailwindcss.com */
 @layer properties;
 @layer theme, base, components, utilities;
@@ -37,10 +44,10 @@
     --color-indigo-400: oklch(67.3% 0.182 276.935);
     --color-indigo-500: oklch(58.5% 0.233 277.117);
     --color-indigo-900: oklch(35.9% 0.144 278.697);
-    --color-purple-300: oklch(82.7% 0.119 306.383);
-    --color-purple-400: oklch(71.4% 0.203 305.504);
-    --color-purple-500: oklch(62.7% 0.265 303.9);
-    --color-purple-900: oklch(38.1% 0.176 304.987);
+    --color-gold-300: oklch(82.7% 0.119 306.383);
+    --color-gold-400: oklch(71.4% 0.203 305.504);
+    --color-gold-500: oklch(62.7% 0.265 303.9);
+    --color-gold-900: oklch(38.1% 0.176 304.987);
     --color-rose-500: oklch(64.5% 0.246 16.439);
     --color-rose-600: oklch(58.6% 0.253 17.585);
     --color-rose-900: oklch(41% 0.159 10.272);
@@ -947,10 +954,10 @@
       border-color: color-mix(in oklab, var(--color-indigo-500) 20%, transparent);
     }
   }
-  .border-purple-500\/20 {
+  .border-gold-500\/20 {
     border-color: color-mix(in srgb, oklch(62.7% 0.265 303.9) 20%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
-      border-color: color-mix(in oklab, var(--color-purple-500) 20%, transparent);
+      border-color: color-mix(in oklab, var(--color-gold-500) 20%, transparent);
     }
   }
   .border-red-500\/20 {
@@ -1166,19 +1173,19 @@
       background-color: color-mix(in oklab, var(--color-indigo-900) 40%, transparent);
     }
   }
-  .bg-purple-500 {
-    background-color: var(--color-purple-500);
+  .bg-gold-500 {
+    background-color: var(--color-gold-500);
   }
-  .bg-purple-900\/20 {
+  .bg-gold-900\/20 {
     background-color: color-mix(in srgb, oklch(38.1% 0.176 304.987) 20%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
-      background-color: color-mix(in oklab, var(--color-purple-900) 20%, transparent);
+      background-color: color-mix(in oklab, var(--color-gold-900) 20%, transparent);
     }
   }
-  .bg-purple-900\/40 {
+  .bg-gold-900\/40 {
     background-color: color-mix(in srgb, oklch(38.1% 0.176 304.987) 40%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
-      background-color: color-mix(in oklab, var(--color-purple-900) 40%, transparent);
+      background-color: color-mix(in oklab, var(--color-gold-900) 40%, transparent);
     }
   }
   .bg-red-500 {
@@ -1727,11 +1734,11 @@
   .text-indigo-400 {
     color: var(--color-indigo-400);
   }
-  .text-purple-300 {
-    color: var(--color-purple-300);
+  .text-gold-300 {
+    color: var(--color-gold-300);
   }
-  .text-purple-400 {
-    color: var(--color-purple-400);
+  .text-gold-400 {
+    color: var(--color-gold-400);
   }
   .text-red-200\/70 {
     color: color-mix(in srgb, oklch(88.5% 0.062 18.334) 70%, transparent);
@@ -2143,12 +2150,12 @@
       }
     }
   }
-  .hover\:border-purple-500\/50 {
+  .hover\:border-gold-500\/50 {
     &:hover {
       @media (hover: hover) {
         border-color: color-mix(in srgb, oklch(62.7% 0.265 303.9) 50%, transparent);
         @supports (color: color-mix(in lab, red, red)) {
-          border-color: color-mix(in oklab, var(--color-purple-500) 50%, transparent);
+          border-color: color-mix(in oklab, var(--color-gold-500) 50%, transparent);
         }
       }
     }
@@ -2921,9 +2928,10 @@ input[type=\range\].appearance-none:hover::-webkit-slider-thumb {
  box-shadow: 0 0 15px rgba(34, 211, 238, 0.5);
 }
 
-.accent-purple-500::-webkit-slider-thumb {
- background: #a855f7 !important;
+.accent-amber-500::-webkit-slider-thumb {
+ background: #f59e0b !important;
 }
-.accent-purple-500:hover::-webkit-slider-thumb {
- box-shadow: 0 0 15px rgba(168, 85, 247, 0.5) !important;
+.accent-amber-500:hover::-webkit-slider-thumb {
+ box-shadow: 0 0 15px rgba(245, 158, 11, 0.5) !important;
 }
+
