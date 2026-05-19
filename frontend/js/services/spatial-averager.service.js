@@ -35,7 +35,7 @@
         '#38bdf8',  // sky-400   — Mic 1
         '#34d399',  // emerald-400 — Mic 2
         '#fb923c',  // orange-400 — Mic 3
-        '#a78bfa',  // violet-400 — Mic 4
+        '#fbbf24',  // amber-400 — Mic 4
         '#f472b6',  // pink-400  — Mic 5
         '#facc15',  // yellow-400 — Mic 6
         '#22d3ee',  // cyan-400  — Mic 7

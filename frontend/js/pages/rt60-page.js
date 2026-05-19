@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 (function () {
     var pm = createPageModule();
 
@@ -19,7 +19,7 @@
             var rt60 = 0.161 * volume / (surfaceArea * absorption);
             var color = rt60 > 1.6 ? 'text-red-400' : rt60 > 1.4 ? 'text-green-400' : 'text-amber-400';
             pm._setHTML('rt60-result', '<div class="bg-slate-800/60 border border-white/10 rounded-2xl p-6"><h3 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">Resultado Estimado</h3><div class="grid grid-cols-2 gap-4"><div class="bg-black/40 rounded-xl p-4 text-center"><div class="text-[9px] text-slate-500 uppercase font-bold">Volume</div><div class="text-xl font-black text-cyan-400">' + volume.toFixed(0) + ' m\u00B3</div></div><div class="bg-black/40 rounded-xl p-4 text-center"><div class="text-[9px] text-slate-500 uppercase font-bold">RT60 Estimado</div><div class="text-xl font-black ' + color + '">' + rt60.toFixed(2) + 's</div></div></div><p class="text-[10px] text-slate-400 mt-4">F\u00F3rmula de Sabine: RT60 = 0.161 \u00D7 V / (S \u00D7 \u03B1)</p></div>');
-            if (dist > 0) { var delayMs = (dist / 343) * 1000; var el = pm._el('rt60-result'); if (el) { var delayInfo = document.createElement('div'); delayInfo.className = 'bg-black/30 rounded-xl p-3 mt-3 text-center'; delayInfo.innerHTML = '<span class="text-[9px] text-slate-500 uppercase font-bold">Delay Auxiliar:</span> <span class="text-sm font-black text-purple-400">' + delayMs.toFixed(1) + ' ms</span>'; el.appendChild(delayInfo); } }
+            if (dist > 0) { var delayMs = (dist / 343) * 1000; var el = pm._el('rt60-result'); if (el) { var delayInfo = document.createElement('div'); delayInfo.className = 'bg-black/30 rounded-xl p-3 mt-3 text-center'; delayInfo.innerHTML = '<span class="text-[9px] text-slate-500 uppercase font-bold">Delay Auxiliar:</span> <span class="text-sm font-black text-cyan-400">' + delayMs.toFixed(1) + ' ms</span>'; el.appendChild(delayInfo); } }
         });
 
         pm._on(pm._el('btn-import-floorplan'), 'click', function () { var input = pm._el('input-floorplan'); if (input) input.click(); });

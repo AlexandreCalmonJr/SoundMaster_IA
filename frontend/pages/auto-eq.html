@@ -1,7 +1,7 @@
 <section id="auto-eq" class="module page-section">
     <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
         <div class="flex items-center gap-4">
-            <span class="p-3 bg-cyan-900/40 rounded-2xl text-2xl">🎛️</span>
+            <span class="p-3 bg-cyan-900/40 rounded-2xl text-2xl" aria-label="Auto Equalizador">🎛️</span>
             <div>
                 <h2 class="text-3xl font-black text-white tracking-tighter">Auto-EQ — Target Curve Matching</h2>
                 <p class="text-slate-400 font-medium">Compara o espectro medido com uma curva alvo e gera filtros PEQ/GEQ</p>
@@ -35,13 +35,13 @@
     </div>
 
     <div id="aeq-custom-area" class="hidden flex flex-col gap-3 bg-slate-900/50 border border-white/10 rounded-xl p-4 mb-6">
-        <p class="text-xs text-slate-500">Insira pontos no formato JSON: [[Hz, dB], [Hz, dB], ...]</p>
-        <textarea id="aeq-custom-json" class="bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white font-mono resize-none" rows="2" placeholder='[[20,0],[100,2],[1000,0],[10000,-3],[20000,-6]]'></textarea>
+        <p class="text-xs text-slate-500">Insira pontos no formato JSON: [[Hz, dB], [Hz, dB], …]</p>
+        <textarea id="aeq-custom-json" aria-label="JSON customizado para curva alvo" class="bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white font-mono resize-none" rows="2" placeholder='[[20,0],[100,2],[1000,0],[10000,-3],[20000,-6]]'></textarea>
         <button id="aeq-apply-custom-btn" class="self-start px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold transition-colors">Aplicar Curva</button>
     </div>
 
     <div class="canvas-wrap bg-slate-800/50 border border-white/10 rounded-xl p-4 mb-6">
-        <canvas id="aeq-canvas" class="w-full h-72"></canvas>
+        <canvas id="aeq-canvas" class="w-full h-72" aria-label="Gráfico comparativo de Auto-EQ e curva alvo"></canvas>
         <div class="legend flex gap-4 mt-3 text-xs text-slate-400">
             <span class="flex items-center gap-2"><span class="inline-block w-4 h-0.5 bg-cyan-400"></span>Espectro Medido</span>
             <span class="flex items-center gap-2"><span class="inline-block w-4 h-0.5 bg-yellow-400"></span>Curva Alvo</span>
@@ -52,45 +52,47 @@
     <div class="stats-bar grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <div class="stat-card bg-slate-800/50 border border-white/10 rounded-xl p-4 text-center">
             <div class="text-xl font-black text-white" id="aeq-stat-rms">—</div>
-            <div class="text-[10px] text-slate-500 mt-1">RMS Desvio (dB)</div>
+            <div class="text-xs text-slate-500 mt-1">RMS Desvio (dB)</div>
         </div>
         <div class="stat-card bg-slate-800/50 border border-white/10 rounded-xl p-4 text-center">
             <div class="text-xl font-black text-white" id="aeq-stat-max">—</div>
-            <div class="text-[10px] text-slate-500 mt-1">Desvio Máx (dB)</div>
+            <div class="text-xs text-slate-500 mt-1">Desvio Máx (dB)</div>
         </div>
         <div class="stat-card bg-slate-800/50 border border-white/10 rounded-xl p-4 text-center">
             <div class="text-xl font-black text-white" id="aeq-stat-bands">—</div>
-            <div class="text-[10px] text-slate-500 mt-1">Bandas &gt;1dB</div>
+            <div class="text-xs text-slate-500 mt-1">Bandas &gt;1dB</div>
         </div>
         <div class="stat-card bg-slate-800/50 border border-white/10 rounded-xl p-4 text-center">
             <div class="text-xl font-black text-white" id="aeq-stat-target">—</div>
-            <div class="text-[10px] text-slate-500 mt-1">Curva Alvo</div>
+            <div class="text-xs text-slate-500 mt-1">Curva Alvo</div>
         </div>
     </div>
 
     <div class="results-grid grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="card bg-slate-800/50 border border-white/10 rounded-xl p-5">
-            <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">Filtros PEQ <span id="aeq-peq-badge" class="text-[10px] bg-cyan-600 text-white rounded-full px-2 py-0.5">0</span></h3>
+            <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">Filtros PEQ <span id="aeq-peq-badge" class="text-xs bg-cyan-600 text-white rounded-full px-2 py-0.5">0</span></h3>
             <div id="aeq-peq-content">
                 <div class="text-center text-slate-500 text-xs py-8">Clique em "Analisar" para calcular os filtros.</div>
             </div>
             <div id="aeq-apply-row" class="hidden flex flex-wrap gap-3 items-center mt-4 pt-4 border-t border-white/10">
-                <label class="text-xs text-slate-400">Destino:</label>
+                <label for="aeq-dest-select" class="text-xs text-slate-400">Destino:</label>
                 <select id="aeq-dest-select" class="flex-1 bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none">
                     <option value="master">Master</option>
                     <option value="channel">Canal</option>
                 </select>
-                <input type="number" id="aeq-channel-input" min="1" max="24" value="1" class="w-16 bg-slate-900 border border-white/10 rounded-lg px-2 py-2 text-sm text-white text-center outline-none hidden">
+
+                <input type="number" id="aeq-channel-input" min="1" max="24" value="1" aria-label="Número do canal de destino" class="w-16 bg-slate-900 border border-white/10 rounded-lg px-2 py-2 text-sm text-white text-center outline-none hidden">
                 <button id="aeq-apply-btn" class="px-5 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-bold transition-colors">⚡ Aplicar</button>
             </div>
             <div id="aeq-status" class="text-xs text-slate-500 mt-2 min-h-[18px]"></div>
         </div>
 
         <div class="card bg-slate-800/50 border border-white/10 rounded-xl p-5">
-            <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">GEQ — 31 Bandas <span id="aeq-geq-badge" class="text-[10px] bg-cyan-600 text-white rounded-full px-2 py-0.5">0</span></h3>
+            <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">GEQ — 31 Bandas <span id="aeq-geq-badge" class="text-xs bg-cyan-600 text-white rounded-full px-2 py-0.5">0</span></h3>
             <div id="aeq-geq-content">
                 <div class="text-center text-slate-500 text-xs py-8">Aguardando análise…</div>
             </div>
         </div>
     </div>
 </section>
+

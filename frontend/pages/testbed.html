@@ -47,7 +47,7 @@
                 <div class="bg-slate-900/60 rounded-xl p-3 text-center"><div class="text-2xl font-bold text-cyan-400" id="sim-rt60">--</div><div class="text-[10px] text-slate-500 uppercase">RT60 (s)</div></div>
                 <div class="bg-slate-900/60 rounded-xl p-3 text-center"><div class="text-2xl font-bold text-emerald-400" id="sim-sti">--</div><div class="text-[10px] text-slate-500 uppercase">STI</div></div>
                 <div class="bg-slate-900/60 rounded-xl p-3 text-center"><div class="text-2xl font-bold text-amber-400" id="sim-c50">--</div><div class="text-[10px] text-slate-500 uppercase">C50 (dB)</div></div>
-                <div class="bg-slate-900/60 rounded-xl p-3 text-center"><div class="text-2xl font-bold text-purple-400" id="sim-peak">--</div><div class="text-[10px] text-slate-500 uppercase">Pico (Hz)</div></div>
+                <div class="bg-slate-900/60 rounded-xl p-3 text-center"><div class="text-2xl font-bold text-amber-400" id="sim-peak">--</div><div class="text-[10px] text-slate-500 uppercase">Pico (Hz)</div></div>
             </div>
             <div class="mt-4">
                 <canvas id="sim-fft-canvas" width="500" height="80" class="w-full rounded-lg bg-black/60 border border-white/5"></canvas>
@@ -78,7 +78,7 @@
                 <button class="sim-cmd-btn p-2 rounded-xl bg-cyan-900/20 border border-cyan-500/20 text-[10px] font-bold text-cyan-400 hover:bg-cyan-900/40 transition-all" data-cmd="channel_mute" data-ch="1" data-val="true">Mutar Ch1</button>
                 <button class="sim-cmd-btn p-2 rounded-xl bg-red-900/20 border border-red-500/20 text-[10px] font-bold text-red-400 hover:bg-red-900/40 transition-all" data-cmd="channel_mute" data-ch="1" data-val="false">Desmutar Ch1</button>
                 <button class="sim-cmd-btn p-2 rounded-xl bg-orange-900/20 border border-orange-500/20 text-[10px] font-bold text-orange-400 hover:bg-orange-900/40 transition-all" data-cmd="set_channel_level" data-ch="1" data-val="0.85">Ch1 85%</button>
-                <button class="sim-cmd-btn p-2 rounded-xl bg-purple-900/20 border border-purple-500/20 text-[10px] font-bold text-purple-400 hover:bg-purple-900/40 transition-all" data-cmd="eq_cut" data-hz="125" data-gain="-3">Corte 125Hz</button>
+                <button class="sim-cmd-btn p-2 rounded-xl bg-teal-900/20 border border-teal-500/20 text-[10px] font-bold text-teal-400 hover:bg-teal-900/40 transition-all" data-cmd="eq_cut" data-hz="125" data-gain="-3">Corte 125Hz</button>
                 <button class="sim-cmd-btn p-2 rounded-xl bg-yellow-900/20 border border-yellow-500/20 text-[10px] font-bold text-yellow-400 hover:bg-yellow-900/40 transition-all" data-cmd="eq_cut" data-hz="3200" data-gain="-2">Corte 3.2kHz</button>
                 <button class="sim-cmd-btn p-2 rounded-xl bg-slate-700/50 border border-white/5 text-[10px] font-bold text-slate-300 hover:bg-slate-600 transition-all" data-cmd="hpf" data-ch="1" data-hz="100">HPF Ch1</button>
                 <button class="sim-cmd-btn p-2 rounded-xl bg-emerald-900/20 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 hover:bg-emerald-900/40 transition-all" data-cmd="comp" data-ch="1">Compressor</button>

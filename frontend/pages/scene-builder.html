@@ -6,11 +6,11 @@
         </div>
         <div class="flex gap-3">
             <button id="sb-new-scene" class="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-cyan-900/30 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 Nova Cena
             </button>
-            <button id="sb-ai-generate" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-purple-900/30 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            <button id="sb-ai-generate" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-900/30 flex items-center gap-2">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
                 Gerar com IA
             </button>
         </div>
@@ -28,10 +28,10 @@
             <div class="bg-slate-800/40 border border-white/10 rounded-2xl p-5">
                 <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Quick Presets</h3>
                 <div class="grid grid-cols-2 gap-2">
-                    <button class="sb-quick-preset p-2 rounded-xl bg-cyan-900/20 border border-cyan-500/20 text-[10px] font-bold text-cyan-400 hover:bg-cyan-900/40 transition-all" data-preset="louvor">Louvor</button>
-                    <button class="sb-quick-preset p-2 rounded-xl bg-orange-900/20 border border-orange-500/20 text-[10px] font-bold text-orange-400 hover:bg-orange-900/40 transition-all" data-preset="pregacao">Pregação</button>
-                    <button class="sb-quick-preset p-2 rounded-xl bg-slate-700/50 border border-white/5 text-[10px] font-bold text-slate-300 hover:bg-slate-600 transition-all" data-preset="silencio">Silêncio</button>
-                    <button class="sb-quick-preset p-2 rounded-xl bg-purple-900/20 border border-purple-500/20 text-[10px] font-bold text-purple-400 hover:bg-purple-900/40 transition-all" data-preset="transicao">Transição</button>
+                    <button class="sb-quick-preset p-2 rounded-xl bg-cyan-900/20 border border-cyan-500/20 text-xs font-bold text-cyan-400 hover:bg-cyan-900/40 transition-all" data-preset="louvor">Louvor</button>
+                    <button class="sb-quick-preset p-2 rounded-xl bg-orange-900/20 border border-orange-500/20 text-xs font-bold text-orange-400 hover:bg-orange-900/40 transition-all" data-preset="pregacao">Pregação</button>
+                    <button class="sb-quick-preset p-2 rounded-xl bg-slate-700/50 border border-white/5 text-xs font-bold text-slate-300 hover:bg-slate-600 transition-all" data-preset="silencio">Silêncio</button>
+                    <button class="sb-quick-preset p-2 rounded-xl bg-teal-900/20 border border-teal-500/20 text-xs font-bold text-teal-400 hover:bg-teal-900/40 transition-all" data-preset="transicao">Transição</button>
                 </div>
             </div>
         </div>
@@ -49,7 +49,7 @@
                     </div>
                 </div>
                 <div id="sb-preview-content" class="flex-1 p-6 flex flex-col items-center justify-center text-slate-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                     <p class="mt-4 text-sm">Clique em uma cena para visualizar</p>
                 </div>
                 <div id="sb-preview-actions" class="px-6 py-4 border-t border-white/5 flex gap-3 hidden">
@@ -72,11 +72,11 @@
         <h3 class="text-lg font-bold text-white mb-5">Nova Cena</h3>
         <div class="space-y-4">
             <div>
-                <label class="text-xs text-slate-400 mb-2 block">Nome da Cena</label>
+                <label for="sb-new-name" class="text-xs text-slate-400 mb-2 block">Nome da Cena</label>
                 <input type="text" id="sb-new-name" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500 outline-none" placeholder="Ex: Louvor Manhã">
             </div>
             <div>
-                <label class="text-xs text-slate-400 mb-2 block">Gênero / Estilo</label>
+                <label for="sb-new-genre" class="text-xs text-slate-400 mb-2 block">Gênero / Estilo</label>
                 <select id="sb-new-genre" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500 outline-none appearance-none">
                     <option value="louvor">Louvor</option>
                     <option value="pregacao">Pregação</option>
@@ -87,7 +87,7 @@
                 </select>
             </div>
             <div>
-                <label class="text-xs text-slate-400 mb-2 block">Descrição (opcional)</label>
+                <label for="sb-new-desc" class="text-xs text-slate-400 mb-2 block">Descrição (opcional)</label>
                 <textarea id="sb-new-desc" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500 outline-none resize-none" rows="2" placeholder="Ex: Mix completo com reverb e delay"></textarea>
             </div>
         </div>
@@ -103,25 +103,26 @@
         <h3 class="text-lg font-bold text-white mb-5">Gerar Cena com IA</h3>
         <div class="space-y-4">
             <div>
-                <label class="text-xs text-slate-400 mb-2 block">Descreva o momento do culto</label>
-                <textarea id="sb-ai-prompt" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-purple-500 outline-none resize-none" rows="3" placeholder="Ex: Louvor de abertura com banda completa, preciso de um som energico e aberto..."></textarea>
+                <label for="sb-ai-prompt" class="text-xs text-slate-400 mb-2 block">Descreva o momento do culto</label>
+                <textarea id="sb-ai-prompt" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500 outline-none resize-none" rows="3" placeholder="Ex: Louvor de abertura com banda completa, preciso de um som energico e aberto…"></textarea>
             </div>
             <div>
-                <label class="text-xs text-slate-400 mb-2 block">Instrumentos Presentes</label>
+                <span class="text-xs text-slate-400 mb-2 block font-medium">Instrumentos Presentes</span>
                 <div class="flex flex-wrap gap-2" id="sb-ai-instruments">
-                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-[10px] font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="vocals">Vocais</button>
-                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-[10px] font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="guitar">Guitarra</button>
-                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-[10px] font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="keys">Teclado</button>
-                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-[10px] font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="bass">Baixo</button>
-                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-[10px] font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="drums">Bateria</button>
-                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-[10px] font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="media">Media</button>
+                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-xs font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="vocals">Vocais</button>
+                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-xs font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="guitar">Guitarra</button>
+                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-xs font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="keys">Teclado</button>
+                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-xs font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="bass">Baixo</button>
+                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-xs font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="drums">Bateria</button>
+                    <button class="sb-ai-inst px-3 py-1 rounded-lg bg-slate-700/50 border border-white/5 text-xs font-bold text-slate-300 hover:bg-cyan-900/30 hover:border-cyan-500/30 hover:text-cyan-400 transition-all" data-inst="media">Media</button>
                 </div>
             </div>
         </div>
         <div id="sb-ai-result" class="mt-4 hidden bg-slate-900/60 rounded-xl p-3 text-xs text-slate-300 max-h-40 overflow-y-auto"></div>
         <div class="flex gap-3 mt-6">
             <button id="sb-cancel-ai" class="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold text-sm transition-all">Cancelar</button>
-            <button id="sb-generate-ai" class="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold text-sm transition-all">Gerar</button>
+            <button id="sb-generate-ai" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm transition-all">Gerar</button>
         </div>
     </div>
 </div>
+

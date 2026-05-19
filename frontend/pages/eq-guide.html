@@ -1,7 +1,7 @@
 <section id="eq-guide" class="module page-section">
     <header class="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div class="flex items-center gap-4">
-            <span class="p-3 bg-indigo-900/40 rounded-2xl text-2xl">🎚️</span>
+            <span class="p-3 bg-cyan-950/40 rounded-2xl text-2xl" aria-label="Equalização">🎚️</span>
             <div>
                 <h2 class="text-3xl font-black text-white tracking-tighter">Guia de Equalização</h2>
                 <p class="text-slate-400 font-medium">Melhores práticas e tabelas de frequências por instrumento</p>
@@ -10,7 +10,7 @@
 
         <div class="flex items-center gap-4 bg-slate-900/60 p-4 rounded-2xl border border-white/10 shadow-xl">
             <div class="flex flex-col">
-                <span class="text-[9px] uppercase font-black text-slate-500 mb-1">Selecione o Alvo:</span>
+                <label for="eq-instrument-select" class="text-xs uppercase font-black text-slate-400 mb-1">Selecione o Alvo:</label>
                 <select id="eq-instrument-select" class="bg-transparent text-white font-bold focus:outline-none cursor-pointer">
                     <option value="bumbo" class="bg-slate-900">🥁 Bumbo (Kick)</option>
                     <option value="violao" class="bg-slate-900">🎸 Violão</option>
@@ -19,17 +19,16 @@
                     <option value="teclado" class="bg-slate-900">🎹 Teclado/Piano</option>
                 </select>
             </div>
-            <button id="btn-sync-eq-ai" class="p-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all shadow-lg shadow-indigo-900/20">
-                🚀 Sincronizar IA
+            <button id="btn-sync-eq-ai" class="p-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl transition-all shadow-lg shadow-cyan-900/20">
+                <span aria-hidden="true">🚀</span> Sincronizar IA
             </button>
-        </div>
         </div>
     </header>
 
     <div id="eq-data-display" class="bg-slate-900/60 border border-white/10 rounded-3xl p-8 shadow-2xl mb-12 animate-in fade-in zoom-in-95 duration-300">
         <!-- Conteúdo dinâmico via church-tools.js -->
         <div class="flex items-center justify-center h-48 opacity-20">
-            <p class="text-xs uppercase font-black tracking-widest text-white">Carregando guia dinâmico...</p>
+            <p class="text-xs uppercase font-black tracking-widest text-white">Carregando guia dinâmico…</p>
         </div>
     </div>
 
@@ -38,15 +37,15 @@
         <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6 shadow-2xl space-y-4">
             <h3 class="text-lg font-black text-white">🥁 Bumbo (Kick)</h3>
             <div class="space-y-3">
-                <div class="flex justify-between text-[11px]">
+                <div class="flex justify-between text-xs">
                     <span class="text-slate-400">Peso/Corpo</span>
-                    <span class="text-indigo-400 font-mono">60 - 80 Hz</span>
+                    <span class="text-cyan-400 font-mono">60 - 80 Hz</span>
                 </div>
-                <div class="flex justify-between text-[11px]">
+                <div class="flex justify-between text-xs">
                     <span class="text-slate-400">Clareza/Ataque</span>
-                    <span class="text-indigo-400 font-mono">3 - 5 kHz</span>
+                    <span class="text-cyan-400 font-mono">3 - 5 kHz</span>
                 </div>
-                <div class="flex justify-between text-[11px]">
+                <div class="flex justify-between text-xs">
                     <span class="text-red-400">Remover (Boxy)</span>
                     <span class="text-red-400 font-mono">300 - 400 Hz</span>
                 </div>
@@ -57,15 +56,15 @@
         <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6 shadow-2xl space-y-4">
             <h3 class="text-lg font-black text-white">🎸 Violão</h3>
             <div class="space-y-3">
-                <div class="flex justify-between text-[11px]">
+                <div class="flex justify-between text-xs">
                     <span class="text-slate-400">Corpo</span>
-                    <span class="text-indigo-400 font-mono">80 - 120 Hz</span>
+                    <span class="text-cyan-400 font-mono">80 - 120 Hz</span>
                 </div>
-                <div class="flex justify-between text-[11px]">
+                <div class="flex justify-between text-xs">
                     <span class="text-slate-400">Brilho</span>
-                    <span class="text-indigo-400 font-mono">5 - 10 kHz</span>
+                    <span class="text-cyan-400 font-mono">5 - 10 kHz</span>
                 </div>
-                <div class="flex justify-between text-[11px]">
+                <div class="flex justify-between text-xs">
                     <span class="text-red-400">Ressonância</span>
                     <span class="text-red-400 font-mono">200 - 400 Hz</span>
                 </div>
@@ -76,22 +75,23 @@
         <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6 shadow-2xl space-y-4">
             <h3 class="text-lg font-black text-white">🎹 Teclado</h3>
             <div class="space-y-3">
-                <div class="flex justify-between text-[11px]">
+                <div class="flex justify-between text-xs">
                     <span class="text-slate-400">Presença</span>
-                    <span class="text-indigo-400 font-mono">2 - 5 kHz</span>
+                    <span class="text-cyan-400 font-mono">2 - 5 kHz</span>
                 </div>
-                <div class="flex justify-between text-[11px]">
+                <div class="flex justify-between text-xs">
                     <span class="text-slate-400">Low End</span>
-                    <span class="text-indigo-400 font-mono">Corte < 100 Hz</span>
+                    <span class="text-cyan-400 font-mono">Corte &lt; 100 Hz</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="mt-12 p-6 bg-indigo-900/20 border border-indigo-500/20 rounded-3xl">
+    <div class="mt-12 p-6 bg-cyan-950/40 border border-cyan-500/20 rounded-3xl">
         <h4 class="text-sm font-black text-white uppercase mb-4 tracking-widest">Dica da IA</h4>
         <p class="text-xs text-slate-400 leading-relaxed italic">
             "Sempre tente <b>cortar</b> frequências indesejadas antes de tentar dar ganho em outras. Isso mantém o headroom do sistema e evita distorções."
         </p>
     </div>
 </section>
+

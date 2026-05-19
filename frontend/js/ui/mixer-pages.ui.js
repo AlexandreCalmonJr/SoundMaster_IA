@@ -202,17 +202,17 @@
         
         for (let i = 1; i <= 4; i++) {
             const fxCard = document.createElement('div');
-            fxCard.className = 'bg-slate-900/60 border border-white/10 rounded-2xl p-6 shadow-2xl flex flex-col gap-6 group hover:border-indigo-500/30 transition-all';
+            fxCard.className = 'bg-slate-900/60 border border-white/10 rounded-2xl p-6 shadow-2xl flex flex-col gap-6 group hover:border-cyan-500/30 transition-all';
             fxCard.innerHTML = `
                 <div class="flex items-center justify-between">
-                    <span class="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Engine Lexicon ${i}</span>
+                    <span class="text-[10px] font-black text-cyan-400 uppercase tracking-widest">Engine Lexicon ${i}</span>
                     <span id="fx-type-${i}" class="text-[9px] font-bold text-slate-500 uppercase">Detectando...</span>
                 </div>
                 
                 <div class="flex gap-4 items-center">
                     <div class="h-48 w-10 bg-black/40 rounded-xl relative flex items-center justify-center border border-white/5 overflow-hidden">
                         <input type="range" id="fx-level-${i}" min="0" max="100" value="50" 
-                               class="fader-vertical text-indigo-500" orient="vertical">
+                               class="fader-vertical text-cyan-500" orient="vertical">
                     </div>
                     <div class="flex-1 space-y-4">
                         <div class="bg-black/20 p-3 rounded-xl border border-white/5">
@@ -226,8 +226,8 @@
                             <label class="text-[9px] uppercase font-bold text-slate-500 mb-2 block">Tempo / BPM</label>
                             <div class="flex gap-2">
                                 <input type="number" id="fx-bpm-${i}" value="120" min="40" max="300" 
-                                       class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-xs text-indigo-400 font-mono text-center focus:border-indigo-500 outline-none">
-                                <button id="fx-tap-${i}" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black rounded-lg transition-all">TAP</button>
+                                       class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-xs text-cyan-400 font-mono text-center focus:border-cyan-500 outline-none">
+                                <button id="fx-tap-${i}" class="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-black rounded-lg transition-all">TAP</button>
                             </div>
                         </div>
                     </div>

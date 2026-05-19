@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 (function () {
     var pm = createPageModule();
     var NUM_CHANNELS = 16;
@@ -14,7 +14,7 @@
             var card = document.createElement('div');
             card.className = 'am-channel-card bg-slate-900/50 border border-white/5 rounded-xl p-3 flex flex-col items-center gap-2 transition-all cursor-pointer hover:border-white/15';
             card.id = 'am-ch-' + i;
-            card.innerHTML = '<div class="w-8 h-8 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-xs font-bold text-slate-400" data-ch="' + i + '">' + i + '</div>' + '<div class="w-full h-16 bg-black/30 rounded-lg overflow-hidden relative flex flex-col justify-end" title="Redu\u00E7\u00E3o de ganho">' + '<div class="am-reduction-bar absolute inset-0 bg-red-500/0 transition-all" style="width:0%"></div>' + '<div class="am-level-fill w-full bg-cyan-500/60 transition-all" style="height:0%"></div>' + '</div>' + '<div class="w-full flex gap-1 justify-center">' + '<button class="am-group-btn w-6 h-6 rounded text-[8px] font-bold border border-slate-600 bg-slate-800 text-slate-500 hover:bg-cyan-900/50 hover:border-cyan-500/50 hover:text-cyan-400 transition-all" data-ch="' + i + '" data-group="a" title="Grupo A">A</button>' + '<button class="am-group-btn w-6 h-6 rounded text-[8px] font-bold border border-slate-600 bg-slate-800 text-slate-500 hover:bg-purple-900/50 hover:border-purple-500/50 hover:text-purple-400 transition-all" data-ch="' + i + '" data-group="b" title="Grupo B">B</button>' + '</div>' + '<div class="w-full"><input type="range" class="am-weight-slider w-full h-1 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500" data-ch="' + i + '" min="0" max="100" value="50"></div>' + '<div class="am-reduction-text text-[9px] text-slate-600 font-mono">0dB</div>';
+            card.innerHTML = '<div class="w-8 h-8 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-xs font-bold text-slate-400" data-ch="' + i + '">' + i + '</div>' + '<div class="w-full h-16 bg-black/30 rounded-lg overflow-hidden relative flex flex-col justify-end" title="Redu\u00E7\u00E3o de ganho">' + '<div class="am-reduction-bar absolute inset-0 bg-red-500/0 transition-all" style="width:0%"></div>' + '<div class="am-level-fill w-full bg-cyan-500/60 transition-all" style="height:0%"></div>' + '</div>' + '<div class="w-full flex gap-1 justify-center">' + '<button class="am-group-btn w-6 h-6 rounded text-[8px] font-bold border border-slate-600 bg-slate-800 text-slate-500 hover:bg-cyan-900/50 hover:border-cyan-500/50 hover:text-cyan-400 transition-all" data-ch="' + i + '" data-group="a" title="Grupo A">A</button>' + '<button class="am-group-btn w-6 h-6 rounded text-[8px] font-bold border border-slate-600 bg-slate-800 text-slate-500 hover:bg-emerald-900/50 hover:border-emerald-500/50 hover:text-emerald-400 transition-all" data-ch="' + i + '" data-group="b" title="Grupo B">B</button>' + '</div>' + '<div class="w-full"><input type="range" class="am-weight-slider w-full h-1 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500" data-ch="' + i + '" min="0" max="100" value="50"></div>' + '<div class="am-reduction-text text-[9px] text-slate-600 font-mono">0dB</div>';
             (function (ch) {
                 pm._on(card, 'click', function (e) {
                     if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
@@ -32,7 +32,7 @@
         ['a', 'b'].forEach(function (g) {
             var group = document.createElement('div');
             group.className = 'bg-slate-900/50 border border-white/5 rounded-xl p-4';
-            group.innerHTML = '<div class="flex items-center justify-between mb-3">' + '<span class="text-sm font-bold text-' + (g === 'a' ? 'cyan' : 'purple') + '-400">Grupo ' + g.toUpperCase() + '</span>' + '<button class="am-activate-group text-[10px] font-bold px-3 py-1 rounded-lg bg-' + (g === 'a' ? 'cyan' : 'purple') + '-900/30 border border-' + (g === 'a' ? 'cyan' : 'purple') + '-500/30 text-' + (g === 'a' ? 'cyan' : 'purple') + '-400 hover:bg-' + (g === 'a' ? 'cyan' : 'purple') + '-900/50 transition-all" data-group="' + g + '">Ativar Canais</button>' + '</div>' + '<div class="text-xs text-slate-500 mb-2">Canais: <span id="am-group-' + g + '-ch-list" class="text-slate-300">nenhum</span></div>' + '<div class="text-xs text-slate-500">Total de redu\u00E7\u00E3o: <span id="am-group-' + g + '-total-reduction" class="text-red-400 font-mono">0dB</span></div>';
+            group.innerHTML = '<div class="flex items-center justify-between mb-3">' + '<span class="text-sm font-bold text-' + (g === 'a' ? 'cyan' : 'emerald') + '-400">Grupo ' + g.toUpperCase() + '</span>' + '<button class="am-activate-group text-[10px] font-bold px-3 py-1 rounded-lg bg-' + (g === 'a' ? 'cyan' : 'emerald') + '-900/30 border border-' + (g === 'a' ? 'cyan' : 'emerald') + '-500/30 text-' + (g === 'a' ? 'cyan' : 'emerald') + '-400 hover:bg-' + (g === 'a' ? 'cyan' : 'emerald') + '-900/50 transition-all" data-group="' + g + '">Ativar Canais</button>' + '</div>' + '<div class="text-xs text-slate-500 mb-2">Canais: <span id="am-group-' + g + '-ch-list" class="text-slate-300">nenhum</span></div>' + '<div class="text-xs text-slate-500">Total de redu\u00E7\u00E3o: <span id="am-group-' + g + '-total-reduction" class="text-red-400 font-mono">0dB</span></div>';
             container.appendChild(group);
         });
         document.querySelectorAll('.am-activate-group').forEach(function (btn) {
@@ -65,9 +65,9 @@
                 if (parseInt(btn.getAttribute('data-ch')) === i) {
                     var g = btn.getAttribute('data-group');
                     var isActive = s.group === g;
-                    btn.style.backgroundColor = isActive ? (g === 'a' ? 'rgba(8,145,178,0.3)' : 'rgba(147,51,234,0.3)') : '';
-                    btn.style.borderColor = isActive ? (g === 'a' ? '#06b6d4' : '#a855f7') : '';
-                    btn.style.color = isActive ? (g === 'a' ? '#22d3ee' : '#c084fc') : '';
+                    btn.style.backgroundColor = isActive ? (g === 'a' ? 'rgba(8,145,178,0.3)' : 'rgba(5,150,105,0.3)') : '';
+                    btn.style.borderColor = isActive ? (g === 'a' ? '#06b6d4' : '#10b981') : '';
+                    btn.style.color = isActive ? (g === 'a' ? '#22d3ee' : '#34d399') : '';
                 }
             });
             var reduction = s.enabled ? (1 - s.weight) * 20 : 0;
@@ -104,7 +104,7 @@
         if (!btn) return;
         var isActive = btn.classList.contains('active');
         if (isActive) { btn.classList.remove('active'); btn.style.backgroundColor = ''; if (dot) { dot.classList.remove('bg-green-500'); dot.classList.add('bg-slate-600'); } }
-        else { btn.classList.add('active'); btn.style.backgroundColor = group === 'a' ? 'rgba(6,182,212,0.3)' : 'rgba(168,85,247,0.3)'; if (dot) { dot.classList.remove('bg-slate-600'); dot.classList.add('bg-green-500'); } }
+        else { btn.classList.add('active'); btn.style.backgroundColor = group === 'a' ? 'rgba(6,182,212,0.3)' : 'rgba(16,185,129,0.3)'; if (dot) { dot.classList.remove('bg-slate-600'); dot.classList.add('bg-green-500'); } }
         pm._safeCall('MixerService', 'automixControl', isActive ? 'disable_' + group : 'enable_' + group, null);
     }
 
@@ -126,3 +126,4 @@
 
     window.AutomixerPage = { init: init, destroy: destroy };
 })();
+

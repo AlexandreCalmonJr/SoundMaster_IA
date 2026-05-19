@@ -4,16 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SoundMaster Pro - Acoustic Intelligence</title>
+    <meta name="description" content="SoundMaster Pro - Acoustic Intelligence and Real-Time Sound Analysis Shell.">
+    <meta property="og:title" content="SoundMaster Pro">
+    <meta property="og:description" content="Acoustic Intelligence and Real-Time Sound Analysis Shell.">
+    <meta property="og:type" content="website">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/app-layout.css">
-    <link rel="stylesheet" href="css/auto-eq.css">
-    <link rel="stylesheet" href="css/pages.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/mixer-git.css">
-    <link rel="stylesheet" href="css/stage-plot.css">
 </head>
 <body>
 
@@ -67,8 +65,8 @@
             <div class="content-viewport">
                 <!-- Central View -->
                 <main id="app-main">
-                    <div id="agent-workspace">
-                        <!-- Page content loaded here by Router -->
+                    <div id="agent-workspace" class="w-full h-full">
+                        <iframe id="agent-workspace-iframe" class="w-full h-full border-none bg-transparent" src="about:blank"></iframe>
                     </div>
                 </main>
 
@@ -133,20 +131,6 @@
 
     <!-- Page Utilities -->
     <script src="js/page-utils.js"></script>
-
-    <!-- Page Modules -->
-    <script src="js/pages/analyzer-page.js"></script>
-    <script src="js/pages/rt60-page.js"></script>
-    <script src="js/pages/auto-eq-page.js"></script>
-    <script src="js/pages/scene-builder-page.js"></script>
-    <script src="js/pages/semantic-eq-page.js"></script>
-    <script src="js/pages/debug-page.js"></script>
-    <script src="js/pages/systems-page.js"></script>
-    <script src="js/pages/volunteer-page.js"></script>
-    <script src="js/pages/automixer-page.js"></script>
-    <script src="js/pages/mixer-git-page.js"></script>
-    <script src="js/pages/testbed-page.js"></script>
-    <script src="js/pages/stage-plot-page.js"></script>
 
     <!-- App Entry Point -->
     <script src="js/app.js"></script>
