@@ -22,7 +22,14 @@ window.createPageModule = function () {
         _listeners.push({ target: el, event: event, handler: handler });
     }
 
-    function _el(id) { return document.getElementById(id); }
+    function _el(id) {
+        const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
+        if (iframe && iframe.contentDocument) {
+            const el = iframe.contentDocument.getElementById(id);
+            if (el) return el;
+        }
+        return document.getElementById(id);
+    }
 
     function _setText(id, text) { var el = _el(id); if (el) el.textContent = text; }
 

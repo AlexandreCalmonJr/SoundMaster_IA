@@ -11,7 +11,15 @@
     // -------------------------------------------------------------------------
     // Elementos do DOM
     // -------------------------------------------------------------------------
-    const $ = function (id) { return document.getElementById(id); };
+    function _el(id) {
+        const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
+        if (iframe && iframe.contentDocument) {
+            const el = iframe.contentDocument.getElementById(id);
+            if (el) return el;
+        }
+        return document.getElementById(id);
+    }
+    const $ = _el;
 
     let els = {};
     function _getEls() {
@@ -167,7 +175,7 @@
 
         try {
             const result = await AIService.ask(message, channel, payload);
-            const loadingBubble = document.getElementById(loadingId);
+            const loadingBubble = _el(loadingId);
             if (loadingBubble) loadingBubble.remove();
             
             _appendBubble(result.text, false, result.command);
@@ -175,7 +183,7 @@
                 _appendBubble(result.report, false, null);
             }
         } catch (err) {
-            const loadingBubble = document.getElementById(loadingId);
+            const loadingBubble = _el(loadingId);
             if (loadingBubble) loadingBubble.remove();
             _appendBubble('Erro ao processar análise: ' + err.message, false, null);
         }
@@ -202,7 +210,7 @@
 
         try {
             const result = await AIService.ask(text.trim(), channel);
-            const loadingBubble = document.getElementById(loadingId);
+            const loadingBubble = _el(loadingId);
             if (loadingBubble) loadingBubble.remove();
             
             _appendBubble(result.text, false, result.command);
@@ -210,7 +218,7 @@
                 _appendBubble(result.report, false, null);
             }
         } catch (err) {
-            const loadingBubble = document.getElementById(loadingId);
+            const loadingBubble = _el(loadingId);
             if (loadingBubble) loadingBubble.innerText = 'Erro na conexão com IA. Verifique o servidor local.';
         } finally {
             if (els.chatInput) {

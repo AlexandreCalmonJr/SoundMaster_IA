@@ -8,6 +8,15 @@
 (function () {
     'use strict';
 
+    function _el(id) {
+        const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
+        if (iframe && iframe.contentDocument) {
+            const el = iframe.contentDocument.getElementById(id);
+            if (el) return el;
+        }
+        return document.getElementById(id);
+    }
+
     const STORAGE_KEY = 'soundmaster_onboarding_done';
     const TOUR_STEP_KEY = 'soundmaster_tour_step';
 
@@ -235,9 +244,9 @@
 
         document.body.appendChild(tooltipEl);
 
-        document.getElementById('tour-skip').addEventListener('click', stop);
-        document.getElementById('tour-prev').addEventListener('click', () => goTo(stepIndex - 1));
-        document.getElementById('tour-next').addEventListener('click', () => {
+        _el('tour-skip').addEventListener('click', stop);
+        _el('tour-prev').addEventListener('click', () => goTo(stepIndex - 1));
+        _el('tour-next').addEventListener('click', () => {
             if (stepIndex < steps.length - 1) {
                 saveStep();
                 goTo(stepIndex + 1);
@@ -255,7 +264,7 @@
         const tw = 320;
 
         if (step.target) {
-            targetEl = document.getElementById(step.target);
+            targetEl = _el(step.target);
         } else if (step.selector) {
             targetEl = document.querySelector(step.selector);
         }
@@ -327,7 +336,7 @@
     function _highlightTarget(step) {
         document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
         let targetEl = null;
-        if (step.target) targetEl = document.getElementById(step.target);
+        if (step.target) targetEl = _el(step.target);
         else if (step.selector) targetEl = document.querySelector(step.selector);
         if (targetEl) {
             targetEl.classList.add('tour-highlight');
@@ -351,7 +360,7 @@
         _positionTooltip(tooltip, step);
 
         const targetEl = step.target
-            ? document.getElementById(step.target)
+            ? _el(step.target)
             : step.selector ? document.querySelector(step.selector) : null;
 
         if (targetEl && overlayEl) {
@@ -409,7 +418,7 @@
     }
 
     function openHelpModal() {
-        const existing = document.getElementById('tour-help-modal');
+        const existing = _el('tour-help-modal');
         if (existing) { existing.remove(); return; }
 
         const modal = document.createElement('div');
@@ -480,12 +489,12 @@
         modal.addEventListener('click', (e) => {
             if (e.target === modal || e.target.id === 'hm-close') modal.remove();
         });
-        document.getElementById('hm-start-tour').addEventListener('click', () => {
+        _el('hm-start-tour').addEventListener('click', () => {
             modal.remove();
             resetTour();
             start(0);
         });
-        document.getElementById('hm-reset-tour').addEventListener('click', () => {
+        _el('hm-reset-tour').addEventListener('click', () => {
             modal.remove();
             resetTour();
             start(0);

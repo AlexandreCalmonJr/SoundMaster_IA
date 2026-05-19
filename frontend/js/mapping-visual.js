@@ -3,6 +3,14 @@
  * Gerencia o mapa 2D do salão e o registro de pontos de análise acústica.
  */
 (function () {
+    function _el(id) {
+        const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
+        if (iframe && iframe.contentDocument) {
+            const el = iframe.contentDocument.getElementById(id);
+            if (el) return el;
+        }
+        return document.getElementById(id);
+    }
     'use strict';
 
     let canvas, ctx;
@@ -11,7 +19,7 @@
     let floorPlanImage = null;
 
     function init() {
-        canvas = document.getElementById('mapping-canvas');
+        canvas = _el('mapping-canvas');
         if (!canvas) return;
         ctx = canvas.getContext('2d');
 
@@ -24,7 +32,7 @@
         canvas.addEventListener('click', _handleCanvasClick);
         
         // Reinicializa botões (redundância para SPA)
-        const btnClear = document.getElementById('btn-clear-mapping');
+        const btnClear = _el('btn-clear-mapping');
         if (btnClear) {
             btnClear.onclick = () => {
                 measurements = [];
@@ -32,11 +40,11 @@
             };
         }
 
-        const btnExport = document.getElementById('btn-export-mapping');
+        const btnExport = _el('btn-export-mapping');
         if (btnExport) btnExport.onclick = _exportMap;
 
-        const btnImport = document.getElementById('btn-import-floorplan');
-        const inputFloorPlan = document.getElementById('input-floorplan');
+        const btnImport = _el('btn-import-floorplan');
+        const inputFloorPlan = _el('input-floorplan');
         if (btnImport && inputFloorPlan) {
             btnImport.onclick = () => inputFloorPlan.click();
             inputFloorPlan.onchange = (e) => {
@@ -269,7 +277,7 @@
     });
 
     // Se o script carregar e já estivermos na página (F5), inicializa
-    if (document.getElementById('mapping-canvas')) {
+    if (_el('mapping-canvas')) {
         console.log('[Mapping] Canvas detectado no load direto. Inicializando...');
         init();
     }

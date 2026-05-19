@@ -11,6 +11,15 @@
 
 (function () {
 
+    function _el(id) {
+        const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
+        if (iframe && iframe.contentDocument) {
+            const el = iframe.contentDocument.getElementById(id);
+            if (el) return el;
+        }
+        return document.getElementById(id);
+    }
+
     /**
      * Renderiza a curva de decaimento de Schroeder.
      *
@@ -111,14 +120,14 @@
     function updateMetricCards(params) {
         const fmt = (v) => v != null ? `${parseFloat(v).toFixed(2)}s` : '--';
 
-        const edtEl = document.getElementById('schroeder-edt');
-        const t20El = document.getElementById('schroeder-t20');
-        const t30El = document.getElementById('schroeder-t30');
-        const rt60El = document.getElementById('schroeder-rt60');
-        const c50El = document.getElementById('schroeder-c50');
-        const c80El = document.getElementById('schroeder-c80');
-        const d50El = document.getElementById('schroeder-d50');
-        const stiEl = document.getElementById('schroeder-sti');
+        const edtEl = _el('schroeder-edt');
+        const t20El = _el('schroeder-t20');
+        const t30El = _el('schroeder-t30');
+        const rt60El = _el('schroeder-rt60');
+        const c50El = _el('schroeder-c50');
+        const c80El = _el('schroeder-c80');
+        const d50El = _el('schroeder-d50');
+        const stiEl = _el('schroeder-sti');
 
         if (edtEl) edtEl.textContent = fmt(params?.edt);
         if (t20El) t20El.textContent = fmt(params?.t20);

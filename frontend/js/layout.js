@@ -5,6 +5,15 @@
 (function () {
     'use strict';
 
+    function _el(id) {
+        const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
+        if (iframe && iframe.contentDocument) {
+            const el = iframe.contentDocument.getElementById(id);
+            if (el) return el;
+        }
+        return document.getElementById(id);
+    }
+
     // Category → sub-items mapping
     const CATEGORIES = {
         measure: {
@@ -63,10 +72,10 @@
     let activeCategory = null;
 
     function initSidebar() {
-        const panel = document.getElementById('category-panel');
-        const panelTitle = document.getElementById('panel-title');
-        const panelNav = document.getElementById('panel-nav');
-        const sidebar = document.getElementById('app-sidebar');
+        const panel = _el('category-panel');
+        const panelTitle = _el('panel-title');
+        const panelNav = _el('panel-nav');
+        const sidebar = _el('app-sidebar');
 
         if (!panel || !panelNav) return;
 
@@ -140,10 +149,10 @@
     }
 
     function initGlobalToggles() {
-        const btnSidebar = document.getElementById('btn-toggle-sidebar');
-        const btnMixer = document.getElementById('btn-toggle-mixer');
-        const btnMain = document.getElementById('btn-toggle-main');
-        const txtMixer = document.getElementById('txt-toggle-mixer');
+        const btnSidebar = _el('btn-toggle-sidebar');
+        const btnMixer = _el('btn-toggle-mixer');
+        const btnMain = _el('btn-toggle-main');
+        const txtMixer = _el('txt-toggle-mixer');
 
         btnSidebar?.addEventListener('click', () => {
             const isCollapsed = document.body.classList.toggle('sidebar-collapsed');
@@ -175,9 +184,9 @@
     function initBreadcrumbs() {
         document.addEventListener('page-loaded', (e) => {
             const { title, category } = e.detail;
-            const catEl = document.getElementById('breadcrumb-category');
-            const sepEl = document.getElementById('breadcrumb-sep');
-            const pageEl = document.getElementById('breadcrumb-page');
+            const catEl = _el('breadcrumb-category');
+            const sepEl = _el('breadcrumb-sep');
+            const pageEl = _el('breadcrumb-page');
 
             if (category) {
                 if (catEl) { catEl.textContent = category; catEl.style.display = ''; }
@@ -190,8 +199,8 @@
                 
                 // Se não há categoria, fechamos o painel e resetamos estado
                 activeCategory = null;
-                const panel = document.getElementById('category-panel');
-                const sidebar = document.getElementById('app-sidebar');
+                const panel = _el('category-panel');
+                const sidebar = _el('app-sidebar');
                 panel?.classList.remove('open');
                 sidebar?.classList.remove('panel-open');
                 document.querySelectorAll('.rail-btn[data-category]').forEach(b => b.classList.remove('active'));
@@ -234,7 +243,7 @@
                 tab.classList.remove('text-slate-400');
 
                 document.querySelectorAll('.analyzer-subtab').forEach(s => s.classList.add('hidden'));
-                const target = document.getElementById(tab.getAttribute('data-subtab'));
+                const target = _el(tab.getAttribute('data-subtab'));
                 if (target) target.classList.remove('hidden');
             });
         });

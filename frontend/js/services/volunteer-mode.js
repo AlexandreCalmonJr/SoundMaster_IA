@@ -19,6 +19,15 @@
 
 (function () {
 
+    function _el(id) {
+        const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
+        if (iframe && iframe.contentDocument) {
+            const el = iframe.contentDocument.getElementById(id);
+            if (el) return el;
+        }
+        return document.getElementById(id);
+    }
+
     // ── Categorias e rotas bloqueadas em modo voluntário ──────────────────────
     const BLOCKED_CATEGORIES = ['measure', 'analysis', 'network', 'settings'];
     const BLOCKED_ROUTES     = [
@@ -43,7 +52,7 @@
 
     // ─── CSS dinâmico injetado uma vez ───────────────────────────────────────
     function _injectCSS() {
-        if (document.getElementById('volunteer-mode-css')) return;
+        if (_el('volunteer-mode-css')) return;
         const style = document.createElement('style');
         style.id = 'volunteer-mode-css';
         style.textContent = `
@@ -158,7 +167,7 @@
 
     // ─── Criar overlay de modo voluntário ────────────────────────────────────
     function _buildOverlay() {
-        if (document.getElementById('volunteer-mixer-overlay')) return;
+        if (_el('volunteer-mixer-overlay')) return;
 
         // Overlay principal
         const overlay = document.createElement('div');
@@ -234,12 +243,12 @@
     // ─── Bind eventos do overlay ──────────────────────────────────────────────
     function _bindOverlayEvents() {
         // Exit button
-        document.getElementById('volunteer-exit-btn')?.addEventListener('click', () => {
+        _el('volunteer-exit-btn')?.addEventListener('click', () => {
             if (_pin) _openPinModal(); else _exitVolunteer();
         });
 
         // Master fader
-        const masterFader = document.getElementById('vol-master-fader');
+        const masterFader = _el('vol-master-fader');
         masterFader?.addEventListener('input', (e) => {
             const raw = parseInt(e.target.value) / 100;
             const clamped = clampFader(raw);
@@ -248,7 +257,7 @@
         });
 
         // Master mute
-        document.getElementById('vol-master-mute')?.addEventListener('click', (e) => {
+        _el('vol-master-mute')?.addEventListener('click', (e) => {
             const btn = e.currentTarget;
             const isMuted = btn.classList.toggle('muted');
             btn.style.background = isMuted ? '#f85149' : '#1c2128';
@@ -258,10 +267,10 @@
 
         // PIN numpad
         let _pinBuffer = '';
-        document.getElementById('pin-numpad')?.addEventListener('click', (e) => {
+        _el('pin-numpad')?.addEventListener('click', (e) => {
             const key = e.target.closest('.pin-key')?.dataset.key;
             if (!key) return;
-            if (key === '✕') { _pinBuffer = ''; _updatePinDots(); document.getElementById('pin-error').textContent = ''; return; }
+            if (key === '✕') { _pinBuffer = ''; _updatePinDots(); _el('pin-error').textContent = ''; return; }
             if (key === '←') { _pinBuffer = _pinBuffer.slice(0,-1); _updatePinDots(); return; }
             if (_pinBuffer.length >= 4) return;
             _pinBuffer += key;
@@ -270,8 +279,8 @@
                 if (_pinBuffer === _pin) {
                     _closePinModal(); _pinBuffer = ''; _exitVolunteer();
                 } else {
-                    document.getElementById('pin-error').textContent = 'PIN incorreto. Tente novamente.';
-                    setTimeout(() => { _pinBuffer = ''; _updatePinDots(); document.getElementById('pin-error').textContent = ''; }, 1200);
+                    _el('pin-error').textContent = 'PIN incorreto. Tente novamente.';
+                    setTimeout(() => { _pinBuffer = ''; _updatePinDots(); _el('pin-error').textContent = ''; }, 1200);
                 }
             }
         });
@@ -285,7 +294,7 @@
 
     // ─── Render canal no overlay voluntário ──────────────────────────────────
     function _renderVolunteerChannels() {
-        const grid = document.getElementById('vol-channel-grid');
+        const grid = _el('vol-channel-grid');
         if (!grid) return;
         const channels = AppStore.getState().volunteerChannels;
 
@@ -328,11 +337,11 @@
                 const clamped = clampFader(raw);
                 if (raw > clamped) e.target.value = Math.round(clamped * 100);
                 // Update fill visual
-                const fill = document.getElementById(`vol-ch${ch}-fill`);
+                const fill = _el(`vol-ch${ch}-fill`);
                 if (fill) fill.style.height = (clamped * 100) + '%';
                 // Send to mixer
                 if (window.socket) window.socket.emit('set_channel_level', { channel: ch, level: clamped });
-                document.getElementById(`vol-ch${ch}-db`).textContent = _levelToDb(clamped);
+                _el(`vol-ch${ch}-db`).textContent = _levelToDb(clamped);
             });
         });
 
@@ -360,7 +369,7 @@
         }
 
         // Fechar sidebar avançada
-        const panel = document.getElementById('category-panel');
+        const panel = _el('category-panel');
         panel?.classList.remove('open');
 
         _buildOverlay();
@@ -379,15 +388,15 @@
     }
 
     function _openPinModal() {
-        document.getElementById('volunteer-pin-modal')?.classList.add('open');
+        _el('volunteer-pin-modal')?.classList.add('open');
     }
     function _closePinModal() {
-        document.getElementById('volunteer-pin-modal')?.classList.remove('open');
+        _el('volunteer-pin-modal')?.classList.remove('open');
         document.querySelectorAll('#pin-dots .pin-dot').forEach(d => d.classList.remove('filled'));
     }
 
     function _updateToggleBtn() {
-        const btn = document.getElementById('btn-volunteer-toggle');
+        const btn = _el('btn-volunteer-toggle');
         if (!btn) return;
         const isVol = AppStore.getState().userMode === 'volunteer';
         btn.classList.toggle('active', isVol);
@@ -413,7 +422,7 @@
     // ─── Injetar botão no header ───────────────────────────────────────────────
     function _injectHeaderButton() {
         const headerRight = document.querySelector('.header-right');
-        if (!headerRight || document.getElementById('btn-volunteer-toggle')) return;
+        if (!headerRight || _el('btn-volunteer-toggle')) return;
 
         // Badge "VOLUNTÁRIO" visível só em modo voluntário
         const badge = document.createElement('div');
@@ -493,7 +502,7 @@
     } else {
         // Layout pode ainda não estar pronto (sidebar carregada async)
         document.addEventListener('page-loaded', () => {
-            if (!document.getElementById('btn-volunteer-toggle')) _init();
+            if (!_el('btn-volunteer-toggle')) _init();
         }, { once: true });
         setTimeout(_init, 500); // fallback
     }

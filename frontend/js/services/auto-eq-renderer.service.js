@@ -14,6 +14,15 @@
 
 (function () {
 
+    function _el(id) {
+        const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
+        if (iframe && iframe.contentDocument) {
+            const el = iframe.contentDocument.getElementById(id);
+            if (el) return el;
+        }
+        return document.getElementById(id);
+    }
+
     // ── Graph ──
 
     function drawGraph(canvas, result, freqData, sampleRate, fftSize) {
@@ -97,7 +106,7 @@
     function renderPEQ(container, peq) {
         if (!container) return;
 
-        const badge = document.getElementById('aeq-peq-badge');
+        const badge = _el('aeq-peq-badge');
         if (badge) badge.textContent = peq.length;
 
         if (peq.length === 0) {
@@ -125,7 +134,7 @@
     function renderGEQ(container, geq) {
         if (!container) return;
 
-        const badge = document.getElementById('aeq-geq-badge');
+        const badge = _el('aeq-geq-badge');
         if (badge) badge.textContent = geq.filter(b => Math.abs(b.correctionDb) >= 0.5).length;
 
         const maxDb = 12;
@@ -149,10 +158,10 @@
     // ── Stats ──
 
     function renderStats(stats, targetName) {
-        const rmsEl = document.getElementById('aeq-stat-rms');
-        const maxEl = document.getElementById('aeq-stat-max');
-        const bandsEl = document.getElementById('aeq-stat-bands');
-        const targetEl = document.getElementById('aeq-stat-target');
+        const rmsEl = _el('aeq-stat-rms');
+        const maxEl = _el('aeq-stat-max');
+        const bandsEl = _el('aeq-stat-bands');
+        const targetEl = _el('aeq-stat-target');
 
         if (rmsEl) rmsEl.textContent = stats.rms.toFixed(1) + ' dB';
         if (maxEl) maxEl.textContent = stats.max.toFixed(1) + ' dB';

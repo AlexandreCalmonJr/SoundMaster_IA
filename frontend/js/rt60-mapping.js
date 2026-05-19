@@ -3,6 +3,15 @@
  * Permite criar mapas de calor de reverberação e perfis de EQ baseados em múltiplas posições.
  */
 (function() {
+
+    function _el(id) {
+        const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
+        if (iframe && iframe.contentDocument) {
+            const el = iframe.contentDocument.getElementById(id);
+            if (el) return el;
+        }
+        return document.getElementById(id);
+    }
     'use strict';
 
     let mappingPoints = [];
@@ -21,12 +30,12 @@
     };
 
     function init() {
-        const container = document.getElementById('mapping-container');
+        const container = _el('mapping-container');
         if (!container) return;
         
         container.classList.remove('hidden');
         
-        canvas = document.getElementById('mapping-canvas');
+        canvas = _el('mapping-canvas');
         if (!canvas) return;
         
         ctx = canvas.getContext('2d');
@@ -43,10 +52,10 @@
     }
 
     function setupEventListeners() {
-        const inputFloorplan = document.getElementById('input-floorplan');
-        const btnImport = document.getElementById('btn-import-floorplan');
-        const btnClear = document.getElementById('btn-clear-mapping');
-        const btnExport = document.getElementById('btn-export-mapping');
+        const inputFloorplan = _el('input-floorplan');
+        const btnImport = _el('btn-import-floorplan');
+        const btnClear = _el('btn-clear-mapping');
+        const btnExport = _el('btn-export-mapping');
 
         if (btnImport && inputFloorplan) {
             btnImport.addEventListener('click', () => inputFloorplan.click());
@@ -234,7 +243,7 @@
 
     function updateMappingStats(avgRT60, avgC50, avgD50, avgSTI) {
         const container = document.querySelector('#mapping-container > div');
-        let statsEl = document.getElementById('mapping-stats');
+        let statsEl = _el('mapping-stats');
         
         if (!statsEl && container) {
             statsEl = document.createElement('div');
@@ -253,7 +262,7 @@
         }
         
         // Adiciona botão de criar perfil de calibração
-        let profileBtn = document.getElementById('btn-create-calibration-profile');
+        let profileBtn = _el('btn-create-calibration-profile');
         if (!profileBtn && mappingPoints.length >= 1) {
             profileBtn = document.createElement('button');
             profileBtn.id = 'btn-create-calibration-profile';
@@ -351,7 +360,7 @@
     
     function updateProfilesList() {
         const container = document.querySelector('#mapping-container > div');
-        let listEl = document.getElementById('calibration-profiles-list');
+        let listEl = _el('calibration-profiles-list');
         
         if (!listEl && Object.keys(profiles).length > 0) {
             listEl = document.createElement('div');
@@ -418,7 +427,7 @@
             mappingPoints = [];
             saveToStorage();
             render();
-            const statsEl = document.getElementById('mapping-stats');
+            const statsEl = _el('mapping-stats');
             if (statsEl) statsEl.remove();
         }
     }

@@ -16,10 +16,19 @@
 
 (function () {
 
+    function _el(id) {
+        const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
+        if (iframe && iframe.contentDocument) {
+            const el = iframe.contentDocument.getElementById(id);
+            if (el) return el;
+        }
+        return document.getElementById(id);
+    }
+
     let _pendingCommand = null;
 
     function addMessage(role, text, isHtml) {
-        const container = document.getElementById('seq-messages');
+        const container = _el('seq-messages');
         if (!container) return;
 
         const div = document.createElement('div');
@@ -43,16 +52,16 @@
     }
 
     function setStatus(text, isLoading) {
-        const dot = document.getElementById('seq-status-dot');
-        const status = document.getElementById('seq-status');
+        const dot = _el('seq-status-dot');
+        const status = _el('seq-status');
         if (dot) dot.className = 'w-2 h-2 rounded-full ' + (isLoading ? 'bg-yellow-500 animate-pulse' : 'bg-green-500');
         if (status) status.textContent = text;
     }
 
     function showPlan(command) {
         _pendingCommand = command;
-        const container = document.getElementById('seq-plan-container');
-        const planText = document.getElementById('seq-plan-text');
+        const container = _el('seq-plan-container');
+        const planText = _el('seq-plan-text');
         if (container && command && command.desc) {
             planText.innerHTML = '<strong>Comando:</strong> ' + escapeHtml(command.desc);
             container.classList.remove('hidden');
@@ -63,7 +72,7 @@
 
     function hidePlan() {
         _pendingCommand = null;
-        const container = document.getElementById('seq-plan-container');
+        const container = _el('seq-plan-container');
         if (container) container.classList.add('hidden');
     }
 
@@ -73,11 +82,11 @@
 
     function updateChannelPreview(ch) {
         const state = window.AppStore ? AppStore.getState() : {};
-        const previewCh = document.getElementById('seq-preview-ch');
-        const previewLevel = document.getElementById('seq-preview-level');
-        const previewMute = document.getElementById('seq-preview-mute');
-        const previewHpf = document.getElementById('seq-preview-hpf');
-        const previewGate = document.getElementById('seq-preview-gate');
+        const previewCh = _el('seq-preview-ch');
+        const previewLevel = _el('seq-preview-level');
+        const previewMute = _el('seq-preview-mute');
+        const previewHpf = _el('seq-preview-hpf');
+        const previewGate = _el('seq-preview-gate');
 
         if (previewCh) previewCh.textContent = ch;
         if (previewLevel) {
@@ -99,7 +108,7 @@
     }
 
     function clearChat() {
-        const container = document.getElementById('seq-messages');
+        const container = _el('seq-messages');
         if (container) container.innerHTML = '';
         hidePlan();
         addMessage('ai', 'Olá! Descreva o problema de som no campo abaixo. Por exemplo: "a voz está abafada e metálica" ou "o retorno está vazando no altar".');

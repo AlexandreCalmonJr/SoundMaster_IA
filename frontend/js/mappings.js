@@ -1,4 +1,12 @@
 (function () {
+    function _el(id) {
+        const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
+        if (iframe && iframe.contentDocument) {
+            const el = iframe.contentDocument.getElementById(id);
+            if (el) return el;
+        }
+        return document.getElementById(id);
+    }
     let tunnelPollCount = 0;
 
     async function loadConfig() {
@@ -7,11 +15,11 @@
             if (!res.ok) return;
 
             const config = await res.json();
-            const ipCard = document.getElementById('local-ip-card');
-            const ipDisplay = document.getElementById('server-ip-display');
-            const mobileUrl = document.getElementById('mobile-url');
-            const mobileLink = document.getElementById('mobile-open-link');
-            const mobileQrCode = document.getElementById('mobile-qr-code');
+            const ipCard = _el('local-ip-card');
+            const ipDisplay = _el('server-ip-display');
+            const mobileUrl = _el('mobile-url');
+            const mobileLink = _el('mobile-open-link');
+            const mobileQrCode = _el('mobile-qr-code');
 
             if (ipCard) ipCard.style.display = 'block';
             const serverUrl = `http://${config.localIp}:${config.port}`;
@@ -42,7 +50,7 @@
             if (!res.ok) return;
 
             const mappings = await res.json();
-            const list = document.getElementById('db-mappings-list');
+            const list = _el('db-mappings-list');
             if (!list) return;
 
             list.innerHTML = '';
@@ -76,13 +84,13 @@
     }
 
     function initSaveMapping() {
-        const btnSaveMap = document.getElementById('btn-save-map');
+        const btnSaveMap = _el('btn-save-map');
         if (!btnSaveMap) return;
 
         btnSaveMap.addEventListener('click', async () => {
-            const hzInput = document.getElementById('save-hz');
-            const channelInput = document.getElementById('save-map-channel');
-            const locationInput = document.getElementById('save-map-location');
+            const hzInput = _el('save-hz');
+            const channelInput = _el('save-map-channel');
+            const locationInput = _el('save-map-location');
             const hzVal = parseInt(hzInput.value, 10);
 
             if (!hzVal) {

@@ -1,7 +1,15 @@
 (function () {
+    function _el(id) {
+        const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
+        if (iframe && iframe.contentDocument) {
+            const el = iframe.contentDocument.getElementById(id);
+            if (el) return el;
+        }
+        return document.getElementById(id);
+    }
     function initEqGuide() {
-        const eqSelect = document.getElementById('eq-instrument-select');
-        const eqDisplay = document.getElementById('eq-data-display');
+        const eqSelect = _el('eq-instrument-select');
+        const eqDisplay = _el('eq-data-display');
         if (!eqSelect || !eqDisplay || typeof eqData === 'undefined') return;
 
         function updateEqDisplay() {
@@ -20,11 +28,11 @@
             `;
         }
 
-        const btnSync = document.getElementById('btn-sync-eq-ai');
+        const btnSync = _el('btn-sync-eq-ai');
         if (btnSync) {
             btnSync.onclick = () => {
                 const instrument = eqSelect.options[eqSelect.selectedIndex].text;
-                const channelInput = document.getElementById('ai-target-channel');
+                const channelInput = _el('ai-target-channel');
                 const channel = channelInput ? channelInput.value : 1;
                 
                 if (window.AIService) {
@@ -38,12 +46,12 @@
     }
 
     function initRt60Calculator() {
-        const btnCalcManual = document.getElementById('btn-calculate-rt60');
-        const btnCalcFull = document.getElementById('btn-calc-rt60'); // O botão grande que não funcionava
-        const btnPulse = document.getElementById('btn-trigger-pulse');
-        const btnClear = document.getElementById('btn-clear-measurements');
-        const btnRefreshBench = document.getElementById('btn-refresh-history');
-        const rtResult = document.getElementById('rt60-result');
+        const btnCalcManual = _el('btn-calculate-rt60');
+        const btnCalcFull = _el('btn-calc-rt60'); // O botão grande que não funcionava
+        const btnPulse = _el('btn-trigger-pulse');
+        const btnClear = _el('btn-clear-measurements');
+        const btnRefreshBench = _el('btn-refresh-history');
+        const rtResult = _el('rt60-result');
 
         if (btnPulse) {
             btnPulse.addEventListener('click', () => {
@@ -64,7 +72,7 @@
             btnClear.addEventListener('click', () => {
                 const inputs = ['rt-length', 'rt-width', 'rt-height', 'rt-delay-dist', 'rt-absorption'];
                 inputs.forEach(id => {
-                    const el = document.getElementById(id);
+                    const el = _el(id);
                     if (el) el.value = '';
                 });
                 if (rtResult) {
@@ -77,8 +85,8 @@
         // Handler para o Benchmarking
         if (btnRefreshBench) {
             btnRefreshBench.addEventListener('click', () => {
-                const emptyEl = document.getElementById('bench-empty-rt60');
-                const fullEl = document.getElementById('bench-full-rt60');
+                const emptyEl = _el('bench-empty-rt60');
+                const fullEl = _el('bench-full-rt60');
                 
                 if (emptyEl) emptyEl.innerText = '1.82s';
                 if (fullEl) fullEl.innerText = '1.45s';
@@ -90,11 +98,11 @@
         _initMtkControls();
 
         const runCalculation = async () => {
-            const length = parseFloat(document.getElementById('rt-length').value);
-            const width = parseFloat(document.getElementById('rt-width').value);
-            const height = parseFloat(document.getElementById('rt-height').value);
-            const delayDist = parseFloat(document.getElementById('rt-delay-dist').value) || 0;
-            const absorptionCoef = parseFloat(document.getElementById('rt-absorption').value);
+            const length = parseFloat(_el('rt-length').value);
+            const width = parseFloat(_el('rt-width').value);
+            const height = parseFloat(_el('rt-height').value);
+            const delayDist = parseFloat(_el('rt-delay-dist').value) || 0;
+            const absorptionCoef = parseFloat(_el('rt-absorption').value);
 
             if (!length || !width || !height) {
                 alert('Por favor, preencha as dimensões da igreja.');
@@ -162,7 +170,7 @@
             `;
 
             // Atualizar Mapa Visual
-            const mappingContainer = document.getElementById('mapping-container');
+            const mappingContainer = _el('mapping-container');
             if (mappingContainer) {
                 mappingContainer.classList.remove('hidden');
                 // Pequeno delay para garantir que o DOM renderizou e o width não seja 0
@@ -180,14 +188,14 @@
 
     function initBenchmarking() {
         console.log('[Benchmarking] Inicializando lógica de comparação...');
-        const btnRefresh = document.getElementById('btn-refresh-history');
+        const btnRefresh = _el('btn-refresh-history');
         if (!btnRefresh) return;
 
         // Registrar listener para dados reais (apenas uma vez)
         if (window.SocketService && !window._benchmarkingListenerSet) {
             window.SocketService.on('acoustic_history_data', (data) => {
-                const emptyEl = document.getElementById('bench-empty-rt60');
-                const fullEl = document.getElementById('bench-full-rt60');
+                const emptyEl = _el('bench-empty-rt60');
+                const fullEl = _el('bench-full-rt60');
                 
                 if (emptyEl) {
                     const val = data.benchmark?.empty?.rt60 || 0;
@@ -206,8 +214,8 @@
             if (window.SocketService) {
                 window.SocketService.emit('get_acoustic_history');
                 
-                const emptyEl = document.getElementById('bench-empty-rt60');
-                const fullEl = document.getElementById('bench-full-rt60');
+                const emptyEl = _el('bench-empty-rt60');
+                const fullEl = _el('bench-full-rt60');
                 if (emptyEl) emptyEl.classList.add('animate-pulse');
                 if (fullEl) fullEl.classList.add('animate-pulse');
                 
@@ -239,10 +247,10 @@
             initBenchmarking();
         }
     });    function _initMtkControls() {
-        const btnRec = document.getElementById('btn-rt-rec-mtk');
-        const btnStop = document.getElementById('btn-rt-stop-mtk');
-        const recDot = document.getElementById('rt-rec-dot');
-        const recText = document.getElementById('rt-rec-text');
+        const btnRec = _el('btn-rt-rec-mtk');
+        const btnStop = _el('btn-rt-stop-mtk');
+        const recDot = _el('rt-rec-dot');
+        const recText = _el('rt-rec-text');
 
         if (!btnRec || !btnStop) return;
 
