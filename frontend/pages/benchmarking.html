@@ -18,11 +18,11 @@
             <h3 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-8">Curva de Decaimento (RT60)</h3>
             <div class="h-64 bg-black/40 rounded-xl relative flex items-end p-4 gap-2">
                 <!-- Barras Comparativas -->
-                <div class="flex-1 bg-cyan-500/50 rounded-t-lg h-[80%] relative group">
-                    <span class="absolute -top-6 left-0 text-[9px] text-cyan-400 font-bold">VAZIO: 1.8s</span>
+                <div id="bench-empty-bar" class="flex-1 bg-cyan-500/50 rounded-t-lg h-[80%] relative group transition-all duration-500">
+                    <span class="absolute -top-6 left-0 text-[9px] text-cyan-400 font-bold">VAZIO: <span id="bench-empty-rt60">1.8s</span></span>
                 </div>
-                <div class="flex-1 bg-green-500/50 rounded-t-lg h-[60%] relative group">
-                    <span class="absolute -top-6 left-0 text-[9px] text-green-400 font-bold">CHEIO: 1.4s</span>
+                <div id="bench-full-bar" class="flex-1 bg-green-500/50 rounded-t-lg h-[60%] relative group transition-all duration-500">
+                    <span class="absolute -top-6 left-0 text-[9px] text-green-400 font-bold">CHEIO: <span id="bench-full-rt60">1.4s</span></span>
                 </div>
             </div>
             <p class="mt-6 text-[11px] text-slate-400 italic">O público presente ajuda a absorver frequências médias e agudas, reduzindo o reverb.</p>

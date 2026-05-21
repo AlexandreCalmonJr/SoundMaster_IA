@@ -1,0 +1,182 @@
+/**
+ * SoundMaster — Mixer Input Page Module
+ * Controls the 24 input channels, levels, mutes, names, and VU meters.
+ */
+
+'use strict';
+
+(function () {
+    const pm = createPageModule();
+
+    let chNames = {};
+    let currentTarget = 'master';
+
+    async function loadNames() {
+        try {
+            const savedNames = await MixerService.loadNames();
+            chNames = savedNames.channels || {};
+        } catch (e) {
+            console.error('[MixerInputPage] Error loading names:', e);
+        }
+    }
+
+    function renderConsole() {
+        const container = pm._el('mixer-channels-container');
+        if (!container) return;
+
+        container.innerHTML = '';
+        for (let i = 1; i <= 24; i++) {
+            const chName = chNames[i] || `CANAL ${i}`;
+            const chDiv = document.createElement('div');
+            chDiv.className = 'w-24 flex flex-col gap-4 flex-shrink-0';
+            chDiv.innerHTML = `
+                <div class="flex-1 bg-black/40 rounded-2xl p-3 flex flex-col items-center gap-4 border border-white/5 group hover:border-cyan-500/30 transition-all">
+                    <span class="text-[10px] font-black text-slate-500 uppercase">Ch ${i.toString().padStart(2, '0')}</span>
+                    <!-- Meter -->
+                    <div class="flex-1 w-2 bg-slate-800 rounded-full relative overflow-hidden">
+                        <div id="meter-ch-${i}" class="absolute bottom-0 w-full bg-cyan-500 h-[0%] transition-all duration-200"></div>
+                    </div>
+                    <!-- Gain Fader Container -->
+                    <div class="w-6 h-20 relative flex items-center justify-center bg-black/20 rounded-xl border border-white/5 overflow-hidden">
+                         <input type="range" id="gain-ch-${i}" min="0" max="100" value="75" 
+                                class="fader-vertical text-cyan-500" orient="vertical">
+                    </div>
+                    <!-- Nome Editável -->
+                    <input type="text" id="name-ch-${i}" value="${chName}" 
+                           class="bg-transparent text-[9px] font-bold text-white text-center w-full focus:outline-none focus:bg-white/5 rounded p-1 border-b border-transparent focus:border-cyan-500/50">
+                </div>
+                <button id="mute-ch-${i}" class="py-2 bg-slate-800 text-slate-500 text-[10px] font-black rounded-lg border border-white/5 transition-all">MUTE</button>
+            `;
+            container.appendChild(chDiv);
+
+            // Bind DOM events
+            const muteBtn = pm._el(`mute-ch-${i}`);
+            if (muteBtn) {
+                pm._on(muteBtn, 'click', () => {
+                    const isMuted = AppStore.getState()[`mute_ch_${i}`] || false;
+                    MixerService.sendRaw(`SETD|c|${i - 1}|mute|${isMuted ? 0 : 1}`);
+                    AppStore.setState({ [`mute_ch_${i}`]: !isMuted });
+                });
+            }
+
+            const gainInput = pm._el(`gain-ch-${i}`);
+            if (gainInput) {
+                pm._on(gainInput, 'input', (e) => {
+                    const val = e.target.value / 100;
+                    if (window.SocketService) {
+                        window.SocketService.lockFader(`ch_${i}`, val);
+                    }
+                    if (currentTarget === 'master') {
+                        MixerService.sendRaw(`SETD|c|${i - 1}|mix|${val}`);
+                    } else if (currentTarget.startsWith('aux')) {
+                        const auxIdx = parseInt(currentTarget.replace('aux', ''));
+                        MixerService.setAuxLevel(i, auxIdx, val);
+                    }
+                });
+
+                pm._on(gainInput, 'change', () => {
+                    if (window.SocketService) {
+                        window.SocketService.unlockFader(`ch_${i}`);
+                    }
+                });
+            }
+
+            const nameInput = pm._el(`name-ch-${i}`);
+            if (nameInput) {
+                pm._on(nameInput, 'blur', (e) => {
+                    const newNames = AppStore.getState().mixerNames || { channels: {}, aux: {} };
+                    if (!newNames.channels) newNames.channels = {};
+                    newNames.channels[i] = e.target.value;
+                    MixerService.saveNames(newNames);
+                });
+            }
+
+            // Sync from AppStore to UI
+            pm._subscribe('AppStore', `mute_ch_${i}`, (isMuted) => {
+                updateMuteUI(i, isMuted);
+            });
+
+            pm._subscribe('AppStore', `ch_${i}_level`, (level) => {
+                if (window.SocketService && window.SocketService.isFaderLocked(`ch_${i}`)) return;
+                const fader = pm._el(`gain-ch-${i}`);
+                if (fader) {
+                    fader.value = Math.round((level || 0) * 100);
+                }
+            });
+        }
+
+        // Sync target volume levels if target changes
+        syncFadersToTarget();
+    }
+
+    function updateMuteUI(ch, isMuted) {
+        const btn = pm._el(`mute-ch-${ch}`);
+        if (!btn) return;
+        if (isMuted) {
+            btn.classList.remove('bg-slate-800', 'text-slate-500');
+            btn.classList.add('bg-red-900/40', 'text-red-500', 'border-red-500/20');
+        } else {
+            btn.classList.add('bg-slate-800', 'text-slate-500');
+            btn.classList.remove('bg-red-900/40', 'text-red-500', 'border-red-500/20');
+        }
+    }
+
+    function syncFadersToTarget() {
+        const state = AppStore.getState();
+        for (let i = 1; i <= 24; i++) {
+            const gainInput = pm._el(`gain-ch-${i}`);
+            if (!gainInput) continue;
+
+            if (currentTarget === 'master') {
+                const val = state[`ch_${i}_level`] !== undefined ? state[`ch_${i}_level`] : 0.75;
+                gainInput.value = Math.round(val * 100);
+            } else if (currentTarget.startsWith('aux')) {
+                const auxIdx = parseInt(currentTarget.replace('aux', ''));
+                // In real mixer aux levels might be stored under aux_${auxIdx}_ch_${i}
+                const stateKey = `aux_${auxIdx}_ch_${i}_level`;
+                const val = state[stateKey] !== undefined ? state[stateKey] : 0.70;
+                gainInput.value = Math.round(val * 100);
+            }
+        }
+    }
+
+    function init() {
+        const targetSelect = pm._el('mixer-target-select');
+        if (targetSelect) {
+            currentTarget = targetSelect.value || 'master';
+            pm._on(targetSelect, 'change', (e) => {
+                currentTarget = e.target.value;
+                AppStore.addLog(`Console alterado para mixagem de: ${currentTarget.toUpperCase()}`);
+                syncFadersToTarget();
+            });
+        }
+
+        loadNames().then(() => {
+            renderConsole();
+        });
+
+        // VU meter update
+        pm._subscribe('AppStore', 'vuData', (data) => {
+            if (!data || !data.channels) return;
+            for (let i = 1; i <= 24; i++) {
+                const meter = pm._el(`meter-ch-${i}`);
+                if (meter) {
+                    const chData = data.channels[i];
+                    if (chData) {
+                        const height = MixerService.vuToHeight(chData.vuPostFader || 0);
+                        meter.style.height = height + '%';
+                    }
+                }
+            }
+        });
+    }
+
+    function destroy() {
+        pm.destroy();
+    }
+
+    window.MixerInputPage = {
+        init: init,
+        destroy: destroy
+    };
+})();

@@ -27,9 +27,12 @@
         analysis: {
             title: 'Analisar',
             items: [
-                { id: 'analyzer',          label: 'FFT & Waterfall' },
-                { id: 'feedback-detector', label: 'Detector Feedback' },
-                { id: 'eq-guide',          label: 'Guia de EQ' },
+                { id: 'analyzer',             label: 'FFT & Waterfall' },
+                { id: 'analyzer-mappings',    label: 'Mapeamentos SPL' },
+                { id: 'analyzer-signals',     label: 'Gerador de Sinais' },
+                { id: 'analyzer-calibration', label: 'Calibração' },
+                { id: 'feedback-detector',    label: 'Detector Feedback' },
+                { id: 'eq-guide',             label: 'Guia de EQ' },
             ]
         },
         mixer: {

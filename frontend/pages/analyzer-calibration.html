@@ -1,0 +1,48 @@
+<section id="analyzer-calibration" class="module page-section">
+    <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+        <div class="flex items-center gap-4">
+            <span class="p-3 bg-emerald-900/40 rounded-2xl text-2xl" aria-label="Calibração">🎙️</span>
+            <div>
+                <h2 class="text-3xl font-black text-white tracking-tighter">Calibração</h2>
+                <p class="text-slate-400 font-medium">Calibração de microfone e nível SPL</p>
+            </div>
+        </div>
+
+        <!-- Quick Tip -->
+        <div class="flex items-center gap-3 bg-amber-900/20 border border-amber-500/20 px-4 py-2 rounded-xl max-w-sm">
+            <span class="text-lg" aria-label="Dica útil">💡</span>
+            <p class="text-xs text-amber-100 font-medium leading-tight">
+                <b>Dica:</b> Use o modo <b>High-Res (32k)</b> para detectar ressonâncias graves com precisão de 1.3Hz.
+            </p>
+        </div>
+    </header>
+
+    <!-- Calibração de Microfone -->
+    <div class="bg-slate-800/40 border border-white/10 rounded-2xl p-6 mb-6">
+        <h3 class="text-lg font-semibold mb-2">🎙️ Calibração de Microfone</h3>
+        <p class="text-xs text-slate-500 mb-6">Carregue o arquivo de calibração (.txt ou .cal) fornecido pelo fabricante (ex: Dayton EMM-6, Sonarworks).</p>
+
+        <div class="flex flex-col gap-4 max-w-md">
+            <input type="file" id="cal-file-input" accept=".txt,.cal" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-cyan-600 file:text-white hover:file:bg-cyan-500 cursor-pointer">
+            
+            <div class="bg-black/40 rounded-xl p-4 border border-white/5 flex items-center justify-between">
+                <p class="text-xs text-slate-400">Status: <span id="cal-status" class="text-amber-400 font-bold">Sem calibração (Microfone Genérico)</span></p>
+                <button id="btn-clear-calibration" class="text-[10px] uppercase font-bold text-red-400 hover:text-red-300 transition-colors border border-red-500/30 bg-red-900/20 px-3 py-1.5 rounded-lg">Resetar Mic</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calibração de Nível SPL -->
+    <div class="bg-slate-800/40 border border-white/10 rounded-2xl p-6">
+        <h3 class="text-lg font-semibold mb-2">🔊 Calibração de Nível (SPL)</h3>
+        <p class="text-xs text-slate-500 mb-6">Insira um calibrador acústico de 94dB (1kHz) no microfone e clique em calibrar para parear a leitura com o SPL real.</p>
+        
+        <div class="flex items-center gap-4">
+            <button id="btn-calibrate-spl" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold transition-all">Calibrar a 94dB</button>
+            <div class="text-sm">
+                <span class="text-slate-500">Offset Global:</span> 
+                <span id="spl-offset-display" class="font-mono text-cyan-400 font-bold">0.0 dB</span>
+            </div>
+        </div>
+    </div>
+</section>

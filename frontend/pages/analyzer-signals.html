@@ -1,0 +1,67 @@
+<section id="analyzer-signals" class="module page-section">
+    <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+        <div class="flex items-center gap-4">
+            <span class="p-3 bg-amber-900/40 rounded-2xl text-2xl" aria-label="Gerador de Sinais">📡</span>
+            <div>
+                <h2 class="text-3xl font-black text-white tracking-tighter">Gerador de Sinais</h2>
+                <p class="text-slate-400 font-medium">Alinhamento e calibração do sistema de PA</p>
+            </div>
+        </div>
+
+        <!-- Quick Tip -->
+        <div class="flex items-center gap-3 bg-amber-900/20 border border-amber-500/20 px-4 py-2 rounded-xl max-w-sm">
+            <span class="text-lg" aria-label="Dica útil">💡</span>
+            <p class="text-xs text-amber-100 font-medium leading-tight">
+                <b>Dica:</b> Use a saída de fone ligada à mesa para jogar o som no PA e calibrar o sistema.
+            </p>
+        </div>
+    </header>
+
+    <div class="bg-slate-800/40 border border-white/10 rounded-2xl p-6">
+        <h3 class="text-lg font-semibold mb-2">Sinais de Teste</h3>
+        <p class="text-xs text-slate-500 mb-6">Selecione o tipo de sinal para emitir pelo sistema de áudio.</p>
+        
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
+            <button id="btn-pink-noise" class="group flex flex-col items-center justify-center p-4 bg-red-900/20 border border-red-500/20 hover:border-red-500/50 rounded-xl transition-all">
+                <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">🔊</span>
+                <span class="text-xs font-bold text-red-400">Rosa</span>
+            </button>
+            <button id="btn-white-noise" class="group flex flex-col items-center justify-center p-4 bg-slate-700/50 border border-slate-500/30 hover:border-slate-400 rounded-xl transition-all">
+                <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">🌫️</span>
+                <span class="text-xs font-bold text-slate-300">Branco</span>
+            </button>
+            <button id="btn-mls-signal" class="group flex flex-col items-center justify-center p-4 bg-amber-900/20 border border-amber-500/30 hover:border-amber-400 rounded-xl transition-all">
+                <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">📊</span>
+                <span class="text-xs font-bold text-amber-400">MLS</span>
+            </button>
+            <button id="btn-chirp-signal" class="group flex flex-col items-center justify-center p-4 bg-amber-900/20 border border-amber-500/30 hover:border-amber-400 rounded-xl transition-all">
+                <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">📈</span>
+                <span class="text-xs font-bold text-amber-400">Chirp</span>
+            </button>
+            <button id="btn-dual-tone" class="group flex flex-col items-center justify-center p-4 bg-cyan-900/20 border border-cyan-500/30 hover:border-cyan-400 rounded-xl transition-all">
+                <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">〰️</span>
+                <span class="text-xs font-bold text-cyan-400">Dual-Tone</span>
+            </button>
+            <button id="btn-measure-pink" class="group flex flex-col items-center justify-center p-4 bg-emerald-900/20 border border-emerald-500/30 hover:border-emerald-400 rounded-xl transition-all">
+                <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">🎚️</span>
+                <span class="text-xs font-bold text-emerald-400">Medir Rosa</span>
+            </button>
+        </div>
+        
+        <button id="btn-log-sweep" class="w-full py-3 bg-amber-900/30 hover:bg-amber-800/30 border border-amber-500/30 rounded-xl text-sm font-bold text-amber-300 transition-all">
+            📈 Sweep Logarítmico (20Hz - 20kHz)
+        </button>
+        
+        <div class="bg-black/40 rounded-xl p-4 mt-4 mb-8">
+            <p id="pink-measure-summary" class="text-xs text-slate-400 text-center">Use a medição de ruído rosa para capturar a resposta do salão.</p>
+        </div>
+
+        <div class="flex items-center gap-4 bg-slate-900/50 p-4 rounded-xl border border-white/5">
+            <button id="btn-sine-wave" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold transition-all">🎵 Tom Senoidal</button>
+            <div class="flex items-center gap-3 flex-1">
+                <input type="number" id="sine-freq" value="60" class="w-24 bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-center text-cyan-400 font-mono focus:border-cyan-500 outline-none">
+                <span class="text-sm text-slate-500">Hz</span>
+            </div>
+        </div>
+    </div>
+</section>

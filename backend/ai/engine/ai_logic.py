@@ -189,19 +189,138 @@ class AIEngine:
         if analysis and isinstance(analysis, dict):
             self.session.add_analysis(analysis)
 
-        # 0. Verificação de Estado de Hardware (Context Aware) - Problema 8
+        # 0.1. Auditoria do Mixer
+        if re.search(r'(auditar|auditoria|verificar mesa|status da mesa|analise da mesa|diagnostico da mesa|audit)', text):
+            alerts = []
+            suggested_cmd = None
+            
+            full_state = mixer_state.get('full_state') if mixer_state else None
+            inputs = full_state.get('inputs', []) if full_state else []
+            all_vus = mixer_state.get('all_vus') if mixer_state else None
+            
+            # A) Verificar Master Mutado
+            master_state = mixer_state.get('master') if mixer_state else None
+            if not master_state and full_state:
+                master_state = full_state.get('master')
+            
+            if master_state and master_state.get('mute') == 1:
+                alerts.append("- **Master Mutado:** O Master geral da mesa esta mutado. Nenhum som saira para os PAs.")
+                if not suggested_cmd:
+                    suggested_cmd = self.command("master_mute", "Desmutar Master", enabled=False)
+            
+            # B) Verificar Master Clipando
+            if all_vus and 'master' in all_vus:
+                master_vu = self._safe_float(all_vus.get('master'), 0.0)
+                if master_vu > 0.98:
+                    alerts.append(f"- **Master Clipando:** O volume geral esta muito alto (VU em {int(master_vu*100)}%). Risco de distorcao.")
+                    if not suggested_cmd:
+                        suggested_cmd = self.command("volume_down", "Abaixar Master em 3dB", target="master", val=3)
+            
+            # C) Canais Mutados com VU ativo
+            for idx, ch in enumerate(inputs):
+                ch_idx = idx + 1
+                mute = ch.get('mute', 0)
+                ch_name = ch.get('name', f"Canal {ch_idx}")
+                
+                vu_val = 0.0
+                if all_vus and 'channels' in all_vus:
+                    vu_val = self._safe_float(all_vus['channels'].get(str(ch_idx)) or all_vus['channels'].get(ch_idx), 0.0)
+                
+                if mute == 1 and vu_val > 0.05:
+                    alerts.append(f"- **Mute com Sinal:** O canal {ch_idx} ({ch_name}) esta mutado, mas recebendo sinal ativo (VU em {int(vu_val*100)}%).")
+                    if not suggested_cmd:
+                        suggested_cmd = self.command("channel_mute", f"Desmutar {ch_name}", channel=ch_idx, enabled=False)
+            
+            # D) Vozes sem HPF
+            for idx, ch in enumerate(inputs):
+                ch_idx = idx + 1
+                ch_name = ch.get('name', '')
+                ch_name_lower = ch_name.lower()
+                hpf = self._safe_float(ch.get('hpf', 0), 0.0)
+                
+                if any(k in ch_name_lower for k in ['voz', 'past', 'mic', 'preg', 'minist', 'cant', 'lead', 'coral']):
+                    if hpf <= 50:
+                        alerts.append(f"- **Voz sem HPF:** O canal {ch_idx} ({ch_name}) esta sem filtro passa-altas (HPF em {int(hpf)}Hz). Risco de embolamento de graves.")
+                        if not suggested_cmd:
+                            suggested_cmd = self.command("apply_channel_hpf", f"Ativar HPF 100Hz no {ch_name}", channel=ch_idx, hz=100)
+            
+            # E) Sem Compressao em Canais Criticos (Canais de voz ativos sem compressor)
+            for idx, ch in enumerate(inputs):
+                ch_idx = idx + 1
+                ch_name = ch.get('name', '')
+                ch_name_lower = ch_name.lower()
+                comp = ch.get('comp', 0)
+                
+                vu_val = 0.0
+                if all_vus and 'channels' in all_vus:
+                    vu_val = self._safe_float(all_vus['channels'].get(str(ch_idx)) or all_vus['channels'].get(ch_idx), 0.0)
+                
+                if any(k in ch_name_lower for k in ['voz', 'past', 'mic', 'preg']):
+                    if comp == 0 and vu_val > 0.1:
+                        alerts.append(f"- **Voz sem Compressor:** Canal {ch_idx} ({ch_name}) esta recebendo sinal ativo mas esta sem compressor. Risco de picos de volume.")
+            
+            if not alerts:
+                report_md = """
+# Auditoria de Mesa Soundcraft
+
+Tudo certo! Nao detectei nenhum problema critico de mutes, EQs ou filtros nas vozes ativas.
+"""
+                return {
+                    "text": "Auditoria concluida. Todos os canais estao configurados corretamente.",
+                    "report": report_md,
+                    "command": None
+                }
+            else:
+                report_md = f"""
+# Auditoria de Mesa Soundcraft
+
+Identifiquei os seguintes pontos de atencao na mesa de som:
+
+{chr(10).join(alerts)}
+
+Deseja aplicar a correcao recomendada?
+"""
+                return {
+                    "text": "Auditoria concluida. Identifiquei alguns pontos de atencao na mesa de som. Veja o relatorio no chat.",
+                    "report": report_md,
+                    "command": suggested_cmd
+                }
+
+        # 0.2. Analise Dinamica do Fader e Ganho
+        channel = self.extract_channel(text)
+        is_increase = any(k in text for k in ['aumentar', 'subir', 'mais volume', 'mais som', 'dar ganho'])
+        if is_increase:
+            ch_state = mixer_state.get('channel') if mixer_state else None
+            if ch_state:
+                mute = ch_state.get('mute', 0)
+                level = self._safe_float(ch_state.get('level', 0.0), 0.0)
+                ch_name = ch_state.get('name', f"Canal {channel}")
+                
+                if mute == 1:
+                    return {
+                        "text": f"O canal {channel} ({ch_name}) esta mutado. Recomendo desmutar antes de ajustar o volume.",
+                        "command": self.command("channel_mute", f"Desmutar {ch_name}", channel=channel, enabled=False)
+                    }
+                
+                if level > 0.85:
+                    return {
+                        "text": f"O fader do canal {channel} ({ch_name}) ja esta muito alto ({int(level*100)}%). Recomendo aumentar o ganho de entrada (preamp) do canal ou atenuar outros instrumentos para dar destaque.",
+                        "command": None
+                    }
+
+        # 0. Verificacao de Estado de Hardware (Context Aware)
         hw_note = ""
         if mixer_state:
             ch_state = mixer_state.get('channel')
             if ch_state:
                 if ch_state.get('mute') == 1:
-                    hw_note = "⚠️ Observei que o canal selecionado está MUTADO na mesa."
+                    hw_note = "Observei que o canal selecionado esta mutado na mesa."
                 elif ch_state.get('level', 0) < 0.1:
-                    hw_note = "⚠️ O fader deste canal está quase no mínimo."
+                    hw_note = "O fader deste canal esta quase no minimo."
             
             master_state = mixer_state.get('master')
             if master_state and master_state.get('mute') == 1:
-                hw_note += " (O MASTER também está mutado!)"
+                hw_note += " (O MASTER também esta mutado!)"
 
         # 1. Gatilhos de Saudação Inteligente (Context Aware)
         greetings = [r'\boi\b', r'\bolá\b', r'\btudo bem\b', r'\bom dia\b', r'\boa tarde\b', r'\boa noite\b']
@@ -273,12 +392,18 @@ class AIEngine:
             spec = self._normalize_spectrum(analysis)
             rt60 = self._normalize_rt60_bands(analysis)
             
-            # Análise de Perfil por Reverb (RT60 real em segundos)
+            # Analise de Perfil por Reverb (RT60 real em segundos)
             if rt60:
                 detected_profile = None
                 r125 = self._safe_float(rt60.get('125', 0), 0)
                 r1k = self._safe_float(rt60.get('1000', 0), 0)
                 r4k = self._safe_float(rt60.get('4000', 0), 0)
+                
+                if r125 > 2.0:
+                    return {
+                        "text": f"O tempo de reverberacao RT60 em 125Hz esta muito alto ({r125}s), gerando ressonancia de graves na sala. Sugiro aplicar um corte corretivo no equalizador Master.",
+                        "command": self.command("eq_cut", "Corte RT60 Grave 125Hz", target="master", hz=125, gain=-4, q=1.0, band=1)
+                    }
                 
                 if r125 > 1.8 and r125 > r1k * 1.5:
                     detected_profile = 'teto_alto'
@@ -291,7 +416,7 @@ class AIEngine:
                     profile_names = {'teto_alto': 'Teto Alto', 'paredes_paralelas': 'Paredes Paralelas', 'janelas_vidro': 'Janelas/Vidro'}
                     self.session.room_profile = detected_profile
                     return {
-                        "text": f"Assinatura acústica de {profile_names[detected_profile]} detectada via RT60. Perfil atualizado.",
+                        "text": f"Assinatura acustica de {profile_names[detected_profile]} detectada via RT60. Perfil atualizado.",
                         "command": self.command("set_room_profile", f"Perfil: {detected_profile}", profile=detected_profile)
                     }
 
@@ -329,8 +454,8 @@ class AIEngine:
 
             if bands.get('125', 0) > 2.0:
                 rt60_response = {
-                    "text": f"RT60 em 125Hz crítico ({bands['125']}s). Sugiro HPF no Master.",
-                    "command": self.command("eq_cut", "Corte RT60 Grave", target="master", hz=125, gain=-4, q=1.0)
+                    "text": f"RT60 em 125Hz critico ({bands['125']}s). Sugiro corte no Master.",
+                    "command": self.command("eq_cut", "Corte RT60 Grave 125Hz", target="master", hz=125, gain=-4, q=1.0, band=1)
                 }
             else:
                 avg_mid = (bands.get('500', 0) + bands.get('1000', 0)) / 2

@@ -1,9 +1,6 @@
 @import "app-layout.css";
-@import "auto-eq.css";
 @import "pages.css";
 @import "components.css";
-@import "mixer-git.css";
-@import "stage-plot.css";
 
 /*! tailwindcss v4.2.4 | MIT License | https://tailwindcss.com */
 @layer properties;

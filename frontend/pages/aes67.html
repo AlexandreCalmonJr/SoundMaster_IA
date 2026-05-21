@@ -18,17 +18,29 @@
                     <span class="text-sm text-slate-300">Porta RTP</span>
                     <span class="px-3 py-1 bg-black rounded-lg text-xs font-mono text-cyan-400 border border-cyan-500/30">5004</span>
                 </div>
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between mb-4">
                     <span class="text-sm text-slate-300">Sincronismo PTP</span>
-                    <span class="flex items-center gap-2 text-green-400 text-xs font-bold uppercase tracking-widest">
+                    <span id="aes67-ptp-status" class="flex items-center gap-2 text-green-400 text-xs font-bold uppercase tracking-widest">
                         <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Lock
                     </span>
+                </div>
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-sm text-slate-300">Latência</span>
+                    <span id="aes67-latency" class="px-2 py-0.5 bg-black rounded text-xs font-mono text-slate-400">-- ms</span>
+                </div>
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-sm text-slate-300">Jitter</span>
+                    <span id="aes67-jitter" class="px-2 py-0.5 bg-black rounded text-xs font-mono text-slate-400">-- ms</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-slate-300">Perda de Pacotes</span>
+                    <span id="aes67-loss" class="px-2 py-0.5 bg-black rounded text-xs font-mono text-slate-400">0%</span>
                 </div>
             </div>
 
             <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6 shadow-2xl">
                 <h3 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-6">Diagnóstico IA</h3>
-                <div id="aes67-ai-alerts" class="space-y-3">
+                <div id="aes67-ai-alerts" class="space-y-3 max-h-[220px] overflow-y-auto">
                     <div class="p-4 bg-black/40 rounded-xl border border-white/5 text-[11px] text-slate-400 italic">
                         Inicie o monitoramento para detectar ruído de 60Hz ou perdas de pacote.
                     </div>
@@ -45,7 +57,7 @@
                 </div>
                 
                 <!-- Grade de Meters -->
-                <div class="grid grid-cols-8 gap-4 h-[400px]">
+                <div id="aes67-meters-grid" class="grid grid-cols-8 gap-4 h-[400px]">
                     <!-- Exemplo de Meter (Gerado via JS em uso real) -->
                     <div class="flex flex-col items-center gap-2">
                         <div class="flex-1 w-3 bg-slate-800 rounded-full relative overflow-hidden">
@@ -68,10 +80,10 @@
                 </div>
 
                 <div class="mt-8 pt-6 border-t border-white/5 flex justify-end gap-3">
-                    <button class="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all">
+                    <button id="aes67-btn-restart" class="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all">
                         Reiniciar Stream
                     </button>
-                    <button class="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-cyan-900/30">
+                    <button id="aes67-btn-scan" class="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-cyan-900/30">
                         Ativar Varredura IA
                     </button>
                 </div>

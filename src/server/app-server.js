@@ -146,6 +146,7 @@ function createAppServer({ app, rootDir, localIp, port, dbDir }) {
                 master: mixerSingleton.getMasterState(),
                 channel: targetCh ? mixerSingleton.getChannelState(targetCh) : null,
                 aux: targetAux ? mixerSingleton.getAuxState(targetAux) : null,
+                full_state: mixerSingleton.getStateTree(),
                 timestamp: Date.now()
             }, payload.mixer_context || {});
 

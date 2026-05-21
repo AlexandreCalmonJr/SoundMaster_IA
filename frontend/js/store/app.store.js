@@ -23,7 +23,7 @@
     // -------------------------------------------------------------------------
     const PERSIST_KEYS = [
         'userMode', 'volunteerChannels', 'faderCeiling',
-        'autoEqTarget', 'mtwWindow', 'splWeighting',
+        'autoEqTarget', 'mtwWindow', 'splWeighting', 'aiChatHistory',
     ];
 
     function _loadPersisted(key, fallback) {
@@ -82,6 +82,7 @@
         // IA
         aiStatus: 'offline',  // 'online' | 'offline' | 'loading'
         aiSuggestions: [],    // [{ desc, command }]
+        aiChatHistory: _loadPersisted('aiChatHistory', []), // [{ text, isUser, command, id, ts }]
 
         // Analyzer
         micActive: false,

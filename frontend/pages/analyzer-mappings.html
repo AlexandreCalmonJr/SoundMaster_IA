@@ -1,0 +1,59 @@
+<section id="analyzer-mappings" class="module page-section">
+    <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+        <div class="flex items-center gap-4">
+            <span class="p-3 bg-cyan-900/40 rounded-2xl text-2xl" aria-label="Mapeamentos SPL">🗺️</span>
+            <div>
+                <h2 class="text-3xl font-black text-white tracking-tighter">Mapeamentos SPL</h2>
+                <p class="text-slate-400 font-medium">Mapa de calor de cobertura sonora sobre a planta baixa</p>
+            </div>
+        </div>
+
+        <!-- Quick Tip -->
+        <div class="flex items-center gap-3 bg-amber-900/20 border border-amber-500/20 px-4 py-2 rounded-xl max-w-sm">
+            <span class="text-lg" aria-label="Dica útil">💡</span>
+            <p class="text-xs text-amber-100 font-medium leading-tight">
+                <b>Dica:</b> Carregue a planta baixa e clique nos pontos para registrar medições SPL em cada posição.
+            </p>
+        </div>
+    </header>
+
+    <div class="bg-slate-800/40 border border-white/10 rounded-2xl p-6">
+        <h3 class="text-lg font-semibold mb-2">Mapa de Calor (SPL / LAeq)</h3>
+        <p class="text-xs text-slate-500 mb-6">Mapeie a cobertura de som pelo salão usando pontos de medição sobre a planta baixa.</p>
+
+        <!-- Toolbar Heatmap -->
+        <div class="flex items-center gap-4 mb-4">
+            <input type="file" id="heatmap-image-upload" accept="image/*" class="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-700 file:text-white hover:file:bg-slate-600 cursor-pointer">
+            <button id="btn-clear-heatmap" class="px-4 py-2 bg-red-900/30 text-red-400 hover:bg-red-900/50 rounded-lg text-xs font-bold transition-all border border-red-500/20">Limpar Pontos</button>
+        </div>
+
+        <!-- Área da Planta -->
+        <div class="relative w-full aspect-video bg-black/50 border border-white/10 rounded-xl overflow-hidden cursor-crosshair" id="heatmap-container">
+            <!-- Imagem de fundo -->
+            <img id="heatmap-bg" src="" class="absolute inset-0 w-full h-full object-contain opacity-40 hidden pointer-events-none" alt="Planta Baixa">
+            
+            <!-- Canvas para o heatmap (gradientes) -->
+            <canvas id="heatmap-canvas" class="absolute inset-0 w-full h-full pointer-events-none opacity-60"></canvas>
+            
+            <!-- Pins gerados via JS serão jogados aqui -->
+            <div id="heatmap-pins-layer" class="absolute inset-0 w-full h-full pointer-events-none"></div>
+
+            <div id="heatmap-placeholder" class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <span class="text-slate-600 font-bold uppercase tracking-widest text-sm text-center">Carregue uma imagem<br>ou clique para adicionar pontos</span>
+            </div>
+        </div>
+
+        <div class="mt-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="text-xs text-slate-400 flex items-center gap-4">
+                <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full" style="background: rgb(0,0,255);"></div> <span>Silencioso (~75dB)</span></div>
+                <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full" style="background: rgb(0,255,0);"></div> <span>Ideal (~90dB)</span></div>
+                <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full" style="background: rgb(255,0,0);"></div> <span>Alto (100dB+)</span></div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Última Leitura:</span>
+                <span id="heatmap-last-val" class="font-mono text-cyan-400 font-bold text-lg">-- dB</span>
+            </div>
+        </div>
+    </div>
+</section>

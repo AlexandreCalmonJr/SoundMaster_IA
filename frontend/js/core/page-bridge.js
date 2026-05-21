@@ -56,7 +56,12 @@
             'SoundMasterChurchTools',
             'RT60Mapping',
             'SoundMasterMappings',
-            '_sendAnalysisToAI'
+            '_sendAnalysisToAI',
+            'FeedbackDetectorModule',
+            'SignalGeneratorController',
+            'SplDisplayModule',
+            'AutomixController',
+            'currentGlobalRMS'
         ];
 
         servicesToBridge.forEach(serviceName => {

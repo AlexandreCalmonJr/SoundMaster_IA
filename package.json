@@ -10,7 +10,7 @@
     "dist": "electron-builder",
     "test": "vitest run",
     "testbed": "node tests/testbed.js",
-    "audit": "node tests/audit-tests.js",
+    "audit": "vitest run tests/audit.test.js",
     "audit:quick": "echo 'Use: npm run audit para rodar auditoria completa' && echo 'Abra AUDIT_INTERACTIVE.html para teste visual interativo' && echo 'Consulte AUDIT_GUIDE.md para instruções detalhadas'"
   },
   "build": {

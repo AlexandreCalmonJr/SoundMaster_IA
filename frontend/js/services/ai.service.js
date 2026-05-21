@@ -41,7 +41,8 @@
                 level: state.masterLevel ?? 0,
                 levelDb: state.masterDb ?? null,
                 mute: state.masterMute ? 1 : 0
-            }
+            },
+            all_vus: state.vuData || null
         };
     }
 

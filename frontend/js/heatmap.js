@@ -25,7 +25,56 @@
     let isDragging = false;
     const ISO_LEVELS = [75, 80, 85, 90, 95, 100, 105];
 
+    let _heatmapInitialized = false;
+
+    function handleSocketUpdate(data) {
+        if (data.snapshot && data.snapshot.points) points = data.snapshot.points;
+        else if (data.points) points = data.points;
+        if (data.bgImageSrc) {
+            bgImageSrc = data.bgImageSrc;
+            showImage();
+        }
+        if (data.snapshot && data.snapshot.bgImageSrc) {
+            bgImageSrc = data.snapshot.bgImageSrc;
+            showImage();
+        }
+        if (data._id) {
+            persistedHeatmapId = data._id;
+            localStorage.setItem('heatmap_snapshot_id', persistedHeatmapId);
+        }
+        renderHeatmap();
+        renderPins();
+    }
+
+    function destroyHeatmap() {
+        if (!_heatmapInitialized) return;
+        _heatmapInitialized = false;
+
+        const socket = window.SocketService?.raw();
+        if (socket) {
+            socket.off('heatmap_updated', handleSocketUpdate);
+        }
+
+        const upload = _el('heatmap-image-upload');
+        const btnUpload = _el('btn-heatmap-upload');
+        const container = _el('heatmap-container');
+        const btnClear = _el('btn-clear-heatmap');
+
+        if (upload) upload.removeEventListener('change', handleImageUpload);
+        if (btnUpload) btnUpload.onclick = null;
+        if (container) {
+            container.onclick = null;
+            container.onmousedown = null;
+            container.onmousemove = null;
+            container.onmouseup = null;
+        }
+        if (btnClear) btnClear.onclick = null;
+    }
+
     function initHeatmap() {
+        if (_heatmapInitialized) return;
+        _heatmapInitialized = true;
+
         const upload = _el('heatmap-image-upload');
         const btnUpload = _el('btn-heatmap-upload');
         const container = _el('heatmap-container');
@@ -65,24 +114,7 @@
 
         // ✅ Novo: Sincronização em tempo real via Socket
         if (window.SocketService) {
-            window.SocketService.on('heatmap_updated', (data) => {
-                if (data.snapshot && data.snapshot.points) points = data.snapshot.points;
-                else if (data.points) points = data.points;
-                if (data.bgImageSrc) {
-                    bgImageSrc = data.bgImageSrc;
-                    showImage();
-                }
-                if (data.snapshot && data.snapshot.bgImageSrc) {
-                    bgImageSrc = data.snapshot.bgImageSrc;
-                    showImage();
-                }
-                if (data._id) {
-                    persistedHeatmapId = data._id;
-                    localStorage.setItem('heatmap_snapshot_id', persistedHeatmapId);
-                }
-                renderHeatmap();
-                renderPins();
-            });
+            window.SocketService.on('heatmap_updated', handleSocketUpdate);
         }
         
         // Adicionar controles de isocinias e régua
@@ -612,6 +644,11 @@
 
 
 
+    window.SoundMasterHeatmap = {
+        init: initHeatmap,
+        destroy: destroyHeatmap
+    };
+
     document.addEventListener('page-loaded', (e) => {
         console.log(`[Heatmap] Page loaded: ${e.detail.pageId}`);
         if (e.detail.pageId === 'spl-heatmap' || e.detail.pageId === 'analyzer') {
@@ -622,6 +659,10 @@
     // Também inicializa quando carregado diretamente no iframe (analyzer page)
     (function autoInitHeatmap() {
         if (_el('heatmap-canvas') || _el('heatmap-container')) {
+            // Se já existir o AnalyzerMappingsPage ou similar que gerencia o lifecycle, deixa ele chamar o init
+            const isManaged = window.AnalyzerMappingsPage;
+            if (isManaged) return;
+
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', () => setTimeout(initHeatmap, 200));
             } else {

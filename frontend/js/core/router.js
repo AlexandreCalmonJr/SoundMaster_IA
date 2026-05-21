@@ -10,9 +10,12 @@ const ROUTE_MAP = {
     'rt60':              { path: 'pages/rt60.html',              title: 'RT60 & Acústica',     category: 'Medir' },
     'benchmarking':      { path: 'pages/benchmarking.html',      title: 'Benchmarking',        category: 'Medir' },
     'spl-heatmap':       { path: 'pages/spl-heatmap.html',       title: 'Mapa SPL',            category: 'Medir' },
-    'analyzer':          { path: 'pages/analyzer.html',          title: 'FFT & Waterfall',     category: 'Analisar' },
-    'feedback-detector': { path: 'pages/feedback-detector.html', title: 'Detector Feedback',   category: 'Analisar' },
-    'eq-guide':          { path: 'pages/eq-guide.html',          title: 'Guia de EQ',          category: 'Analisar' },
+    'analyzer':             { path: 'pages/analyzer.html',             title: 'FFT & Waterfall',     category: 'Analisar' },
+    'analyzer-mappings':    { path: 'pages/analyzer-mappings.html',    title: 'Mapeamentos SPL',     category: 'Analisar' },
+    'analyzer-signals':     { path: 'pages/analyzer-signals.html',     title: 'Gerador de Sinais',   category: 'Analisar' },
+    'analyzer-calibration': { path: 'pages/analyzer-calibration.html', title: 'Calibração',          category: 'Analisar' },
+    'feedback-detector':    { path: 'pages/feedback-detector.html',    title: 'Detector Feedback',   category: 'Analisar' },
+    'eq-guide':             { path: 'pages/eq-guide.html',             title: 'Guia de EQ',          category: 'Analisar' },
     'eq':                { path: 'pages/eq.html',                title: 'Equalização',         category: 'EQ' },
     'auto-eq':           { path: 'pages/auto-eq.html',           title: 'Auto-EQ / Target Curve', category: 'EQ' },
     'semantic-eq':       { path: 'pages/semantic-eq.html',       title: 'EQ Semântico',        category: 'EQ' },
@@ -41,18 +44,42 @@ class Router {
 
         // Script paths mapping for dynamic import in iframe
         this.scriptPaths = {
-            'analyzer': 'js/pages/analyzer-page.js',
+            'home': 'js/pages/home-page.js',
             'rt60': 'js/pages/rt60-page.js',
+            'benchmarking': 'js/pages/benchmarking-page.js',
+            'spl-heatmap': 'js/pages/spl-heatmap-page.js',
+            'analyzer': 'js/pages/analyzer-page.js',
+            'analyzer-mappings': 'js/pages/analyzer-mappings-page.js',
+            'analyzer-signals': 'js/pages/analyzer-signals-page.js',
+            'analyzer-calibration': 'js/pages/analyzer-calibration-page.js',
+            'feedback-detector': 'js/pages/feedback-detector-page.js',
+            'eq-guide': 'js/pages/eq-guide-page.js',
+            'eq': 'js/pages/eq-page.js',
             'auto-eq': 'js/pages/auto-eq-page.js',
-            'scene-builder': 'js/pages/scene-builder-page.js',
             'semantic-eq': 'js/pages/semantic-eq-page.js',
-            'debug': 'js/pages/debug-page.js',
-            'systems': 'js/pages/systems-page.js',
-            'volunteer-mode': 'js/pages/volunteer-page.js',
-            'automixer': 'js/pages/automixer-page.js',
             'mixer-git': 'js/pages/mixer-git-page.js',
-            'testbed': 'js/pages/testbed-page.js',
+            'mixer-input': 'js/pages/mixer-input-page.js',
+            'mixer-aux': 'js/pages/mixer-aux-page.js',
+            'mixer-fx': 'js/pages/mixer-fx-page.js',
+            'voice-presets': 'js/pages/voice-presets-page.js',
             'stage-plot': 'js/pages/stage-plot-page.js',
+            'automixer': 'js/pages/automixer-page.js',
+            'scene-builder': 'js/pages/scene-builder-page.js',
+            'systems': 'js/pages/systems-page.js',
+            'aes67': 'js/pages/aes67-page.js',
+            'debug': 'js/pages/debug-page.js',
+            'settings': 'js/pages/settings-page.js',
+            'ai-chat': 'js/pages/ai-chat-page.js',
+            'mobile': 'js/pages/mobile-page.js',
+            'volunteer-mode': 'js/pages/volunteer-page.js',
+            'testbed': 'js/pages/testbed-page.js',
+        };
+
+        // Page-specific CSS mapping
+        this.cssPerPage = {
+            'auto-eq':    ['css/auto-eq.css'],
+            'mixer-git':  ['css/mixer-git.css'],
+            'stage-plot': ['css/stage-plot.css'],
         };
 
         // Build simple route map for backward compat
@@ -114,6 +141,15 @@ class Router {
             const scriptPath = this._getPageScriptPath(pageId);
             const moduleName = this._getPageModuleName(pageId);
 
+            // Generate conditional CSS link tags
+            let conditionalCssTags = '';
+            const pageCss = this.cssPerPage[pageId];
+            if (pageCss) {
+                pageCss.forEach(href => {
+                    conditionalCssTags += `<link rel="stylesheet" href="${href}">\n`;
+                });
+            }
+
             let scriptTags = `
                 <script src="js/core/page-bridge.js"></script>
                 <script src="js/page-utils.js"></script>
@@ -122,16 +158,25 @@ class Router {
                 scriptTags += `<script src="${scriptPath}"></script>`;
             }
 
-            if (pageId === 'analyzer') {
-                const analyzerDeps = [
+            const pageDepsMap = {
+                'analyzer': [
                     'js/analyzer.js',
-                    'js/calibration.js',
-                    'js/heatmap.js',
                     'js/ui/tf-visualizer.js',
                     'js/ui/crosshair.js',
                     'js/ui/chart-export.js',
-                ];
-                analyzerDeps.forEach(dep => {
+                ],
+                'analyzer-calibration': [
+                    'js/calibration.js'
+                ],
+                'analyzer-mappings': [
+                    'js/heatmap.js',
+                    'js/mapping-visual.js'
+                ]
+            };
+
+            const deps = pageDepsMap[pageId];
+            if (deps) {
+                deps.forEach(dep => {
                     scriptTags += `<script src="${dep}"></script>`;
                 });
             }
@@ -165,11 +210,9 @@ class Router {
                 <meta charset="UTF-8">
                 <link rel="stylesheet" href="css/styles.css">
                 <link rel="stylesheet" href="css/app-layout.css">
-                <link rel="stylesheet" href="css/auto-eq.css">
                 <link rel="stylesheet" href="css/pages.css">
                 <link rel="stylesheet" href="css/components.css">
-                <link rel="stylesheet" href="css/mixer-git.css">
-                <link rel="stylesheet" href="css/stage-plot.css">
+                ${conditionalCssTags}
                 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400&display=swap" rel="stylesheet">
                 ${scriptTags}
             </head>
@@ -285,18 +328,35 @@ class Router {
 
     _getPageModuleName(pageId) {
         const map = {
-            'analyzer': 'AnalyzerPage',
+            'home': 'HomePage',
             'rt60': 'RT60Page',
+            'benchmarking': 'BenchmarkingPage',
+            'spl-heatmap': 'SplHeatmapPage',
+            'analyzer': 'AnalyzerPage',
+            'analyzer-mappings': 'AnalyzerMappingsPage',
+            'analyzer-signals': 'AnalyzerSignalsPage',
+            'analyzer-calibration': 'AnalyzerCalibrationPage',
+            'feedback-detector': 'FeedbackDetectorPage',
+            'eq-guide': 'EqGuidePage',
+            'eq': 'EqPage',
             'auto-eq': 'AutoEqPage',
-            'scene-builder': 'SceneBuilderPage',
             'semantic-eq': 'SemanticEqPage',
-            'debug': 'DebugPage',
-            'systems': 'SystemsPage',
-            'volunteer-mode': 'VolunteerPage',
-            'automixer': 'AutomixerPage',
             'mixer-git': 'MixerGitPage',
-            'testbed': 'TestbedPage',
+            'mixer-input': 'MixerInputPage',
+            'mixer-aux': 'MixerAuxPage',
+            'mixer-fx': 'MixerFxPage',
+            'voice-presets': 'VoicePresetsPage',
             'stage-plot': 'StagePlotPage',
+            'automixer': 'AutomixerPage',
+            'scene-builder': 'SceneBuilderPage',
+            'systems': 'SystemsPage',
+            'aes67': 'Aes67Page',
+            'debug': 'DebugPage',
+            'settings': 'SettingsPage',
+            'ai-chat': 'AiChatPage',
+            'mobile': 'MobilePage',
+            'volunteer-mode': 'VolunteerPage',
+            'testbed': 'TestbedPage',
         };
         return map[pageId] || null;
     }
