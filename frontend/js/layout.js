@@ -28,7 +28,6 @@
             title: 'Analisar',
             items: [
                 { id: 'analyzer',             label: 'FFT & Waterfall' },
-                { id: 'analyzer-mappings',    label: 'Mapeamentos SPL' },
                 { id: 'analyzer-signals',     label: 'Gerador de Sinais' },
                 { id: 'analyzer-calibration', label: 'Calibração' },
                 { id: 'feedback-detector',    label: 'Detector Feedback' },
@@ -50,7 +49,6 @@
             items: [
                 { id: 'eq',           label: 'Equalização' },
                 { id: 'auto-eq',      label: 'Auto-EQ / Target Curve' },
-                { id: 'semantic-eq',   label: 'EQ Semântico (NLP)' },
             ]
         },
         automation: {

@@ -29,14 +29,22 @@
         const state = AppStore.getState();
         const selectedChannel = Number(channel);
         const channelVu = state.vuData && state.vuData.channels ? state.vuData.channels[selectedChannel] : null;
+
+        var auxSends = {};
+        for (var a = 1; a <= 4; a++) {
+            auxSends['aux' + a] = state[`ch_${selectedChannel}_aux${a}_level`] ?? null;
+        }
+
         return {
             selectedChannel: selectedChannel,
             channel: {
                 level: state[`ch_${selectedChannel}_level`] ?? null,
                 mute: state[`mute_ch_${selectedChannel}`] ? 1 : 0,
                 phantom: state[`phantom_ch_${selectedChannel}`] ? 1 : 0,
-                vu: channelVu || null
+                vu: channelVu || null,
+                eq: state[`ch_${selectedChannel}_eq`] ?? null
             },
+            aux_sends: auxSends,
             master: {
                 level: state.masterLevel ?? 0,
                 levelDb: state.masterDb ?? null,
@@ -44,6 +52,24 @@
             },
             all_vus: state.vuData || null
         };
+    }
+
+    function _getLiveAnalysis() {
+        if (window.SoundMasterAnalyzer && window.SoundMasterAnalyzer.isAnalyzing()) {
+            const analysis = window.SoundMasterAnalyzer.getLastAnalysis();
+            if (analysis) {
+                return {
+                    live: true,
+                    summary: analysis.text,
+                    peakHz: analysis.details?.peakHz,
+                    peakDb: analysis.details?.peakDb,
+                    rms: analysis.details?.rmsDb,
+                    bands: analysis.details?.bands,
+                    spectrum: analysis.details?.spectrum_v11,
+                };
+            }
+        }
+        return null;
     }
 
     // -------------------------------------------------------------------------
@@ -60,6 +86,12 @@
     async function ask(text, channel, analysis) {
         const message = _buildMessage(text.trim(), channel);
 
+        const enrichedAnalysis = analysis || {};
+        const liveData = _getLiveAnalysis();
+        if (liveData) {
+            enrichedAnalysis.live_mic = liveData;
+        }
+
         AppStore.setState({ aiStatus: 'loading' });
 
         const controller = new AbortController();
@@ -69,7 +101,7 @@
             const response = await fetch(AI_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message, channel, analysis, mixer_context: _getMixerSnapshot(channel) }),
+                body: JSON.stringify({ message, channel, analysis: enrichedAnalysis, mixer_context: _getMixerSnapshot(channel) }),
                 signal: controller.signal
             });
 
@@ -169,5 +201,33 @@
         }
     }
 
-    window.AIService = { ask, ping, calculateAcoustics };
+    async function listenAndAnalyze(channel) {
+        if (!window.SoundMasterAnalyzer) {
+            throw new Error('Analisador não disponível');
+        }
+
+        if (!window.SoundMasterAnalyzer.isAnalyzing()) {
+            await window.SoundMasterAnalyzer.start();
+            await new Promise(r => setTimeout(r, 3000));
+        }
+
+        const analysis = window.SoundMasterAnalyzer.getLastAnalysis();
+        if (!analysis) {
+            throw new Error('Nenhuma análise disponível. Aguarde alguns segundos.');
+        }
+
+        const result = await ask('Analise o áudio capturado pelo microfone e sugira melhorias', channel || 1, {
+            auto_listen: true,
+            summary: analysis.text,
+            peakHz: analysis.details?.peakHz,
+            peakDb: analysis.details?.peakDb,
+            rms: analysis.details?.rmsDb,
+            bands: analysis.details?.bands,
+            spectrum: analysis.details?.spectrum_v11,
+        });
+
+        return result;
+    }
+
+    window.AIService = { ask, ping, calculateAcoustics, listenAndAnalyze };
 })();

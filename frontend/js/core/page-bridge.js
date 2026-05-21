@@ -19,7 +19,7 @@
             'SocketService',
             'MixerService',
             'SignalGeneratorService',
-            // SoundMasterAnalyzer é carregado diretamente no iframe da página analyzer
+            'SoundMasterAnalyzer',
             'SimulationService',
             'SoundMasterVisualizer',
             'Crosshair',
@@ -31,7 +31,6 @@
             'SoundMasterAIChat',
             'OnboardingService',
             'AIService',
-            'SemanticEqUI',
             'SpatialAverager',
             'SpatialAveragerService',
             'SchroederRenderer',
@@ -88,26 +87,6 @@
             }
             return confirm(message);
         };
-
-        // Proxy para SoundMasterAnalyzer: tenta iframe primeiro, depois fallback para parent
-        Object.defineProperty(window, 'SoundMasterAnalyzer', {
-            get: () => {
-                const iframe = window.parent.document?.getElementById('agent-workspace-iframe');
-                if (iframe && iframe.contentWindow && iframe.contentWindow.SoundMasterAnalyzer) {
-                    return iframe.contentWindow.SoundMasterAnalyzer;
-                }
-                return window.parent.SoundMasterAnalyzer;
-            },
-            set: (value) => {
-                const iframe = window.parent.document?.getElementById('agent-workspace-iframe');
-                if (iframe && iframe.contentWindow) {
-                    iframe.contentWindow.SoundMasterAnalyzer = value;
-                }
-                window.parent.SoundMasterAnalyzer = value;
-            },
-            configurable: true,
-            enumerable: true
-        });
 
         // Proxy para AppStore: cross-frame sync via postMessage
         // - setState() no iframe → postMessage para o parent → parent aplica e notifica todos

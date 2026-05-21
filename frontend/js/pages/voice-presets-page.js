@@ -39,6 +39,10 @@
                 if (type.includes('Soprano')) opts = { hpf: 150, high: 2 };
                 if (type.includes('Pregador')) opts = { compressor: 'aggressive', afs: true };
                 if (type.includes('Smart Clean')) opts = { deesser: true, gate: 'adaptive', air: true, denoise: true };
+                if (type.includes('Infantil')) opts = { hpf: 200, presence: 3 };
+                if (type.includes('Tenor')) opts = { hpf: 100, mud: -2 };
+                if (type.includes('Coro')) opts = { hpf: 130, presence: 1.5 };
+                if (type.includes('Podcast')) opts = { compressor: 'light', deesser: true, hpf: 80, presence: 2 };
 
                 MixerService.runCleanSoundPreset(ch, opts);
                 AppStore.addLog(`IA: Aplicando preset [${type}] ao canal ${ch}`);

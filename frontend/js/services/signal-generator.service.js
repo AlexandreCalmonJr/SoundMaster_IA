@@ -21,14 +21,18 @@
 
     let _audioCtx = null;
     let _whiteNoiseNode = null;
+    let _pinkNoiseNode = null;
     let _mlsNode = null;
     let _chirpNode = null;
     let _dualToneNode = null;
+    let _sineNode = null;
 
     let _isWhiteNoisePlaying = false;
+    let _isPinkNoisePlaying = false;
     let _isMLSPlaying = false;
     let _isChirpPlaying = false;
     let _isDualTonePlaying = false;
+    let _isSinePlaying = false;
 
     function _ensureCtx() {
         if (!_audioCtx || _audioCtx.state === 'closed') {
@@ -48,6 +52,59 @@
             console.warn(`[SignalGenerator] Worklet não disponível: ${path}`, e);
             throw e;
         }
+    }
+
+    // ── Pink Noise ──
+
+    async function startPinkNoise(amplitude = 0.3) {
+        try {
+            await _addModule('js/core/pink-noise-processor.js');
+            const ctx = _ensureCtx();
+            _pinkNoiseNode = new AudioWorkletNode(ctx, 'pink-noise-processor');
+            _pinkNoiseNode.parameters.get('amplitude').value = amplitude;
+            _pinkNoiseNode.connect(ctx.destination);
+            _isPinkNoisePlaying = true;
+            console.log('[SignalGenerator] Pink Noise started');
+            return true;
+        } catch (e) {
+            console.error('[SignalGenerator] Pink Noise failed:', e);
+            return false;
+        }
+    }
+
+    function stopPinkNoise() {
+        if (_pinkNoiseNode) {
+            try { _pinkNoiseNode.disconnect(); } catch (_) {}
+            _pinkNoiseNode = null;
+        }
+        _isPinkNoisePlaying = false;
+    }
+
+    // ── Sine Wave ──
+
+    async function startSine(freq = 1000, amplitude = 0.3) {
+        try {
+            await _addModule('js/core/signal-generators.js');
+            const ctx = _ensureCtx();
+            _sineNode = new AudioWorkletNode(ctx, 'sine-processor');
+            _sineNode.parameters.get('frequency').value = freq;
+            _sineNode.parameters.get('amplitude').value = amplitude;
+            _sineNode.connect(ctx.destination);
+            _isSinePlaying = true;
+            console.log(`[SignalGenerator] Sine started (${freq}Hz)`);
+            return true;
+        } catch (e) {
+            console.error('[SignalGenerator] Sine failed:', e);
+            return false;
+        }
+    }
+
+    function stopSine() {
+        if (_sineNode) {
+            try { _sineNode.disconnect(); } catch (_) {}
+            _sineNode = null;
+        }
+        _isSinePlaying = false;
     }
 
     // ── White Noise ──
@@ -164,33 +221,41 @@
 
     function stopAll() {
         stopWhiteNoise();
+        stopPinkNoise();
         stopMLS();
         stopChirp();
         stopDualTone();
+        stopSine();
     }
 
     function isPlayingAny() {
-        return _isWhiteNoisePlaying || _isMLSPlaying || _isChirpPlaying || _isDualTonePlaying;
+        return _isWhiteNoisePlaying || _isPinkNoisePlaying || _isMLSPlaying || _isChirpPlaying || _isDualTonePlaying || _isSinePlaying;
     }
 
     function getState() {
         return {
             whiteNoise: _isWhiteNoisePlaying,
+            pinkNoise: _isPinkNoisePlaying,
             mls: _isMLSPlaying,
             chirp: _isChirpPlaying,
             dualTone: _isDualTonePlaying,
+            sine: _isSinePlaying,
         };
     }
 
     window.SignalGeneratorService = {
         startWhiteNoise,
         stopWhiteNoise,
+        startPinkNoise,
+        stopPinkNoise,
         startMLS,
         stopMLS,
         startChirp,
         stopChirp,
         startDualTone,
         stopDualTone,
+        startSine,
+        stopSine,
         stopAll,
         isPlayingAny,
         getState,

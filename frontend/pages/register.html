@@ -1,0 +1,84 @@
+<section class="w-full h-full flex items-center justify-center bg-slate-950">
+    <div class="w-full max-w-md p-8">
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-cyan-900/40 mb-4">
+                <span class="text-3xl">📝</span>
+            </div>
+            <h1 class="text-2xl font-black text-white tracking-tighter">Criar Conta</h1>
+            <p class="text-slate-400 text-sm mt-1">Registre-se para acessar o SoundMaster Pro</p>
+        </div>
+
+        <form id="register-form" class="space-y-4">
+            <div>
+                <label for="reg-username" class="block text-xs font-bold uppercase text-slate-500 tracking-widest mb-2">Username</label>
+                <input type="text" id="reg-username" required minlength="3"
+                    class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 outline-none transition-all"
+                    placeholder="Escolha um username" autocomplete="username">
+            </div>
+
+            <div>
+                <label for="reg-email" class="block text-xs font-bold uppercase text-slate-500 tracking-widest mb-2">Email</label>
+                <input type="email" id="reg-email" required
+                    class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 outline-none transition-all"
+                    placeholder="seu@email.com" autocomplete="email">
+            </div>
+
+            <div>
+                <label for="reg-password" class="block text-xs font-bold uppercase text-slate-500 tracking-widest mb-2">Senha</label>
+                <input type="password" id="reg-password" required minlength="6"
+                    class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 outline-none transition-all"
+                    placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+            </div>
+
+            <div id="register-error" class="hidden text-red-400 text-xs bg-red-900/20 border border-red-500/20 rounded-lg px-4 py-3"></div>
+
+            <button type="submit" id="register-btn"
+                class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-cyan-900/30">
+                Criar Conta
+            </button>
+        </form>
+
+        <p class="text-center text-slate-500 text-xs mt-6">
+            Já tem conta?
+            <a href="#" id="go-to-login" class="text-cyan-400 hover:text-cyan-300 font-bold">Fazer login</a>
+        </p>
+    </div>
+</section>
+
+<script>
+(function() {
+    var form = document.getElementById('register-form');
+    var errorEl = document.getElementById('register-error');
+    var btn = document.getElementById('register-btn');
+    var goToLogin = document.getElementById('go-to-login');
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        errorEl.classList.add('hidden');
+        btn.disabled = true;
+        btn.textContent = 'Criando...';
+
+        var username = document.getElementById('reg-username').value.trim();
+        var email = document.getElementById('reg-email').value.trim();
+        var password = document.getElementById('reg-password').value;
+
+        try {
+            await window.AuthService.register(username, email, password);
+            window.parent.document.dispatchEvent(new CustomEvent('auth-login-success'));
+        } catch (err) {
+            errorEl.textContent = err.message;
+            errorEl.classList.remove('hidden');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Criar Conta';
+        }
+    });
+
+    if (goToLogin) {
+        goToLogin.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.parent.router.navigate('login');
+        });
+    }
+})();
+</script>

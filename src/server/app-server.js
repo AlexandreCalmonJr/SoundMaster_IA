@@ -8,8 +8,10 @@ const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 
 const db = require('./database');
+const authDb = require('./auth-db');
 const { registerMappingsRoutes } = require('./mappings-routes');
 const { registerSocketHandlers } = require('./socket-handlers');
+const { registerAuthRoutes } = require('./auth.routes');
 const calculationRoutes = require('./calculation-routes');
 const { getPool } = require('./worker-pool');
 const mixerGit = require('./mixer-git');
@@ -51,8 +53,10 @@ function createAppServer({ app, rootDir, localIp, port, dbDir }) {
 
     // Inicializa banco centralizado IMEDIATAMENTE (presets + mappings no mesmo diretório)
     db.initDatabase(dbDir);
+    authDb.initDatabase(dbDir);
     mixerGit.init(dbDir);
     registerMappingsRoutes(expressApp, db.mappings);
+    registerAuthRoutes(expressApp);
     expressApp.use('/api/calculate', calculationRoutes);
 
     // ── Mixer Git REST API ───────────────────────────────────────────────────

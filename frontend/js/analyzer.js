@@ -1162,11 +1162,11 @@
             return;
         }
 
-        const channelInput = _el('ai-target-channel');
+        const channelInput = _el('analyzer-ai-channel');
         const channel = channelInput ? Number(channelInput.value) : 1;
         
-        const aiBox = _el('ai-suggestions-box');
-        const aiText = _el('ai-suggestions-text');
+        const aiBox = _el('analyzer-ai-suggestions');
+        const aiText = _el('analyzer-ai-suggestions-text');
         
         if (aiBox) aiBox.classList.remove('hidden');
         if (aiText) aiText.innerText = 'Processando dados com IA...';
@@ -1209,7 +1209,7 @@
             const result = await AIService.ask('Análise acústica do ambiente', channel, payload);
             if (aiText) aiText.innerText = result.text || result.answer;
             
-            const actionsArea = _el('ai-actions');
+            const actionsArea = _el('analyzer-ai-actions');
             if (actionsArea && result.command) {
                 actionsArea.innerHTML = '';
                 const button = document.createElement('button');
@@ -1542,6 +1542,9 @@
             }
         }
     };
+
+    // Expose sendAnalysisToAI globally for iframe pages
+    window._sendAnalysisToAI = sendAnalysisToAI;
 
     // Auto-init
     (function autoInit() {

@@ -13,12 +13,30 @@
                 <label for="eq-instrument-select" class="text-xs uppercase font-black text-slate-400 mb-1">Selecione o Alvo:</label>
                 <select id="eq-instrument-select" class="bg-transparent text-white font-bold focus:outline-none cursor-pointer">
                     <option value="bumbo" class="bg-slate-900">🥁 Bumbo (Kick)</option>
-                    <option value="violao" class="bg-slate-900">🎸 Violão</option>
+                    <option value="violao" class="bg-slate-900">🎸 Violao</option>
                     <option value="baixo" class="bg-slate-900">🎸 Baixo (Bass)</option>
                     <option value="voz" class="bg-slate-900">🎙️ Voz (Lead)</option>
                     <option value="teclado" class="bg-slate-900">🎹 Teclado/Piano</option>
                 </select>
             </div>
+            <div class="flex flex-col">
+                <label for="eq-guide-channel" class="text-[9px] uppercase font-black text-slate-500 mb-1">Canal:</label>
+                <select id="eq-guide-channel" class="bg-transparent text-white font-bold focus:outline-none cursor-pointer w-16">
+                </select>
+            </div>
+            <div class="flex flex-col">
+                <label for="eq-guide-aux" class="text-[9px] uppercase font-black text-slate-500 mb-1">Aux:</label>
+                <select id="eq-guide-aux" class="bg-transparent text-white font-bold focus:outline-none cursor-pointer w-16">
+                    <option value="1" class="bg-slate-900">Aux 1</option>
+                    <option value="2" class="bg-slate-900">Aux 2</option>
+                    <option value="3" class="bg-slate-900">Aux 3</option>
+                    <option value="4" class="bg-slate-900">Aux 4</option>
+                </select>
+            </div>
+            <button id="btn-sync-eq-ai" class="p-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl transition-all shadow-lg shadow-cyan-900/20">
+                <span aria-hidden="true">🚀</span> Sincronizar IA
+            </button>
+        </div>
             <button id="btn-sync-eq-ai" class="p-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl transition-all shadow-lg shadow-cyan-900/20">
                 <span aria-hidden="true">🚀</span> Sincronizar IA
             </button>

@@ -6,19 +6,19 @@
 'use strict';
 
 const ROUTE_MAP = {
+    'login':             { path: 'pages/login.html',            title: 'Login',                category: null },
+    'register':          { path: 'pages/register.html',         title: 'Cadastro',             category: null },
     'home':              { path: 'pages/home.html',              title: 'Dashboard',           category: null },
     'rt60':              { path: 'pages/rt60.html',              title: 'RT60 & Acústica',     category: 'Medir' },
     'benchmarking':      { path: 'pages/benchmarking.html',      title: 'Benchmarking',        category: 'Medir' },
     'spl-heatmap':       { path: 'pages/spl-heatmap.html',       title: 'Mapa SPL',            category: 'Medir' },
     'analyzer':             { path: 'pages/analyzer.html',             title: 'FFT & Waterfall',     category: 'Analisar' },
-    'analyzer-mappings':    { path: 'pages/analyzer-mappings.html',    title: 'Mapeamentos SPL',     category: 'Analisar' },
     'analyzer-signals':     { path: 'pages/analyzer-signals.html',     title: 'Gerador de Sinais',   category: 'Analisar' },
     'analyzer-calibration': { path: 'pages/analyzer-calibration.html', title: 'Calibração',          category: 'Analisar' },
     'feedback-detector':    { path: 'pages/feedback-detector.html',    title: 'Detector Feedback',   category: 'Analisar' },
     'eq-guide':             { path: 'pages/eq-guide.html',             title: 'Guia de EQ',          category: 'Analisar' },
     'eq':                { path: 'pages/eq.html',                title: 'Equalização',         category: 'EQ' },
     'auto-eq':           { path: 'pages/auto-eq.html',           title: 'Auto-EQ / Target Curve', category: 'EQ' },
-    'semantic-eq':       { path: 'pages/semantic-eq.html',       title: 'EQ Semântico',        category: 'EQ' },
     'mixer-git':         { path: 'pages/mixer-git.html',         title: 'Mixer Git',           category: 'Automação' },
     'mixer-input':       { path: 'pages/mixer-input.html',       title: 'Canais de Entrada',   category: 'Mixer' },
     'mixer-aux':         { path: 'pages/mixer-aux.html',         title: 'Monitores & Aux',     category: 'Mixer' },
@@ -44,19 +44,19 @@ class Router {
 
         // Script paths mapping for dynamic import in iframe
         this.scriptPaths = {
+            'login': null,
+            'register': null,
             'home': 'js/pages/home-page.js',
             'rt60': 'js/pages/rt60-page.js',
             'benchmarking': 'js/pages/benchmarking-page.js',
             'spl-heatmap': 'js/pages/spl-heatmap-page.js',
             'analyzer': 'js/pages/analyzer-page.js',
-            'analyzer-mappings': 'js/pages/analyzer-mappings-page.js',
             'analyzer-signals': 'js/pages/analyzer-signals-page.js',
             'analyzer-calibration': 'js/pages/analyzer-calibration-page.js',
             'feedback-detector': 'js/pages/feedback-detector-page.js',
             'eq-guide': 'js/pages/eq-guide-page.js',
             'eq': 'js/pages/eq-page.js',
             'auto-eq': 'js/pages/auto-eq-page.js',
-            'semantic-eq': 'js/pages/semantic-eq-page.js',
             'mixer-git': 'js/pages/mixer-git-page.js',
             'mixer-input': 'js/pages/mixer-input-page.js',
             'mixer-aux': 'js/pages/mixer-aux-page.js',
@@ -102,6 +102,12 @@ class Router {
         if (!ROUTE_MAP[pageId]) {
             console.warn(`[Router] Rota desconhecida: ${pageId}`);
             return;
+        }
+
+        const publicRoutes = ['login', 'register'];
+        if (!publicRoutes.includes(pageId) && window.AuthService && !AuthService.isAuthenticated()) {
+            console.log('[Router] Redirecionando para login (não autenticado)');
+            pageId = 'login';
         }
 
         // ✅ T13: Dispatch page-unload para cleanup da página anterior (P24)
@@ -159,18 +165,8 @@ class Router {
             }
 
             const pageDepsMap = {
-                'analyzer': [
-                    'js/analyzer.js',
-                    'js/ui/tf-visualizer.js',
-                    'js/ui/crosshair.js',
-                    'js/ui/chart-export.js',
-                ],
                 'analyzer-calibration': [
                     'js/calibration.js'
-                ],
-                'analyzer-mappings': [
-                    'js/heatmap.js',
-                    'js/mapping-visual.js'
                 ]
             };
 
@@ -328,19 +324,19 @@ class Router {
 
     _getPageModuleName(pageId) {
         const map = {
+            'login': null,
+            'register': null,
             'home': 'HomePage',
             'rt60': 'RT60Page',
             'benchmarking': 'BenchmarkingPage',
             'spl-heatmap': 'SplHeatmapPage',
             'analyzer': 'AnalyzerPage',
-            'analyzer-mappings': 'AnalyzerMappingsPage',
             'analyzer-signals': 'AnalyzerSignalsPage',
             'analyzer-calibration': 'AnalyzerCalibrationPage',
             'feedback-detector': 'FeedbackDetectorPage',
             'eq-guide': 'EqGuidePage',
             'eq': 'EqPage',
             'auto-eq': 'AutoEqPage',
-            'semantic-eq': 'SemanticEqPage',
             'mixer-git': 'MixerGitPage',
             'mixer-input': 'MixerInputPage',
             'mixer-aux': 'MixerAuxPage',

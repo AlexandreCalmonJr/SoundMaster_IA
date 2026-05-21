@@ -23,11 +23,6 @@ window.createPageModule = function () {
     }
 
     function _el(id) {
-        const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
-        if (iframe && iframe.contentDocument) {
-            const el = iframe.contentDocument.getElementById(id);
-            if (el) return el;
-        }
         return document.getElementById(id);
     }
 

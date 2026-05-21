@@ -52,7 +52,13 @@
                     <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
                     <span id="chat-status" class="text-sm font-bold">SoundMaster AI</span>
                 </div>
-                <button id="btn-clear-chat" class="text-xs uppercase tracking-wider font-bold text-slate-500 hover:text-white transition-colors" aria-label="Limpar histórico da conversa">Limpar Conversa</button>
+                <div class="flex items-center gap-3">
+                    <button id="btn-ai-listen" class="text-xs uppercase tracking-wider font-bold text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1" title="IA ouve o microfone automaticamente">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                        IA Ouvir
+                    </button>
+                    <button id="btn-clear-chat" class="text-xs uppercase tracking-wider font-bold text-slate-500 hover:text-white transition-colors" aria-label="Limpar histórico da conversa">Limpar Conversa</button>
+                </div>
             </div>
             
             <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4">

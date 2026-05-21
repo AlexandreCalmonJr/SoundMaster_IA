@@ -15,6 +15,7 @@
             chatInput:         pm._el('chat-input'),
             btnSend:           pm._el('btn-chat-send'),
             btnClear:          pm._el('btn-clear-chat'),
+            btnListen:         pm._el('btn-ai-listen'),
             chatStatus:        pm._el('chat-status'),
             aiTargetChannel:   pm._el('ai-target-channel'),
             btnSendAnalysis:   pm._el('btn-ai-send-analysis'),
@@ -327,6 +328,30 @@
             pm._on(els.btnClear, 'click', _clearChat);
         }
 
+        if (els.btnListen) {
+            pm._on(els.btnListen, 'click', async function () {
+                var channel = _getTargetChannel();
+                _appendBubble('IA ouvindo o microfone...', true, null);
+
+                var loadingId = 'ai-listen-loading-' + Date.now();
+                _appendBubble('Analisando áudio ao vivo...', false, null, loadingId, false);
+
+                try {
+                    var result = await AIService.listenAndAnalyze(channel);
+                    var loadingBubble = pm._el(loadingId);
+                    if (loadingBubble) loadingBubble.remove();
+                    _appendBubble(result.text, false, result.command);
+                    if (result.report) {
+                        _appendBubble(result.report, false, null);
+                    }
+                } catch (err) {
+                    var loadingBubble = pm._el(loadingId);
+                    if (loadingBubble) loadingBubble.remove();
+                    _appendBubble('Erro ao ouvir microfone: ' + err.message, false, null);
+                }
+            });
+        }
+
         // Fast prompts delegation via parent container or global selector inside iframe
         const promptButtons = pm._el('ai-chat')?.querySelectorAll('.sound-ai-prompt') || document.querySelectorAll('.sound-ai-prompt');
         if (promptButtons) {
@@ -404,6 +429,10 @@
         console.log('[AiChatPage] Inicializando...');
         els = _getEls();
         _initEvents();
+
+        if (els.chatInput) {
+            setTimeout(function () { els.chatInput.focus(); }, 100);
+        }
 
         pm._subscribe('AppStore', 'aiStatus', _renderAIStatus);
 

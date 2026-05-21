@@ -62,38 +62,50 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
     });
 
-    // 7. Navigate to Home or Mobile
+    // 7. Navigate based on auth state
     if (window.router) {
+        document.addEventListener('auth-login-success', function () {
+            console.log('[SoundMaster] Login successful, navigating to home');
+            updateUserUI();
+            window.router.navigate('home');
+        });
+
+        document.getElementById('btn-logout')?.addEventListener('click', function () {
+            if (window.AuthService) {
+                AuthService.logout();
+                updateUserUI();
+                window.router.navigate('login');
+            }
+        });
+
         const urlParams = new URLSearchParams(window.location.search);
         const isMobileMode = urlParams.get('mode') === 'mobile' || window.innerWidth < 768;
-        const target = isMobileMode ? 'mobile' : 'home';
-        try {
-            window.router.navigate(target);
-            console.log('[SoundMaster] Navegando para:', target);
-        } catch (navErr) {
-            console.error('[SoundMaster] Erro na navegação:', navErr);
+
+        if (isMobileMode) {
+            window.router.navigate('mobile');
+        } else if (window.AuthService && AuthService.isAuthenticated()) {
+            updateUserUI();
+            window.router.navigate('home');
+        } else {
+            window.router.navigate('login');
+        }
+    }
+
+    function updateUserUI() {
+        var userInfo = document.getElementById('rail-user-info');
+        var usernameEl = document.getElementById('rail-username');
+        if (!userInfo || !usernameEl) return;
+
+        if (window.AuthService && AuthService.isAuthenticated()) {
+            var user = AuthService.getUser();
+            if (user) {
+                usernameEl.textContent = user.username;
+                userInfo.classList.remove('hidden');
+            }
+        } else {
+            userInfo.classList.add('hidden');
         }
     }
 
     console.log('[SoundMaster] App Shell v2 inicializado com sucesso.');
-
-    // Proxy para SoundMasterAnalyzer: acessa a instância dentro do iframe
-    // O analyzer.js agora roda no contexto do iframe da página analyzer
-    Object.defineProperty(window, 'SoundMasterAnalyzer', {
-        get: () => {
-            const iframe = document.getElementById('agent-workspace-iframe');
-            if (iframe && iframe.contentWindow && iframe.contentWindow.SoundMasterAnalyzer) {
-                return iframe.contentWindow.SoundMasterAnalyzer;
-            }
-            return undefined;
-        },
-        set: (value) => {
-            const iframe = document.getElementById('agent-workspace-iframe');
-            if (iframe && iframe.contentWindow) {
-                iframe.contentWindow.SoundMasterAnalyzer = value;
-            }
-        },
-        configurable: true,
-        enumerable: true
-    });
 });
