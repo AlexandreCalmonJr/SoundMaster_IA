@@ -16,6 +16,7 @@
             // AppStore uses a custom proxy below for cross-frame sync
             'socket',
             'router',
+            'AuthService',
             'SocketService',
             'MixerService',
             'SignalGeneratorService',
@@ -55,6 +56,9 @@
             'SoundMasterChurchTools',
             'RT60Mapping',
             'SoundMasterMappings',
+            'SoundMasterMapping',
+            'SoundMasterHeatmap',
+            'eqData',
             '_sendAnalysisToAI',
             'FeedbackDetectorModule',
             'SignalGeneratorController',

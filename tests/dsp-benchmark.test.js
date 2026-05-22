@@ -139,11 +139,11 @@ describe('DSP Performance Benchmark', () => {
         const n = 8192;
         
         const startTime = performance.now();
+        const w = new Float64Array(n);
+        const c = 2 * Math.PI / (n - 1);
         
         // 100 iterações de Hann window
         for (let iter = 0; iter < 100; iter++) {
-            const w = new Float64Array(n);
-            const c = 2 * Math.PI / (n - 1);
             for (let i = 0; i < n; i++) {
                 w[i] = 0.5 * (1 - Math.cos(c * i));
             }

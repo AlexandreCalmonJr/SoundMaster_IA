@@ -230,23 +230,10 @@
     }
 
     function init() {
-        initEqGuide();
-        initRt60Calculator();
-        initBenchmarking();
+        console.log('[SoundMasterChurchTools] Inativo - Lógica delegada aos módulos de página.');
     }
 
-    window.SoundMasterChurchTools = { init };
-
-    // Ouvir eventos do roteador
-    document.addEventListener('page-loaded', (e) => {
-        if (e.detail.pageId === 'eq' || e.detail.pageId === 'eq-guide') {
-            initEqGuide();
-        } else if (e.detail.pageId === 'rt60') {
-            initRt60Calculator();
-        } else if (e.detail.pageId === 'benchmarking') {
-            initBenchmarking();
-        }
-    });    function _initMtkControls() {
+    window.SoundMasterChurchTools = { init };    function _initMtkControls() {
         const btnRec = _el('btn-rt-rec-mtk');
         const btnStop = _el('btn-rt-stop-mtk');
         const recDot = _el('rt-rec-dot');

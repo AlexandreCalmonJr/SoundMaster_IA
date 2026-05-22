@@ -4,7 +4,10 @@
  */
 (function () {
     function _el(id) {
-        const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
+        if (window.self !== window.top) {
+            return document.getElementById(id);
+        }
+        const iframe = document.getElementById('agent-workspace-iframe');
         if (iframe && iframe.contentDocument) {
             const el = iframe.contentDocument.getElementById(id);
             if (el) return el;

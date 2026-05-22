@@ -157,56 +157,6 @@
         updateButtonStates();
     }
 
-        // Binds
-        pm._on(pm._el('btn-pink-noise'), 'click', () => {
-            toggleSignal('pink', () => gen.startPinkNoise(false));
-        });
-
-        pm._on(pm._el('btn-white-noise'), 'click', () => {
-            toggleSignal('white', () => gen.startWhiteNoise(0.3));
-        });
-
-        pm._on(pm._el('btn-mls-signal'), 'click', () => {
-            toggleSignal('mls', () => gen.startMLS(13, 0.5));
-        });
-
-        pm._on(pm._el('btn-chirp-signal'), 'click', () => {
-            toggleSignal('chirp', () => gen.startChirp(20, 20000, 2.0, 0.5));
-        });
-
-        pm._on(pm._el('btn-dual-tone'), 'click', () => {
-            toggleSignal('dual', () => gen.startDualTone(1000, 1500, 0.3));
-        });
-
-        pm._on(pm._el('btn-sine-wave'), 'click', () => {
-            const freqInput = pm._el('sine-freq');
-            const freq = parseFloat(freqInput ? freqInput.value : 60) || 60;
-            toggleSignal('sine', () => gen.startSine(freq, 0.1));
-        });
-
-        pm._on(pm._el('btn-measure-pink'), 'click', () => {
-            if (window.SoundMasterAnalyzer) {
-                if (typeof SoundMasterAnalyzer.startPinkNoiseMeasurement === 'function') {
-                    SoundMasterAnalyzer.startPinkNoiseMeasurement();
-                } else {
-                    // Fallback se não estiver exposto diretamente
-                    console.log('[AnalyzerSignalsPage] startPinkNoiseMeasurement fallback.');
-                    // Tenta chamar via click simulado se necessário ou alert
-                    alert('Medição de Ruído Rosa requer o Analisador ativo.');
-                }
-            }
-        });
-
-        pm._on(pm._el('btn-log-sweep'), 'click', () => {
-            if (window.SoundMasterAnalyzer && typeof SoundMasterAnalyzer.triggerImpulse === 'function') {
-                SoundMasterAnalyzer.triggerImpulse();
-            }
-        });
-
-        // Initialize state of buttons (if any are already playing in background)
-        updateButtonStates();
-    }
-
     function destroy() {
         // Automatically stop all playing signals when navigating away to protect users' ears/equipment
         if (window.SignalGeneratorController) {
