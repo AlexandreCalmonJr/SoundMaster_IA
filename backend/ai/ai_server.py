@@ -230,6 +230,7 @@ async def hardware_diagnosis_endpoint(
 
 if __name__ == "__main__":
     import uvicorn
-    # Rodando na porta 3002 (padrão do projeto)
+    # Rodando na porta configurável (padrão 3002)
     print("SoundMaster Pro AI Engine v2 Iniciando...")
-    uvicorn.run(app, host="127.0.0.1", port=3002)
+    port = int(os.getenv("PYTHON_PORT", "3002"))
+    uvicorn.run(app, host="127.0.0.1", port=port)

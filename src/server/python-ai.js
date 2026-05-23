@@ -62,7 +62,7 @@ function _waitForHealth(proc, timeoutMs = 15000, intervalMs = 1000) {
             if (!proc || proc.killed) {
                 return reject(new Error('Processo Python encerrado antes do health-check.'));
             }
-            const req = http.get('http://127.0.0.1:3002/', (res) => {
+            const req = http.get(`http://127.0.0.1:${PYTHON_PORT}/`, (res) => {
                 if (res.statusCode === 200) {
                     proc.isReady = true;
                     Logger.getInstance().info('PYTHON', 'PYTHON_HEALTHCHECK_READY', 'Health-check OK');

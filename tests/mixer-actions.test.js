@@ -22,7 +22,9 @@ describe('Mixer Actions', () => {
                 gate: () => ({ enable: vi.fn(), disable: vi.fn(), setThreshold: vi.fn() }),
                 compressor: () => ({ enable: vi.fn(), setRatio: vi.fn(), setThreshold: vi.fn(), setAttack: vi.fn(), setRelease: vi.fn() }),
                 aux: vi.fn(() => ({ setFaderLevel: vi.fn() })),
-                fx: vi.fn(() => ({ setFaderLevel: vi.fn() }))
+                fx: vi.fn(() => ({ setFaderLevel: vi.fn() })),
+                setName: vi.fn(),
+                setDelay: vi.fn()
             })),
             master: {
                 eq: () => ({ band: vi.fn(() => ({ setFreq: vi.fn(), setGain: vi.fn(), setQ: vi.fn(), setType: vi.fn() })) })
@@ -62,5 +64,23 @@ describe('Mixer Actions', () => {
 
         expect(actions.executeMixerCommand({ action: 'set_aux_level', channel: 2, aux: 3, level: 0.7 })).toContain('AUX 3');
         expect(actions.executeMixerCommand({ action: 'set_fx_level', channel: 2, fx: 1, level: 0.5 })).toContain('FX 1');
+    });
+
+    it('should set channel name correctly', () => {
+        const mockMixer = createMockMixer();
+        const actions = createMixerActions(() => mockMixer);
+        
+        const result = actions.executeMixerCommand({ action: 'set_channel_name', channel: 3, name: 'Voz Pastor' });
+        expect(mockMixer.input).toHaveBeenCalledWith(3);
+        expect(result).toContain('Nome do canal 3 alterado para "Voz Pastor"');
+    });
+
+    it('should set channel delay correctly', () => {
+        const mockMixer = createMockMixer();
+        const actions = createMixerActions(() => mockMixer);
+        
+        const result = actions.executeMixerCommand({ action: 'set_delay', target: 'channel', channel: 2, ms: 150 });
+        expect(mockMixer.input).toHaveBeenCalledWith(2);
+        expect(result).toContain('Delay de 150ms solicitado para channel');
     });
 });

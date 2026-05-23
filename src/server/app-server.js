@@ -126,6 +126,12 @@ function createAppServer({ app, rootDir, localIp, port, dbDir }) {
                             actionCmd = { action: 'set_phantom', input: channel, enabled: value };
                         } else if (param === 'hpf') {
                             actionCmd = { action: 'apply_channel_hpf', channel, hz: value };
+                        } else if (param === 'gate') {
+                            actionCmd = { action: 'apply_channel_gate', channel, enabled: value };
+                        } else if (param === 'delay') {
+                            actionCmd = { action: 'set_delay', target: 'channel', channel, ms: value };
+                        } else if (param === 'name') {
+                            actionCmd = { action: 'set_channel_name', channel, name: value };
                         }
                     } else if (cmd.event === 'apply_eq_cut') {
                         actionCmd = { action: 'eq_cut', ...cmd.data };
