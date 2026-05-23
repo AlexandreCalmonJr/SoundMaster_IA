@@ -19,7 +19,8 @@
         measure: {
             title: 'Medir',
             items: [
-                { id: 'rt60',         label: 'RT60 & Acústica' },
+                { id: 'rt60',         label: 'RT60' },
+                { id: 'acustica',     label: 'Acústica' },
                 { id: 'benchmarking', label: 'Benchmarking' },
                 { id: 'spl-heatmap',  label: 'Mapa de Calor SPL' },
             ]

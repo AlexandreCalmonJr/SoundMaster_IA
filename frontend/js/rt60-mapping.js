@@ -616,7 +616,7 @@
     }
 
     document.addEventListener('page-loaded', (e) => {
-        if (e.detail.pageId === 'rt60') {
+        if (e.detail.pageId === 'acustica') {
             setTimeout(init, 300);
         }
     });
