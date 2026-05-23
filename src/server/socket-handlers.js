@@ -82,8 +82,8 @@ const schemas = {
         level: z.number().min(0).max(1)
     }),
     delay: z.object({
-        target: z.enum(['master', 'aux']),
-        id: z.number().min(1).max(10).optional(),
+        target: z.enum(['master', 'aux', 'channel', 'input']),
+        id: z.number().min(1).max(24).optional(),
         ms: z.number().min(0).max(500)
     }),
     feedbackCut: z.object({
@@ -96,6 +96,17 @@ const schemas = {
     channelName: z.object({
         channel: z.number().min(1).max(24),
         name: z.string().max(20)
+    }),
+    masterMute: z.object({
+        mute: z.union([z.boolean(), z.number()]).transform(v => !!v)
+    }),
+    channelLevel: z.object({
+        channel: z.number().min(1).max(24),
+        level: z.union([z.number(), z.string()]).transform(v => Number(v)).pipe(z.number().min(0).max(1))
+    }),
+    channelMute: z.object({
+        channel: z.number().min(1).max(24),
+        mute: z.union([z.boolean(), z.number()]).transform(v => !!v)
     })
 };
 
@@ -608,6 +619,99 @@ function registerSocketHandlers(io, appDataDir = './logs') {
             try {
                 const validated = schemas.delay.parse(data);
                 const msg = actions.setDelay(validated.target, validated.id, validated.ms);
+                socket.emit('feedback_cut_success', { msg });
+            } catch (error) {
+                socket.emit('mixer_status', { connected: true, msg: error.message });
+            }
+        });
+
+        socket.on('set_master_mute', (data) => {
+            if (!actions.ensureMixer(socket)) return;
+            try {
+                const validated = schemas.masterMute.parse(data);
+                const mixer = mixerSingleton.getMixer();
+                if (validated.mute) {
+                    mixer.master.mute();
+                    mixerSingleton.updateMasterState({ mute: 1 });
+                } else {
+                    mixer.master.unmute();
+                    mixerSingleton.updateMasterState({ mute: 0 });
+                }
+                logger.info(socket.id, 'SET_MASTER_MUTE', { mute: validated.mute });
+            } catch (error) {
+                logger.error(socket.id, 'SET_MASTER_MUTE_ERROR', { error: error.message });
+                socket.emit('mixer_status', { connected: true, msg: error.message });
+            }
+        });
+
+        socket.on('set_channel_level', (data) => {
+            if (!actions.ensureMixer(socket)) return;
+            try {
+                const validated = schemas.channelLevel.parse(data);
+                const mixer = mixerSingleton.getMixer();
+                mixer.input(validated.channel).setFaderLevel(validated.level);
+                mixerSingleton.updateChannelState(validated.channel, { level: validated.level });
+                logger.info(socket.id, 'SET_CHANNEL_LEVEL', { channel: validated.channel, level: validated.level });
+            } catch (error) {
+                logger.error(socket.id, 'SET_CHANNEL_LEVEL_ERROR', { error: error.message });
+                socket.emit('mixer_status', { connected: true, msg: error.message });
+            }
+        });
+
+        socket.on('set_channel_mute', (data) => {
+            if (!actions.ensureMixer(socket)) return;
+            try {
+                const validated = schemas.channelMute.parse(data);
+                const mixer = mixerSingleton.getMixer();
+                const input = mixer.input(validated.channel);
+                if (validated.mute) {
+                    input.mute();
+                    mixerSingleton.updateChannelState(validated.channel, { mute: 1 });
+                } else {
+                    input.unmute();
+                    mixerSingleton.updateChannelState(validated.channel, { mute: 0 });
+                }
+                logger.info(socket.id, 'SET_CHANNEL_MUTE', { channel: validated.channel, mute: validated.mute });
+            } catch (error) {
+                logger.error(socket.id, 'SET_CHANNEL_MUTE_ERROR', { error: error.message });
+                socket.emit('mixer_status', { connected: true, msg: error.message });
+            }
+        });
+
+        socket.on('set_aux_delay', (data) => {
+            if (!actions.ensureMixer(socket)) return;
+            try {
+                const aux = Number(data.aux);
+                const ms = Number(data.ms);
+                const msg = actions.setDelay('aux', aux, ms);
+                socket.emit('feedback_cut_success', { msg });
+            } catch (error) {
+                socket.emit('mixer_status', { connected: true, msg: error.message });
+            }
+        });
+
+        socket.on('apply_parametric_eq', (data) => {
+            if (!actions.ensureMixer(socket)) return;
+            try {
+                const channel = Number(data.channel);
+                const hz = Number(data.freq);
+                const gain = Number(data.gain);
+                const q = Number(data.q);
+                const msg = actions.applyEqCut('channel', channel, hz, gain, q, 2);
+                socket.emit('feedback_cut_success', { msg });
+            } catch (error) {
+                socket.emit('mixer_status', { connected: true, msg: error.message });
+            }
+        });
+
+        socket.on('apply_notch_filter', (data) => {
+            if (!actions.ensureMixer(socket)) return;
+            try {
+                const channel = Number(data.channel);
+                const hz = Number(data.freq);
+                const gain = Number(data.gain);
+                const q = Number(data.q);
+                const msg = actions.applyEqCut('channel', channel, hz, gain, q, 4);
                 socket.emit('feedback_cut_success', { msg });
             } catch (error) {
                 socket.emit('mixer_status', { connected: true, msg: error.message });

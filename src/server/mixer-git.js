@@ -273,14 +273,28 @@ function _diffToCommand(diff, targetState) {
         const ch   = parseInt(eqMatch[1]) + 1;
         const band = parseInt(eqMatch[2]);
         const prop = eqMatch[3];
-        return { event: 'apply_eq_cut', data: { target: 'channel', channel: ch, band, [prop]: diff.from } };
+        const channelState = targetState?.inputs?.[ch - 1];
+        const bandState = channelState?.eq?.[band];
+        return {
+            event: 'apply_eq_cut',
+            data: {
+                target: 'channel',
+                channel: ch,
+                band,
+                hz: bandState?.hz !== undefined ? bandState.hz : (prop === 'hz' ? diff.from : 250),
+                gain: bandState?.gain !== undefined ? bandState.gain : (prop === 'gain' ? diff.from : 0),
+                q: bandState?.q !== undefined ? bandState.q : (prop === 'q' ? diff.from : 1.4)
+            }
+        };
     }
 
     // Aux
     const auxMatch = p.match(/^aux\.(\d+)\.level$/);
     if (auxMatch) {
         const aux = parseInt(auxMatch[1]) + 1;
-        return { event: 'set_aux_level', data: { aux, level: diff.from } };
+        const targetAux = targetState?.aux?.[aux - 1];
+        const channel = targetAux?.channel || 1;
+        return { event: 'set_aux_level', data: { channel, aux, level: diff.from } };
     }
 
     return null;

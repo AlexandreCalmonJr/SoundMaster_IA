@@ -75,12 +75,11 @@ class SweepAnalyzer:
         ir = ir[:n]
 
         peak_idx = np.argmax(np.abs(ir))
-        window_samples = int(fs * 0.1)
-        start = max(0, peak_idx - window_samples)
-        end = min(len(ir), peak_idx + window_samples)
+        pre_samples = min(peak_idx, int(fs * 0.05))
+        start = max(0, peak_idx - pre_samples)
 
         ir_windowed = np.zeros_like(ir)
-        ir_windowed[start:end] = ir[start:end]
+        ir_windowed[start:] = ir[start:]
 
         return ir_windowed
 

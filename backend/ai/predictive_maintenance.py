@@ -205,13 +205,13 @@ class PredictiveMaintenanceEngine:
             col = spectra[:, b]
 
             # Regressão linear (scipy)
-            if len(col) >= 2:
+            if len(col) >= 2 and np.var(t_months) > 1e-6:
                 slope, intercept, r, p, se = stats.linregress(t_months, col)
             else:
                 slope, r = 0.0, 0.0
 
             # Anomalias via Z-score
-            z_scores = np.abs(stats.zscore(col)) if len(col) > 2 else np.zeros_like(col)
+            z_scores = np.abs(stats.zscore(col)) if len(col) > 2 and np.std(col) > 1e-6 else np.zeros_like(col)
             anomaly_idx = np.where(z_scores > self.t["anomaly_z_score"])[0].tolist()
 
             hz = OCTAVE_BANDS[b]

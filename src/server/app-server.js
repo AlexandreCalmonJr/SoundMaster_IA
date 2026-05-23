@@ -15,6 +15,7 @@ const { registerAuthRoutes } = require('./auth.routes');
 const calculationRoutes = require('./calculation-routes');
 const { getPool } = require('./worker-pool');
 const mixerGit = require('./mixer-git');
+const { createMixerActions } = require('./mixer-actions');
 
 // ✅ T10: Porta do Python configurável via .env (Original #14)
 const PYTHON_PORT = parseInt(process.env.PYTHON_PORT || '3002', 10);
@@ -104,10 +105,48 @@ function createAppServer({ app, rootDir, localIp, port, dbDir }) {
             const { scope } = req.body || {};
             const current   = mixerSingleton.getStateTree();
             const commands  = await mixerGit.buildRollbackCommands(req.params.id, current, scope || []);
-            // Emite cada comando via Socket.IO para a mesa
+            
+            // Executa cada comando diretamente na mesa (ou emulador)
+            const actions = createMixerActions(() => mixerSingleton.getMixer());
+            const applied = [];
+            commands.forEach(cmd => {
+                try {
+                    let actionCmd = null;
+                    if (cmd.event === 'set_master_level') {
+                        actionCmd = { action: 'set_master_level', level: cmd.data.level };
+                    } else if (cmd.event === 'set_master_mute') {
+                        actionCmd = { action: 'master_mute', enabled: cmd.data.mute };
+                    } else if (cmd.event === 'set_channel_param') {
+                        const { channel, param, value } = cmd.data;
+                        if (param === 'level') {
+                            actionCmd = { action: 'channel_fader', channel, level: value };
+                        } else if (param === 'mute') {
+                            actionCmd = { action: 'channel_mute', channel, enabled: value };
+                        } else if (param === 'phantom') {
+                            actionCmd = { action: 'set_phantom', input: channel, enabled: value };
+                        } else if (param === 'hpf') {
+                            actionCmd = { action: 'apply_channel_hpf', channel, hz: value };
+                        }
+                    } else if (cmd.event === 'apply_eq_cut') {
+                        actionCmd = { action: 'eq_cut', ...cmd.data };
+                    } else if (cmd.event === 'set_aux_level') {
+                        actionCmd = { action: 'set_aux_level', ...cmd.data };
+                    }
+                    
+                    if (actionCmd) {
+                        actions.executeMixerCommand(actionCmd);
+                        applied.push(actionCmd);
+                    }
+                } catch (err) {
+                    console.error('[Rollback] Falha ao aplicar comando:', cmd, err);
+                }
+            });
+
+            // Emite cada comando via Socket.IO para sincronização visual dos clientes
             const io = mixerSingleton.getIo();
             if (io) commands.forEach(cmd => io.emit(cmd.event, cmd.data));
-            res.json({ commands: commands.length, applied: commands });
+            
+            res.json({ commands: commands.length, applied: applied });
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
@@ -192,7 +231,7 @@ function createAppServer({ app, rootDir, localIp, port, dbDir }) {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 30000);
         try {
-            const aiRes = await fetch('http://127.0.0.1:3002/acoustic_analysis', {
+            const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}/acoustic_analysis`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
