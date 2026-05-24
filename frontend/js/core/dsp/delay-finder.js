@@ -32,38 +32,43 @@ export const DelayFinder = {
         const fftA = this._fft(signalA, fftSize);
         const fftB = this._fft(signalB, fftSize);
         
-        // Cross-spectrum: Gxy = A * conj(B)
-        const Gxy_re = new Float64Array(half);
-        const Gxy_im = new Float64Array(half);
+        // Cross-spectrum: Gxy = A * conj(B) com PHAT whitening e espelhamento Hermitiano
+        const phatRe = new Float64Array(fftSize);
+        const phatIm = new Float64Array(fftSize);
         
         for (let k = 0; k < half; k++) {
-            Gxy_re[k] = fftA.re[k] * fftB.re[k] + fftA.im[k] * fftB.im[k];
-            Gxy_im[k] = fftA.im[k] * fftB.re[k] - fftA.re[k] * fftB.im[k];
-        }
-        
-        // PHAT: normalizar pela magnitude
-        let maxMag = 0;
-        for (let k = 0; k < half; k++) {
-            const mag = Math.sqrt(Gxy_re[k] * Gxy_re[k] + Gxy_im[k] * Gxy_im[k]);
-            if (mag > maxMag) maxMag = mag;
+            const gxyR = fftA.re[k] * fftB.re[k] + fftA.im[k] * fftB.im[k];
+            const gxyI = fftA.re[k] * fftB.im[k] - fftA.im[k] * fftB.re[k];
+            const mag = Math.sqrt(gxyR * gxyR + gxyI * gxyI) + 1e-30;
             
-            if (mag > 1e-10) {
-                Gxy_re[k] /= mag;
-                Gxy_im[k] /= mag;
+            phatRe[k] = gxyR / mag;
+            phatIm[k] = gxyI / mag;
+            
+            if (k > 0 && k < half) {
+                phatRe[fftSize - k] = phatRe[k];
+                phatIm[fftSize - k] = -phatIm[k];
             }
         }
+        phatRe[0] = phatIm[0] = 0;
+        phatRe[half] = phatIm[half] = 0;
         
-        // IFFT do cross-spectrum normalizado
-        const corr = this._ifft(Gxy_re, Gxy_im);
+        // IFFT do cross-spectrum normalizado e espelhado
+        const corr = this._ifft(phatRe, phatIm);
         
-        // Encontrar pico (busca na segunda metade para delay positivo)
+        // Encontrar pico (busca completa de lags com limite ±50ms)
+        const maxDelay = Math.min(half, Math.floor(0.05 * sampleRate));
         let peakIdx = 0;
         let peakVal = -Infinity;
         
-        const searchStart = half;
-        const searchEnd = fftSize;
-        
-        for (let i = searchStart; i < searchEnd; i++) {
+        // Lags positivos [0 ... maxDelay]
+        for (let i = 0; i <= maxDelay; i++) {
+            if (corr[i] > peakVal) {
+                peakVal = corr[i];
+                peakIdx = i;
+            }
+        }
+        // Lags negativos [fftSize-maxDelay ... fftSize-1]
+        for (let i = fftSize - maxDelay; i < fftSize; i++) {
             if (corr[i] > peakVal) {
                 peakVal = corr[i];
                 peakIdx = i;
@@ -71,20 +76,24 @@ export const DelayFinder = {
         }
         
         // Interpolação parabólica para precisão sub-sample
-        if (peakIdx > 0 && peakIdx < corr.length - 1) {
-            const alpha = corr[peakIdx - 1];
-            const beta = corr[peakIdx];
-            const gamma = corr[peakIdx + 1];
-            const p = 0.5 * (alpha - gamma) / (alpha - 2 * beta + gamma);
-            peakIdx = peakIdx + p;
+        if (peakIdx > 0 && peakIdx < fftSize - 1) {
+            const prev = corr[(peakIdx - 1 + fftSize) % fftSize];
+            const curr = corr[peakIdx];
+            const next = corr[(peakIdx + 1) % fftSize];
+            const denom = 2 * (2 * curr - prev - next);
+            if (Math.abs(denom) > 1e-12) {
+                const p = (prev - next) / denom;
+                peakIdx = peakIdx + p;
+            }
         }
         
-        // Converter para delay em samples (compensar offset)
-        const delaySamples = peakIdx - half;
+        // Converter para delay em samples (lags > half representam lags negativos)
+        let delaySamples = peakIdx > half ? peakIdx - fftSize : peakIdx;
+        delaySamples = Math.max(-maxDelay, Math.min(maxDelay, delaySamples));
         
         // Confiança baseada na relação pico/média
         let sum = 0;
-        for (let i = 0; i < corr.length; i++) sum += corr[i];
+        for (let i = 0; i < corr.length; i++) sum += Math.abs(corr[i]);
         const avg = sum / corr.length;
         const confidence = avg > 0 ? Math.min(1, (peakVal / (avg * 10 + 1e-10))) : 0;
         
@@ -102,45 +111,62 @@ export const DelayFinder = {
     findDelayPHAT(signalA, signalB, sampleRate) {
         const n = signalA.length;
         const fftSize = this._nextPow2(n);
+        const half = fftSize >>> 1;
         
         // FFT
         const A = this._fft(signalA, fftSize);
         const B = this._fft(signalB, fftSize);
         
-        // PHAT normalization
-        const half = fftSize >>> 1;
+        // PHAT normalization e espelhamento Hermitiano
+        const phatRe = new Float64Array(fftSize);
+        const phatIm = new Float64Array(fftSize);
+        
         for (let k = 0; k < half; k++) {
-            const mag = Math.sqrt(A.re[k] * A.re[k] + A.im[k] * A.im[k]);
             const phaseA = Math.atan2(A.im[k], A.re[k]);
             const phaseB = Math.atan2(B.im[k], B.re[k]);
+            const phaseDiff = phaseB - phaseA;
             
-            //-phase difference = phaseA - phaseB
-            const phaseDiff = phaseA - phaseB;
+            phatRe[k] = Math.cos(phaseDiff);
+            phatIm[k] = Math.sin(phaseDiff);
             
-            A.re[k] = Math.cos(phaseDiff);
-            A.im[k] = Math.sin(phaseDiff);
+            if (k > 0 && k < half) {
+                phatRe[fftSize - k] = phatRe[k];
+                phatIm[fftSize - k] = -phatIm[k];
+            }
         }
+        phatRe[0] = phatIm[0] = 0;
+        phatRe[half] = phatIm[half] = 0;
         
         // IFFT simplificado
-        const corr = this._ifft(A.re, A.im);
+        const corr = this._ifft(phatRe, phatIm);
         
-        // Encontrar pico
-        let peakIdx = half;
-        let peakVal = corr[half];
+        // Encontrar pico com limite
+        const maxDelay = Math.min(half, Math.floor(0.05 * sampleRate));
+        let peakIdx = 0;
+        let peakVal = -Infinity;
         
-        for (let i = half + 1; i < fftSize; i++) {
+        // Lags positivos [0 ... maxDelay]
+        for (let i = 0; i <= maxDelay; i++) {
+            if (corr[i] > peakVal) {
+                peakVal = corr[i];
+                peakIdx = i;
+            }
+        }
+        // Lags negativos [fftSize-maxDelay ... fftSize-1]
+        for (let i = fftSize - maxDelay; i < fftSize; i++) {
             if (corr[i] > peakVal) {
                 peakVal = corr[i];
                 peakIdx = i;
             }
         }
         
-        const delaySamples = peakIdx - half;
+        let delaySamples = peakIdx > half ? peakIdx - fftSize : peakIdx;
+        delaySamples = Math.max(-maxDelay, Math.min(maxDelay, delaySamples));
         
         return {
             delaySamples: Math.round(delaySamples),
             delayMs: (delaySamples / sampleRate) * 1000,
-            confidence: 0.8 // Simplified confidence
+            confidence: 0.8
         };
     },
 
@@ -159,7 +185,7 @@ export const DelayFinder = {
             re[i] = signal[i];
         }
         
-        // FFT (simplificada)
+        // FFT
         this._fftCore(re, im);
         
         return { re, im };
@@ -217,10 +243,10 @@ export const DelayFinder = {
         // FFT
         this._fftCore(re, im);
         
-        // Conjugado e escala
+        // Conjugado e escala (retorna a parte real do IFFT de sinal real)
         const result = new Float64Array(n);
         for (let i = 0; i < n; i++) {
-            result[i] = -im[i] / n;
+            result[i] = re[i] / n;
         }
         
         return result;
