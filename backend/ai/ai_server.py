@@ -111,11 +111,17 @@ class AcousticRequest(BaseModel):
     surface_area: float = 600
     alpha: float = 0.1
 
-class FeedbackRequest(BaseModel):
-    freq: float
+class FeedbackSample(BaseModel):
+    hz: float
     db: float
-    prevDb: float
+
+class FeedbackRequest(BaseModel):
+    freq: Optional[float] = None
+    db: Optional[float] = None
+    prevDb: Optional[float] = None
     gain: float = 0
+    peakHistory: Optional[list[FeedbackSample]] = None
+    threshold: float = -20
 
 class TrainRequest(BaseModel):
     freq: float
@@ -173,13 +179,43 @@ async def analyze_feedback_endpoint(
     authenticated: bool = Depends(verify_api_key)
 ):
     try:
-        # Lógica simples de risco baseada em delta de dB
-        risk = 0.0
-        delta = request.db - request.prevDb
-        if delta > 3: risk = 0.5
-        if delta > 6: risk = 0.8
-        if request.db > -10: risk += 0.2
-        return {"risk": min(1.0, risk)}
+        import math
+
+        # Mode 2: batch analysis with peakHistory (ported from Node calculation-routes.js)
+        if request.peakHistory and len(request.peakHistory) >= 5:
+            recent = request.peakHistory[-15:]
+            if len(recent) < 10:
+                return {"risk": 0.0, "isFeedback": False, "confidence": 0, "reason": "Insufficient data"}
+
+            avg_hz = sum(p.hz for p in recent) / len(recent)
+            all_similar = all(abs(math.log2(p.hz / avg_hz)) < 1.0 / 6.0 for p in recent)
+            all_above = all(p.db > request.threshold for p in recent)
+
+            is_feedback = all_similar and all_above
+
+            freq_variance = sum(math.pow(math.log2(p.hz / avg_hz), 2) for p in recent) / len(recent)
+            confidence = max(0.0, min(1.0, 1.0 - freq_variance * 10.0))
+
+            return {
+                "risk": round(confidence, 2) if is_feedback else 0.0,
+                "isFeedback": is_feedback,
+                "confidence": round(confidence, 2),
+                "freqHz": round(avg_hz),
+                "avgDb": round(sum(p.db for p in recent) / len(recent), 1),
+            }
+
+        # Mode 1: single-value delta (backward compat with ai-predictor.js)
+        if request.freq is not None and request.db is not None:
+            risk = 0.0
+            delta = request.db - (request.prevDb or request.db)
+            if delta > 3: risk = 0.5
+            if delta > 6: risk = 0.8
+            if request.db > -10: risk += 0.2
+            return {"risk": min(1.0, risk)}
+
+        raise HTTPException(status_code=400, detail="Forneça peakHistory (array, min 5) ou freq+db")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

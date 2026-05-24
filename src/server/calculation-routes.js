@@ -11,6 +11,8 @@
 
 const express = require('express');
 const router = express.Router();
+const Logger = require('./logger');
+const logger = Logger.getInstance();
 
 // ── Auto-EQ Calculation ──
 
@@ -130,7 +132,7 @@ router.post('/auto-eq', (req, res) => {
             },
         });
     } catch (err) {
-        console.error('[CalcRoutes] Auto-EQ error:', err.message);
+        logger.error('calcroutes', 'AUTO_EQ_ERROR', { error: err.message });
         res.status(500).json({ error: err.message });
     }
 });
@@ -259,7 +261,7 @@ router.post('/rt60', (req, res) => {
             curve: truncatedCurve,
         });
     } catch (err) {
-        console.error('[CalcRoutes] RT60 error:', err.message);
+        logger.error('calcroutes', 'RT60_ERROR', { error: err.message });
         res.status(500).json({ error: err.message });
     }
 });
@@ -328,7 +330,7 @@ router.post('/spl', (req, res) => {
             isClipping: peak > 0.98,
         });
     } catch (err) {
-        console.error('[CalcRoutes] SPL error:', err.message);
+        logger.error('calcroutes', 'SPL_ERROR', { error: err.message });
         res.status(500).json({ error: err.message });
     }
 });
@@ -367,7 +369,7 @@ router.post('/feedback', (req, res) => {
             avgDb: parseFloat((recent.reduce((s, p) => s + p.db, 0) / recent.length).toFixed(1)),
         });
     } catch (err) {
-        console.error('[CalcRoutes] Feedback error:', err.message);
+        logger.error('calcroutes', 'FEEDBACK_ERROR', { error: err.message });
         res.status(500).json({ error: err.message });
     }
 });

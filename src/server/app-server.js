@@ -15,11 +15,15 @@ const { registerAuthRoutes } = require('./auth.routes');
 const calculationRoutes = require('./calculation-routes');
 const mixerGit = require('./mixer-git');
 const { createMixerActions } = require('./mixer-actions');
+const tunnelService = require('./tunnel-service');
+const Logger = require('./logger');
 
 function createAppServer({ app, rootDir, localIp, port, dbDir }) {
+    const logger = Logger.getInstance(dbDir);
     const expressApp = express();
     const server = http.createServer(expressApp);
     const PYTHON_PORT = parseInt(process.env.PYTHON_PORT || '3002', 10);
+    const AI_API_KEY = process.env.AI_API_KEY;
 
     const ALLOWED_ORIGINS = [
         "http://localhost:3000",
@@ -141,7 +145,7 @@ function createAppServer({ app, rootDir, localIp, port, dbDir }) {
                         applied.push(actionCmd);
                     }
                 } catch (err) {
-                    console.error('[Rollback] Falha ao aplicar comando:', cmd, err);
+                    logger.error('rollback', 'APPLY_COMMAND_FAIL', { cmd, error: err.message });
                 }
             });
 
@@ -154,7 +158,16 @@ function createAppServer({ app, rootDir, localIp, port, dbDir }) {
     });
 
     expressApp.get('/api/config', (req, res) => {
-        res.json({ localIp, port });
+        res.json({ localIp, port, tunnelUrl: tunnelService.getTunnelUrl() });
+    });
+
+    expressApp.post('/api/tunnel/toggle', async (req, res) => {
+        try {
+            const result = await tunnelService.toggleTunnel(port);
+            res.json(result);
+        } catch (e) {
+            res.status(500).json({ success: false, error: e.message });
+        }
     });
 
     // Rotas de Calibração (NeDB)
@@ -183,25 +196,23 @@ function createAppServer({ app, rootDir, localIp, port, dbDir }) {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 30000);
         try {
-            // ✅ Injeção de Contexto do Mixer para a IA (Problema 8)
             const payload = req.body;
             const targetCh = payload.channel || (payload.analysis && payload.analysis.channel);
             const targetAux = payload.aux;
             
-            payload.mixer_context = Object.assign({
+            payload.mixer_context = {
                 master: mixerSingleton.getMasterState(),
                 channel: targetCh ? mixerSingleton.getChannelState(targetCh) : null,
                 aux: targetAux ? mixerSingleton.getAuxState(targetAux) : null,
                 full_state: mixerSingleton.getStateTree(),
                 timestamp: Date.now()
-            }, payload.mixer_context || {});
+            };
 
+            const headers = { 'Content-Type': 'application/json' };
+            if (AI_API_KEY) headers['X-API-Key'] = AI_API_KEY;
             const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}/chat`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-API-Key': process.env.AI_API_KEY || ''
-                },
+                headers,
                 body: JSON.stringify(payload),
                 signal: controller.signal
             });
@@ -234,12 +245,11 @@ function createAppServer({ app, rootDir, localIp, port, dbDir }) {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 30000);
         try {
+            const hdrsAcoustic = { 'Content-Type': 'application/json' };
+            if (AI_API_KEY) hdrsAcoustic['X-API-Key'] = AI_API_KEY;
             const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}/acoustic_analysis`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-API-Key': process.env.AI_API_KEY || ''
-                },
+                headers: hdrsAcoustic,
                 body: JSON.stringify(req.body),
                 signal: controller.signal
             });
@@ -261,9 +271,11 @@ function createAppServer({ app, rootDir, localIp, port, dbDir }) {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 60000);
         try {
+            const hdrsHw = { 'Content-Type': 'application/json' };
+            if (AI_API_KEY) hdrsHw['X-API-Key'] = AI_API_KEY;
             const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}/hardware_diagnosis`, {
                 method:  'POST',
-                headers: { 'Content-Type': 'application/json', 'X-API-Key': process.env.AI_API_KEY || '' },
+                headers: hdrsHw,
                 body:    JSON.stringify(req.body),
                 signal:  controller.signal
             });
@@ -313,7 +325,7 @@ function createAppServer({ app, rootDir, localIp, port, dbDir }) {
 
     // ── Tópico 25/29: injeta io no singleton e inicia monitors ─────────────
     mixerSingleton.setIo(io);
-    mixerSingleton.startEventLoopMonitor((msg) => console.warn(msg));
+    mixerSingleton.startEventLoopMonitor((msg) => logger.warn('eventloop', 'MONITOR', { msg }));
     // Middleware de Autenticação para Socket.IO - IP Allowlist (P20)
     const ALLOWED_CLIENT_IPS = (process.env.ALLOWED_CLIENT_IPS || '192.168.0.0/16,10.0.0.0/8,127.0.0.1').split(',');
 
@@ -347,10 +359,10 @@ function createAppServer({ app, rootDir, localIp, port, dbDir }) {
     io.use((socket, next) => {
         const clientIp = socket.handshake.address;
         if (!isIpAllowed(clientIp)) {
-            console.warn(`[SocketIO] Conexão rejeitada - IP não autorizado: ${clientIp}`);
+            logger.warn('socketio', 'CONNECTION_REJECTED', { ip: clientIp });
             return next(new Error('IP não autorizado. Contate o administrador.'));
         }
-        console.log(`[SocketIO] Cliente autorizado: ${clientIp}`);
+        logger.info('socketio', 'CLIENT_AUTHORIZED', { ip: clientIp });
         next();
     });
 

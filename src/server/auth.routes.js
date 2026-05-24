@@ -1,9 +1,16 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const authDb = require('./auth-db');
+const Logger = require('./logger');
 
 function registerAuthRoutes(app) {
-    const JWT_SECRET = process.env.JWT_SECRET || 'soundmaster-dev-secret-change-in-production';
+    const logger = Logger.getInstance();
+    const SECRET_ENV = process.env.JWT_SECRET;
+    if (!SECRET_ENV) {
+        logger.warn('auth', 'JWT_SECRET_MISSING', { msg: 'Usando chave aleatória temporária — tokens inválidos após reinício' });
+    }
+    const JWT_SECRET = SECRET_ENV || crypto.randomBytes(64).toString('hex');
     const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
     app.post('/api/auth/register', (req, res) => {
         try {
@@ -38,7 +45,7 @@ function registerAuthRoutes(app) {
                 token,
             });
         } catch (err) {
-            console.error('[Auth] Register error:', err);
+            logger.error('auth', 'REGISTER_ERROR', { error: err.message });
             res.status(500).json({ error: 'Erro interno ao criar usuário' });
         }
     });
@@ -69,7 +76,7 @@ function registerAuthRoutes(app) {
                 token,
             });
         } catch (err) {
-            console.error('[Auth] Login error:', err);
+            logger.error('auth', 'LOGIN_ERROR', { error: err.message });
             res.status(500).json({ error: 'Erro interno ao fazer login' });
         }
     });
@@ -82,7 +89,7 @@ function registerAuthRoutes(app) {
             }
             res.json({ user });
         } catch (err) {
-            console.error('[Auth] Me error:', err);
+            logger.error('auth', 'ME_ERROR', { error: err.message });
             res.status(500).json({ error: 'Erro interno' });
         }
     });

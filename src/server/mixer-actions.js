@@ -1,4 +1,3 @@
-const { Easings, vuValueToDB } = require('soundcraft-ui-connection');
 const mixerSingleton = require('./mixer-singleton');
 
 function createMixerActions(getMixer) {
@@ -356,113 +355,74 @@ function createMixerActions(getMixer) {
         const mixer = getMixer();
         if (!cmd || !cmd.action) throw new Error('Comando invalido.');
 
-        switch (cmd.action) {
-            case 'volume_up':
-            case 'volume_down': {
-                const delta = Number(cmd.val) || (cmd.action === 'volume_up' ? 1 : -1);
-                const target = cmd.target === 'master' ? mixer.master : mixer.input(cmd.ch || cmd.channel || 1);
+        const actionsMap = {
+            'volume_up': (c) => {
+                const delta = Number(c.val) || 1;
+                const target = c.target === 'master' ? mixer.master : mixer.input(c.ch || c.channel || 1);
                 target.changeFaderLevelDB(delta);
-                return `${cmd.target} ajustado em ${delta}dB.`;
-            }
-            case 'eq_cut': return applyEqCut(cmd.target, cmd.channel, cmd.hz, cmd.gain, cmd.q, cmd.band);
-            case 'apply_channel_hpf': return applyChannelHpf(cmd.channel || 1, cmd.hz || 100);
-            case 'apply_channel_gate': return applyChannelGate(cmd.channel || 1, cmd.enabled !== 0, cmd.threshold);
-            case 'apply_channel_compressor': return applyChannelCompressor(cmd.channel || 1, cmd.ratio, cmd.threshold);
-            case 'set_afs_enabled': return setAfs(cmd.enabled !== 0);
-            case 'mute_master':
-                if (cmd.enabled) mixer.master.mute(); else mixer.master.unmute();
-                return `Mute do master ${cmd.enabled ? 'ativado' : 'desativado'}.`;
-            case 'run_master_ideal_curve': {
-                const steps = [
-                    applyEqCut('master', null, 60, 3, 1.0, 1),
-                    applyEqCut('master', null, 400, -2, 1.2, 2),
-                    applyEqCut('master', null, 3000, 1, 1.0, 3)
-                ];
-                return `Curva ideal aplicada no Master: ${steps.join(' ')}`;
-            }
-            case 'set_master_level': {
-                mixer.master.setFaderLevel(clamp(cmd.level || 0.7, 0, 1));
-                return `Master ajustado para ${Math.round((cmd.level || 0.7) * 100)}%`;
-            }
-            case 'master_mute': {
-                if (cmd.enabled) mixer.master.mute(); else mixer.master.unmute();
-                return `Master ${cmd.enabled ? 'MUTADO' : 'DESMUTADO'}.`;
-            }
-            case 'set_channel_level':
-            case 'channel_fader': {
-                const ch = cmd.channel || cmd.ch || 1;
-                mixer.input(ch).setFaderLevel(clamp(cmd.level || 0.7, 0, 1));
-                return `Canal ${ch} ajustado para ${Math.round((cmd.level || 0.7) * 100)}%`;
-            }
-            case 'channel_mute': {
-                const ch = cmd.channel || cmd.ch || 1;
-                if (cmd.enabled) mixer.input(ch).mute();
-                else mixer.input(ch).unmute();
-                return `Canal ${ch} ${cmd.enabled ? 'MUTADO' : 'DESMUTADO'}.`;
-            }
-            case 'toggle_dim': {
-                mixer.master.toggleDim();
-                return 'Função DIM alternada no Master.';
-            }
-            case 'set_master_pan': {
-                mixer.master.setPan(clamp(cmd.val || 0.5, 0, 1));
-                return `Pan do Master ajustado para ${cmd.val}`;
-            }
-            case 'set_channel_pan': {
-                const ch = cmd.channel || cmd.ch || 1;
-                mixer.input(ch).setPan(clamp(cmd.val || 0.5, 0, 1));
-                return `Pan do Canal ${ch} ajustado para ${cmd.val}`;
-            }
-            case 'toggle_solo': {
-                const ch = cmd.channel || cmd.ch || 1;
-                mixer.input(ch).toggleSolo();
-                return `Solo do Canal ${ch} alternado.`;
-            }
-            case 'fade_master': return fadeMaster(cmd.level || 0, cmd.time || 2000);
-            case 'fade_channel': return fadeChannel(cmd.channel || 1, cmd.level || 0, cmd.time || 2000);
-            case 'set_oscillator': return applyOscillator(cmd.enabled !== 0, cmd.type, cmd.level);
-            case 'set_aux_level': return setAuxLevel(cmd.channel || 1, cmd.aux || 1, cmd.level || 0);
-            case 'set_aux_post': return setAuxPost(cmd.channel || 1, cmd.aux || 1, cmd.enabled !== 0);
-            case 'set_aux_post_proc': return setAuxPostProc(cmd.channel || 1, cmd.aux || 1, cmd.enabled !== 0);
-            case 'set_aux_pan': {
-                const ch = cmd.channel || cmd.ch || 1;
-                getMixer().input(ch).aux(cmd.aux || 1).setPan(clamp(cmd.val || 0.5, 0, 1));
-                return `Pan do AUX ${cmd.aux} (Canal ${ch}) ajustado para ${cmd.val}`;
-            }
-            case 'set_channel_name': return setChannelName(cmd.channel || 1, cmd.name || '');
-            case 'set_fx_level': return setFxLevel(cmd.channel || 1, cmd.fx || 1, cmd.level || 0);
-            case 'set_fx_post': return setFxPost(cmd.channel || 1, cmd.fx || 1, cmd.enabled !== 0);
-            case 'set_fx_bpm': return setFxBpm(cmd.fx || 1, cmd.val || 120);
-            case 'set_fx_param': return setFxParam(cmd.fx || 1, cmd.param || 1, cmd.val || 0.5);
-            case 'set_hw_gain': return setHwGain(cmd.input || cmd.channel || 1, cmd.val || 0.5);
-            case 'set_phantom': return setPhantom(cmd.input || cmd.channel || 1, cmd.enabled !== 0);
-            case 'set_phantom_power': return setPhantom(cmd.input || cmd.channel || 1, cmd.enabled !== 0);
-            case 'set_monitor_volume': return setMonitorVolume(cmd.target || 'hp1', cmd.val || 0.5);
-            case 'select_channel': return selectChannelSync(cmd.type || 'input', cmd.channel || cmd.ch || 1, cmd.syncId || 'SYNC_ID');
-            case 'player_cmd': return playerControl(cmd.action_type, cmd.val);
-            case 'recorder_cmd': return recorderControl(cmd.action_type);
-            case 'mtk_cmd': return mtkControl(cmd.action_type);
-            case 'mtk_select': return mtkSelectChannel(cmd.channel || cmd.ch || 1, cmd.enabled !== 0);
-            case 'show_cmd': return showControl(cmd.action_type, cmd.show, cmd.target);
-            case 'mute_group_cmd': return muteGroupControl(cmd.id || 'all', cmd.enabled !== 0);
-            case 'clear_mute_groups': return clearMuteGroups();
-            case 'automix_cmd': return automixControl(cmd.action_type, cmd.val);
-            case 'assign_channel': return automixAssignChannel(cmd.channel || 1, cmd.group || 'none', cmd.weight || 0.5);
-            case 'automix_assign': return automixAssignChannel(cmd.channel || 1, cmd.group || 'none', cmd.weight || 0.5);
-            case 'get_device_info': return getDeviceInfo();
-            case 'send_raw': return sendRawCommand(cmd.message || cmd.msg);
-            case 'send_raw_message': return sendRawCommand(cmd.message || cmd.msg);
-            case 'run_clean_sound_preset': return runCleanSoundPreset(cmd.channel || 1, cmd);
-            case 'set_delay': {
-                const id = cmd.channel || cmd.ch || cmd.aux || cmd.id || 1;
-                return setDelay(cmd.target || 'aux', id, cmd.ms || 0);
-            }
-            case 'set_room_profile': {
-                return `Perfil acústico alterado para: ${cmd.profile}`;
-            }
-            case 'log': return `INFO: ${cmd.desc}`;
-            default: throw new Error(`Acao nao suportada: ${cmd.action}`);
-        }
+                return `${c.target} ajustado em ${delta}dB.`;
+            },
+            'volume_down': (c) => {
+                const delta = Number(c.val) || -1;
+                const target = c.target === 'master' ? mixer.master : mixer.input(c.ch || c.channel || 1);
+                target.changeFaderLevelDB(delta);
+                return `${c.target} ajustado em ${delta}dB.`;
+            },
+            'eq_cut': (c) => applyEqCut(c.target, c.channel, c.hz, c.gain, c.q, c.band),
+            'apply_channel_hpf': (c) => applyChannelHpf(c.channel || 1, c.hz || 100),
+            'apply_channel_gate': (c) => applyChannelGate(c.channel || 1, c.enabled !== 0, c.threshold),
+            'apply_channel_compressor': (c) => applyChannelCompressor(c.channel || 1, c.ratio, c.threshold),
+            'set_afs_enabled': (c) => setAfs(c.enabled !== 0),
+            'mute_master': (c) => { if (c.enabled) mixer.master.mute(); else mixer.master.unmute(); return `Mute do master ${c.enabled ? 'ativado' : 'desativado'}.`; },
+            'run_master_ideal_curve': () => { const steps = [applyEqCut('master', null, 60, 3, 1.0, 1), applyEqCut('master', null, 400, -2, 1.2, 2), applyEqCut('master', null, 3000, 1, 1.0, 3)]; return `Curva ideal aplicada no Master: ${steps.join(' ')}`; },
+            'set_master_level': (c) => { mixer.master.setFaderLevel(clamp(c.level || 0.7, 0, 1)); return `Master ajustado para ${Math.round((c.level || 0.7) * 100)}%`; },
+            'master_mute': (c) => { if (c.enabled) mixer.master.mute(); else mixer.master.unmute(); return `Master ${c.enabled ? 'MUTADO' : 'DESMUTADO'}.`; },
+            'set_channel_level': (c) => { const ch = c.channel || c.ch || 1; mixer.input(ch).setFaderLevel(clamp(c.level || 0.7, 0, 1)); return `Canal ${ch} ajustado para ${Math.round((c.level || 0.7) * 100)}%`; },
+            'channel_fader': (c) => { const ch = c.channel || c.ch || 1; mixer.input(ch).setFaderLevel(clamp(c.level || 0.7, 0, 1)); return `Canal ${ch} ajustado para ${Math.round((c.level || 0.7) * 100)}%`; },
+            'channel_mute': (c) => { const ch = c.channel || c.ch || 1; if (c.enabled) mixer.input(ch).mute(); else mixer.input(ch).unmute(); return `Canal ${ch} ${c.enabled ? 'MUTADO' : 'DESMUTADO'}.`; },
+            'toggle_dim': () => { mixer.master.toggleDim(); return 'Função DIM alternada no Master.'; },
+            'set_master_pan': (c) => { mixer.master.setPan(clamp(c.val || 0.5, 0, 1)); return `Pan do Master ajustado para ${c.val}`; },
+            'set_channel_pan': (c) => { const ch = c.channel || c.ch || 1; mixer.input(ch).setPan(clamp(c.val || 0.5, 0, 1)); return `Pan do Canal ${ch} ajustado para ${c.val}`; },
+            'toggle_solo': (c) => { const ch = c.channel || c.ch || 1; mixer.input(ch).toggleSolo(); return `Solo do Canal ${ch} alternado.`; },
+            'fade_master': (c) => fadeMaster(c.level || 0, c.time || 2000),
+            'fade_channel': (c) => fadeChannel(c.channel || 1, c.level || 0, c.time || 2000),
+            'set_oscillator': (c) => applyOscillator(c.enabled !== 0, c.type, c.level),
+            'set_aux_level': (c) => setAuxLevel(c.channel || 1, c.aux || 1, c.level || 0),
+            'set_aux_post': (c) => setAuxPost(c.channel || 1, c.aux || 1, c.enabled !== 0),
+            'set_aux_post_proc': (c) => setAuxPostProc(c.channel || 1, c.aux || 1, c.enabled !== 0),
+            'set_aux_pan': (c) => { const ch = c.channel || c.ch || 1; getMixer().input(ch).aux(c.aux || 1).setPan(clamp(c.val || 0.5, 0, 1)); return `Pan do AUX ${c.aux} (Canal ${ch}) ajustado para ${c.val}`; },
+            'set_channel_name': (c) => setChannelName(c.channel || 1, c.name || ''),
+            'set_fx_level': (c) => setFxLevel(c.channel || 1, c.fx || 1, c.level || 0),
+            'set_fx_post': (c) => setFxPost(c.channel || 1, c.fx || 1, c.enabled !== 0),
+            'set_fx_bpm': (c) => setFxBpm(c.fx || 1, c.val || 120),
+            'set_fx_param': (c) => setFxParam(c.fx || 1, c.param || 1, c.val || 0.5),
+            'set_hw_gain': (c) => setHwGain(c.input || c.channel || 1, c.val || 0.5),
+            'set_phantom': (c) => setPhantom(c.input || c.channel || 1, c.enabled !== 0),
+            'set_phantom_power': (c) => setPhantom(c.input || c.channel || 1, c.enabled !== 0),
+            'set_monitor_volume': (c) => setMonitorVolume(c.target || 'hp1', c.val || 0.5),
+            'select_channel': (c) => selectChannelSync(c.type || 'input', c.channel || c.ch || 1, c.syncId || 'SYNC_ID'),
+            'player_cmd': (c) => playerControl(c.action_type, c.val),
+            'recorder_cmd': (c) => recorderControl(c.action_type),
+            'mtk_cmd': (c) => mtkControl(c.action_type),
+            'mtk_select': (c) => mtkSelectChannel(c.channel || c.ch || 1, c.enabled !== 0),
+            'show_cmd': (c) => showControl(c.action_type, c.show, c.target),
+            'mute_group_cmd': (c) => muteGroupControl(c.id || 'all', c.enabled !== 0),
+            'clear_mute_groups': () => clearMuteGroups(),
+            'automix_cmd': (c) => automixControl(c.action_type, c.val),
+            'assign_channel': (c) => automixAssignChannel(c.channel || 1, c.group || 'none', c.weight || 0.5),
+            'automix_assign': (c) => automixAssignChannel(c.channel || 1, c.group || 'none', c.weight || 0.5),
+            'get_device_info': () => getDeviceInfo(),
+            'send_raw': (c) => sendRawCommand(c.message || c.msg),
+            'send_raw_message': (c) => sendRawCommand(c.message || c.msg),
+            'run_clean_sound_preset': (c) => runCleanSoundPreset(c.channel || 1, c),
+            'set_delay': (c) => { const id = c.channel || c.ch || c.aux || c.id || 1; return setDelay(c.target || 'aux', id, c.ms || 0); },
+            'set_room_profile': (c) => `Perfil acústico alterado para: ${c.profile}`,
+            'log': (c) => `INFO: ${c.desc}`
+        };
+
+        const handler = actionsMap[cmd.action];
+        if (!handler) throw new Error(`Acao nao suportada: ${cmd.action}`);
+        return handler(cmd);
     }
 
     return {
