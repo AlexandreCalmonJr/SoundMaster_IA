@@ -56,7 +56,6 @@
         const style = document.createElement('style');
         style.id = 'volunteer-mode-css';
         style.textContent = `
-        /* ── Volunteer Mode Global ──────────────────────────────────── */
         body.volunteer-mode .rail-btn[data-category="measure"],
         body.volunteer-mode .rail-btn[data-category="analysis"],
         body.volunteer-mode .rail-btn[data-category="network"],
@@ -64,7 +63,6 @@
             display: none !important;
         }
 
-        /* Banner de modo voluntário no header */
         #volunteer-badge {
             display: none;
             align-items: center;
@@ -86,13 +84,11 @@
             to   { opacity:1; transform:scale(1); }
         }
 
-        /* Toggle button states */
         #btn-volunteer-toggle.active {
             background: linear-gradient(135deg, #f59e0b, #d97706) !important;
             color: #0d1117 !important;
         }
 
-        /* Fader ceiling indicator */
         body.volunteer-mode .fader-ceiling-line {
             display: block !important;
         }
@@ -116,7 +112,6 @@
             font-weight: 700;
         }
 
-        /* Volunteer mixer overlay */
         #volunteer-mixer-overlay {
             display: none;
             position: fixed;
@@ -127,7 +122,6 @@
         }
         body.volunteer-mode #volunteer-mixer-overlay { display: flex; flex-direction: column; }
 
-        /* PIN modal */
         #volunteer-pin-modal {
             display: none;
             position: fixed;
@@ -169,7 +163,6 @@
     function _buildOverlay() {
         if (_el('volunteer-mixer-overlay')) return;
 
-        // Overlay principal
         const overlay = document.createElement('div');
         overlay.id = 'volunteer-mixer-overlay';
         overlay.innerHTML = `
@@ -186,13 +179,10 @@
                 </button>
             </div>
 
-            <!-- SPL Badge -->
             <div id="vol-spl-badge" style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;"></div>
 
-            <!-- Channel grid -->
             <div id="vol-channel-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;"></div>
 
-            <!-- Master -->
             <div style="margin-top:24px;background:#161b22;border:1px solid #30363d;border-radius:12px;padding:16px;">
                 <div style="font-size:.75rem;color:#8b949e;margin-bottom:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Master</div>
                 <div style="display:flex;align-items:center;gap:12px;">
@@ -217,7 +207,6 @@
         </div>`;
         document.body.appendChild(overlay);
 
-        // PIN modal
         const pinModal = document.createElement('div');
         pinModal.id = 'volunteer-pin-modal';
         pinModal.innerHTML = `
@@ -242,12 +231,10 @@
 
     // ─── Bind eventos do overlay ──────────────────────────────────────────────
     function _bindOverlayEvents() {
-        // Exit button
         _el('volunteer-exit-btn')?.addEventListener('click', () => {
             if (_pin) _openPinModal(); else _exitVolunteer();
         });
 
-        // Master fader
         const masterFader = _el('vol-master-fader');
         masterFader?.addEventListener('input', (e) => {
             const raw = parseInt(e.target.value) / 100;
@@ -256,7 +243,6 @@
             if (window.socket) window.socket.emit('set_master_level', { level: clamped });
         });
 
-        // Master mute
         _el('vol-master-mute')?.addEventListener('click', (e) => {
             const btn = e.currentTarget;
             const isMuted = btn.classList.toggle('muted');
@@ -265,7 +251,6 @@
             if (window.socket) window.socket.emit('set_master_mute', { mute: isMuted });
         });
 
-        // PIN numpad
         let _pinBuffer = '';
         _el('pin-numpad')?.addEventListener('click', (e) => {
             const key = e.target.closest('.pin-key')?.dataset.key;
@@ -307,7 +292,6 @@
                     <span style="font-size:.82rem;font-weight:700;color:#c9d1d9;">${preset.name}</span>
                     <span style="font-size:.65rem;color:#8b949e;margin-left:auto;">CH${ch}</span>
                 </div>
-                <!-- Mini fader vertical (representação) -->
                 <div style="display:flex;gap:8px;align-items:flex-end;height:80px;">
                     <div style="flex:1;background:#21262d;border-radius:4px;height:100%;position:relative;cursor:pointer;" title="Arraste para ajustar">
                         <div id="vol-ch${ch}-fill" style="position:absolute;bottom:0;left:0;right:0;border-radius:4px;
@@ -329,23 +313,19 @@
             </div>`;
         }).join('');
 
-        // Bind fader events
         grid.querySelectorAll('input[type="range"]').forEach(slider => {
             slider.addEventListener('input', (e) => {
                 const ch  = parseInt(e.target.dataset.ch);
                 const raw = parseInt(e.target.value) / 100;
                 const clamped = clampFader(raw);
                 if (raw > clamped) e.target.value = Math.round(clamped * 100);
-                // Update fill visual
                 const fill = _el(`vol-ch${ch}-fill`);
                 if (fill) fill.style.height = (clamped * 100) + '%';
-                // Send to mixer
                 if (window.socket) window.socket.emit('set_channel_level', { channel: ch, level: clamped });
                 _el(`vol-ch${ch}-db`).textContent = _levelToDb(clamped);
             });
         });
 
-        // Bind mute events
         grid.querySelectorAll('.vol-ch-mute').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const ch = parseInt(e.currentTarget.dataset.ch);
@@ -363,12 +343,10 @@
         AppStore.setState({ userMode: 'volunteer' });
         localStorage.setItem('sm-user-mode', 'volunteer');
 
-        // Navegar para home seguro
         if (window.router && BLOCKED_ROUTES.includes(window.router.currentPage)) {
             window.router.navigate('home');
         }
 
-        // Fechar sidebar avançada
         const panel = _el('category-panel');
         panel?.classList.remove('open');
 
@@ -415,7 +393,7 @@
 
     function _levelToDb(level) {
         if (level <= 0) return '-∞';
-        const db = 20 * Math.log10(level) + 10; // offset Ui24R
+        const db = 20 * Math.log10(level) + 10;
         return (db >= 0 ? '+' : '') + db.toFixed(1) + ' dB';
     }
 
@@ -424,7 +402,6 @@
         const headerRight = document.querySelector('.header-right');
         if (!headerRight || _el('btn-volunteer-toggle')) return;
 
-        // Badge "VOLUNTÁRIO" visível só em modo voluntário
         const badge = document.createElement('div');
         badge.id = 'volunteer-badge';
         badge.innerHTML = '🛡️ Modo Voluntário';
@@ -433,7 +410,6 @@
         });
         headerRight.prepend(badge);
 
-        // Botão toggle
         const btn = document.createElement('button');
         btn.id = 'btn-volunteer-toggle';
         btn.className = 'header-btn';
@@ -489,22 +465,19 @@
     function _init() {
         _injectCSS();
         _injectHeaderButton();
-        // Restaurar modo salvo
         if (AppStore.getState().userMode === 'volunteer') {
             _buildOverlay();
             _enterVolunteer();
         }
     }
 
-    // Aguarda o DOM estar pronto e o layout inicializado
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', _init);
     } else {
-        // Layout pode ainda não estar pronto (sidebar carregada async)
         document.addEventListener('page-loaded', () => {
             if (!_el('btn-volunteer-toggle')) _init();
         }, { once: true });
-        setTimeout(_init, 500); // fallback
+        setTimeout(_init, 500);
     }
 
 })();

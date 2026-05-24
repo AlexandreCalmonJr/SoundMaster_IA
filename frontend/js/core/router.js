@@ -45,8 +45,8 @@ class Router {
 
         // Script paths mapping for dynamic import in iframe
         this.scriptPaths = {
-            'login': null,
-            'register': null,
+            'login': 'js/pages/login-page.js',
+            'register': 'js/pages/register-page.js',
             'home': 'js/pages/home-page.js',
             'rt60': 'js/pages/rt60-page.js',
             'acustica': 'js/pages/acustica-page.js',
@@ -160,7 +160,7 @@ class Router {
 
             let scriptTags = `
                 <script src="js/core/page-bridge.js"></script>
-                <script src="js/page-utils.js"></script>
+                <script src="js/core/page-utils.js"></script>
             `;
             if (scriptPath) {
                 scriptTags += `<script src="${scriptPath}"></script>`;
@@ -168,7 +168,7 @@ class Router {
 
             const pageDepsMap = {
                 'analyzer-calibration': [
-                    'js/calibration.js'
+                    'js/services/calibration.js'
                 ]
             };
 
@@ -326,8 +326,8 @@ class Router {
 
     _getPageModuleName(pageId) {
         const map = {
-            'login': null,
-            'register': null,
+            'login': 'LoginPage',
+            'register': 'RegisterPage',
             'home': 'HomePage',
             'rt60': 'RT60Page',
             'acustica': 'AcusticaPage',
