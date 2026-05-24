@@ -54,9 +54,12 @@ class LocalLLM:
         self.model_path = model_path
         self.llm = None
         self.enabled = False
+        import threading
+        self._lock = threading.Lock()
         
         if os.path.exists(model_path):
             try:
+                # pyrefly: ignore [missing-import]
                 from llama_cpp import Llama
                 self.llm = Llama(model_path=model_path, n_ctx=512, n_threads=4, verbose=False)
                 self.enabled = True
@@ -81,7 +84,8 @@ class LocalLLM:
 
         full_prompt = f"<|system|>\n{system_prompt}</s>\n<|user|>\n{prompt}</s>\n<|assistant|>\n"
         try:
-            output = self.llm(full_prompt, max_tokens=128, stop=["</s>"], echo=False)
+            with self._lock:
+                output = self.llm(full_prompt, max_tokens=128, stop=["</s>"], echo=False)
             return output['choices'][0]['text'].strip()
         except Exception as e:
             print(f"[AI Engine] Erro no query LLM: {e}")

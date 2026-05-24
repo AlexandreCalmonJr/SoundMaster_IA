@@ -1,0 +1,2 @@
+# Configuração do Pyrefly para o SoundMaster Pro
+python-interpreter-path = "backend/ai/venv/Scripts/python.exe"

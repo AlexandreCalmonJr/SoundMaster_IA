@@ -1,5 +1,7 @@
 import os
 import json
+import math
+import numpy as np
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -163,9 +165,12 @@ async def chat_endpoint(
     authenticated: bool = Depends(verify_api_key)
 ):
     try:
+        from fastapi.concurrency import run_in_threadpool
         session = get_session(request.session_id)
         ai_engine = AIEngine(session)
-        result = ai_engine.process(request.message, request.analysis, request.mixer_context)
+        result = await run_in_threadpool(
+            ai_engine.process, request.message, request.analysis, request.mixer_context
+        )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -237,21 +242,23 @@ async def analyze_feedback_endpoint(
         raise HTTPException(status_code=500, detail=str(e))
 
 TRAIN_DATA_PATH = os.path.join(os.path.dirname(__file__), "data", "training_events.json")
+_train_file_lock = asyncio.Lock()
 
-def _load_training_events():
+async def _load_training_events():
     if os.path.exists(TRAIN_DATA_PATH):
         with open(TRAIN_DATA_PATH, "r") as f:
             return json.load(f)
     return []
 
-def _save_training_event(event):
-    os.makedirs(os.path.dirname(TRAIN_DATA_PATH), exist_ok=True)
-    events = _load_training_events()
-    events.append(event)
-    if len(events) > 1000:
-        events = events[-1000:]
-    with open(TRAIN_DATA_PATH, "w") as f:
-        json.dump(events, f, indent=2)
+async def _save_training_event(event):
+    async with _train_file_lock:
+        os.makedirs(os.path.dirname(TRAIN_DATA_PATH), exist_ok=True)
+        events = await _load_training_events()
+        events.append(event)
+        if len(events) > 1000:
+            events = events[-1000:]
+        with open(TRAIN_DATA_PATH, "w") as f:
+            json.dump(events, f, indent=2)
 
 # ── Curvas alvo para Auto-EQ ──────────────────────────────────────────────
 
@@ -512,23 +519,6 @@ async def spl_endpoint(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-TRAIN_DATA_PATH = os.path.join(os.path.dirname(__file__), "data", "training_events.json")
-
-def _load_training_events():
-    if os.path.exists(TRAIN_DATA_PATH):
-        with open(TRAIN_DATA_PATH, "r") as f:
-            return json.load(f)
-    return []
-
-def _save_training_event(event):
-    os.makedirs(os.path.dirname(TRAIN_DATA_PATH), exist_ok=True)
-    events = _load_training_events()
-    events.append(event)
-    if len(events) > 1000:
-        events = events[-1000:]
-    with open(TRAIN_DATA_PATH, "w") as f:
-        json.dump(events, f, indent=2)
-
 @app.post("/train")
 async def train_endpoint(
     request: TrainRequest,
@@ -542,9 +532,9 @@ async def train_endpoint(
             "gain": request.gain,
             "isFeedback": request.isFeedback,
         }
-        _save_training_event(event)
+        await _save_training_event(event)
         print(f"[AI Train] Evento registrado: {request.freq}Hz, feedback={request.isFeedback}")
-        return {"success": True, "total_events": len(_load_training_events())}
+        return {"success": True, "total_events": len(await _load_training_events())}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

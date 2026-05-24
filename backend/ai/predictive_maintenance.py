@@ -314,7 +314,10 @@ class PredictiveMaintenanceEngine:
         mean_levels = spectra.mean(axis=1)
         if len(mean_levels) < 3:
             return []
-        z = np.abs(stats.zscore(mean_levels))
+        if np.std(mean_levels) > 1e-6:
+            z = np.abs(stats.zscore(mean_levels))
+        else:
+            z = np.zeros_like(mean_levels)
         return np.where(z > self.t["anomaly_z_score"])[0].tolist()
 
     # ── Diagnóstico final ──────────────────────────────────────────────────────

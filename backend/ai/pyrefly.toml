@@ -1,0 +1,2 @@
+# Configuração do Pyrefly para o módulo de IA (Backend Scoped)
+python-interpreter-path = "venv/Scripts/python.exe"
