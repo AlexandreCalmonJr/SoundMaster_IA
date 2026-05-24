@@ -82,7 +82,7 @@
                             }
                         } else {
                             // Fallback simulation/mock update check
-                            setTimeout(() => {
+                            pm._setTimeout(() => {
                                 alert('ℹ️ O SoundMaster Pro já está na versão mais recente!');
                             }, 800);
                         }

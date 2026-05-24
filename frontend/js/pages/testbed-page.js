@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 (function () {
     var pm = createPageModule();
     var NUM_CH = 12;
@@ -68,7 +68,7 @@
         ctx.beginPath(); ctx.moveTo(0, h * 0.66); ctx.lineTo(w, h * 0.66); ctx.stroke();
     }
 
-    function _animate() { _updateVuGrid(); animationFrameId = requestAnimationFrame(_animate); }
+    function _animate() { _updateVuGrid(); animationFrameId = pm._requestAnimationFrame(_animate); }
 
     function _addChatMessage(role, text) {
         var container = pm._el('sim-chat-messages');
@@ -148,7 +148,7 @@
         });
     }
 
-    function destroy() { if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; } fftCtx = null; pm.destroy(); }
+    function destroy() { fftCtx = null; pm.destroy(); }
 
     window.TestbedPage = { init: init, destroy: destroy };
 })();

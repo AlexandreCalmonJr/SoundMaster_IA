@@ -431,7 +431,7 @@
         _initEvents();
 
         if (els.chatInput) {
-            setTimeout(function () { els.chatInput.focus(); }, 100);
+            pm._setTimeout(function () { els.chatInput.focus(); }, 100);
         }
 
         pm._subscribe('AppStore', 'aiStatus', _renderAIStatus);

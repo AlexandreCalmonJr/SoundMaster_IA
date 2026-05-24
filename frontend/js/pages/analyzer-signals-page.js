@@ -82,7 +82,7 @@
         var levelSlider = pm._el('signal-level-slider');
         var levelVal = pm._el('signal-level-val');
         if (levelSlider && levelVal) {
-            levelSlider.addEventListener('input', function () {
+            pm._on(levelSlider, 'input', function () {
                 levelVal.textContent = this.value + ' dB';
                 if (gen.setGlobalLevel) gen.setGlobalLevel(Number(this.value));
             });
@@ -91,7 +91,7 @@
         var sineLevel = pm._el('sine-level');
         var sineLevelVal = pm._el('sine-level-val');
         if (sineLevel && sineLevelVal) {
-            sineLevel.addEventListener('input', function () {
+            pm._on(sineLevel, 'input', function () {
                 sineLevelVal.textContent = this.value + 'dB';
             });
         }

@@ -440,77 +440,95 @@
         _filters.Z = [{ b: [1, 0, 0], a: [1, 0, 0] }]; // passthrough
     }
 
+    function _getH(freq, b, a, fs) {
+        const w = 2 * Math.PI * freq / fs;
+        const cos1 = Math.cos(w);
+        const sin1 = Math.sin(w);
+        const cos2 = Math.cos(2 * w);
+        const sin2 = Math.sin(2 * w);
+
+        const numReal = b[0] + b[1] * cos1 + b[2] * cos2;
+        const numImag = -b[1] * sin1 - b[2] * sin2;
+
+        const denReal = a[0] + a[1] * cos1 + a[2] * cos2;
+        const denImag = -a[1] * sin1 - a[2] * sin2;
+
+        const numMag = Math.sqrt(numReal * numReal + numImag * numImag);
+        const denMag = Math.sqrt(denReal * denReal + denImag * denImag);
+
+        return numMag / (denMag + 1e-30);
+    }
+
     /**
-     * Filtro de Ponderação A em dois estágios biquad.
-     * Frequências de polo: f1=20.6Hz, f2=107.7Hz, f3=737.9Hz, f4=12194Hz.
-     * Frequências de zero: f=0 (duplo) e f=∞ (duplo).
-     *
-     * Estágio 1: polo em f1 e f4 (par conjugado HP+LP)
-     * Estágio 2: polo em f2 e f3 (shelving band)
+     * Filtro de Ponderação A em três estágios biquad (6ª ordem).
+     * Em conformidade com a IEC 61672-1:2013.
      */
     function _buildAFilter(fs) {
         const T  = 1 / fs;
-        const kp = (x) => 2 * Math.tan(Math.PI * x * T); // pré-warping
-
-        // Frequências analógicas dos polos
         const w1 = 2 * Math.PI * 20.6;
         const w2 = 2 * Math.PI * 107.7;
         const w3 = 2 * Math.PI * 737.9;
         const w4 = 2 * Math.PI * 12194;
-
-        // Transformação bilinear: s → (2/T)·(1-z⁻¹)/(1+z⁻¹)
-        // Para cada par de polos reais (w_i, w_j):
-        //   H(s) = s² / [(s+w_i)(s+w_j)]
-        //   → biquad DF-II com coefs calculados abaixo
+        const k  = 4 / (T * T);
 
         function _bilinearPair(wa, wb) {
-            const k  = 4 / (T * T);
-            const b0 = k / (k + wa * wb + (wa + wb) * 2 / T);
-            // Aproximação de 2ª ordem: par de polos reais → biquad HP
-            const a0 = 1;
-            const a1 = (2 * (wa * wb / k - 1));
-            const a2 = (1 - (wa + wb) * 2 / (k * T) + wa * wb / k);
-            const n  = k + (wa + wb) * 2 / T + wa * wb;
+            const n = k + (wa + wb) * 2 / T + wa * wb;
             return {
                 b: [k / n, -2 * k / n, k / n],
-                a: [1, (2 * wa * wb / n - 2 * k / n), (k / n - (wa + wb) * 2 / (T * n) + wa * wb / n)]
+                a: [1, (2 * wa * wb - 2 * k) / n, (k - (wa + wb) * 2 / T + wa * wb) / n]
             };
         }
 
-        // Estágio 1: w1 × w4 (roll-off grave e agudo)
-        const stage1 = _bilinearPair(w1, w4);
-        // Estágio 2: w2 × w3 (curva da orelha)
-        const stage2 = _bilinearPair(w2, w3);
+        const stage1 = _bilinearPair(w1, w1);
+        const stage2 = _bilinearPair(w4, w4);
 
-        // Ganho de normalização a 1 kHz: aplicado ao b0 do estágio 1
-        const normGain = Math.pow(10, -2.00 / 20); // -2.00 dB → linear
-        stage1.b = stage1.b.map(v => v * normGain);
+        const n3 = k + (w2 + w3) * 2 / T + w2 * w3;
+        const num3 = 12194 * 12194;
+        const stage3 = {
+            b: [num3 / n3, 2 * num3 / n3, num3 / n3],
+            a: [1, (2 * w2 * w3 - 2 * k) / n3, (k - (w2 + w3) * 2 / T + w2 * w3) / n3]
+        };
 
-        return [stage1, stage2];
+        const filters = [stage1, stage2, stage3];
+
+        // Normalização a 1 kHz
+        let g1000 = 1.0;
+        for (const stage of filters) {
+            g1000 *= _getH(1000, stage.b, stage.a, fs);
+        }
+        const norm = 1 / (g1000 + 1e-30);
+        stage1.b = stage1.b.map(v => v * norm);
+
+        return filters;
     }
 
     /**
-     * Filtro de Ponderação C em um estágio biquad.
-     * H_C(s) = (w4²·s²) / [(s²+w1·s+w1²)·(s²+w4·s+w4²)]
-     * Simplificado para 1 biquad (2ª ordem):
-     *   zeros duplos em DC, pólos em w1 e w4.
+     * Filtro de Ponderação C em dois estágios biquad (4ª ordem).
+     * Em conformidade com a IEC 61672-1:2013.
      */
     function _buildCFilter(fs) {
         const T  = 1 / fs;
         const w1 = 2 * Math.PI * 20.6;
         const w4 = 2 * Math.PI * 12194;
         const k  = 4 / (T * T);
-        const n  = k + (w1 + w4) * 2 / T + w1 * w4;
 
-        const b0 = k * w4 * w4 / (n * n);
-        const b1 = -2 * b0;
-        const b2 =  b0;
-        const a1 = (2 * w1 * w4 - 2 * k) / n;
-        const a2 = (k - (w1 + w4) * 2 / T + w1 * w4) / n;
+        const n = k + (w1 + w4) * 2 / T + w1 * w4;
+        const stage = {
+            b: [2 / (T * n), 0, -2 / (T * n)],
+            a: [1, (2 * w1 * w4 - 2 * k) / n, (k - (w1 + w4) * 2 / T + w1 * w4) / n]
+        };
 
-        // Normalização a 1 kHz: +0.06 dB
-        const norm = Math.pow(10, -0.06 / 20);
-        return [{ b: [b0 * norm, b1 * norm, b2 * norm], a: [1, a1, a2] }];
+        const filters = [stage, { b: [...stage.b], a: [...stage.a] }];
+
+        // Normalização a 1 kHz
+        let g1000 = 1.0;
+        for (const f of filters) {
+            g1000 *= _getH(1000, f.b, f.a, fs);
+        }
+        const norm = 1 / (g1000 + 1e-30);
+        filters[0].b = filters[0].b.map(v => v * norm);
+
+        return filters;
     }
 
     function _resetFilterState() {
@@ -542,9 +560,9 @@
             const out      = new Float32Array(buf.length);
             for (let n = 0; n < buf.length; n++) {
                 const x = buf[n];
-                const y = b[0] * x + b[1] * z[0] + b[2] * z[1]
-                        - a[1] * z[0] - a[2] * z[1];
-                z[1] = z[0]; z[0] = x;
+                const wn = x - a[1] * z[0] - a[2] * z[1];
+                const y = b[0] * wn + b[1] * z[0] + b[2] * z[1];
+                z[1] = z[0]; z[0] = wn;
                 out[n] = y;
             }
             buf = out;

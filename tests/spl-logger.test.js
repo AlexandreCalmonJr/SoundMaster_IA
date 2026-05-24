@@ -138,4 +138,67 @@ describe('SplLogger occupational dose and Lden', () => {
         expect(stats.lday).toBeNull();
         expect(stats.levening).toBeNull();
     });
+
+    describe('applyWeightingFilter time-domain biquad filtering', () => {
+        it('preserves signal in Z-weighting (passthrough)', () => {
+            const fs = 48000;
+            const freq = 100;
+            const input = new Float32Array(1000);
+            for (let n = 0; n < input.length; n++) {
+                input[n] = Math.sin(2 * Math.PI * freq * n / fs);
+            }
+            const output = logger.applyWeightingFilter(input, 'Z');
+            expect(output.length).toBe(input.length);
+            for (let n = 0; n < input.length; n++) {
+                expect(output[n]).toBeCloseTo(input[n], 5);
+            }
+        });
+
+        it('attenuates 100 Hz sine wave in A-weighting correctly', () => {
+            const fs = 48000;
+            const freq = 100;
+            const input = new Float32Array(48000);
+            for (let n = 0; n < input.length; n++) {
+                input[n] = Math.sin(2 * Math.PI * freq * n / fs);
+            }
+            const output = logger.applyWeightingFilter(input, 'A');
+            
+            let rmsIn = 0;
+            let rmsOut = 0;
+            const startIdx = 2000;
+            for (let n = startIdx; n < input.length; n++) {
+                rmsIn += input[n] * input[n];
+                rmsOut += output[n] * output[n];
+            }
+            rmsIn = Math.sqrt(rmsIn / (input.length - startIdx));
+            rmsOut = Math.sqrt(rmsOut / (input.length - startIdx));
+            
+            const dbDiff = 20 * Math.log10(rmsOut / rmsIn);
+            expect(dbDiff).toBeLessThan(-18);
+            expect(dbDiff).toBeGreaterThan(-20);
+        });
+
+        it('has ~0 dB gain at 1000 Hz in A-weighting', () => {
+            const fs = 48000;
+            const freq = 1000;
+            const input = new Float32Array(48000);
+            for (let n = 0; n < input.length; n++) {
+                input[n] = Math.sin(2 * Math.PI * freq * n / fs);
+            }
+            const output = logger.applyWeightingFilter(input, 'A');
+            
+            let rmsIn = 0;
+            let rmsOut = 0;
+            const startIdx = 2000;
+            for (let n = startIdx; n < input.length; n++) {
+                rmsIn += input[n] * input[n];
+                rmsOut += output[n] * output[n];
+            }
+            rmsIn = Math.sqrt(rmsIn / (input.length - startIdx));
+            rmsOut = Math.sqrt(rmsOut / (input.length - startIdx));
+            
+            const dbDiff = 20 * Math.log10(rmsOut / rmsIn);
+            expect(dbDiff).toBeCloseTo(0, 1);
+        });
+    });
 });

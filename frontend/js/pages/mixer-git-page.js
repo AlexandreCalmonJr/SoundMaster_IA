@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 (function () {
     var pm = createPageModule();
     var _commits = [], _selectedId = null, _diffData = null, _selectedScope = new Set(), _compareMode = false;
@@ -75,7 +75,7 @@
     function _showToast(msg, err) {
         var t = pm._el('git-toast');
         if (!t) { t = document.createElement('div'); t.id = 'git-toast'; Object.assign(t.style, { position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%) translateY(80px)', padding: '8px 20px', borderRadius: '9999px', fontSize: '12px', fontWeight: '700', zIndex: '9999', transition: 'transform .3s cubic-bezier(.34,1.56,.64,1)', pointerEvents: 'none', backdropFilter: 'blur(8px)', boxShadow: '0 4px 24px rgba(0,0,0,.4)', color: '#fff' }); document.body.appendChild(t); }
-        t.textContent = msg; t.style.background = err ? 'rgba(248,81,73,.92)' : 'rgba(63,185,80,.92)'; t.style.transform = 'translateX(-50%) translateY(0)'; clearTimeout(t._tmr); t._tmr = setTimeout(function () { t.style.transform = 'translateX(-50%) translateY(80px)'; }, 2800);
+        t.textContent = msg; t.style.background = err ? 'rgba(248,81,73,.92)' : 'rgba(63,185,80,.92)'; t.style.transform = 'translateX(-50%) translateY(0)'; clearTimeout(t._tmr); t._tmr = pm._setTimeout(function () { t.style.transform = 'translateX(-50%) translateY(80px)'; }, 2800);
     }
 
     function init() {
@@ -91,7 +91,7 @@
         _loadCommits();
     }
 
-    function destroy() { pm.destroy(); _commits = []; _selectedId = null; _diffData = null; _selectedScope.clear(); _compareMode = false; }
+    function destroy() { pm.destroy(); _commits = []; _selectedId = null; _diffData = null; _selectedScope.clear(); _compareMode = false; var t = document.getElementById('git-toast'); if (t) t.remove(); }
 
     window.MixerGitPage = { init: init, destroy: destroy };
 })();

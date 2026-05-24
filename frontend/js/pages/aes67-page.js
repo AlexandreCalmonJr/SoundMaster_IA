@@ -173,9 +173,9 @@
 
         const socket = pm._call('SocketService', 'raw');
         if (socket) {
-            pm._on(socket, 'multi_meter_update', updateMeters);
-            pm._on(socket, 'net_diag_update', handleNetDiagUpdate);
-            pm._on(socket, 'net_diag_alert', handleNetDiagAlert);
+            socket.on('multi_meter_update', updateMeters);
+            socket.on('net_diag_update', handleNetDiagUpdate);
+            socket.on('net_diag_alert', handleNetDiagAlert);
 
             // Request network diagnostic status & start if not running
             pm._safeCall('SocketService', 'emit', 'get_net_devices');

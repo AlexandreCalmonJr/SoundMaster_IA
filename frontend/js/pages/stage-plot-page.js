@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 (function () {
     var pm = createPageModule();
     var STORAGE_KEY = 'sm_stage_plot_v2';
@@ -100,7 +100,13 @@
         try { var raw = localStorage.getItem(STORAGE_KEY); if (raw) { actors = JSON.parse(raw); _renderAll(); } } catch (_) {}
     }
 
-    function destroy() { if (_resizeObserver) { _resizeObserver.disconnect(); _resizeObserver = null; } actors = []; dragActor = null; popupActor = null; spatialActive = false; pm.destroy(); }
+    function destroy() {
+        if (_resizeObserver) { _resizeObserver.disconnect(); _resizeObserver = null; }
+        if (spatialActive && window.SpatialAverager) {
+            try { window.SpatialAverager.stop(); } catch (e) { console.error('[StagePlotPage] Error stopping SpatialAverager:', e); }
+        }
+        actors = []; dragActor = null; popupActor = null; spatialActive = false; pm.destroy();
+    }
 
     window.StagePlotPage = { init: init, destroy: destroy };
 })();

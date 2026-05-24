@@ -22,6 +22,7 @@
     let _node      = null;
     let _ctx       = null;
     let _callback  = null;
+    let _sourceNode = null;
 
     // Mapa das últimas magnitudes recebidas por banda
     const _bandData = new Map();
@@ -90,6 +91,7 @@
         sink.connect(audioCtx.destination);
 
         // Conecta a fonte de áudio ao worklet
+        _sourceNode = sourceNode;
         sourceNode.connect(_node);
 
         // Recebe resultados de cada banda
@@ -100,6 +102,10 @@
 
     function stop() {
         if (_node) {
+            if (_sourceNode) {
+                try { _sourceNode.disconnect(_node); } catch (_) {}
+                _sourceNode = null;
+            }
             try { _node.disconnect(); } catch (_) {}
             _node = null;
         }

@@ -96,7 +96,11 @@ const UpdaterService = {
 
 // Auto-inicializa se estiver no Electron
 if (window.updater) {
-    document.addEventListener('DOMContentLoaded', () => {
+    if (document.readyState !== 'loading') {
         UpdaterService.init();
-    });
+    } else {
+        document.addEventListener('DOMContentLoaded', () => {
+            UpdaterService.init();
+        });
+    }
 }

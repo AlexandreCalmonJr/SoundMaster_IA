@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 (function () {
     var pm = createPageModule();
     var _lastResult = null;
@@ -13,7 +13,6 @@
         if (canvas) {
             var resize = function () { var rect = canvas.parentElement.getBoundingClientRect(); canvas.width = rect.width - 24; canvas.height = 300; if (_lastResult && window.AutoEqRenderer) AutoEqRenderer.drawGraph(canvas, _lastResult); };
             resize();
-            window.addEventListener('resize', resize);
             pm._on(window, 'resize', resize);
         }
 
