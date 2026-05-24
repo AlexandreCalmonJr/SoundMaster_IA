@@ -13,6 +13,7 @@
     let chirpNode = null;
     let dualToneNode = null;
     let sineWaveNode = null;
+    let sineWaveGainNode = null;
 
     let isPinkNoisePlaying = false;
     let isWhiteNoisePlaying = false;
@@ -175,10 +176,10 @@
         sineWaveNode = audioCtx.createOscillator();
         sineWaveNode.type = 'sine';
         sineWaveNode.frequency.value = freq;
-        const gainNode = audioCtx.createGain();
-        gainNode.gain.value = amplitude;
-        sineWaveNode.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
+        sineWaveGainNode = audioCtx.createGain();
+        sineWaveGainNode.gain.value = amplitude;
+        sineWaveNode.connect(sineWaveGainNode);
+        sineWaveGainNode.connect(audioCtx.destination);
         sineWaveNode.start();
         isSineWavePlaying = true;
         console.log(`[SignalGenerator] Sine wave started at ${freq}Hz`);
@@ -191,6 +192,12 @@
                 sineWaveNode.disconnect();
             } catch (_) {}
             sineWaveNode = null;
+        }
+        if (sineWaveGainNode) {
+            try {
+                sineWaveGainNode.disconnect();
+            } catch (_) {}
+            sineWaveGainNode = null;
         }
         isSineWavePlaying = false;
         console.log('[SignalGenerator] Sine wave stopped');

@@ -42,15 +42,16 @@ class FIRConvolverProcessor extends AudioWorkletProcessor {
         if (!coefficients || coefficients.length === 0) {
             this._ir = null;
             this._irLen = 0;
+            this._buffer = null;
             return;
         }
         
         this._ir = Float32Array.from(coefficients);
         this._irLen = this._ir.length;
         
-        // Inicializa buffer de trabalho
-        this._buffer = new Float32Array(this._blockSize + this._irLen);
-        this._bufIdx = 0;
+        // Circular buffer size matches the impulse response length
+        this._buffer = new Float32Array(this._irLen);
+        this._writePtr = 0;
         
         console.log(`[FIR-Convolver] IR loaded: ${this._irLen} taps`);
     }
@@ -71,33 +72,34 @@ class FIRConvolverProcessor extends AudioWorkletProcessor {
             return true;
         }
 
-        // Overlap-Add Convolution
         const ir = this._ir;
         const irLen = this._irLen;
         const buf = this._buffer;
+        const bufLen = buf.length;
+        let writePtr = this._writePtr;
         
         for (let i = 0; i < len; i++) {
-            // Adiciona nova amostra ao buffer de trabalho
-            buf[this._bufIdx + i] = input[i];
+            // Store new input sample in circular buffer
+            buf[writePtr] = input[i];
             
-            // Acumula saída (convolução parcial)
+            // Direct FIR Convolution sum: y[n] = sum(x[n-j] * h[j])
             let sum = 0;
-            const maxTap = Math.min(this._bufIdx + i + 1, irLen);
-            for (let j = 0; j < maxTap; j++) {
-                sum += buf[this._bufIdx + i - j] * ir[j];
+            for (let j = 0; j < irLen; j++) {
+                let readIdx = writePtr - j;
+                if (readIdx < 0) readIdx += bufLen;
+                sum += buf[readIdx] * ir[j];
             }
             
             output[i] = sum * this._gain;
+            
+            // Advance circular buffer pointer
+            writePtr++;
+            if (writePtr >= bufLen) {
+                writePtr = 0;
+            }
         }
         
-        // Avança posição no buffer
-        this._bufIdx += len;
-        
-        // Reset buffer quando excede IR length (evita grow perpétuo)
-        if (this._bufIdx > irLen) {
-            this._bufIdx = 0;
-        }
-        
+        this._writePtr = writePtr;
         return true;
     }
 }

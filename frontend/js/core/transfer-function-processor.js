@@ -95,12 +95,22 @@ class TransferFunctionProcessor extends AudioWorkletProcessor {
     }
 
     _allocSpectral() {
-        const h = this._fftSize >>> 1;
+        const n = this._fftSize;
+        const h = n >>> 1;
         // Acumuladores espectrais do frame atual.
         this._Gxy_re = new Float32Array(h);   // Cross-spectrum real
         this._Gxy_im = new Float32Array(h);   // Cross-spectrum imag
         this._Gxx    = new Float32Array(h);   // Auto-spectrum referência
         this._Gyy    = new Float32Array(h);   // Auto-spectrum medição
+
+        // Pre-allocated buffers to avoid GC pressure
+        this._xRe = new Float32Array(n);
+        this._xIm = new Float32Array(n);
+        this._yRe = new Float32Array(n);
+        this._yIm = new Float32Array(n);
+        this._magnitude = new Float32Array(h);
+        this._coherence = new Float32Array(h);
+        this._phaseUnwrapped = new Float32Array(h);
     }
 
     _allocAveraging() {
@@ -248,8 +258,14 @@ class TransferFunctionProcessor extends AudioWorkletProcessor {
         const h = n >>> 1;
 
         // Copia + aplica janela de Hann
-        const xRe = new Float32Array(n); const xIm = new Float32Array(n);
-        const yRe = new Float32Array(n); const yIm = new Float32Array(n);
+        const xRe = this._xRe;
+        const xIm = this._xIm;
+        const yRe = this._yRe;
+        const yIm = this._yIm;
+
+        // Zero imaginary parts since we reuse them
+        xIm.fill(0);
+        yIm.fill(0);
 
         for (let i = 0; i < n; i++) {
             const w    = this._hann[i];
@@ -282,9 +298,9 @@ class TransferFunctionProcessor extends AudioWorkletProcessor {
         }
 
         // ── 2. Magnitude, Phase, Coherence ────────────────────────────────────
-        const magnitude    = new Float32Array(h);
-        const wrappedPhase = new Float32Array(h);
-        const coherence    = new Float32Array(h);
+        const magnitude    = this._magnitude;
+        const wrappedPhase = new Float32Array(h); // Allocated per frame for postMessage transfer
+        const coherence    = this._coherence;
 
         for (let k = 0; k < h; k++) {
             const gxyR = this._Gxy_re[k];
@@ -441,7 +457,7 @@ class TransferFunctionProcessor extends AudioWorkletProcessor {
      */
     _unwrapPhase(wrapped) {
         const h = this._fftSize >>> 1;
-        const out = new Float32Array(h);
+        const out = this._phaseUnwrapped; // reuse pre-allocated array!
         if (h === 0) return out;
 
         let correction = 0;
@@ -461,22 +477,26 @@ class TransferFunctionProcessor extends AudioWorkletProcessor {
 
     _pushMovingAverage(magnitude, phase, coherence) {
         const h = this._fftSize >>> 1;
-        const frame = {
-            magnitude: new Float32Array(magnitude),
-            phase: new Float32Array(phase),
-            coherence: new Float32Array(coherence),
-        };
+        let frame;
 
         if (this._avgFrames.length < this._avgFrameTarget) {
+            frame = {
+                magnitude: new Float32Array(magnitude),
+                phase: new Float32Array(phase),
+                coherence: new Float32Array(coherence),
+            };
             this._avgFrames.push(frame);
         } else {
-            const old = this._avgFrames[this._avgPtr];
+            frame = this._avgFrames[this._avgPtr];
             for (let k = 0; k < h; k++) {
-                this._avgMagSum[k] -= old.magnitude[k];
-                this._avgPhsSum[k] -= old.phase[k];
-                this._avgCohSum[k] -= old.coherence[k];
+                this._avgMagSum[k] -= frame.magnitude[k];
+                this._avgPhsSum[k] -= frame.phase[k];
+                this._avgCohSum[k] -= frame.coherence[k];
             }
-            this._avgFrames[this._avgPtr] = frame;
+            // Copy new values into the existing arrays (reuse them!)
+            frame.magnitude.set(magnitude);
+            frame.phase.set(phase);
+            frame.coherence.set(coherence);
         }
 
         for (let k = 0; k < h; k++) {

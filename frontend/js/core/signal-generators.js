@@ -73,7 +73,24 @@ class MLSProcessor extends AudioWorkletProcessor {
         this._order = 13;
         this._register = (1 << this._order) - 1;
         this._state = this._register;
-        this._sampleIdx = 0;
+
+        // Primitive polynomial tap tables (0-indexed from LSB, i.e., bit index)
+        this._tapsTable = {
+            5:  [4, 2],          // x^5 + x^3 + 1
+            6:  [5, 4],          // x^6 + x^5 + 1
+            7:  [6, 5],          // x^7 + x^6 + 1
+            8:  [7, 5, 4, 3],    // x^8 + x^6 + x^5 + x^4 + 1
+            9:  [8, 4],          // x^9 + x^5 + 1
+            10: [9, 6],          // x^10 + x^7 + 1
+            11: [10, 8],         // x^11 + x^9 + 1
+            12: [11, 10, 9, 3],  // x^12 + x^11 + x^10 + x^4 + 1
+            13: [12, 11, 10, 7], // x^13 + x^12 + x^11 + x^8 + 1
+            14: [13, 12, 11, 1], // x^14 + x^13 + x^12 + x^2 + 1
+            15: [14, 13],        // x^15 + x^14 + 1
+            16: [15, 14, 12, 3], // x^16 + x^15 + x^13 + x^4 + 1
+            17: [16, 13],        // x^17 + x^14 + 1
+            18: [17, 10]         // x^18 + x^11 + 1
+        };
 
         this.port.onmessage = (e) => {
             if (e.data.type === 'set-active') this._active = !!e.data.value;
@@ -87,10 +104,14 @@ class MLSProcessor extends AudioWorkletProcessor {
     }
 
     _nextBit() {
-        const bit = ((this._state >> (this._order - 1)) ^ 
-                     (this._state >> (this._order - 2))) & 1;
-        this._state = ((this._state << 1) | bit) & this._register;
-        return bit * 2 - 1;
+        const taps = this._tapsTable[this._order] || [this._order - 1, this._order - 2];
+        let feedback = 0;
+        for (let i = 0; i < taps.length; i++) {
+            feedback ^= (this._state >> taps[i]);
+        }
+        feedback &= 1;
+        this._state = ((this._state << 1) | feedback) & this._register;
+        return feedback * 2 - 1;
     }
 
     process(inputs, outputs, parameters) {
@@ -131,15 +152,19 @@ class ChirpProcessor extends AudioWorkletProcessor {
         super();
         this._active = true;
         this._ampOverride = null;
-        this._phase = 0;
-        this._startTime = 0;
+        this._phase = 0; // Cumulative phase accumulator
+        this._sampleCount = 0; // Sample counter to track duration for looping
         this._isPlaying = false;
         this._loopMode = true;
 
         this.port.onmessage = (e) => {
             if (e.data.type === 'set-active') {
                 this._active = !!e.data.value;
-                if (this._active && !this._isPlaying) this._startTime = currentTime;
+                if (this._active && !this._isPlaying) {
+                    this._phase = 0;
+                    this._sampleCount = 0;
+                    this._isPlaying = true;
+                }
             }
             if (e.data.type === 'set-amplitude') this._ampOverride = Math.max(0, Math.min(1, e.data.value));
             if (e.data.type === 'set-freq-range') {
@@ -157,7 +182,7 @@ class ChirpProcessor extends AudioWorkletProcessor {
 
     _trigger() {
         this._phase = 0;
-        this._startTime = currentTime;
+        this._sampleCount = 0;
         this._isPlaying = true;
     }
 
@@ -169,7 +194,7 @@ class ChirpProcessor extends AudioWorkletProcessor {
         const startFreq = parameters.startFreq[0];
         const endFreq = parameters.endFreq[0];
         const duration = parameters.duration[0];
-        const sampleRate = sampleRate;
+        const sr = sampleRate;
 
         if (!this._active) {
             output.fill(0);
@@ -177,22 +202,22 @@ class ChirpProcessor extends AudioWorkletProcessor {
         }
 
         const len = output.length;
-        const totalSamples = duration * sampleRate;
+        const totalSamples = duration * sr;
 
         for (let i = 0; i < len; i++) {
-            const globalIdx = this._phase + i;
-            
-            const t = (globalIdx % totalSamples) / totalSamples;
+            const t = (this._sampleCount % totalSamples) / totalSamples;
             const logFreq = Math.log10(startFreq) + t * (Math.log10(endFreq) - Math.log10(startFreq));
             const freq = Math.pow(10, logFreq);
             
-            const phaseInc = 2 * Math.PI * freq / sampleRate;
-            const sample = Math.sin(this._phase * phaseInc);
+            const phaseInc = 2 * Math.PI * freq / sr;
+            output[i] = Math.sin(this._phase) * amp;
             
-            output[i] = sample * amp;
+            this._phase += phaseInc;
+            if (this._phase > 2 * Math.PI) {
+                this._phase -= 2 * Math.PI;
+            }
             
-            this._phase++;
-            if (this._phase >= totalSamples) this._phase = 0;
+            this._sampleCount++;
         }
 
         return true;
