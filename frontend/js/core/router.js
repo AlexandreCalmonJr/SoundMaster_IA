@@ -6,8 +6,6 @@
 'use strict';
 
 const ROUTE_MAP = {
-    'login':             { path: 'pages/login.html',            title: 'Login',                category: null },
-    'register':          { path: 'pages/register.html',         title: 'Cadastro',             category: null },
     'home':              { path: 'pages/home.html',              title: 'Dashboard',           category: null },
     'rt60':              { path: 'pages/rt60.html',              title: 'RT60',                category: 'Medir' },
     'acustica':          { path: 'pages/acustica.html',          title: 'Acústica',            category: 'Medir' },
@@ -45,8 +43,6 @@ class Router {
 
         // Script paths mapping for dynamic import in iframe
         this.scriptPaths = {
-            'login': 'js/pages/login-page.js',
-            'register': 'js/pages/register-page.js',
             'home': 'js/pages/home-page.js',
             'rt60': 'js/pages/rt60-page.js',
             'acustica': 'js/pages/acustica-page.js',
@@ -106,10 +102,10 @@ class Router {
             return;
         }
 
-        const publicRoutes = ['login', 'register'];
-        if (!publicRoutes.includes(pageId) && window.AuthService && !AuthService.isAuthenticated()) {
-            console.log('[Router] Redirecionando para login (não autenticado)');
-            pageId = 'login';
+        if (window.AuthService && !AuthService.isAuthenticated()) {
+            console.log('[Router] Redirecionando para auth.html (não autenticado)');
+            window.location.replace('auth.html');
+            return;
         }
 
         // ✅ T13: Dispatch page-unload para cleanup da página anterior (P24)
@@ -326,8 +322,6 @@ class Router {
 
     _getPageModuleName(pageId) {
         const map = {
-            'login': 'LoginPage',
-            'register': 'RegisterPage',
             'home': 'HomePage',
             'rt60': 'RT60Page',
             'acustica': 'AcusticaPage',

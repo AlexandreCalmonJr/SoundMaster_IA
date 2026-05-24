@@ -63,6 +63,13 @@
             display: none !important;
         }
 
+        body.volunteer-mode .panel-header:not(.vol-header) { display:none; }
+        body.volunteer-mode .panel-nav-group:not(.vol-nav-group) { display:none; }
+        body.volunteer-mode .version-badge { display:none; }
+        `;
+        document.head.appendChild(style);
+    }
+
         #volunteer-badge {
             display: none;
             align-items: center;
@@ -344,14 +351,12 @@
         localStorage.setItem('sm-user-mode', 'volunteer');
 
         if (window.router && BLOCKED_ROUTES.includes(window.router.currentPage)) {
-            window.router.navigate('home');
+            window.router.navigate('volunteer-mode');
         }
 
         const panel = _el('category-panel');
         panel?.classList.remove('open');
 
-        _buildOverlay();
-        _renderVolunteerChannels();
         _updateToggleBtn();
 
         console.log('[VolunteerMode] Ativado.');
@@ -466,7 +471,6 @@
         _injectCSS();
         _injectHeaderButton();
         if (AppStore.getState().userMode === 'volunteer') {
-            _buildOverlay();
             _enterVolunteer();
         }
     }

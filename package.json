@@ -8,6 +8,7 @@
     "build:css": "tailwindcss -i frontend/css/input.css -o frontend/css/styles.css --watch",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
+    "postinstall": "node scripts/install-python-deps.js",
     "test": "vitest run",
     "testbed": "node tests/testbed.js",
     "audit": "vitest run tests/audit.test.js",

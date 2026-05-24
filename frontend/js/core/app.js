@@ -73,8 +73,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         document.getElementById('btn-logout')?.addEventListener('click', function () {
             if (window.AuthService) {
                 AuthService.logout();
-                updateUserUI();
-                window.router.navigate('login');
+                window.location.replace('auth.html');
             }
         });
 
@@ -87,7 +86,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             updateUserUI();
             window.router.navigate('home');
         } else {
-            window.router.navigate('login');
+            window.location.replace('auth.html');
         }
     }
 

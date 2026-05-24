@@ -2,6 +2,7 @@ fastapi
 uvicorn
 pydantic
 python-dotenv
-llama-cpp-python
 numpy
 scipy
+# llama-cpp-python  # Opcional: necessário apenas para chat LLM local (Windows: requer build tools)
+# pip install llama-cpp-python manualmente se quiser o chat IA offline

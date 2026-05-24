@@ -61,7 +61,7 @@
                     };
                     reader.readAsDataURL(file);
                 }
-            };
+            });
         }
     }
 

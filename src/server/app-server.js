@@ -50,6 +50,11 @@ function createAppServer({ app, rootDir, localIp, port, dbDir }) {
     });
     expressApp.use('/api/', apiLimiter);
 
+    // Rota raiz → auth.html (gate de autenticação standalone)
+    expressApp.get('/', (req, res) => {
+        res.sendFile(path.join(rootDir, 'frontend', 'auth.html'));
+    });
+
     expressApp.use(express.static(path.join(rootDir, 'frontend')));
     expressApp.use(express.json());
 

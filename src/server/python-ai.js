@@ -1,4 +1,4 @@
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const Logger = require('./logger');
@@ -15,7 +15,62 @@ function getPythonCommand() {
     return resolvedPythonCommand;
 }
 
+const REQS_PATH = path.join(__dirname, '..', '..', 'backend', 'ai', 'requirements.txt');
+
+function _getVenvPython(rootDir) {
+    const isWin = process.platform === 'win32';
+    const candidates = [
+        path.join(rootDir, 'venv', isWin ? 'Scripts' : 'bin', isWin ? 'python.exe' : 'python'),
+        path.join(rootDir, 'backend', 'ai', 'venv', isWin ? 'Scripts' : 'bin', isWin ? 'python.exe' : 'python'),
+    ];
+    return candidates.find(fs.existsSync) || null;
+}
+
+function _ensurePythonDeps() {
+    const requirementsPath = REQS_PATH;
+    if (!fs.existsSync(requirementsPath)) {
+        console.warn('[Python AI] requirements.txt não encontrado em:', requirementsPath);
+        return;
+    }
+
+    // Procura python (prioriza venv, depois sistema)
+    const venvPython = _getVenvPython(path.join(__dirname, '..', '..'));
+    const candidates = [];
+    if (venvPython) candidates.push(venvPython);
+    candidates.push('python', 'python3');
+    if (process.platform === 'win32') candidates.push('py');
+
+    for (const cmd of candidates) {
+        try {
+            execSync(`"${cmd}" -c "import fastapi"`, { stdio: 'ignore' });
+            console.log(`[Python AI] Dependências já instaladas (${cmd}).`);
+            return; // fastapi disponível, deps ok
+        } catch (_) {
+            // tenta próximo
+        }
+    }
+
+    // Nenhum python tem fastapi — instalar
+    const pythonCmd = candidates.find(c => {
+        try { execSync(`"${c}" --version`, { stdio: 'ignore' }); return true; } catch (_) { return false; }
+    }) || 'python';
+
+    console.log('[Python AI] Instalando dependências Python (pip install -r requirements.txt)...');
+    try {
+        execSync(`"${pythonCmd}" -m pip install -r "${requirementsPath}" --quiet`, {
+            stdio: 'inherit',
+            timeout: 300000, // 5 min
+        });
+        console.log('[Python AI] Dependências instaladas com sucesso.');
+    } catch (e) {
+        console.error('[Python AI] Falha ao instalar dependências:', e.message);
+        console.warn('[Python AI] Execute manualmente: pip install -r backend/ai/requirements.txt');
+    }
+}
+
 function startPythonAI(rootDir, onExitCallback) {
+    _ensurePythonDeps();
+
     let pythonScript = path.join(rootDir, 'ai_server.py');
     if (!fs.existsSync(pythonScript)) {
         // Fallback: se o rootDir for o diretório raiz do projeto e não do backend/ai
