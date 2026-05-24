@@ -157,10 +157,8 @@ socket.on('mixer_status', (data) => {
 
 function vuToHeight(linearValue) {
     const val = Number(linearValue) || 0;
-    const db = -80 + (val * 80); // 0..1 -> -80..0 dB
-    const minDb = -60, maxDb = 0;
-    const percent = ((db - minDb) / (maxDb - minDb)) * 100;
-    return Math.min(100, Math.max(0, percent));
+    const db = val < 0.001 ? -80 : 20 * Math.log10(val);
+    return Math.min(100, Math.max(0, ((db + 60) / 60) * 100));
 }
 
 // Listener de VU Meters
@@ -409,6 +407,7 @@ async function startMic() {
             }
         });
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        await audioCtx.resume();
         analyser = audioCtx.createAnalyser();
         analyser.fftSize = 2048;
         analyser.smoothingTimeConstant = 0.82;

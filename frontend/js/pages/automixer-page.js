@@ -1,6 +1,7 @@
 'use strict';
 (function () {
     var pm = createPageModule();
+    var esc = function (s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
     var NUM_CHANNELS = 16;
     var channelState = {};
     var groupAssignments = { a: new Set(), b: new Set() };

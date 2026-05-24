@@ -20,6 +20,7 @@
     let churchWidth = 10, churchLength = 20;
     let measurements = []; // { x, y, db, hz, status }
     let floorPlanImage = null;
+    let resizeObserver = null;
 
     function init() {
         canvas = _el('mapping-canvas');
@@ -27,7 +28,7 @@
         ctx = canvas.getContext('2d');
 
         // Observer para redimensionar o canvas se o container mudar (ex: abrir sidebar)
-        const resizeObserver = new ResizeObserver(() => _resizeCanvas());
+        resizeObserver = new ResizeObserver(() => _resizeCanvas());
         resizeObserver.observe(canvas.parentElement);
 
         _resizeCanvas();
@@ -63,6 +64,8 @@
                 }
             });
         }
+
+        return { resizeObserver, canvas };
     }
 
     function _resizeCanvas() {
@@ -267,8 +270,19 @@
         }
     }
 
+    function destroy() {
+        if (resizeObserver) {
+            resizeObserver.disconnect();
+            resizeObserver = null;
+        }
+        if (canvas) {
+            canvas.removeEventListener('click', _handleCanvasClick);
+        }
+    }
+
     window.SoundMasterMapping = { 
         init, 
+        destroy,
         updateDimensions,
         isInitialized: () => !!ctx
     };

@@ -8,7 +8,9 @@
 (function () {
     const pm = createPageModule();
 
+    const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     let auxNames = {};
+    const _auxDebounce = {};
     const defaultNames = ['Pastor', 'Líder', 'Vocal 1', 'Vocal 2', 'Piano', 'Bateria', 'Guit 1', 'Guit 2', 'Side L', 'Side R'];
 
     async function loadNames() {
@@ -34,7 +36,7 @@
             auxCard.className = 'bg-slate-900/60 border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col gap-6 min-w-[300px] min-h-[350px] flex-shrink-0 relative overflow-hidden';
             auxCard.innerHTML = `
                 <div class="flex items-center justify-between border-b border-white/5 pb-4">
-                    <input type="text" id="name-aux-${i}" value="${auxName}" 
+                    <input type="text" id="name-aux-${i}" value="${esc(auxName)}" 
                            class="bg-transparent text-sm font-black uppercase tracking-widest text-cyan-400 focus:outline-none focus:text-white transition-colors w-40">
                     <span class="px-2 py-1 bg-green-900/30 text-green-400 text-[8px] font-black rounded-md border border-green-500/20 uppercase">Post-Fader</span>
                 </div>
@@ -77,17 +79,20 @@
 
             const levelInput = pm._el(`aux-level-${i}`);
             if (levelInput) {
-                pm._on(levelInput, 'input', (e) => {
-                    const val = e.target.value / 100;
-                    if (window.SocketService) {
-                        window.SocketService.lockFader(`aux_${i}`, val);
-                    }
-                    MixerService.sendRaw(`SETD|a|${i - 1}|mix|${val}`);
+                pm._on(levelInput, 'pointerdown', (e) => {
+                    const val = Number(e.target.value) / 100;
+                    if (window.SocketService) SocketService.lockFader(`aux_${i}`, val);
                 });
-                pm._on(levelInput, 'change', () => {
-                    if (window.SocketService) {
-                        window.SocketService.unlockFader(`aux_${i}`);
-                    }
+                pm._on(levelInput, 'input', () => {
+                    // only update local UI — no socket emission
+                });
+                pm._on(levelInput, 'change', (e) => {
+                    const val = Number(e.target.value) / 100;
+                    MixerService.sendRaw(`SETD|a|${i - 1}|mix|${val}`);
+                    clearTimeout(_auxDebounce[i]);
+                    _auxDebounce[i] = setTimeout(() => {
+                        if (window.SocketService) SocketService.unlockFader(`aux_${i}`);
+                    }, 300);
                 });
             }
 

@@ -7,6 +7,7 @@
 
 (function () {
     const pm = createPageModule();
+    let _rt60Listener = null;
 
     async function loadConfig() {
         try {
@@ -58,20 +59,21 @@
         });
 
         // Listen for new RT60 results
-        this._rt60Listener = (e) => {
+        _rt60Listener = (e) => {
             const rtValEl = pm._el('home-rt60-val');
             if (rtValEl && e.detail && e.detail.rt60 !== undefined) {
                 rtValEl.innerText = `${e.detail.rt60.toFixed(2)}s`;
             }
         };
         if (window.parent && window.parent.document) {
-            window.parent.document.addEventListener('rt60-result', this._rt60Listener);
+            window.parent.document.addEventListener('rt60-result', _rt60Listener);
         }
     }
 
     function destroy() {
-        if (window.parent && window.parent.document && this._rt60Listener) {
-            window.parent.document.removeEventListener('rt60-result', this._rt60Listener);
+        if (window.parent && window.parent.document && _rt60Listener) {
+            window.parent.document.removeEventListener('rt60-result', _rt60Listener);
+            _rt60Listener = null;
         }
         pm.destroy();
     }

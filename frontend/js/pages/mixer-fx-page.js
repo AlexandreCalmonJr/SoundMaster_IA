@@ -8,7 +8,9 @@
 (function () {
     const pm = createPageModule();
 
+    const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const fxTypes = ['Reverb', 'Delay', 'Chorus', 'Room'];
+    const _fxDebounce = {};
 
     function renderFXEngines() {
         const container = pm._el('mixer-fx-container');
@@ -53,19 +55,22 @@
             // Bind Event Listeners
             const levelInput = pm._el(`fx-level-${i}`);
             if (levelInput) {
+                pm._on(levelInput, 'pointerdown', (e) => {
+                    const val = Number(e.target.value) / 100;
+                    if (window.SocketService) SocketService.lockFader(`fx_${i}`, val);
+                });
                 pm._on(levelInput, 'input', (e) => {
                     const val = e.target.value;
                     const valText = pm._el(`fx-val-${i}`);
                     if (valText) valText.innerText = val;
-                    if (window.SocketService) {
-                        window.SocketService.lockFader(`fx_${i}`, val / 100);
-                    }
-                    MixerService.sendRaw(`SETD|f|${i - 1}|mix|${val / 100}`);
                 });
-                pm._on(levelInput, 'change', () => {
-                    if (window.SocketService) {
-                        window.SocketService.unlockFader(`fx_${i}`);
-                    }
+                pm._on(levelInput, 'change', (e) => {
+                    const val = Number(e.target.value) / 100;
+                    MixerService.sendRaw(`SETD|f|${i - 1}|mix|${val}`);
+                    clearTimeout(_fxDebounce[i]);
+                    _fxDebounce[i] = setTimeout(() => {
+                        if (window.SocketService) SocketService.unlockFader(`fx_${i}`);
+                    }, 300);
                 });
             }
 

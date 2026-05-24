@@ -58,9 +58,10 @@
         ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(0, 0, w, h);
         if (!spectrumData || spectrumData.length === 0) return;
         var bars = spectrumData.length, barW = w / bars;
+        var lerp = function (a, b, t) { return Math.round(a + (b - a) * t); };
         for (var i = 0; i < bars; i++) {
             var db = spectrumData[i] || 0, barH = Math.max(2, ((db + 30) / 30) * h), x = i * barW;
-            var r = Math.round(pm._lerp(0, 8, i / bars)), g = Math.round(pm._lerp(100, 200, i / bars)), b = Math.round(pm._lerp(200, 80, i / bars));
+            var r = lerp(0, 8, i / bars), g = lerp(100, 200, i / bars), b = lerp(200, 80, i / bars);
             ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',0.9)';
             ctx.fillRect(x + 1, h - barH, barW - 2, barH);
         }

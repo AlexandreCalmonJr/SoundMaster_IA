@@ -290,6 +290,16 @@
             }, 300);
         });
 
+        els.masterSlider && els.masterSlider.addEventListener('pointercancel', () => {
+            clearTimeout(_masterDebounce);
+            if (window.SocketService) SocketService.unlockFader('master');
+        });
+
+        els.masterSlider && els.masterSlider.addEventListener('pointerleave', () => {
+            clearTimeout(_masterDebounce);
+            if (window.SocketService) SocketService.unlockFader('master');
+        });
+
         // Botões +1% / -1%
         els.masterDown && els.masterDown.addEventListener('click', function () {
             MixerService.adjustMasterLevel(-1);
