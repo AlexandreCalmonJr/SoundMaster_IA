@@ -17,6 +17,8 @@ const mixerGit = require('./mixer-git');
 const { createMixerActions } = require('./mixer-actions');
 const tunnelService = require('./tunnel-service');
 const Logger = require('./logger');
+const fs = require('fs');
+const multer = require('multer');
 
 function createAppServer({ app, rootDir, localIp, port, dbDir }) {
     const logger = Logger.getInstance(dbDir);
@@ -24,6 +26,12 @@ function createAppServer({ app, rootDir, localIp, port, dbDir }) {
     const server = http.createServer(expressApp);
     const PYTHON_PORT = parseInt(process.env.PYTHON_PORT || '3002', 10);
     const AI_API_KEY = process.env.AI_API_KEY;
+
+    const uploadsDir = path.join(dbDir, 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    const upload = multer({ dest: uploadsDir });
 
     const ALLOWED_ORIGINS = [
         "http://localhost:3000",
@@ -50,8 +58,11 @@ function createAppServer({ app, rootDir, localIp, port, dbDir }) {
     });
     expressApp.use('/api/', apiLimiter);
 
-    // Rota raiz → auth.html (gate de autenticação standalone)
+    // Rota raiz → auth.html (gate de autenticação standalone ou JSON de status para mobile)
     expressApp.get('/', (req, res) => {
+        if (req.headers['accept'] && req.headers['accept'].includes('application/json')) {
+            return res.json({ status: "online", version: "1.0.0", message: "SoundMaster Pro Backend" });
+        }
         res.sendFile(path.join(rootDir, 'frontend', 'auth.html'));
     });
 
@@ -244,6 +255,130 @@ function createAppServer({ app, rootDir, localIp, port, dbDir }) {
         }
     });
 
+    // Rotas de diagnóstico de Status para o aplicativo Android
+    expressApp.get('/api/status', (req, res) => {
+        res.json({ status: "online", version: "1.0.0", message: "SoundMaster Pro Backend" });
+    });
+
+    expressApp.get('/api/health', (req, res) => {
+        res.json({ status: "online", message: "Healthy" });
+    });
+
+    // Rota de Processamento de Áudio
+    expressApp.post('/api/audio/process', upload.single('file'), async (req, res) => {
+        if (!req.file) {
+            return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+        }
+        try {
+            const { effect, intensity } = req.body;
+            
+            const formData = new FormData();
+            const blob = new Blob([fs.readFileSync(req.file.path)], { type: req.file.mimetype });
+            formData.append('file', blob, req.file.originalname);
+            formData.append('effect', effect || 'denoise');
+            if (intensity !== undefined) {
+                formData.append('intensity', intensity.toString());
+            }
+
+            const headers = {};
+            if (AI_API_KEY) headers['X-API-Key'] = AI_API_KEY;
+
+            const response = await fetch(`http://127.0.0.1:${PYTHON_PORT}/process`, {
+                method: 'POST',
+                headers,
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`Python server error (${response.status}): ${errText}`);
+            }
+
+            res.setHeader('Content-Type', 'audio/wav');
+            const arrayBuffer = await response.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            res.send(buffer);
+        } catch (error) {
+            logger.error('appserver', 'AUDIO_PROCESS_ERROR', { error: error.message });
+            res.status(500).json({ error: error.message });
+        } finally {
+            fs.unlink(req.file.path, () => {});
+        }
+    });
+
+    // Rota de Realce de Áudio (Enhance)
+    expressApp.post('/api/audio/enhance', upload.single('file'), async (req, res) => {
+        if (!req.file) {
+            return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+        }
+        try {
+            const { effect } = req.body;
+            
+            const formData = new FormData();
+            const blob = new Blob([fs.readFileSync(req.file.path)], { type: req.file.mimetype });
+            formData.append('file', blob, req.file.originalname);
+            formData.append('effect', effect || 'denoise');
+
+            const headers = {};
+            if (AI_API_KEY) headers['X-API-Key'] = AI_API_KEY;
+
+            const response = await fetch(`http://127.0.0.1:${PYTHON_PORT}/enhance`, {
+                method: 'POST',
+                headers,
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`Python server error (${response.status}): ${errText}`);
+            }
+
+            res.setHeader('Content-Type', 'audio/wav');
+            const arrayBuffer = await response.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            res.send(buffer);
+        } catch (error) {
+            logger.error('appserver', 'AUDIO_ENHANCE_ERROR', { error: error.message });
+            res.status(500).json({ error: error.message });
+        } finally {
+            fs.unlink(req.file.path, () => {});
+        }
+    });
+
+    // Rota de Transcrição de Áudio (Transcribe)
+    expressApp.post('/api/audio/transcribe', upload.single('file'), async (req, res) => {
+        if (!req.file) {
+            return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+        }
+        try {
+            const formData = new FormData();
+            const blob = new Blob([fs.readFileSync(req.file.path)], { type: req.file.mimetype });
+            formData.append('file', blob, req.file.originalname);
+
+            const headers = {};
+            if (AI_API_KEY) headers['X-API-Key'] = AI_API_KEY;
+
+            const response = await fetch(`http://127.0.0.1:${PYTHON_PORT}/transcribe`, {
+                method: 'POST',
+                headers,
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`Python server error (${response.status}): ${errText}`);
+            }
+
+            const data = await response.json();
+            res.json(data);
+        } catch (error) {
+            logger.error('appserver', 'AUDIO_TRANSCRIBE_ERROR', { error: error.message });
+            res.status(500).json({ error: error.message });
+        } finally {
+            fs.unlink(req.file.path, () => {});
+        }
+    });
+
 
 
     expressApp.post('/api/acoustic_analysis', async (req, res) => {
@@ -314,6 +449,29 @@ function createAppServer({ app, rootDir, localIp, port, dbDir }) {
             });
         } catch (error) {
             res.status(500).json({ error: 'Falha ao salvar nomes' });
+        }
+    });
+
+    expressApp.post('/api/mixer/command', express.json(), (req, res) => {
+        try {
+            const cmd = req.body;
+            const actions = createMixerActions(() => mixerSingleton.getMixer());
+            const result = actions.executeMixerCommand(cmd);
+            const socketIo = mixerSingleton.getIo();
+            if (socketIo) {
+                if (cmd.action === 'set_master_level' || cmd.action === 'master_level') {
+                    socketIo.emit('set_master_level', { level: cmd.level });
+                } else if (cmd.action === 'channel_fader' || cmd.action === 'channel_level' || cmd.action === 'set_channel_level') {
+                    socketIo.emit('set_channel_level', { channel: cmd.channel || cmd.ch || 1, level: cmd.level });
+                } else if (cmd.action === 'channel_mute') {
+                    socketIo.emit('set_channel_mute', { channel: cmd.channel || cmd.ch || 1, mute: cmd.enabled });
+                } else if (cmd.action === 'master_mute') {
+                    socketIo.emit('set_master_mute', { mute: cmd.enabled });
+                }
+            }
+            res.json({ success: true, result });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
         }
     });
 
