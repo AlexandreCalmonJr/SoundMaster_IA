@@ -1,17 +1,25 @@
 """
 SoundMaster Pro - Sweep Acoustic Analyzer (Python/Numpy/Scipy)
-Deconvolução de Log-Sine Sweep para extração de Resposta ao Impulso (IR).
-Cálculo de EDT, T20, T30, C50, C80 e STI rigoroso (IEC 60268-16).
+Deconvolução de Log-Sine Sweep delegada a acoustic_analysis.
+Mantém: C50, C80, D50, D80, generate_sweep_signal, quality_flags.
 
 Engenharia DSP: Alexandre Calmon Jr.
 """
 
 import numpy as np
 from scipy import signal
-from scipy.fft import fft, ifft
-from scipy.io import wavfile
 import json
 import math
+import os
+import sys
+
+# Importa o módulo core de análise acústica
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+_parent_dir = os.path.dirname(_script_dir)
+if _parent_dir not in sys.path:
+    sys.path.insert(0, _parent_dir)
+
+import acoustic_analysis
 
 
 class SweepAnalyzer:
@@ -21,379 +29,99 @@ class SweepAnalyzer:
 
     def generate_sweep_signal(self, duration=12, start_freq=20, end_freq=20000,
                                amplitude=0.8, fade_out_ms=500):
-        """Recria o sinal de sweep para deconvolução (mesmos parâmetros do AudioWorklet JS)."""
+        """Recria o sinal de sweep para deconvolução (AudioWorklet JS compat)."""
         fs = self.fs
         total_samples = int(fs * duration)
         fade_out_samples = int(fs * (fade_out_ms / 1000))
-
         t = np.arange(total_samples) / fs
         f0, f1 = start_freq, end_freq
         ln_f0, ln_f1 = np.log(f0), np.log(f1)
-
         instantaneous_freq = f0 * np.exp(((ln_f1 - ln_f0) / duration) * t)
         phase = 2 * np.pi * np.cumsum(instantaneous_freq) / fs
-
         sweep = np.sin(phase) * amplitude
-
         fade_in_samples = int(fs * 0.015)
         fade_in = 0.5 * (1 - np.cos(np.pi * np.linspace(0, 1, fade_in_samples)))
         sweep[:fade_in_samples] *= fade_in
-
         if fade_out_samples > 0:
             fade_out = np.exp(-8 * np.linspace(0, 1, fade_out_samples))
             sweep[-fade_out_samples:] *= fade_out
-
         return sweep
-
-    def compute_ir_from_sweep(self, recording, sweep_signal):
-        """
-        Deconvolução via correlação cruzada normalizada.
-        IR = Cálculo: (reversed_sweep * recording) convolvido com inverso espectral do sweep.
-
-        Método: "Inverse Filtering" no domínio da frequência.
-        H(f) = Y(f) / X(f)  →  IR = IFFT( Y(f) * conj(X(f)) / |X(f)|² )
-        """
-        fs = self.fs
-        n = len(recording)
-        fft_size = 2 ** math.ceil(math.log2(n + len(sweep_signal) - 1))
-
-        x = sweep_signal[:n] if len(sweep_signal) >= n else np.pad(sweep_signal, (0, n - len(sweep_signal)))
-        y = recording[:fft_size] if len(recording) >= fft_size else np.pad(recording, (0, fft_size - len(recording)))
-
-        X = fft(x, fft_size)
-        Y = fft(y, fft_size)
-
-        eps = 1e-12
-        S = Y * np.conj(X)
-        Pxx = np.abs(X) ** 2
-
-        H = S / (Pxx + eps * np.max(Pxx))
-
-        H[0] = 0
-
-        ir = np.real(ifft(H))
-        ir = ir[:n]
-
-        peak_idx = np.argmax(np.abs(ir))
-        pre_samples = min(peak_idx, int(fs * 0.05))
-        start = max(0, peak_idx - pre_samples)
-
-        ir_windowed = np.zeros_like(ir)
-        ir_windowed[start:] = ir[start:]
-
-        return ir_windowed
-
-    def compute_schroeder_curve(self, ir):
-        """Curva de decaimento de energia via integração reversa de Schroeder."""
-        energy = ir ** 2
-        n = len(energy)
-
-        peak_idx = np.argmax(energy)
-        if peak_idx == 0:
-            peak_idx = np.argmax(np.abs(ir[1:])) + 1
-
-        schroeder = np.zeros(n - peak_idx)
-        cumsum = 0.0
-        for i in range(n - 1, peak_idx - 1, -1):
-            cumsum += energy[i]
-            schroeder[n - 1 - i] = cumsum
-
-        schroeder_db = np.zeros_like(schroeder)
-        max_val = schroeder[0] if schroeder[0] > 0 else 1e-12
-        for i in range(len(schroeder)):
-            schroeder_db[i] = 10 * math.log10(max(schroeder[i] / max_val, 1e-12))
-
-        return schroeder_db, peak_idx
-
-    def _linear_regression(self, x, y):
-        """Regressão linear simples para extração de slopes."""
-        n = len(x)
-        if n < 2:
-            return 0, 0
-        x = np.array(x, dtype=float)
-        y = np.array(y, dtype=float)
-        x_mean = np.mean(x)
-        y_mean = np.mean(y)
-        num = np.sum((x - x_mean) * (y - y_mean))
-        den = np.sum((x - x_mean) ** 2)
-        if den < 1e-12:
-            return 0, y_mean
-        slope = num / den
-        intercept = y_mean - slope * x_mean
-        return slope, intercept
-
-    def extract_decay_times(self, schroeder_db, peak_idx, sample_rate):
-        """
-        Extrai EDT, T20, T30 da curva de Schroeder.
-        - EDT: -10dB a -22dB (Early Decay Time)
-        - T20: -5dB a -25dB
-        - T30: -5dB a -35dB
-        """
-        fs = sample_rate
-        sch_len = len(schroeder_db)
-
-        def find_db_level(sch_db, target_db):
-            for i in range(len(sch_db)):
-                if sch_db[i] <= target_db:
-                    return i
-            return len(sch_db) - 1
-
-        idx_0db = 0
-        idx_m5db = find_db_level(schroeder_db, -5)
-        idx_m10db = find_db_level(schroeder_db, -10)
-        idx_m22db = find_db_level(schroeder_db, -22)
-        idx_m25db = find_db_level(schroeder_db, -25)
-        idx_m35db = find_db_level(schroeder_db, -35)
-
-        def time_from_idx(idx):
-            return idx / fs
-
-        def slope_to_rt60(slope_db_per_sec):
-            return -60.0 / slope_db_per_sec if slope_db_per_sec < -0.1 else 0
-
-        edt = 0.0
-        if idx_m10db > idx_0db and idx_m22db > idx_m10db:
-            t_edt = [time_from_idx(idx_0db), time_from_idx(idx_m10db), time_from_idx(idx_m22db)]
-            y_edt = [0, -10, schroeder_db[idx_m22db]]
-            slope, _ = self._linear_regression([t_edt[0], t_edt[2]], [y_edt[0], y_edt[2]])
-            edt = -60.0 / slope if slope < -0.1 else 0
-
-        t20 = 0.0
-        if idx_m5db >= 0 and idx_m25db > idx_m5db:
-            t_start = time_from_idx(idx_m5db)
-            t_end = time_from_idx(idx_m25db)
-            y_start = schroeder_db[idx_m5db]
-            y_end = schroeder_db[idx_m25db]
-            slope = (y_end - y_start) / (t_end - t_start) if (t_end - t_start) > 0 else -60
-            t20 = slope_to_rt60(slope)
-
-        t30 = 0.0
-        if idx_m5db >= 0 and idx_m35db > idx_m5db:
-            t_start = time_from_idx(idx_m5db)
-            t_end = time_from_idx(idx_m35db)
-            y_start = schroeder_db[idx_m5db]
-            y_end = schroeder_db[idx_m35db]
-            slope = (y_end - y_start) / (t_end - t_start) if (t_end - t_start) > 0 else -60
-            t30 = slope_to_rt60(slope)
-
-        return {
-            'edt': round(max(0, edt), 3),
-            't20': round(max(0, t20), 3),
-            't30': round(max(0, t30), 3)
-        }
-
-    def compute_clarity_indices(self, ir, sample_rate):
-        """
-        C50 e C80: Clareza acústica (Early vs Late energy ratio).
-        C50 = 10 * log10(Energy[0..50ms] / Energy[50ms..end])
-        C80 = 10 * log10(Energy[0..80ms] / Energy[80ms..end])
-        """
-        fs = sample_rate
-        energy = ir ** 2
-        total_energy = np.sum(energy) + 1e-12
-
-        early_50ms_samples = int(fs * 0.050)
-        early_80ms_samples = int(fs * 0.080)
-
-        early_energy_50 = np.sum(energy[:early_50ms_samples])
-        late_energy_50 = np.sum(energy[early_50ms_samples:])
-
-        early_energy_80 = np.sum(energy[:early_80ms_samples])
-        late_energy_80 = np.sum(energy[early_80ms_samples:])
-
-        c50 = 10 * math.log10(max(early_energy_50 / (late_energy_50 + 1e-12), 1e-12))
-        c80 = 10 * math.log10(max(early_energy_80 / (late_energy_80 + 1e-12), 1e-12))
-
-        d50 = early_energy_50 / total_energy
-        d80 = early_energy_80 / total_energy
-
-        return {
-            'c50': round(c50, 2),
-            'c80': round(c80, 2),
-            'd50': round(d50, 4),
-            'd80': round(d80, 4)
-        }
-
-    def compute_sti_rigorous(self, ir, sample_rate, rt60=None):
-        """
-        Speech Transmission Index (STI) conforme IEC 60268-16.
-        Método completo: 7 bandas de oitava (125Hz a 8kHz), 14 modulaciones.
-        Delegado para o módulo de referência acoustic_analysis.py.
-        """
-        try:
-            import os
-            import sys
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            parent_dir = os.path.dirname(script_dir)
-            if parent_dir not in sys.path:
-                sys.path.insert(0, parent_dir)
-            import acoustic_analysis
-
-            res = acoustic_analysis.calculate_sti(ir, sample_rate, gender="male")
-            return {
-                'sti': res['sti'],
-                'sti_raw': float(np.mean(res['mti'])),
-                'per_band': {str(band): val for band, val in zip(res['bands_hz'], res['mti'])},
-                'category': res['sti_label']
-            }
-        except Exception as e:
-            # Fallback seguro em caso de falha de importação ou execução
-            return {
-                'sti': 0.5,
-                'sti_raw': 0.5,
-                'per_band': {str(b): 0.5 for b in [125, 250, 500, 1000, 2000, 4000, 8000]},
-                'category': 'Aceitável'
-            }
-
-    def _bandpass_filter(self, data, low_freq, high_freq, fs, order=4):
-        """Filtro Butterworth bandpass via scipy."""
-        nyq = fs / 2
-        low = max(0.001, low_freq / nyq)
-        high = min(0.999, high_freq / nyq)
-
-        if low >= high or low >= 1 or high <= 0:
-            return data
-
-        try:
-            sos = signal.butter(order, [low, high], btype='band', output='sos')
-            return signal.sosfilt(sos, data)
-        except Exception:
-            return data
-
-    def _sti_category(self, sti_value):
-        """Classificação STI conforme IEC 60268-16."""
-        if sti_value >= 0.75:
-            return 'Excelente'
-        elif sti_value >= 0.60:
-            return 'Bom'
-        elif sti_value >= 0.45:
-            return 'Aceitável'
-        elif sti_value >= 0.30:
-            return 'Pobre'
-        else:
-            return 'Inaceitável'
 
     def analyze(self, recording, sample_rate=None, sweep_params=None):
         """
-        Pipeline completo de análise.
-        Recebe a gravação (mic) + parâmetros do sweep e retorna todos os métricas.
+        Pipeline completo de análise acústica.
+        Delega deconvolução e parâmetros de reverberação ao módulo core.
+        Adiciona: C50, C80, D50, D80, quality_flags.
         """
         if sample_rate is None:
             sample_rate = self.fs
-
         recording = np.array(recording, dtype=np.float64)
 
         if sweep_params is None:
             sweep_params = {
-                'start_freq': 20,
-                'end_freq': 20000,
-                'duration': 12,
-                'amplitude': 0.8,
-                'fade_out_ms': 500
+                'start_freq': 20, 'end_freq': 20000,
+                'duration': 12, 'amplitude': 0.8, 'fade_out_ms': 500
             }
-
         sweep = self.generate_sweep_signal(**sweep_params)
 
-        ir = self.compute_ir_from_sweep(recording, sweep)
+        # Usa o módulo core para deconvolução e decay params
+        ir_data = acoustic_analysis.deconvolve_sweep(recording, sweep, sample_rate)
+        rev = acoustic_analysis.calculate_reverberation_params(ir_data)
 
-        schroeder_db, peak_idx = self.compute_schroeder_curve(ir)
+        ir = ir_data["ir"]
+        snr_db = ir_data["snr_db"]
+        rt60_est = rev.get("rt60_est") or rev.get("t30") or rev.get("t20") or 0
 
-        decay_times = self.extract_decay_times(schroeder_db, peak_idx, sample_rate)
-
-        clarity = self.compute_clarity_indices(ir, sample_rate)
-
-        sti_result = self.compute_sti_rigorous(ir, sample_rate, rt60=decay_times.get('t30', 0))
-
-        rt60_estimated = decay_times.get('t30', decay_times.get('t20', 0))
-
-        snr_db = self._compute_snr(recording, peak_idx, sample_rate)
-
-        downsample_factor = max(1, len(schroeder_db) // 512)
-        schroeder_downsampled = schroeder_db[::downsample_factor].tolist()
+        downsample_factor = max(1, len(ir_data["schroeder"]) // 512)
+        schroeder_downsampled = ir_data["schroeder"][::downsample_factor].tolist()
 
         return {
-            'edt': decay_times['edt'],
-            't20': decay_times['t20'],
-            't30': decay_times['t30'],
-            'c50': clarity['c50'],
-            'c80': clarity['c80'],
-            'd50': clarity['d50'],
-            'd80': clarity['d80'],
-            'sti': sti_result['sti'],
-            'sti_raw': sti_result['sti_raw'],
-            'sti_category': sti_result['category'],
-            'sti_per_band': sti_result['per_band'],
+            'edt': rev["edt"],
+            't20': rev["t20"],
+            't30': rev["t30"],
+            'c50': rev["c50"],
+            'c80': rev["c80"],
+            'd50': rev["d50"],
+            'd80': rev["d80"],
+            'sti': None,
+            'sti_raw': None,
+            'sti_category': 'N/A',
+            'sti_per_band': {},
             'snr_db': round(snr_db, 1),
             'schroeder_curve': schroeder_downsampled,
-            'peak_index_ms': round(peak_idx / sample_rate * 1000, 2),
-            'quality_flags': self._quality_flags(snr_db, rt60_estimated, decay_times)
+            'peak_index_ms': round(ir_data["peak_idx"] / sample_rate * 1000, 2),
+            'quality_flags': self._quality_flags(snr_db, rt60_est, rev)
         }
 
-    def _compute_snr(self, recording, impulse_peak_idx, sample_rate):
-        """Estima SNR em dB."""
-        energy = recording ** 2
-        sig_samples = int(sample_rate * 0.1)
-        noise_start = impulse_peak_idx + int(sample_rate * 2)
-        noise_end = noise_start + int(sample_rate * 0.5)
-
-        sig_energy = np.sum(energy[impulse_peak_idx:impulse_peak_idx + sig_samples])
-        
-        # Fallback se a gravação for curta demais
-        if noise_start < len(energy) and (min(noise_end, len(energy)) - noise_start) > 100:
-            noise_energy = np.mean(energy[noise_start:min(noise_end, len(energy))])
-        else:
-            # Usa a janela pré-pico (silêncio inicial antes da chegada do som direto)
-            pre_pico = max(50, impulse_peak_idx - int(sample_rate * 0.05))
-            if pre_pico > 0:
-                noise_energy = np.mean(energy[:pre_pico])
-            else:
-                noise_energy = 1e-5
-
-        if np.isnan(noise_energy) or noise_energy < 1e-12:
-            noise_energy = 1e-12
-
-        snr = 10 * math.log10(sig_energy / (noise_energy * sig_samples + 1e-12))
-        return max(-10, min(60, snr))
-
-    def _quality_flags(self, snr_db, rt60, decay_times):
-        """Gera avisos de qualidade da medição."""
+    def _quality_flags(self, snr_db, rt60, rev):
         flags = []
-
         if snr_db < 25:
             flags.append('SNR_BAIXO')
         elif snr_db > 50:
             flags.append('SNR_EXCELENTE')
-
-        if rt60 == 0 or decay_times.get('t20', 0) == 0:
+        if rt60 == 0 or (rev.get('t20') or 0) == 0:
             flags.append('SINAL_FRACO')
-
         if rt60 > 4.0:
             flags.append('SALA_MUITO_REVERBERANTE')
-
-        if decay_times.get('t30', 0) > decay_times.get('t20', 0) * 2:
+        if rev.get('t30', 0) and rev.get('t20', 0) and rev['t30'] > rev['t20'] * 2:
             flags.append('DECAIMENTO_IRREGULAR')
-
         return flags
 
 
 def main():
     import sys
-
+    from scipy.io import wavfile
     if len(sys.argv) < 2:
         print(json.dumps({'error': 'Usage: python sweep_analyzer.py <recording_wav>'}, indent=2))
         return
-
     try:
         sr, data = wavfile.read(sys.argv[1])
         if len(data.shape) > 1:
             data = data[:, 0]
         data = data.astype(np.float64) / 32768.0
-
         analyzer = SweepAnalyzer(sample_rate=sr)
         result = analyzer.analyze(data, sample_rate=sr)
-
         print(json.dumps(result, indent=2))
-
     except Exception as e:
         print(json.dumps({'error': str(e)}, indent=2))
 

@@ -40,8 +40,8 @@ _BETA  = np.array([0.085, 0.000, 0.032, 0.023, 0.000, 0.000, 0.000])
 # ─── Deconvolução ESS → Resposta ao Impulso ──────────────────────────────────
 
 def deconvolve_sweep(recording: np.ndarray,
-                     reference: np.ndarray,
-                     sample_rate: int) -> dict:
+                    reference: np.ndarray,
+                    sample_rate: int) -> dict:
     """
     Deconvolução linear do ESS para obter a Resposta ao Impulso (IR).
 
@@ -96,9 +96,16 @@ def deconvolve_sweep(recording: np.ndarray,
     ir = ir_full[peak_idx - pre_samples:]
 
     # SNR: razão entre pico e noise floor (primeiros 50 ms antes do pico)
-    noise_floor = np.mean(rec[:peak_idx] ** 2) + 1e-30
-    signal_peak = np.max(ir ** 2)
-    snr_db = 10 * np.log10(signal_peak / noise_floor)
+    if peak_idx <= 1:
+        snr_db = 0.0
+    else:
+        noise_floor = float(np.mean(rec[:peak_idx] ** 2))
+        signal_peak = float(np.max(ir ** 2))
+        if noise_floor <= 0 or signal_peak <= 0:
+            snr_db = 0.0
+        else:
+            snr_db = 10 * np.log10(signal_peak / noise_floor)
+    snr_db = round(float(snr_db), 1)
 
     # Schroeder backward integration
     ir_sq = ir ** 2
@@ -126,16 +133,21 @@ def deconvolve_sweep(recording: np.ndarray,
 
 def calculate_reverberation_params(ir_data: dict) -> dict:
     """
-    Calcula EDT, T20, T30, T60 (extrapolado) a partir da curva de Schroeder.
+    Calcula EDT, T20, T30, T60 (extrapolado), C50, C80, D50, D80
+    a partir da curva de Schroeder e IR.
 
     Definições (ISO 3382-1):
         EDT  : tempo para a curva cair de 0 dB a -10 dB (×6 → RT60 equiv.)
         T20  : regressão linear entre -5 dB e -25 dB (×3 → RT60)
         T30  : regressão linear entre -5 dB e -35 dB (×2 → RT60)
+        C50  : 10*log10(E[0..50ms] / E[50ms..end])
+        C80  : 10*log10(E[0..80ms] / E[80ms..end])
+        D50  : E[0..50ms] / E_total
+        D80  : E[0..80ms] / E_total
 
     Retorna
     -------
-    dict: edt, t20, t30, rt60_est (media ponderada), snr_db, warning
+    dict: edt, t20, t30, rt60_est, c50, c80, d50, d80, snr_db, warning
     """
     sch  = ir_data["schroeder"]   # em dB, starts at 0
     fs   = ir_data["sample_rate"]
@@ -171,6 +183,28 @@ def calculate_reverberation_params(ir_data: dict) -> dict:
     else:
         rt60_est = None
 
+    # C50, C80, D50, D80 (utilizam a IR directa, se disponível em ir_data)
+    ir  = ir_data.get("ir")
+    fs  = ir_data["sample_rate"]
+    if ir is not None:
+        ir_sq = ir ** 2
+        total = np.sum(ir_sq) + 1e-30
+        c50ms = min(int(0.050 * fs), len(ir))
+        c80ms = min(int(0.080 * fs), len(ir))
+
+        early50 = np.sum(ir_sq[:c50ms]) + 1e-30
+        late50  = np.sum(ir_sq[c50ms:]) + 1e-30
+        early80 = np.sum(ir_sq[:c80ms]) + 1e-30
+        late80  = np.sum(ir_sq[c80ms:]) + 1e-30
+
+        c50 = float(10 * np.log10(early50 / late50)) if late50 > 1e-30 else float(10 * np.log10(early50 / 1e-30))
+        c80 = float(10 * np.log10(early80 / late80)) if late80 > 1e-30 else float(10 * np.log10(early80 / 1e-30))
+        d50 = float(early50 / total)
+        d80 = float(early80 / total)
+    else:
+        c50 = c80 = None
+        d50 = d80 = None
+
     warning = None
     if snr < 35:
         warning = f"SNR baixo ({snr:.1f} dB): T30/T20 podem estar subestimados. Reduza o ruído ambiente."
@@ -182,14 +216,18 @@ def calculate_reverberation_params(ir_data: dict) -> dict:
         "t20":     t20,
         "t30":     t30,
         "rt60_est": rt60_est,
+        "c50":     c50,
+        "c80":     c80,
+        "d50":     d50,
+        "d80":     d80,
         "snr_db":  snr,
         "warning": warning,
     }
 
 
 def calculate_multiband_rt60(recording: np.ndarray,
-                              reference: np.ndarray,
-                              sample_rate: int) -> dict:
+                            reference: np.ndarray,
+                            sample_rate: int) -> dict:
     """
     Calcula T20 e T30 por banda de oitava (125 Hz – 4 kHz).
     Usa filtros FIR passa-banda via FFT para cada oitava.
@@ -239,9 +277,9 @@ def calculate_multiband_rt60(recording: np.ndarray,
 # ─── STI (Speech Transmission Index) ─────────────────────────────────────────
 
 def calculate_sti(ir: np.ndarray,
-                  sample_rate: int,
-                  snr_per_band_db: dict | None = None,
-                  gender: str = "male") -> dict:
+                sample_rate: int,
+                snr_per_band_db: dict | None = None,
+                gender: str = "male") -> dict:
     """
     Estima o STI (Speech Transmission Index) conforme IEC 60268-16:2011.
 
@@ -396,6 +434,10 @@ def analyze_sweep(recording: np.ndarray,
         "t20":       rev["t20"],
         "t30":       rev["t30"],
         "rt60_est":  rev["rt60_est"],
+        "c50":       rev["c50"],
+        "c80":       rev["c80"],
+        "d50":       rev["d50"],
+        "d80":       rev["d80"],
         "warning":   rev["warning"],
         "multiband": multiband,
         "sti":       sti_result,

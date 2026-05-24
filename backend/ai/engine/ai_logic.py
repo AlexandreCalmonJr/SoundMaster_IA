@@ -62,6 +62,10 @@ class LocalLLM:
                 self.enabled = True
                 print(f"[AI Engine] Modelo Local carregado: {model_path}")
                 print("[AI Engine] READY")
+            except ImportError:
+                print("[AI Engine] llama-cpp-python não instalado. Chat IA offline.")
+                print("[AI Engine] Para ativar: pip install llama-cpp-python")
+                print("[AI Engine] Nota: no Windows, instale primeiro: https://github.com/abetlen/llama-cpp-python#installation")
             except Exception as e:
                 print(f"[AI Engine] Falha ao carregar modelo: {e}")
 
@@ -151,7 +155,7 @@ class AIEngine:
         snr_calc = max(5, -18 - rms_noise) # SNR = Sinal - Ruído
         sti = AcousticProcessor.estimate_sti(rt60_avg, snr=snr_calc)
         
-        room_vol = 900 
+        room_vol = self._safe_float(analysis.get('room_vol', analysis.get('volume', 900)), 900)
         dc = AcousticProcessor.calculate_critical_distance(room_vol, rt60_avg)
         
         patterns = AcousticProcessor.diagnose_patterns(self.session.analyses_history)
