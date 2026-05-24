@@ -92,9 +92,27 @@
             return confirm(message);
         };
 
-        // Proxy para AppStore: cross-frame sync via postMessage
-        // - setState() no iframe → postMessage para o parent → parent aplica e notifica todos
-        // - setState() no parent → postMessage para o iframe → iframe aplica localmente
+        // Estado local no iframe sincronizado com o parent
+        const _localState = { ...window.parent.AppStore.getState() };
+        const _localListeners = {};
+
+        // Escutar atualizações do parent e replicar localmente
+        window.addEventListener('message', function (e) {
+            if (e.data && e.data.type === 'APPSTORE_UPDATE') {
+                Object.assign(_localState, e.data.patch);
+                e.data.keys.forEach(function (key) {
+                    if (_localListeners[key]) {
+                        _localListeners[key].forEach(function (fn) {
+                            try { fn(_localState[key], _localState); } catch (err) {
+                                console.error('[PageBridge] Erro no subscriber local de "' + key + '":', err);
+                            }
+                        });
+                    }
+                });
+            }
+        });
+
+        // Proxy para AppStore: cross-frame sync via postMessage sem reter referências de callbacks
         Object.defineProperty(window, 'AppStore', {
             get: () => {
                 const parentStore = window.parent.AppStore;
@@ -102,17 +120,18 @@
 
                 return {
                     subscribe: function (key, fn) {
-                        // Subscreve no parent diretamente (o parent já notifica via postMessage)
-                        return parentStore.subscribe(key, fn);
+                        if (!_localListeners[key]) _localListeners[key] = [];
+                        _localListeners[key].push(fn);
+                        return function unsubscribe() {
+                            _localListeners[key] = _localListeners[key].filter(function (f) { return f !== fn; });
+                        };
                     },
                     setState: function (patch) {
-                        // Envia para o parent aplicar
+                        // Envia para o parent aplicar e disparar APPSTORE_UPDATE de volta
                         window.parent.postMessage({ type: 'APPSTORE_PATCH', patch: patch }, '*');
-                        // Aplica localmente também para reatividade imediata
-                        parentStore.setState(patch);
                     },
                     getState: function () {
-                        return parentStore.getState();
+                        return _localState;
                     },
                     addLog: function (text) {
                         parentStore.addLog(text);
@@ -124,18 +143,6 @@
             },
             configurable: true,
             enumerable: true
-        });
-
-        // Escutar atualizações do parent e replicar localmente
-        window.addEventListener('message', function (e) {
-            if (e.data && e.data.type === 'APPSTORE_UPDATE') {
-                const parentStore = window.parent.AppStore;
-                if (parentStore) {
-                    // O parentStore setState já notifica subscribers locais via message
-                    // mas precisamos garantir que o estado interno do parent foi atualizado
-                    // O parent já fez setState, então os subscribers locais já foram notificados
-                }
-            }
         });
     }
 })();

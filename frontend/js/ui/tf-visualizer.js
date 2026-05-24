@@ -259,6 +259,11 @@
     }
 
     function drawTransferFunction(magnitude, phase, coherence, meta = {}) {
+        magCanvas = _el('tf-magnitude-canvas');
+        phaseCanvas = _el('tf-phase-canvas');
+        if (!magCanvas || !phaseCanvas) return;
+        magCtx = magCanvas.getContext('2d');
+        phaseCtx = phaseCanvas.getContext('2d');
         if (!magCtx || !phaseCtx || !magnitude || !phase) return;
 
         const w = magCanvas.width;

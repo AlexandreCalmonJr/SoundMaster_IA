@@ -7,6 +7,7 @@
         }
         return document.getElementById(id);
     }
+
     function initEqGuide() {
         const eqSelect = _el('eq-instrument-select');
         const eqDisplay = _el('eq-data-display');
@@ -85,13 +86,19 @@
         // Handler para o Benchmarking
         if (btnRefreshBench) {
             btnRefreshBench.addEventListener('click', () => {
-                const emptyEl = _el('bench-empty-rt60');
-                const fullEl = _el('bench-full-rt60');
-                
-                if (emptyEl) emptyEl.innerText = '1.82s';
-                if (fullEl) fullEl.innerText = '1.45s';
-                
-                alert('Relatório de Benchmarking atualizado com base no histórico de medições.');
+                if (window.SocketService) {
+                    window.SocketService.emit('get_acoustic_history');
+                    const emptyEl = _el('bench-empty-rt60');
+                    const fullEl = _el('bench-full-rt60');
+                    if (emptyEl) emptyEl.classList.add('animate-pulse');
+                    if (fullEl) fullEl.classList.add('animate-pulse');
+                    setTimeout(() => {
+                        if (emptyEl) emptyEl.classList.remove('animate-pulse');
+                        if (fullEl) fullEl.classList.remove('animate-pulse');
+                    }, 1000);
+                } else {
+                    alert('SocketService não disponível.');
+                }
             });
         }
 

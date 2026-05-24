@@ -39,8 +39,8 @@ window.createPageModule = function () {
     function _toggleClasses(id, addCls, removeCls) {
         var el = _el(id);
         if (!el) return;
-        if (addCls) el.classList.add.apply(el.classList, Array.isArray(addCls) ? addCls : [addCls]);
-        if (removeCls) el.classList.remove.apply(el.classList, Array.isArray(removeCls) ? removeCls : [removeCls]);
+        if (addCls) el.classList.add(...(Array.isArray(addCls) ? addCls : [addCls]));
+        if (removeCls) el.classList.remove(...(Array.isArray(removeCls) ? removeCls : [removeCls]));
     }
 
     function _call(serviceName, method) {

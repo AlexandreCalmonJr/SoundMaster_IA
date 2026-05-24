@@ -565,6 +565,7 @@
         if (waterfallCanvasEl) waterfallCtx = waterfallCanvasEl.getContext('2d');
 
         _resizeCanvases();
+        window.addEventListener('resize', _resizeCanvases);
 
         // Inicializa serviços de controle modulares
         if (window.FeedbackDetectorModule) window.FeedbackDetectorModule.init();

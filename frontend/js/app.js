@@ -92,12 +92,12 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     function updateUserUI() {
-        var userInfo = document.getElementById('rail-user-info');
-        var usernameEl = document.getElementById('rail-username');
+        const userInfo = document.getElementById('rail-user-info');
+        const usernameEl = document.getElementById('rail-username');
         if (!userInfo || !usernameEl) return;
 
         if (window.AuthService && AuthService.isAuthenticated()) {
-            var user = AuthService.getUser();
+            const user = AuthService.getUser();
             if (user) {
                 usernameEl.textContent = user.username;
                 userInfo.classList.remove('hidden');

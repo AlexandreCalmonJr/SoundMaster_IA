@@ -37,20 +37,20 @@
         // Reinicializa botões (redundância para SPA)
         const btnClear = _el('btn-clear-mapping');
         if (btnClear) {
-            btnClear.onclick = () => {
+            btnClear.addEventListener('click', () => {
                 measurements = [];
                 _drawMap();
-            };
+            });
         }
 
         const btnExport = _el('btn-export-mapping');
-        if (btnExport) btnExport.onclick = _exportMap;
+        if (btnExport) btnExport.addEventListener('click', _exportMap);
 
         const btnImport = _el('btn-import-floorplan');
         const inputFloorPlan = _el('input-floorplan');
         if (btnImport && inputFloorPlan) {
-            btnImport.onclick = () => inputFloorPlan.click();
-            inputFloorPlan.onchange = (e) => {
+            btnImport.addEventListener('click', () => inputFloorPlan.click());
+            inputFloorPlan.addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (file) {
                     const reader = new FileReader();
@@ -251,12 +251,16 @@
             _drawMap();
             
             if (window.AIService) {
-                const locDesc = `Ponto registrado no mapa em x=${meterX.toFixed(1)}m, y=${meterY.toFixed(1)}m. `;
-                AIService.ask(locDesc + ' Analise este ponto específico.', 1, {
-                    peakHz: peakHz,
-                    peakDb: peakDb,
-                    location: { x: meterX.toFixed(2), y: meterY.toFixed(2) }
-                });
+                const now = Date.now();
+                if (!window._lastMappingAiAsk || now - window._lastMappingAiAsk > 3000) {
+                    window._lastMappingAiAsk = now;
+                    const locDesc = `Ponto registrado no mapa em x=${meterX.toFixed(1)}m, y=${meterY.toFixed(1)}m. `;
+                    AIService.ask(locDesc + ' Analise este ponto específico.', 1, {
+                        peakHz: peakHz,
+                        peakDb: peakDb,
+                        location: { x: meterX.toFixed(2), y: meterY.toFixed(2) }
+                    });
+                }
             }
         } else {
             alert('O microfone deve estar ativo para capturar dados neste ponto.');

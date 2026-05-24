@@ -205,7 +205,7 @@
     function drawTransferFunction(ctx, x, y, options = {}) {
         if (x < 0 || y < 0) return;
 
-        const {
+        let {
             width = ctx.canvas.width,
             height = ctx.canvas.height,
             color = '#22d3ee',

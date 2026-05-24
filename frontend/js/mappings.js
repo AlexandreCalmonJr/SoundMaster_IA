@@ -34,10 +34,31 @@
             if (mobileLink) mobileLink.href = mobileHref;
             
             if (mobileQrCode) {
-                // Usando o token para que o celular já abra autenticado
-                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(mobileHref)}`;
-                mobileQrCode.src = qrUrl;
-                console.log('[Config] QR Code setado para:', mobileHref);
+                mobileQrCode.style.display = 'none';
+                const urlDisplay = document.createElement('div');
+                urlDisplay.className = 'text-[10px] text-cyan-400 break-all mt-1';
+                urlDisplay.textContent = mobileHref;
+                mobileQrCode.parentNode?.appendChild(urlDisplay);
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'mt-1 px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-[9px] font-bold text-white transition-all';
+                copyBtn.textContent = 'Copiar URL';
+                copyBtn.onclick = () => {
+                    navigator.clipboard.writeText(mobileHref).then(() => {
+                        copyBtn.textContent = 'Copiado!';
+                        setTimeout(() => { copyBtn.textContent = 'Copiar URL'; }, 2000);
+                    }).catch(() => {
+                        const ta = document.createElement('textarea');
+                        ta.value = mobileHref;
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(ta);
+                        copyBtn.textContent = 'Copiado!';
+                        setTimeout(() => { copyBtn.textContent = 'Copiar URL'; }, 2000);
+                    });
+                };
+                mobileQrCode.parentNode?.appendChild(copyBtn);
+                console.log('[Config] URL mobile:', mobileHref);
             }
         } catch (e) {
             console.error('[Config] Erro ao carregar config:', e);
@@ -71,15 +92,15 @@
                 list.appendChild(li);
             });
 
-            document.querySelectorAll('.btn-delete-map').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const id = e.target.getAttribute('data-id');
-                    await fetch(`/api/mappings/${id}`, { method: 'DELETE' });
-                    loadMappings();
-                });
+            list.addEventListener('click', async (e) => {
+                const btn = e.target.closest('.btn-delete-map');
+                if (!btn) return;
+                const id = btn.getAttribute('data-id');
+                await fetch(`/api/mappings/${id}`, { method: 'DELETE' });
+                loadMappings();
             });
         } catch (e) {
-            console.log('Erro ao carregar mapeamentos:', e);
+            console.error('Erro ao carregar mapeamentos:', e);
         }
     }
 

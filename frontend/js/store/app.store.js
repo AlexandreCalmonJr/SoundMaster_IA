@@ -119,9 +119,6 @@
     // -------------------------------------------------------------------------
     const _listeners = {};
 
-    // Flag para evitar loop infinito no cross-frame sync
-    let _syncingFromFrame = false;
-
     // -------------------------------------------------------------------------
     // API pública
     // -------------------------------------------------------------------------
@@ -160,13 +157,6 @@
      * @param {Object} patch - Objeto parcial com as mudanças
      */
     function setState(patch) {
-        if (_syncingFromFrame) {
-            // Já estamos aplicando um patch vindo do iframe — só notifica local
-            Object.assign(_state, patch);
-            Object.keys(patch).forEach(function (key) { _notify(key, patch); });
-            return;
-        }
-
         Object.assign(_state, patch);
         _persist(patch);
 
@@ -223,9 +213,7 @@
     // -------------------------------------------------------------------------
     window.addEventListener('message', function (e) {
         if (e.data && e.data.type === 'APPSTORE_PATCH') {
-            _syncingFromFrame = true;
             setState(e.data.patch);
-            _syncingFromFrame = false;
         }
     });
 

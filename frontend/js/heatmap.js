@@ -83,16 +83,15 @@
         const container = _el('heatmap-container');
         const btnClear = _el('btn-clear-heatmap');
         
-        if(btnUpload && upload) btnUpload.onclick = () => upload.click();
+        if(btnUpload && upload) btnUpload.addEventListener('click', () => upload.click());
         if(upload) upload.addEventListener('change', handleImageUpload);
         if(container) {
-            container.onclick = handleContainerClick;
-            // Régua: mouse events
-            container.onmousedown = handleRulerStart;
-            container.onmousemove = handleRulerMove;
-            container.onmouseup = handleRulerEnd;
+            container.addEventListener('click', handleContainerClick);
+            container.addEventListener('mousedown', handleRulerStart);
+            container.addEventListener('mousemove', handleRulerMove);
+            container.addEventListener('mouseup', handleRulerEnd);
         }
-        if(btnClear) btnClear.onclick = clearHeatmap;
+        if(btnClear) btnClear.addEventListener('click', clearHeatmap);
         
         loadSettings();
         

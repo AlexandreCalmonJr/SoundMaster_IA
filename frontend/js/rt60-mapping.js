@@ -109,8 +109,8 @@
         let c50 = 0, c80 = 0, d50 = 50, sti = 0.6;
         let hasValidMeasurement = false;
         
-        if (lastRT60 && lastRT60.rt60) {
-            rt60Val = lastRT60.rt60 || lastRT60.rt60_est || 1.5;
+        if (lastRT60 && lastRT60.rt60 != null) {
+            rt60Val = lastRT60.rt60 != null ? lastRT60.rt60 : (lastRT60.rt60_est || 1.5);
             c50 = lastRT60.c50 || 0;
             c80 = lastRT60.c80 || 0;
             d50 = lastRT60.d50 || 50;
@@ -282,63 +282,14 @@
             return;
         }
         
-        const profile = getAverageProfile();
-        if (!profile) return;
-        
         const profileName = prompt('Nome do perfil de calibração:', `Perfil ${Object.keys(profiles).length + 1}`);
         if (!profileName) return;
         
-        // Tenta usar Auto-EQ para correções baseadas em medição real
-        const autoCorrections = _generateAutoEQCorrections(profile);
-        
-        let corrections;
-        let source;
-        
-        if (autoCorrections.length > 0) {
-            corrections = autoCorrections;
-            source = 'Auto-EQ';
-        } else {
-            // Fallback: correções heurísticas com reason
-            corrections = [];
-            
-            if (profile.rt60 > 1.6) {
-                corrections.push({ type: 'highpass', freq: 80, gain: -3, reason: 'RT60 longo - reduz graves', source: 'heuristic' });
-                corrections.push({ type: 'peaking', freq: 250, gain: -2, q: 1, reason: 'RT60 longo - reduz graves medios', source: 'heuristic' });
-            } else if (profile.rt60 < 1.2) {
-                corrections.push({ type: 'peaking', freq: 200, gain: 2, q: 0.7, reason: 'RT60 curto - reforça graves', source: 'heuristic' });
-            }
-            
-            if (profile.d50 < 40) {
-                corrections.push({ type: 'peaking', freq: 2000, gain: -2, q: 2, reason: 'D50 baixo - reduz Medios agudos', source: 'heuristic' });
-                corrections.push({ type: 'peaking', freq: 4000, gain: -1, q: 1.5, reason: 'D50 baixo - reduz agudos', source: 'heuristic' });
-            } else if (profile.d50 > 60) {
-                corrections.push({ type: 'peaking', freq: 3000, gain: 1, q: 1, reason: 'D50 alto - reforça presença', source: 'heuristic' });
-            }
-            
-            if (profile.c50 < -2) {
-                corrections.push({ type: 'peaking', freq: 1000, gain: -1.5, q: 1, reason: 'C50 baixo - clarity melhorada', source: 'heuristic' });
-            } else if (profile.c50 > 2) {
-                corrections.push({ type: 'peaking', freq: 3000, gain: 1.5, q: 1, reason: 'C50 alto - Clareza excelente', source: 'heuristic' });
-            }
-            source = 'Heurístico';
+        const saved = createCorrectionProfile(profileName);
+        if (saved) {
+            showToast(`Perfil "${profileName}" criado com ${saved.corrections.length} correções (${saved.source})`, 'success');
+            updateProfilesList();
         }
-        
-        profiles[profileName] = {
-            ...profile,
-            corrections,
-            createdAt: new Date().toISOString(),
-            points: mappingPoints.length,
-            source
-        };
-        
-        showToast(`Perfil "${profileName}" criado com ${corrections.length} correções (${source})`, 'success');
-        console.log('[RT60-Mapping] Perfil criado:', profileName, source, corrections);
-        
-        // Salva perfis no storage
-        saveProfilesToStorage();
-        
-        // Atualiza UI de perfis
-        updateProfilesList();
     }
     
     function saveProfilesToStorage() {
@@ -598,10 +549,6 @@
 
     function getProfiles() {
         return profiles;
-    }
-
-    function deleteProfile(name) {
-        delete profiles[name];
     }
 
     function getCanvasForExport() {

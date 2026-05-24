@@ -519,57 +519,7 @@
         _restore();
     });
 
-    // Também inicializa quando carregado diretamente no iframe da página analyzer
-    (function autoInitCalibration() {
-        if (_el('cal-file-input') || _el('btn-calibrate-spl')) {
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', () => {
-                    const input = _el('cal-file-input');
-                    if (input) {
-                        input.addEventListener('change', async (ev) => {
-                            const file = ev.target.files[0];
-                            if (!file) return;
-                            try {
-                                const text = await file.text();
-                                await window.AcousticCalibration.loadFromText(text, file.name);
-                                alert(`✅ Calibração "${file.name}" carregada.`);
-                            } catch (err) {
-                                alert(`❌ Erro ao carregar ficheiro: ${err.message}`);
-                            }
-                        });
-                    }
-                    const btnClear = _el('btn-clear-calibration');
-                    if (btnClear) btnClear.addEventListener('click', window.AcousticCalibration.clearCalibration);
-                    const btnSpl = _el('btn-calibrate-spl');
-                    if (btnSpl) {
-                        btnSpl.addEventListener('click', () => {
-                            const rms = window.currentGlobalRMS;
-                            if (!rms) {
-                                alert('Ative o microfone e toque um tom de 94 dBSPL @ 1kHz antes de calibrar.');
-                                return;
-                            }
-                            const rawDb = 20 * Math.log10(rms + 1e-6);
-                            window.AcousticCalibration.calibrateSPL(rawDb);
-                            alert(`✅ Offset SPL: ${window.AcousticCalibration.getCurrentSplOffset().toFixed(1)} dB`);
-                        });
-                    }
-                    const selectPreset = _el('cal-preset-select');
-                    if (selectPreset) {
-                        const BUILTIN_PROFILES = window.AcousticCalibration?.BUILTIN_PROFILES || {};
-                        Object.entries(BUILTIN_PROFILES).forEach(([key, profile]) => {
-                            const opt = document.createElement('option');
-                            opt.value = key;
-                            opt.text = profile.name;
-                            selectPreset.appendChild(opt);
-                        });
-                        selectPreset.addEventListener('change', (ev) => {
-                            if (ev.target.value) window.AcousticCalibration.loadPreset(ev.target.value);
-                        });
-                    }
-                });
-            }
-        }
-    })();
+
 
     // ─── API pública ──────────────────────────────────────────────────────────
 
