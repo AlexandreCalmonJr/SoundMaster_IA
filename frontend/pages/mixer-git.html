@@ -5,14 +5,14 @@
     </header>
 
     <div class="toolbar">
-        <input type="text" id="git-label-input" placeholder="Mensagem do commit…">
+        <input type="text" id="git-label-input" placeholder="Mensagem do commit…" aria-label="Mensagem do commit">
         <button class="btn btn-primary" id="git-commit-btn">💾 Commit</button>
         <button class="btn btn-outline" id="git-refresh-btn">↻ Atualizar</button>
         <button class="btn btn-outline" id="git-compare-toggle-btn">⚡ Modo Comparação</button>
-        <div id="git-compare-toolbar" style="display:none" class="compare-toolbar">
-            <span style="font-size:.78rem;color:var(--sub)">Comparar:</span>
+        <div id="git-compare-toolbar" class="compare-toolbar hidden">
+            <span class="text-xs text-slate-400">Comparar:</span>
             <select id="git-compare-a"></select>
-            <span style="color:var(--sub)">↔</span>
+            <span class="text-slate-400">↔</span>
             <select id="git-compare-b"></select>
             <button class="btn btn-outline" id="git-do-compare-btn">Ver Diff</button>
         </div>
@@ -22,7 +22,7 @@
         <div class="panel">
             <div class="panel-header">
                 <span>Commits <span class="badge" id="git-count-badge">0</span></span>
-                <button class="btn btn-outline" style="padding:3px 9px;font-size:.7rem" id="git-delete-btn" disabled>🗑 Apagar</button>
+                <button class="btn btn-outline px-2 py-1 text-[0.7rem]" id="git-delete-btn" disabled>🗑 Apagar</button>
             </div>
             <div class="commit-list" id="git-commit-list">
                 <div class="empty-state"><div class="icon">📭</div>Sem commits ainda.<br>Clique em "Commit" para guardar o estado atual da mesa.</div>
@@ -37,11 +37,11 @@
                 </div>
             </div>
 
-            <div class="card" id="git-rollback-card" style="display:none">
+            <div class="card hidden" id="git-rollback-card">
                 <h3>⏪ Rollback Seletivo</h3>
-                <p style="font-size:.78rem;color:var(--sub);margin-bottom:10px;">Selecione as categorias a reverter. Sem seleção = reverter tudo.</p>
+                <p class="text-xs text-slate-400 mb-2.5">Selecione as categorias a reverter. Sem seleção = reverter tudo.</p>
                 <div class="scope-grid" id="git-scope-grid"></div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <div class="flex gap-2 flex-wrap">
                     <button class="btn btn-red" id="git-rollback-btn">⚡ Executar Rollback</button>
                     <button class="btn btn-outline" id="git-rollback-clear-btn">Limpar Seleção</button>
                 </div>

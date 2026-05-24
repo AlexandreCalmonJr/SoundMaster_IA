@@ -1,4 +1,4 @@
-<section class="w-full h-full flex items-center justify-center bg-slate-950">
+<section id="register" class="w-full h-full flex items-center justify-center bg-slate-950">
     <div class="w-full max-w-md p-8">
         <div class="text-center mb-8">
             <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-cyan-900/40 mb-4">
@@ -45,40 +45,4 @@
     </div>
 </section>
 
-<script>
-(function() {
-    var form = document.getElementById('register-form');
-    var errorEl = document.getElementById('register-error');
-    var btn = document.getElementById('register-btn');
-    var goToLogin = document.getElementById('go-to-login');
-
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        errorEl.classList.add('hidden');
-        btn.disabled = true;
-        btn.textContent = 'Criando...';
-
-        var username = document.getElementById('reg-username').value.trim();
-        var email = document.getElementById('reg-email').value.trim();
-        var password = document.getElementById('reg-password').value;
-
-        try {
-            await window.AuthService.register(username, email, password);
-            window.parent.document.dispatchEvent(new CustomEvent('auth-login-success'));
-        } catch (err) {
-            errorEl.textContent = err.message;
-            errorEl.classList.remove('hidden');
-        } finally {
-            btn.disabled = false;
-            btn.textContent = 'Criar Conta';
-        }
-    });
-
-    if (goToLogin) {
-        goToLogin.addEventListener('click', function(e) {
-            e.preventDefault();
-            window.parent.router.navigate('login');
-        });
-    }
-})();
-</script>
+<script src="../js/auth-forms.js"></script>

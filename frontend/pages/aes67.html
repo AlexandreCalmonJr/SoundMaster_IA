@@ -1,7 +1,7 @@
 <section id="aes67" class="module page-section">
     <header class="mb-12">
         <div class="flex items-center gap-4 mb-4">
-            <span class="p-3 bg-cyan-900/40 rounded-2xl text-2xl">🌐</span>
+            <span class="p-3 bg-cyan-900/40 rounded-2xl text-2xl" aria-hidden="true">🌐</span>
             <div>
                 <h2 class="text-3xl font-black text-white tracking-tighter">Saúde de Cabos (AES67)</h2>
                 <p class="text-slate-400 font-medium">Telemetria de rede e monitoramento de canais via RTP</p>
@@ -59,14 +59,13 @@
                 <!-- Grade de Meters -->
                 <div id="aes67-meters-grid" class="grid grid-cols-8 gap-4 h-[400px]">
                     <!-- Exemplo de Meter (Gerado via JS em uso real) -->
-                    <div class="flex flex-col items-center gap-2">
+                    <div class="flex flex-col items-center gap-2" data-channel="1">
                         <div class="flex-1 w-3 bg-slate-800 rounded-full relative overflow-hidden">
                             <div class="absolute bottom-0 w-full bg-gradient-to-t from-green-500 via-yellow-500 to-red-500 h-[60%]"></div>
                         </div>
                         <span class="text-[9px] font-bold text-slate-500 uppercase">Ch 1</span>
                     </div>
-                    <!-- Repetir conforme necessário -->
-                    <div class="flex flex-col items-center gap-2">
+                    <div class="flex flex-col items-center gap-2" data-channel="2">
                         <div class="flex-1 w-3 bg-slate-800 rounded-full relative overflow-hidden">
                             <div class="absolute bottom-0 w-full bg-gradient-to-t from-green-500 via-yellow-500 to-red-500 h-[45%]"></div>
                         </div>

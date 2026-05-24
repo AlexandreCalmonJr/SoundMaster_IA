@@ -1,4 +1,4 @@
-<section class="w-full h-full flex items-center justify-center bg-slate-950">
+<section id="login" class="w-full h-full flex items-center justify-center bg-slate-950">
     <div class="w-full max-w-md p-8">
         <div class="text-center mb-8">
             <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-cyan-900/40 mb-4">
@@ -38,39 +38,4 @@
     </div>
 </section>
 
-<script>
-(function() {
-    var form = document.getElementById('login-form');
-    var errorEl = document.getElementById('login-error');
-    var btn = document.getElementById('login-btn');
-    var goToRegister = document.getElementById('go-to-register');
-
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        errorEl.classList.add('hidden');
-        btn.disabled = true;
-        btn.textContent = 'Entrando...';
-
-        var username = document.getElementById('login-username').value.trim();
-        var password = document.getElementById('login-password').value;
-
-        try {
-            await window.AuthService.login(username, password);
-            window.parent.document.dispatchEvent(new CustomEvent('auth-login-success'));
-        } catch (err) {
-            errorEl.textContent = err.message;
-            errorEl.classList.remove('hidden');
-        } finally {
-            btn.disabled = false;
-            btn.textContent = 'Entrar';
-        }
-    });
-
-    if (goToRegister) {
-        goToRegister.addEventListener('click', function(e) {
-            e.preventDefault();
-            window.parent.router.navigate('register');
-        });
-    }
-})();
-</script>
+<script src="../js/auth-forms.js"></script>

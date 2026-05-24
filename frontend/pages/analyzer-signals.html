@@ -76,12 +76,12 @@
             <div class="grid grid-cols-2 gap-3">
                 <div class="flex items-center gap-2">
                     <label class="text-[9px] text-slate-500 uppercase whitespace-nowrap">Freq</label>
-                    <input type="number" id="sine-freq" value="1000" min="20" max="20000" class="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-center text-cyan-400 font-mono text-xs focus:border-cyan-500 outline-none">
+                    <input type="number" id="sine-freq" value="1000" min="20" max="20000" aria-label="Frequência do tom senoidal em Hz" class="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-center text-cyan-400 font-mono text-xs focus:border-cyan-500 outline-none">
                     <span class="text-[9px] text-slate-500">Hz</span>
                 </div>
                 <div class="flex items-center gap-2">
                     <label class="text-[9px] text-slate-500 uppercase whitespace-nowrap">Nivel</label>
-                    <input type="range" id="sine-level" min="-60" max="0" value="-20" class="flex-1 accent-cyan-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    <input type="range" id="sine-level" min="-60" max="0" value="-20" aria-label="Nível do tom senoidal em dB" class="flex-1 accent-cyan-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer">
                     <span id="sine-level-val" class="text-[9px] font-mono text-cyan-400 w-10 text-right">-20dB</span>
                 </div>
             </div>
