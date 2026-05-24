@@ -22,8 +22,6 @@
         return {
             btnConnect:       $('btn-connect-mixer'),
             btnDisconnect:    $('btn-disconnect-mixer'),
-            btnSwitchIface:   $('btn-switch-interface'),
-            btnShowLog:       $('btn-show-log'),
             ipInput:          $('mixer-ip'),
             iframe:           $('mixer-iframe'),
             placeholder:      $('mixer-placeholder'),
@@ -255,16 +253,7 @@
             MixerService.disconnect();
         });
 
-        // Navegação rápida
-        els.btnSwitchIface && els.btnSwitchIface.addEventListener('click', function () {
-            const tab = document.querySelector('[data-tab="mixer-interface"]');
-            if (tab) tab.click();
-        });
 
-        els.btnShowLog && els.btnShowLog.addEventListener('click', function () {
-            const tab = document.querySelector('[data-tab="mixer-connection"]');
-            if (tab) tab.click();
-        });
 
         // Slider master — Optimistic UI (T28)
         // Input: bloqueia updates externos + atualiza UI otimisticamente

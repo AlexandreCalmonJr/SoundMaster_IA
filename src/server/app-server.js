@@ -13,16 +13,13 @@ const { registerMappingsRoutes } = require('./mappings-routes');
 const { registerSocketHandlers } = require('./socket-handlers');
 const { registerAuthRoutes } = require('./auth.routes');
 const calculationRoutes = require('./calculation-routes');
-const { getPool } = require('./worker-pool');
 const mixerGit = require('./mixer-git');
 const { createMixerActions } = require('./mixer-actions');
-
-// ✅ T10: Porta do Python configurável via .env (Original #14)
-const PYTHON_PORT = parseInt(process.env.PYTHON_PORT || '3002', 10);
 
 function createAppServer({ app, rootDir, localIp, port, dbDir }) {
     const expressApp = express();
     const server = http.createServer(expressApp);
+    const PYTHON_PORT = parseInt(process.env.PYTHON_PORT || '3002', 10);
 
     const ALLOWED_ORIGINS = [
         "http://localhost:3000",
@@ -317,9 +314,6 @@ function createAppServer({ app, rootDir, localIp, port, dbDir }) {
     // ── Tópico 25/29: injeta io no singleton e inicia monitors ─────────────
     mixerSingleton.setIo(io);
     mixerSingleton.startEventLoopMonitor((msg) => console.warn(msg));
-    // Inicia Worker Pool (aquece os workers na inicialização)
-    getPool();
-
     // Middleware de Autenticação para Socket.IO - IP Allowlist (P20)
     const ALLOWED_CLIENT_IPS = (process.env.ALLOWED_CLIENT_IPS || '192.168.0.0/16,10.0.0.0/8,127.0.0.1').split(',');
 

@@ -20,6 +20,7 @@
             <button class="mixer-tab-btn active flex-1 text-[10px] uppercase font-bold py-1.5 rounded transition-all" data-tab="mixer-overview">Geral</button>
             <button class="mixer-tab-btn flex-1 text-[10px] uppercase font-bold py-1.5 rounded text-slate-500 hover:text-white transition-all" data-tab="mixer-connection">Status</button>
             <button class="mixer-tab-btn flex-1 text-[10px] uppercase font-bold py-1.5 rounded text-slate-500 hover:text-white transition-all" data-tab="mixer-setup">Setup</button>
+            <button class="mixer-tab-btn flex-1 text-[10px] uppercase font-bold py-1.5 rounded text-slate-500 hover:text-white transition-all" data-tab="mixer-presets">Presets</button>
             <button class="mixer-tab-btn flex-1 text-[10px] uppercase font-bold py-1.5 rounded text-slate-500 hover:text-white transition-all" data-tab="mixer-interface">Mesa</button>
         </div>
     </div>
@@ -34,13 +35,12 @@
                         <span id="mixer-master-level" class="text-2xl font-mono text-cyan-400">0%</span>
                         <span id="mixer-master-db" class="text-xs text-slate-500">-∞ dB</span>
                     </div>
-                    <div class="relative h-48 bg-black/40 rounded-lg border border-white/5 p-2 flex justify-center gap-2">
-                        <div class="w-1.5 bg-slate-800 rounded-full relative overflow-hidden h-full">
+                    <div class="relative h-48 bg-black/40 rounded-lg border border-white/5 p-2 flex justify-center gap-4 items-center">
+                        <div class="w-2 bg-slate-800 rounded-full relative overflow-hidden h-full">
                             <div id="meter-master" class="absolute bottom-0 w-full bg-emerald-500 h-[0%] transition-all duration-100"></div>
                         </div>
                         <input type="range" id="master-volume-slider" min="0" max="100" value="0" 
-                            class="appearance-none w-2 h-full bg-slate-700 rounded-lg cursor-pointer accent-cyan-500" 
-                            style="writing-mode: bt-lr; -webkit-appearance: slider-vertical; appearance: slider-vertical;">
+                            class="fader-vertical">
                     </div>
                     <div class="flex gap-2">
                         <button id="btn-master-volume-down" class="flex-1 py-2 bg-slate-700 hover:bg-slate-600 rounded text-xs">-1%</button>
@@ -184,6 +184,17 @@
                     </div>
                 </div>
             </div>
+
+            <div class="bg-slate-800/40 border border-white/5 rounded-xl p-4">
+                <h3 class="text-xs font-bold text-slate-500 uppercase mb-4">Gerador de Ruído</h3>
+                <div class="flex items-center justify-between">
+                    <div class="flex flex-col">
+                        <span class="text-[9px] uppercase font-black text-slate-600">Sinal de Calibração</span>
+                        <span id="pink-noise-status" class="text-[10px] font-mono text-slate-500">Desligado</span>
+                    </div>
+                    <button id="btn-pink-noise-main" class="py-2 px-4 bg-slate-700 hover:bg-slate-600 rounded text-[10px] uppercase font-bold transition-all">Ruído Rosa</button>
+                </div>
+            </div>
         </section>
 
         <!-- Interface da Mesa (Iframe) -->
@@ -197,6 +208,25 @@
                     </div>
                 </div>
                 <iframe id="mixer-iframe" class="w-full h-full hidden" frameborder="0" allowfullscreen></iframe>
+            </div>
+        </section>
+
+        <!-- Presets -->
+        <section id="mixer-presets" class="mixer-panel-section hidden space-y-4">
+            <div class="bg-slate-800/40 border border-white/5 rounded-xl p-4">
+                <h3 class="text-xs font-bold text-slate-500 uppercase mb-4">Salvar Preset</h3>
+                <div class="space-y-3">
+                    <input type="text" id="preset-name" placeholder="Nome do preset..." 
+                        class="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs text-cyan-400 focus:border-cyan-500 outline-none">
+                    <button id="btn-save-preset" class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded text-xs font-bold transition-all">Salvar Estado Atual</button>
+                </div>
+            </div>
+
+            <div class="bg-slate-800/40 border border-white/5 rounded-xl p-4">
+                <h3 class="text-xs font-bold text-slate-500 uppercase mb-4">Presets Salvos</h3>
+                <div id="presets-list" class="space-y-2 max-h-60 overflow-y-auto font-mono text-[10px] text-slate-400">
+                    <div class="text-[10px] text-slate-500 italic text-center py-8">Nenhum preset disponível.</div>
+                </div>
             </div>
         </section>
     </div>

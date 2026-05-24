@@ -74,6 +74,12 @@ async function downloadAndInstallUpdate(downloadUrl, newVersion) {
         response.data.pipe(writer);
 
         return new Promise((resolve, reject) => {
+            response.data.on('error', (err) => {
+                console.error('[Updater] Erro no stream de download:', err.message);
+                writer.destroy();
+                reject(err);
+            });
+            writer.on('error', reject);
             writer.on('finish', async () => {
                 console.log('[Updater] Download concluído. Verificando integridade...');
                 try {

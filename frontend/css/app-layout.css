@@ -678,4 +678,11 @@
 .action-btn.primary:hover {
   filter: brightness(1.1);
   box-shadow: 0 0 12px var(--accent-glow);
+}
+
+/* Active state for pink noise generator button */
+#btn-pink-noise-main.active {
+  background-color: #10b981 !important; /* Emerald-500 */
+  color: #fff !important;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
 }

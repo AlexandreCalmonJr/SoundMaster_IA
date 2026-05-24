@@ -2,10 +2,9 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const authDb = require('./auth-db');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'soundmaster-dev-secret-change-in-production';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
-
 function registerAuthRoutes(app) {
+    const JWT_SECRET = process.env.JWT_SECRET || 'soundmaster-dev-secret-change-in-production';
+    const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
     app.post('/api/auth/register', (req, res) => {
         try {
             const { username, email, password } = req.body;
@@ -106,4 +105,4 @@ function registerAuthRoutes(app) {
     }
 }
 
-module.exports = { registerAuthRoutes, JWT_SECRET };
+module.exports = { registerAuthRoutes };

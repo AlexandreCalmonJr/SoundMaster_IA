@@ -5,10 +5,22 @@ const Logger = require('./logger');
 const http = require('http');
 
 // ✅ T10: Porta do Python configurável via .env
-const PYTHON_PORT = parseInt(process.env.PYTHON_PORT || '3002', 10);
+function getPythonPort() {
+    return parseInt(process.env.PYTHON_PORT || '3002', 10);
+}
+
+let resolvedPythonCommand = 'python';
+
+function getPythonCommand() {
+    return resolvedPythonCommand;
+}
 
 function startPythonAI(rootDir, onExitCallback) {
-    const pythonScript = path.join(rootDir, 'backend', 'ai', 'ai_server.py');
+    let pythonScript = path.join(rootDir, 'ai_server.py');
+    if (!fs.existsSync(pythonScript)) {
+        // Fallback: se o rootDir for o diretório raiz do projeto e não do backend/ai
+        pythonScript = path.join(rootDir, 'backend', 'ai', 'ai_server.py');
+    }
 
     if (!fs.existsSync(pythonScript)) {
         console.warn(`[Python AI] Script não encontrado: ${pythonScript}. IA desativada.`);
@@ -17,9 +29,16 @@ function startPythonAI(rootDir, onExitCallback) {
 
     // Detector de Ambiente Virtual (venv)
     const isWin = process.platform === 'win32';
-    const venvPython = isWin 
-        ? path.join(rootDir, 'backend', 'ai', 'venv', 'Scripts', 'python.exe')
-        : path.join(rootDir, 'backend', 'ai', 'venv', 'bin', 'python');
+    let venvPython = isWin 
+        ? path.join(rootDir, 'venv', 'Scripts', 'python.exe')
+        : path.join(rootDir, 'venv', 'bin', 'python');
+
+    if (!fs.existsSync(venvPython)) {
+        // Fallback
+        venvPython = isWin
+            ? path.join(rootDir, 'backend', 'ai', 'venv', 'Scripts', 'python.exe')
+            : path.join(rootDir, 'backend', 'ai', 'venv', 'bin', 'python');
+    }
 
     const commands = [];
     
@@ -40,7 +59,10 @@ function startPythonAI(rootDir, onExitCallback) {
     for (const cmd of commands) {
         if (_checkPython(cmd)) {
             pythonProcess = _trySpawn(cmd, pythonScript, path.dirname(pythonScript), onExitCallback);
-            if (pythonProcess) break;
+            if (pythonProcess) {
+                resolvedPythonCommand = cmd;
+                break;
+            }
         }
     }
 
@@ -62,7 +84,8 @@ function _waitForHealth(proc, timeoutMs = 15000, intervalMs = 1000) {
             if (!proc || proc.killed) {
                 return reject(new Error('Processo Python encerrado antes do health-check.'));
             }
-            const req = http.get(`http://127.0.0.1:${PYTHON_PORT}/`, (res) => {
+            const port = getPythonPort();
+            const req = http.get(`http://127.0.0.1:${port}/`, (res) => {
                 if (res.statusCode === 200) {
                     proc.isReady = true;
                     Logger.getInstance().info('PYTHON', 'PYTHON_HEALTHCHECK_READY', 'Health-check OK');
@@ -158,4 +181,4 @@ function stopPythonAI(pythonProcess) {
     }
 }
 
-module.exports = { startPythonAI, stopPythonAI };
+module.exports = { startPythonAI, stopPythonAI, getPythonPort, getPythonCommand };

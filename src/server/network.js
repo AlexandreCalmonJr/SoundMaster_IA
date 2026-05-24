@@ -136,6 +136,7 @@ function start({ mixerIp, gatewayIp, intervalMs } = {}) {
     // Primeira medição imediata
     _runProbe();
     _state.timer = setInterval(_runProbe, _state.intervalMs);
+    if (_state.timer.unref) _state.timer.unref();
 }
 
 function stop() {
@@ -302,9 +303,13 @@ function _udpLossProbe(host) {
         const sendNext = () => {
             if (sent >= PROBES) return;
             const payload = Buffer.from(`sm_probe_${Date.now()}`);
-            sock.send(payload, PORT, host, (err) => {
-                if (!err) { sent++; pending++; }
-            });
+            try {
+                sock.send(payload, PORT, host, (err) => {
+                    if (!err) { sent++; pending++; }
+                });
+            } catch (sendErr) {
+                console.warn(`[NetDiag] Falha ao enviar sonda UDP para ${host}: ${sendErr.message}`);
+            }
             setTimeout(sendNext, 100);
         };
 
@@ -403,7 +408,8 @@ function _startMdnsDiscovery() {
 
     // Query ativa imediata + a cada 30 segundos
     _queryAllServices();
-    setInterval(_queryAllServices, 30000);
+    const mdnsTimer = setInterval(_queryAllServices, 30000);
+    if (mdnsTimer.unref) mdnsTimer.unref();
 
     console.log('[NetDiag] Descoberta mDNS iniciada.');
 }

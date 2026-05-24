@@ -8,17 +8,19 @@ const fs = require('fs');
  */
 class FeedbackPredictor {
     constructor() {
-        // ✅ T10: Porta do Python configurável via .env
-        const PYTHON_PORT = parseInt(process.env.PYTHON_PORT || '3002', 10);
-        this.pythonUrl = `http://127.0.0.1:${PYTHON_PORT}/analyze-feedback`;
-        this.apiKey = process.env.AI_API_KEY || '';
+        this.pythonUrl = '';
+        this.apiKey = '';
     }
 
     async init() {
+        const PYTHON_PORT = parseInt(process.env.PYTHON_PORT || '3002', 10);
+        this.pythonUrl = `http://127.0.0.1:${PYTHON_PORT}/analyze-feedback`;
+        this.apiKey = process.env.AI_API_KEY || '';
+
         if (!this.apiKey) {
             console.warn('[AI Predictor] Aviso: AI_API_KEY não configurada. A comunicação com o servidor Python pode falhar em produção.');
         }
-        console.log('[AI Predictor] Operando em modo Remoto (Offloading para Python).');
+        console.log(`[AI Predictor] Operando em modo Remoto (Offloading para Python na porta ${PYTHON_PORT}).`);
     }
 
     /**

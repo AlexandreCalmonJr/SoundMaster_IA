@@ -171,7 +171,7 @@ router.post('/rt60', (req, res) => {
         }
 
         // Encontrar RT60 (tempo para decair 60dB do pico)
-        const peakIdx = schroederDb.findIndex(v => v > -5);
+        const peakIdx = Math.max(0, schroederDb.findIndex(v => v > -5));
         const targetDb = -60;
 
         let rt60Idx = n - 1;
@@ -208,7 +208,14 @@ router.post('/rt60', (req, res) => {
             if (i < c50Idx) earlyEnergy += energy[i];
             else lateEnergy += energy[i];
         }
-        const c50 = lateEnergy > 0 ? 10 * Math.log10(earlyEnergy / lateEnergy) : 0;
+        function calcClarity(early, late) {
+            if (late <= 0 && early <= 0) return 0;
+            if (late <= 0) return 100;
+            if (early <= 0) return -100;
+            const ratio = early / late;
+            return 10 * Math.log10(Math.max(ratio, 1e-30));
+        }
+        const c50 = calcClarity(earlyEnergy, lateEnergy);
 
         // C80 (clareza musical)
         const c80Idx = Math.round(0.080 * sr);
@@ -217,7 +224,7 @@ router.post('/rt60', (req, res) => {
             if (i < c80Idx) earlyEnergy += energy[i];
             else lateEnergy += energy[i];
         }
-        const c80 = lateEnergy > 0 ? 10 * Math.log10(earlyEnergy / lateEnergy) : 0;
+        const c80 = calcClarity(earlyEnergy, lateEnergy);
 
         // D50 (definição)
         const d50Idx = Math.round(0.050 * sr);
@@ -263,8 +270,8 @@ router.post('/spl', (req, res) => {
     try {
         const { freqData, timeData, sampleRate, weighting } = req.body;
 
-        if (!freqData || !Array.isArray(freqData)) {
-            return res.status(400).json({ error: 'freqData é obrigatório' });
+        if (!freqData || !Array.isArray(freqData) || freqData.length === 0) {
+            return res.status(400).json({ error: 'freqData é obrigatório e não pode ser vazio' });
         }
 
         const sr = sampleRate || 48000;

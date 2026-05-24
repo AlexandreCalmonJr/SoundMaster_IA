@@ -40,7 +40,7 @@
     let rtaCrosshairY = -1;
 
     // Web Workers & Worklets
-    let acousticWorker = null;
+
     let audioWorkletNode = null;
     let transferFunctionNode = null; // Nó de Função de Transferência
     let refSource = null; // Fonte de Referência (Loopback)
@@ -602,21 +602,6 @@
             btnMic.addEventListener('click', toggleAnalyzer);
         }
 
-        // Inicializa Worker de Acústica
-        if (!acousticWorker) {
-            acousticWorker = new Worker('js/workers/acoustic.worker.js');
-            acousticWorker.onmessage = (e) => {
-                if (e.data.type === 'rt60-result') {
-                    _handleRT60Result(e.data.result);
-                }
-                if (e.data.type === 'ir-result') {
-                    _handleSweepAnalysisResult(e.data.result);
-                }
-                if (e.data.type === 'error') {
-                    console.error('[AcousticWorker]', e.data.message);
-                }
-            };
-        }
 
         document.addEventListener('click', () => {
             if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
@@ -1377,12 +1362,6 @@
         const summaryEl = _el('pink-measure-summary');
         if (summaryEl) summaryEl.innerText = '⚙️ Deconvoluindo IR...';
 
-        if (acousticWorker) {
-            acousticWorker.postMessage(
-                { type: 'deconvolve-sweep', data: { recording, reference, sampleRate } },
-                [recording.buffer, reference.buffer]
-            );
-        }
 
         SocketService.emit('analyze_sweep_ir', {
             recording: Array.from(recording),

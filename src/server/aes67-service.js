@@ -9,27 +9,27 @@ class AES67Receiver extends EventEmitter {
     constructor(port = 5004) {
         super();
         this.port = port;
-        this.server = dgram.createSocket('udp4');
+        this.server = null;
         this.isStreaming = false;
     }
 
     start() {
+        // Cria o socket dinamicamente no start()
+        this.server = dgram.createSocket('udp4');
+
         this.server.on('error', (err) => {
             console.error(`[AES67] Erro: ${err.stack}`);
             this.server.close();
+            this.server = null;
+            this.isStreaming = false;
         });
 
         this.server.on('message', (msg, rinfo) => {
-            // RTP Header (12 bytes)
             const payload = msg.slice(12);
             
-            /**
-             * Na Ui24R via AES67, o áudio costuma ser L24 (3 bytes por amostra)
-             * e os canais são intercalados: [Ch1, Ch2, Ch3... ChN, Ch1, Ch2...]
-             */
             this.emit('multi-channel-audio', {
                 buffer: payload,
-                channels: 32, // Captura o mapa completo (Inputs + Bus)
+                channels: 32,
                 bitDepth: 24,
                 sampleRate: 48000
             });
@@ -45,12 +45,17 @@ class AES67Receiver extends EventEmitter {
             this.isStreaming = true;
         } catch (e) {
             console.error('[AES67] Falha ao iniciar receptor:', e.message);
+            this.isStreaming = false;
+            this.server = null;
         }
     }
 
     stop() {
-        if (this.isStreaming) {
+        if (this.server) {
             this.server.close();
+            this.server = null;
+        }
+        if (this.isStreaming) {
             this.isStreaming = false;
             console.log('[AES67] Receptor parado.');
         }

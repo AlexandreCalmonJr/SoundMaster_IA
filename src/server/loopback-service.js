@@ -53,7 +53,7 @@ class LoopbackService {
         if (this.simulationInterval) {
             clearInterval(this.simulationInterval);
             this.simulationInterval = null;
-            console.log('[Loopback] Simulação停止了.');
+            console.log('[Loopback] Simulação interrompida.');
         }
     }
 
@@ -81,12 +81,11 @@ class LoopbackService {
             extractedSamples[s] = val / 8388607.0; // Normaliza 24-bit para -1.0 a 1.0
         }
 
-        // Acumula e envia quando atingir o tamanho do bloco
+        // Acumula e envia drenando excedentes (while loop para evitar acúmulo)
         this.sampleBuffer.push(...extractedSamples);
 
-        if (this.sampleBuffer.length >= this.maxBufferSize) {
+        while (this.sampleBuffer.length >= this.maxBufferSize) {
             if (this.io) {
-                // Envia apenas os samples brutos para o frontend
                 this.io.emit('reference_audio_stream', {
                     samples: this.sampleBuffer.slice(0, this.maxBufferSize)
                 });

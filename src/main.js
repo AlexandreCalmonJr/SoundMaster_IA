@@ -1,15 +1,5 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { createAppServer } = require('./server/app-server');
-const { configureElectronSession, createWindow } = require('./server/electron-window');
-const { getLocalIp } = require('./server/network');
-const { startPythonAI, stopPythonAI } = require('./server/python-ai');
-const { setupUpdater } = require('./server/updater');
-const historyService = require('./server/history-service');
-const aiPredictor = require('./server/ai-predictor');
-const aes67Service = require('./server/aes67-service');
-const multiChannelAnalyzer = require('./server/multi-channel-analyzer');
 
 // ✅ Novo: Carregador manual de .env para garantir sincronia de chaves com a IA
 try {
@@ -27,6 +17,18 @@ try {
 } catch (e) {
     console.warn('[Main] Falha ao carregar .env:', e.message);
 }
+
+const { app, BrowserWindow, ipcMain } = require('electron');
+const { createAppServer } = require('./server/app-server');
+const { configureElectronSession, createWindow } = require('./server/electron-window');
+const { getLocalIp } = require('./server/network');
+const { startPythonAI, stopPythonAI } = require('./server/python-ai');
+const { setupUpdater } = require('./server/updater');
+const historyService = require('./server/history-service');
+const aiPredictor = require('./server/ai-predictor');
+const aes67Service = require('./server/aes67-service');
+const multiChannelAnalyzer = require('./server/multi-channel-analyzer');
+
 
 let ROOT_DIR = path.join(__dirname, '..');
 const updateConfigPath = path.join(app.getPath('userData'), 'current_update.json');
@@ -87,17 +89,10 @@ function startServer() {
 
 let isInitialized = false;
 
-app.whenReady().then(async () => {
-    if (isInitialized) return;
-    isInitialized = true;
-    
+function triggerPythonAI() {
+    if (pythonProcess && !pythonProcess.killed) return;
     const aiPath = path.join(ROOT_DIR, 'backend', 'ai');
-    
-    // Inicia servidor primeiro para ter ioInstance disponível
-    startServer();
-    
-    // Callback de alerta quando Python encerrar (T3)
-    const onPythonExit = (code) => {
+    pythonProcess = startPythonAI(aiPath, (code) => {
         console.error(`[Main] ⚠️ IA OFFLINE (código ${code})`);
         if (ioInstance) {
             ioInstance.emit('system_log', { 
@@ -106,9 +101,17 @@ app.whenReady().then(async () => {
                 ts: Date.now()
             });
         }
-    };
+    });
+}
+
+app.whenReady().then(async () => {
+    if (isInitialized) return;
+    isInitialized = true;
     
-    pythonProcess = startPythonAI(aiPath, onPythonExit);
+    // Inicia servidor primeiro para ter ioInstance disponível
+    startServer();
+    
+    triggerPythonAI();
     await configureElectronSession();
     
     const mainWindow = createWindow(PORT);
@@ -133,6 +136,7 @@ app.whenReady().then(async () => {
     }, 60000);
 
     app.on('activate', () => {
+        triggerPythonAI();
         if (BrowserWindow.getAllWindows().length === 0) {
             createWindow(PORT);
         }
