@@ -1,0 +1,349 @@
+<section id="tutorials" class="module page-section active">
+    <div class="page-hero bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-2xl mb-6 border border-white/5 shadow-lg">
+        <h2 class="text-3xl font-bold text-cyan-400 mb-2">Tutoriais Interativos</h2>
+        <p class="subtitle text-slate-400">Aprenda a usar cada módulo do SoundMaster Pro com guias passo a passo.</p>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="card bg-slate-900/60 backdrop-blur-md p-5 rounded-xl border border-white/10 mb-6">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Progresso Geral</span>
+            <span id="tut-progress-pct" class="text-xs font-mono text-cyan-400">0%</span>
+        </div>
+        <div class="w-full bg-slate-800 rounded-full h-2">
+            <div id="tut-progress-bar" class="bg-gradient-to-r from-cyan-500 to-emerald-500 h-2 rounded-full transition-all duration-500" style="width:0%"></div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-5">
+
+        <!-- 1. Autenticação -->
+        <div class="tut-card card bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden" data-flow="auth">
+            <div class="tut-header flex items-center justify-between p-5 cursor-pointer hover:bg-slate-750 transition-colors" role="button" tabindex="0" aria-label="Expandir tutorial de Autenticação">
+                <div class="flex items-center gap-4">
+                    <span class="tut-icon flex-shrink-0 w-10 h-10 rounded-lg bg-cyan-900/50 border border-cyan-500/30 flex items-center justify-center text-lg">🔐</span>
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Autenticação & Cadastro do Templo</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Login, registro e configuração inicial do templo</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="tut-progress text-xs font-mono text-slate-500">0/4</span>
+                    <span class="tut-toggle text-slate-500 transition-transform duration-200">▼</span>
+                </div>
+            </div>
+            <div class="tut-body hidden px-5 pb-5">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+                    <div class="col-span-2">
+                        <ol class="space-y-3">
+                            <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="0">
+                                <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 1 como concluído"></button>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-200">1. Abrir o App</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">Ao iniciar, o sistema verifica se há sessão ativa no navegador. Se estiver logado, vai direto ao Dashboard.</p>
+                                </div>
+                            </li>
+                            <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="1">
+                                <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 2 como concluído"></button>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-200">2. Login ou Cadastro</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">Faça login na página de autenticação. Se for novo, crie sua conta e registre as dimensões do templo (comprimento, largura, altura) — essenciais para os cálculos acústicos.</p>
+                                </div>
+                            </li>
+                            <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="2">
+                                <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 3 como concluído"></button>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-200">3. Credenciais Validadas</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">Servidor Node valida as credenciais e armazena em SQLite. Token JWT é salvo como <code class="text-cyan-400 bg-black/40 px-1 rounded text-[10px]">sm_auth_token</code>.</p>
+                                </div>
+                            </li>
+                            <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="3">
+                                <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 4 como concluído"></button>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-200">4. Dashboard Liberado</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">Após login bem-sucedido, você acessa o Dashboard com métricas ao vivo de SPL, RT60 e status do mixer.</p>
+                                </div>
+                            </li>
+                        </ol>
+                    </div>
+                    <div class="bg-slate-900/60 rounded-xl p-4 border border-white/5 flex flex-col gap-3">
+                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Páginas relacionadas</span>
+                        <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors" data-nav="home">Dashboard</button>
+                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mt-2">IA disponível</span>
+                        <p class="text-xs text-slate-400">Pergunte ao Assistente IA sobre configuração inicial ou gerenciamento de conta.</p>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="ai-chat">Assistente IA</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Mixer -->
+        <div class="tut-card card bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden" data-flow="mixer">
+            <div class="tut-header flex items-center justify-between p-5 cursor-pointer hover:bg-slate-750 transition-colors" role="button" tabindex="0" aria-label="Expandir tutorial do Mixer">
+                <div class="flex items-center gap-4">
+                    <span class="tut-icon flex-shrink-0 w-10 h-10 rounded-lg bg-purple-900/50 border border-purple-500/30 flex items-center justify-center text-lg">🎚️</span>
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Mixer & Controle da Mesa</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Conecte e controle a Soundcraft Ui24R com presets de voz IA</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="tut-progress text-xs font-mono text-slate-500">0/4</span>
+                    <span class="tut-toggle text-slate-500 transition-transform duration-200">▼</span>
+                </div>
+            </div>
+            <div class="tut-body hidden px-5 pb-5">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+                    <div class="col-span-2">
+                        <ol class="space-y-3">
+                            <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="0">
+                                <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 1 como concluído"></button>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-200">1. Conectar à Mesa</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">Acesse a página <strong>Sistemas</strong> e insira o IP da Soundcraft Ui24R. A conexão usa WebSocket nativo (v6.0.3+).</p>
+                                </div>
+                            </li>
+                            <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="1">
+                                <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 2 como concluído"></button>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-200">2. Selecionar Canal</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">Escolha o canal ativo (1-24) na página de Canais de Entrada. Ajuste ganho, EQ, gate e compressor manualmente ou via IA.</p>
+                                </div>
+                            </li>
+                            <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="2">
+                                <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 3 como concluído"></button>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-200">3. Aplicar Preset de Voz IA</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">Na página Presets de Voz, escolha Pregador/Fala, Smart Clean, Voz Masculina ou Feminina. O preset aplica EQ, HPF e compressor automaticamente.</p>
+                                </div>
+                            </li>
+                            <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="3">
+                                <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 4 como concluído"></button>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-200">4. Comandos via IA</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">No Assistente IA, digite comandos como "aumente o volume do canal 3" ou "aplique HPF no canal 1". O sistema envia o comando ao mixer com confirmação humana (Human-In-The-Loop).</p>
+                                </div>
+                            </li>
+                        </ol>
+                    </div>
+                    <div class="bg-slate-900/60 rounded-xl p-4 border border-white/5 flex flex-col gap-3">
+                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Páginas relacionadas</span>
+                        <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors" data-nav="systems">Conexão Ui24R</button>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="mixer-input">Canais de Entrada</button>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="voice-presets">Presets de Voz</button>
+                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mt-2">IA disponível</span>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="ai-chat">Assistente IA</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Medir -->
+        <div class="tut-card card bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden" data-flow="measure">
+            <div class="tut-header flex items-center justify-between p-5 cursor-pointer hover:bg-slate-750 transition-colors" role="button" tabindex="0" aria-label="Expandir tutorial de Medir">
+                <div class="flex items-center gap-4">
+                    <span class="tut-icon flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-900/50 border border-emerald-500/30 flex items-center justify-center text-lg">📊</span>
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Medir — SPL, RTA & Mapeamento</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Medições acústicas em tempo real com calibração e grid espacial</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="tut-progress text-xs font-mono text-slate-500">0/5</span>
+                    <span class="tut-toggle text-slate-500 transition-transform duration-200">▼</span>
+                </div>
+            </div>
+            <div class="tut-body hidden px-5 pb-5">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+                    <div class="col-span-2">
+                        <ol class="space-y-3">
+                            <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="0">
+                                <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 1 como concluído"></button>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-200">1. Acessar Medição</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">Na barra lateral, clique em <strong>Medir</strong> ou vá direto para o Analisador. O sistema tenta detectar o mixer via mDNS; se falhar, usa o microfone local como fallback.</p>
+                                </div>
+                            </li>
+                            <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="1">
+                                <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 2 como concluído"></button>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-200">2. Calibrar Microfone</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">Faça upload de um arquivo <code class="text-cyan-400 bg-black/40 px-1 rounded text-[10px]">.cal</code> do fabricante ou inicie o ruído rosa. Ajuste ganho e ponderação (dBA/dBC).</p>
+                                </div>
+                            </li>
+                            <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="2">
+                                <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 3 como concluído"></button>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-200">3. Medir SPL ao Vivo</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">Visualize o gráfico RTA (tempo real) e o medidor SPL digital. Escolha FAST (transientes) ou SLOW (média).</p>
+                                </div>
+                            </li>
+                            <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="3">
+                                <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 4 como concluído"></button>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-200">4. Mapear Pontos no Templo</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">Caminhe pelo templo e clique nos pontos correspondentes no grid 2D para registrar a assinatura acústica de cada região.</p>
+                                </div>
+                            </li>
+                            <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="4">
+                                <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 5 como concluído"></button>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-200">5. Exportar para Análise</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">Os pontos salvos na sessão podem ser enviados ao Assistente IA para recomendações ou visualizados no Mapa SPL em 3D.</p>
+                                </div>
+                            </li>
+                        </ol>
+                    </div>
+                    <div class="bg-slate-900/60 rounded-xl p-4 border border-white/5 flex flex-col gap-3">
+                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Páginas relacionadas</span>
+                        <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors" data-nav="analyzer">FFT & Waterfall</button>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="analyzer-calibration">Calibração</button>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="spl-heatmap">Mapa SPL</button>
+                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mt-2">IA disponível</span>
+                        <p class="text-xs text-slate-400">Envie a análise acústica do analisador para o Assistente IA obter recomendações.</p>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="ai-chat">Assistente IA</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Analisar -->
+        <div class="tut-card card bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden" data-flow="analyze">
+            <div class="tut-header flex items-center justify-between p-5 cursor-pointer hover:bg-slate-750 transition-colors" role="button" tabindex="0" aria-label="Expandir tutorial de Analisar">
+                <div class="flex items-center gap-4">
+                    <span class="tut-icon flex-shrink-0 w-10 h-10 rounded-lg bg-amber-900/50 border border-amber-500/30 flex items-center justify-center text-lg">🔬</span>
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Analisar — RT60, Heatmap & Benchmarking</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Cálculos acústicos avançados com backend Python</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="tut-progress text-xs font-mono text-slate-500">0/4</span>
+                    <span class="tut-toggle text-slate-500 transition-transform duration-200">▼</span>
+                </div>
+            </div>
+            <div class="tut-body hidden px-5 pb-5">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+                    <div class="col-span-2">
+                        <ol class="space-y-3">
+                            <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="0">
+                                <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 1 como concluído"></button>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-200">1. Calcular RT60</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">Na página Acústica, insira volume (m³) e área de superfície (m²) do templo. O backend Python calcula via Eyring/Schroeder com fallback Sabine local.</p>
+                                </div>
+                            </li>
+                            <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="1">
+                                <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 2 como concluído"></button>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-200">2. Heatmap de Dispersão</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">Visualize o grid 3D de pressão sonora. O mapa interpola os pontos medidos para estimar cobertura, zonas de sombra e cancelamento de fase.</p>
+                                </div>
+                            </li>
+                            <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="2">
+                                <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 3 como concluído"></button>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-200">3. Benchmarking</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">Compare medições de templo vazio vs templo cheio. O gráfico é atualizado via WebSocket sempre que uma nova medição é registrada.</p>
+                                </div>
+                            </li>
+                            <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="3">
+                                <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 4 como concluído"></button>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-200">4. Auto-EQ com Alvo</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">Na página Auto-EQ, o computador da mesa gera uma curva de equalização corretiva baseada na medição RTA. Use o backend Python para PEQ + GEQ de 31 bandas.</p>
+                                </div>
+                            </li>
+                        </ol>
+                    </div>
+                    <div class="bg-slate-900/60 rounded-xl p-4 border border-white/5 flex flex-col gap-3">
+                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Páginas relacionadas</span>
+                        <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors" data-nav="acustica">Acústica</button>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="rt60">RT60</button>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="auto-eq">Auto-EQ</button>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="benchmarking">Benchmarking</button>
+                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mt-2">IA disponível</span>
+                        <p class="text-xs text-slate-400">Envie o relatório de ruído rosa ou a análise acústica para o Assistente IA receber recomendações de tratamento.</p>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="ai-chat">Assistente IA</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Diagnóstico -->
+        <div class="tut-card card bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden" data-flow="diagnostics">
+            <div class="tut-header flex items-center justify-between p-5 cursor-pointer hover:bg-slate-750 transition-colors" role="button" tabindex="0" aria-label="Expandir tutorial de Diagnóstico">
+                <div class="flex items-center gap-4">
+                    <span class="tut-icon flex-shrink-0 w-10 h-10 rounded-lg bg-red-900/50 border border-red-500/30 flex items-center justify-center text-lg">🩺</span>
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Diagnóstico Técnico</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Verificação de saúde do sistema, serviços e conectividade</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="tut-progress text-xs font-mono text-slate-500">0/4</span>
+                    <span class="tut-toggle text-slate-500 transition-transform duration-200">▼</span>
+                </div>
+            </div>
+            <div class="tut-body hidden px-5 pb-5">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+                    <div class="col-span-2">
+                        <ol class="space-y-3">
+                            <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="0">
+                                <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 1 como concluído"></button>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-200">1. Acessar Diagnóstico</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">Vá para a página Diagnóstico pelo menu Sistema. Uma bateria de testes sintéticos é executada automaticamente ao carregar.</p>
+                                </div>
+                            </li>
+                            <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="1">
+                                <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 2 como concluído"></button>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-200">2. Verificar Serviços</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">Três cartões mostram o status de: <strong>Node Server</strong> (socket, validações Zod, limites de canal), <strong>Python AI</strong> (Schroeder, TinyLlama), <strong>Frontend</strong> (AudioWorklet, cotas localStorage).</p>
+                                </div>
+                            </li>
+                            <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="2">
+                                <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 3 como concluído"></button>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-200">3. Testar Conexões</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">Clique em "Testar AI" para disparar requisição manual ao backend Python, ou "Testar Server" para verificar o servidor Node. Logs são exibidos no console interativo.</p>
+                                </div>
+                            </li>
+                            <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="3">
+                                <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 4 como concluído"></button>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-200">4. Diagnóstico Preditivo</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">O backend Python oferece diagnóstico preditivo de hardware via <code class="text-cyan-400 bg-black/40 px-1 rounded text-[10px]">predictive_maintenance.py</code>. Verifique o endpoint <code class="text-cyan-400 bg-black/40 px-1 rounded text-[10px]">/hardware_diagnosis</code>.</p>
+                                </div>
+                            </li>
+                        </ol>
+                    </div>
+                    <div class="bg-slate-900/60 rounded-xl p-4 border border-white/5 flex flex-col gap-3">
+                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Páginas relacionadas</span>
+                        <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors" data-nav="debug">Console de Depuração</button>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="systems">Conexão Ui24R</button>
+                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mt-2">IA disponível</span>
+                        <p class="text-xs text-slate-400">O Assistente IA monitora o sistema em tempo real e pode identificar problemas antes que apareçam.</p>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="ai-chat">Assistente IA</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Reset Progress -->
+    <div class="text-center mt-8 mb-4">
+        <button id="tut-reset" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-xs font-bold rounded-lg border border-white/10 transition-all">Resetar Progresso</button>
+    </div>
+
+    <!-- Action Buttons Row -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4 mb-6">
+        <button class="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-all" data-nav="home">Dashboard</button>
+        <button class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-all" data-nav="ai-chat">Assistente IA</button>
+        <button class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-all" data-nav="analyzer">Analisador</button>
+        <button class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-all" data-nav="mixer-input">Mixer</button>
+        <button class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-all" data-nav="systems">Sistema</button>
+    </div>
+</section>

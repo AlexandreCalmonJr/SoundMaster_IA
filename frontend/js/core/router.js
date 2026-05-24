@@ -34,6 +34,7 @@ const ROUTE_MAP = {
     'mobile':            { path: 'pages/mobile.html',            title: 'Modo Remoto',         category: null },
     'volunteer-mode':    { path: 'pages/volunteer-mode.html',  title: 'Modo Voluntário',     category: null },
     'testbed':           { path: 'pages/testbed.html',          title: 'Testbed',             category: null },
+    'tutorials':         { path: 'pages/tutorials.html',        title: 'Tutoriais',           category: null },
 };
 
 class Router {
@@ -71,6 +72,7 @@ class Router {
             'mobile': 'js/pages/mobile-page.js',
             'volunteer-mode': 'js/pages/volunteer-page.js',
             'testbed': 'js/pages/testbed-page.js',
+            'tutorials': 'js/pages/tutorials-page.js',
         };
 
         // Page-specific CSS mapping
@@ -350,6 +352,7 @@ class Router {
             'mobile': 'MobilePage',
             'volunteer-mode': 'VolunteerPage',
             'testbed': 'TestbedPage',
+            'tutorials': 'TutorialsPage',
         };
         return map[pageId] || null;
     }

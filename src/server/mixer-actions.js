@@ -82,9 +82,12 @@ function createMixerActions(getMixer) {
 
     function setAfs(enabled) {
         const mixer = getMixer();
-        // AFS is usually on the master or global hw
-        if (enabled) mixer.master.afs().enable();
-        else mixer.master.afs().disable();
+        if (mixer.master.afs) {
+            if (enabled) mixer.master.afs().enable();
+            else mixer.master.afs().disable();
+        } else {
+            mixer.conn.sendMessage(`SETD^afs^${enabled ? 1 : 0}`);
+        }
         return `AFS2 ${enabled ? 'ativado' : 'desativado'} globalmente.`;
     }
 
@@ -325,7 +328,11 @@ function createMixerActions(getMixer) {
 
     function applyOscillator(enabled, type = 1, level = -20) {
         const mixer = getMixer();
-        const osc = mixer.hw().oscillator();
+        const hw = mixer.hw(1);
+        if (!hw || !hw.oscillator) {
+            return `Gerador de ruído: oscilador não disponível nesta mesa.`;
+        }
+        const osc = hw.oscillator;
         if (enabled) osc.enable();
         else osc.disable();
         
