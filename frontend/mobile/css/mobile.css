@@ -6,12 +6,7 @@
 
 /* ——— Fontes & Reset Global ——— */
 * {
-    font-family: 'Google Sans', 'Outfit', 'Inter', ui-sans-serif, system-ui, sans-serif !important;
-    font-weight: 400 !important;
-}
-
-h1, h2, h3, h4, h5, h6, strong, b, .font-bold, .font-black, .font-semibold, .font-medium {
-    font-weight: 400 !important;
+    font-family: 'Outfit', 'Inter', ui-sans-serif, system-ui, sans-serif !important;
 }
 
 /* ——— Design Tokens ——— */

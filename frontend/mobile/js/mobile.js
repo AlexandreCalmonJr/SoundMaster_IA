@@ -8,8 +8,7 @@
 const urlParams = new URLSearchParams(window.location.search);
 const token = urlParams.get('token');
 const socket = io({
-    auth: { token },
-    query: { token }
+    auth: { token }
 });
 
 // UI Elements - Navigation & Status
@@ -241,10 +240,10 @@ const btnTimbre = document.getElementById('mobile-btn-analyze-timbre');
 const btnModeFFT = document.getElementById('btn-mode-fft');
 const btnModePink = document.getElementById('btn-mode-pink');
 
-if (btnRT60) btnRT60.onclick = startRT60Measurement;
-if (btnTimbre) btnTimbre.onclick = analyzeTimbre;
-if (btnModeFFT) btnModeFFT.onclick = () => setMeasurementMode('fft');
-if (btnModePink) btnModePink.onclick = () => setMeasurementMode('pink');
+if (btnRT60) btnRT60.addEventListener('click', startRT60Measurement);
+if (btnTimbre) btnTimbre.addEventListener('click', analyzeTimbre);
+if (btnModeFFT) btnModeFFT.addEventListener('click', () => setMeasurementMode('fft'));
+if (btnModePink) btnModePink.addEventListener('click', () => setMeasurementMode('pink'));
 
 // DOM Elements — Analysis Section
 const fftCanvas = document.getElementById('mobile-fft-canvas');
@@ -280,15 +279,13 @@ const mobileMapLocation = document.getElementById('mobile-map-location');
 const btnMobileSavePeak = document.getElementById('mobile-btn-save-peak');
 
 
-let audioCtx;
-let analyser;
-let source;
-let micStream;
+let audioCtx = null;
+let analyser = null;
+let source = null;
+let micStream = null;
 let isMicActive = false;
-let animationId;
+let animationId = null;
 let currentPeakHz = 0;
-
-// Novas variáveis para medições avançadas
 let isMeasuringRT60 = false;
 let rt60StartTime = 0;
 let rt60Bands = {
@@ -321,13 +318,22 @@ function setupMultibandFilters() {
 let isMeasuringPink = false;
 let pinkSamples = [];
 let pinkSampleCount = 0;
-let measurementMode = 'fft'; // 'fft' ou 'pink'
+let measurementMode = 'fft';
 let latestMasterPercent = 0;
 let suspectedFeedbackFrames = 0;
 let isPinkNoiseActive = false;
+let lastDevicePixelRatio = 1;
 
 function appendMobileLog(message) {
     console.log(`[Mobile] ${message}`);
+    const logEl = document.getElementById('mobile-log');
+    if (logEl) {
+        const entry = document.createElement('div');
+        entry.className = 'text-[8px] text-slate-500 py-0.5';
+        entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        logEl.appendChild(entry);
+        logEl.scrollTop = logEl.scrollHeight;
+    }
 }
 
 function setBusy(button, busy, label) {
@@ -375,13 +381,16 @@ function setupMobileTouchFader() {
 function resizeCanvasForDisplay() {
     if (!fftCanvas) return;
     const scale = window.devicePixelRatio || 1;
+    const dprChanged = scale !== lastDevicePixelRatio;
+    lastDevicePixelRatio = scale;
     const displayWidth = Math.max(320, Math.floor(fftCanvas.clientWidth));
     const displayHeight = Math.max(140, Math.floor(fftCanvas.clientHeight));
     const width = Math.floor(displayWidth * scale);
     const height = Math.floor(displayHeight * scale);
-    if (fftCanvas.width !== width || fftCanvas.height !== height) {
+    if (dprChanged || fftCanvas.width !== width || fftCanvas.height !== height) {
         fftCanvas.width = width;
         fftCanvas.height = height;
+        _micCanvasCtx = null;
     }
 }
 
@@ -491,11 +500,14 @@ function drawAnalyzer(canvasCtx, dataArray, bufferLength) {
 let micDataArray = null;
 let micFreqDataArray = null;
 
+let _micCanvasCtx = null;
+
 function analyzeMic() {
     if (!isMicActive || !analyser) return;
     animationId = requestAnimationFrame(analyzeMic);
 
-    const canvasCtx = fftCanvas.getContext('2d');
+    if (!_micCanvasCtx) _micCanvasCtx = fftCanvas.getContext('2d');
+    const canvasCtx = _micCanvasCtx;
     const bufferLength = analyser.frequencyBinCount;
     
     // Aloca apenas 1x
@@ -550,8 +562,10 @@ function analyzeMic() {
     if (isMeasuringRT60) {
         // ✅ Correção Auditoria: Calibração de ruído de fundo (primeiros 30 frames ~500ms)
         if (rt60StartTime === 0 && rt60BackgroundSamples < 30) {
-            rt60BackgroundLevel = Math.max(rt60BackgroundLevel, rmsDb);
+            if (rt60BackgroundSamples === 0) rt60BackgroundLevel = 0;
+            rt60BackgroundLevel += rmsDb;
             rt60BackgroundSamples++;
+            if (rt60BackgroundSamples === 30) rt60BackgroundLevel /= 30;
             return;
         }
 
@@ -622,7 +636,7 @@ function analyzeMic() {
         }
     }
 
-    const rmsPercent = Math.round(Math.min(100, rms * 350));
+    const rmsPercent = Math.round(Math.min(100, Math.max(0, (rmsDb + 60) / 60 * 100)));
     currentPeakHz = maxIndex * (audioCtx.sampleRate / analyser.fftSize);
     const peakRounded = Math.round(currentPeakHz);
 
@@ -763,6 +777,10 @@ function getTargetChannel() {
 }
 
 function emitMobileTool(eventName, payload, label) {
+    if (!socket.connected) {
+        console.warn('[Mobile] Socket desconectado — comando ignorado:', eventName);
+        return;
+    }
     socket.emit(eventName, payload);
     if (label) appendMobileLog(label);
 }
@@ -889,12 +907,12 @@ async function askAI(text, includeAnalysis = false) {
 
         if (data.command) {
             const btnCmd = aiRow.querySelector('button');
-            btnCmd.onclick = () => {
+            btnCmd.addEventListener('click', () => {
                 emitMobileTool('execute_ai_command', data.command, `Executado via IA: ${data.command.desc}`);
                 btnCmd.disabled = true;
                 btnCmd.innerText = 'Aplicado ✅';
                 btnCmd.className = 'mt-3 w-full py-2 bg-green-500/20 text-green-400 border border-green-500/30 rounded-xl text-[10px] font-black uppercase tracking-widest';
-            };
+            });
         }
 
         aiChatBox.appendChild(aiRow);
@@ -910,9 +928,6 @@ async function askAI(text, includeAnalysis = false) {
 
 // NOTA: O mobile não tem UI de conexão manual — o mixer é conectado via desktop.
 // Listeners removidos: btnConnect, btnDisconnect (elementos inexistentes no HTML).
-
-// Removidos listeners de input/change padrão para usar touch nativo
-setupMobileTouchFader();
 
 masterDown?.addEventListener('click', () => {
     const next = Math.max(0, latestMasterPercent - 1) / 100;
