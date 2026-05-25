@@ -289,7 +289,10 @@ function createMixerActions(getMixer) {
     }
 
     function automixAssignChannel(channel, group, weight = 0.5) {
-        const input = getMixer().input(channel);
+        const mixer = getMixer();
+        if (!mixer) return 'Mesa não conectada.';
+        const input = mixer.input(channel);
+        if (!input) return `Canal ${channel} inválido.`;
         input.automixAssignGroup(group); // 'a', 'b', ou 'none'
         input.automixSetWeight(clamp(weight, 0, 1));
         return `Canal ${channel} atribuído ao Automix Grupo ${group.toUpperCase()} com peso ${Math.round(weight * 100)}%.`;

@@ -1,8 +1,9 @@
-const { spawn, execSync } = require('child_process');
+const { spawn, execSync, spawnSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const Logger = require('./logger');
 const http = require('http');
+const { app } = require('electron');
 
 // ✅ T10: Porta do Python configurável via .env
 function getPythonPort() {
@@ -20,6 +21,7 @@ const REQS_PATH = path.join(__dirname, '..', '..', 'backend', 'ai', 'requirement
 function _getVenvPython(rootDir) {
     const isWin = process.platform === 'win32';
     const candidates = [
+        path.join(app.getPath('userData'), 'python-portable', 'python.exe'),
         path.join(rootDir, 'venv', isWin ? 'Scripts' : 'bin', isWin ? 'python.exe' : 'python'),
         path.join(rootDir, 'backend', 'ai', 'venv', isWin ? 'Scripts' : 'bin', isWin ? 'python.exe' : 'python'),
         path.join(rootDir, 'python-portable', 'python.exe'),
@@ -44,9 +46,11 @@ function _ensurePythonDeps() {
 
     for (const cmd of candidates) {
         try {
-            execSync(`"${cmd}" -c "import fastapi, multipart"`, { stdio: 'ignore' });
-            console.log(`[Python AI] Dependências já instaladas (${cmd}).`);
-            return; // fastapi disponível, deps ok
+            const checkResult = spawnSync(cmd, ['-c', 'import fastapi, multipart'], { stdio: 'ignore' });
+            if (checkResult.status === 0) {
+                console.log(`[Python AI] Dependências já instaladas (${cmd}).`);
+                return; // fastapi disponível, deps ok
+            }
         } catch (_) {
             // tenta próximo
         }
@@ -54,7 +58,12 @@ function _ensurePythonDeps() {
 
     // Nenhum python tem fastapi — instalar
     const pythonCmd = candidates.find(c => {
-        try { execSync(`"${c}" --version`, { stdio: 'ignore' }); return true; } catch (_) { return false; }
+        try {
+            const versionResult = spawnSync(c, ['--version'], { stdio: 'ignore' });
+            return versionResult.status === 0;
+        } catch (_) {
+            return false;
+        }
     });
 
     if (!pythonCmd) {
@@ -65,10 +74,12 @@ function _ensurePythonDeps() {
 
     console.log('[Python AI] Instalando dependências Python (pip install -r requirements.txt)...');
     try {
-        execSync(`"${pythonCmd}" -m pip install -r "${requirementsPath}" --quiet`, {
+        const installResult = spawnSync(pythonCmd, ['-m', 'pip', 'install', '-r', requirementsPath, '--quiet'], {
             stdio: 'inherit',
             timeout: 300000, // 5 min
         });
+        if (installResult.error) throw installResult.error;
+        if (installResult.status !== 0) throw new Error(`Exit code: ${installResult.status}`);
         console.log('[Python AI] Dependências instaladas com sucesso.');
     } catch (e) {
         console.error('[Python AI] Falha ao instalar dependências:', e.message);
@@ -97,14 +108,19 @@ function startPythonAI(rootDir, onExitCallback) {
         : path.join(rootDir, 'venv', 'bin', 'python');
 
     if (!fs.existsSync(venvPython)) {
-        // Fallback
+        // Fallback para venv em backend/ai
         venvPython = isWin
             ? path.join(rootDir, 'backend', 'ai', 'venv', 'Scripts', 'python.exe')
             : path.join(rootDir, 'backend', 'ai', 'venv', 'bin', 'python');
     }
 
     if (!fs.existsSync(venvPython)) {
-        // Fallback para Python portátil
+        // Fallback para Python portátil em userData
+        venvPython = path.join(app.getPath('userData'), 'python-portable', 'python.exe');
+    }
+
+    if (!fs.existsSync(venvPython)) {
+        // Fallback para Python portátil local (desenvolvimento)
         venvPython = path.join(rootDir, 'python-portable', 'python.exe');
         if (!fs.existsSync(venvPython)) {
             venvPython = path.join(rootDir, 'backend', 'ai', 'python-portable', 'python.exe');

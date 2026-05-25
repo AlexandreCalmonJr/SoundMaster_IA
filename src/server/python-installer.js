@@ -3,17 +3,21 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const AdmZip = require('adm-zip');
-const { spawn, execSync } = require('child_process');
+const { spawn, execSync, spawnSync } = require('child_process');
 
 const PYTHON_ZIP_URL = 'https://www.python.org/ftp/python/3.10.11/python-3.10.11-embed-amd64.zip';
 const GET_PIP_URL = 'https://bootstrap.pypa.io/get-pip.py';
 
 function setupPythonInstaller(mainWindow, onCompleteCallback) {
-    const aiDir = path.join(app.getAppPath(), 'backend', 'ai');
-    const portableDir = path.join(aiDir, 'python-portable');
-    const zipPath = path.join(aiDir, 'python-portable.zip');
+    const userDataPath = app.getPath('userData');
+    const portableDir = path.join(userDataPath, 'python-portable');
+    const zipPath = path.join(userDataPath, 'python-portable.zip');
     const getPipPath = path.join(portableDir, 'get-pip.py');
     const pythonExePath = path.join(portableDir, 'python.exe');
+
+    // O requirements.txt fica no pacote estático (somente leitura) da aplicação
+    const appAiDir = path.join(app.getAppPath(), 'backend', 'ai');
+    const reqsTxtPath = path.join(appAiDir, 'requirements.txt');
 
     const sendProgress = (stage, percent, msg) => {
         if (mainWindow && !mainWindow.isDestroyed()) {
@@ -26,8 +30,12 @@ function setupPythonInstaller(mainWindow, onCompleteCallback) {
         if (fs.existsSync(pythonExePath)) {
             try {
                 // Testa se o python portátil e o fastapi/multipart estão funcionando
-                execSync(`"${pythonExePath}" -c "import fastapi, multipart"`, { stdio: 'ignore' });
-                return { installed: true, path: pythonExePath };
+                const checkResult = spawnSync(pythonExePath, ['-c', 'import fastapi, multipart'], { stdio: 'ignore' });
+                if (checkResult.status === 0) {
+                    return { installed: true, path: pythonExePath };
+                } else {
+                    return { installed: false, needsRequirements: true, path: pythonExePath };
+                }
             } catch (_) {
                 // Se existe o exe mas falha ao carregar fastapi, necessita reparo/instalação
                 return { installed: false, needsRequirements: true, path: pythonExePath };
@@ -40,8 +48,10 @@ function setupPythonInstaller(mainWindow, onCompleteCallback) {
 
         for (const cmd of globalCandidates) {
             try {
-                execSync(`"${cmd}" -c "import fastapi, multipart"`, { stdio: 'ignore' });
-                return { installed: true, path: cmd };
+                const checkResult = spawnSync(cmd, ['-c', 'import fastapi, multipart'], { stdio: 'ignore' });
+                if (checkResult.status === 0) {
+                    return { installed: true, path: cmd };
+                }
             } catch (_) {}
         }
 
@@ -50,9 +60,9 @@ function setupPythonInstaller(mainWindow, onCompleteCallback) {
 
     ipcMain.handle('install-python', async () => {
         try {
-            // Garantir que a pasta backend/ai existe
-            if (!fs.existsSync(aiDir)) {
-                fs.mkdirSync(aiDir, { recursive: true });
+            // Garantir que o diretório de destino do Python portátil existe
+            if (!fs.existsSync(portableDir)) {
+                fs.mkdirSync(portableDir, { recursive: true });
             }
 
             // 1. Download do Python Zip
@@ -138,7 +148,13 @@ function setupPythonInstaller(mainWindow, onCompleteCallback) {
 
                 // 5. Instalação do pip
                 sendProgress('installing-pip', 50, 'Bootstraping pip no interpretador portátil...');
-                execSync(`"${pythonExePath}" "${getPipPath}" --quiet`, { cwd: portableDir });
+                const pipResult = spawnSync(pythonExePath, [getPipPath, '--quiet'], { cwd: portableDir });
+                if (pipResult.error) {
+                    throw pipResult.error;
+                }
+                if (pipResult.status !== 0) {
+                    throw new Error(`Bootstrap do pip falhou com código ${pipResult.status}`);
+                }
                 
                 try {
                     fs.unlinkSync(getPipPath);
@@ -147,13 +163,11 @@ function setupPythonInstaller(mainWindow, onCompleteCallback) {
             }
 
             // 6. Instalação de dependências do requirements.txt
-            const reqsTxtPath = path.join(aiDir, 'requirements.txt');
             if (fs.existsSync(reqsTxtPath)) {
                 sendProgress('installing-requirements', 10, 'Instalando dependências de IA (FastAPI, NumPy, SciPy...) - Isso pode demorar de 1 a 3 minutos...');
                 
                 return new Promise((resolve, reject) => {
-                    const pipProcess = spawn(`"${pythonExePath}"`, ['-m', 'pip', 'install', '-r', `"${reqsTxtPath}"`, '--quiet'], {
-                        shell: true,
+                    const pipProcess = spawn(pythonExePath, ['-m', 'pip', 'install', '-r', reqsTxtPath, '--quiet'], {
                         cwd: portableDir
                     });
 

@@ -384,6 +384,7 @@ function registerMixerCommandHandlers(io, socket, deps) {
     });
 
     socket.on('automix_assign', (data) => {
+        if (!actions.ensureMixer(socket)) return;
         const channel = Number(data?.channel) || 1;
         const group = data?.group || 'none';
         const weight = Number(data?.weight) || 0.5;
