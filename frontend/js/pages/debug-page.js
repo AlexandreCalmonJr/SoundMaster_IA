@@ -5,7 +5,7 @@
 
     function _testPython() {
         pm._log('debug-console', 'Testando endpoint de diagnóstico Python...');
-        fetch('/diagnose').then(function (res) { return res.json(); }).then(function (data) {
+        fetch('/api/ai/diagnose').then(function (res) { return res.json(); }).then(function (data) {
             pm._log('debug-console', 'Sucesso: ' + JSON.stringify(data));
         }).catch(function (e) { pm._log('debug-console', 'Erro: ' + e.message, 'error'); });
     }

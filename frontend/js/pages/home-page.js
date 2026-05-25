@@ -129,8 +129,7 @@
 
         const bubble = document.createElement('div');
         bubble.id = id;
-        bubble.className = 'chat-bubble ' + (isUser ? 'chat-user' : 'chat-assistant') + ' mb-3 p-4 rounded-2xl max-w-[85%] ' + 
-                           (isUser ? 'ml-auto text-right text-white' : 'mr-auto text-left text-slate-300');
+        bubble.className = 'chat-bubble ' + (isUser ? 'chat-user' : 'chat-assistant');
         
         if (text === '...' || text === 'Analisando dados acústicos...' || text === 'Analisando áudio ao vivo...') {
             bubble.innerText = text;
@@ -430,8 +429,9 @@
         const parentWin = window.parent || window;
         const analyzer = parentWin.SoundMasterAnalyzer;
         const lastRt = analyzer?.getLastRt60 ? analyzer.getLastRt60() : null;
-        if (els.homeRt60Val && lastRt && lastRt.rt60 !== undefined && lastRt.rt60 !== null) {
-            els.homeRt60Val.innerText = `${lastRt.rt60.toFixed(2)}s`;
+        const rt60Val = lastRt ? (lastRt.rt60 ?? lastRt.t30 ?? lastRt.t20 ?? lastRt.rt60_est) : null;
+        if (els.homeRt60Val && rt60Val !== null && rt60Val !== undefined) {
+            els.homeRt60Val.innerText = `${Number(rt60Val).toFixed(2)}s`;
         } else if (els.homeRt60Val) {
             try {
                 const saved = localStorage.getItem('rt60_mapping_points');
@@ -440,10 +440,15 @@
                     if (points && points.length > 0) {
                         const avg = points.reduce((s, p) => s + p.rt60, 0) / points.length;
                         els.homeRt60Val.innerText = `${avg.toFixed(2)}s`;
+                    } else {
+                        els.homeRt60Val.innerText = '---';
                     }
+                } else {
+                    els.homeRt60Val.innerText = '---';
                 }
             } catch (e) {
                 console.warn('[HomePage] Error loading initial RT60:', e);
+                els.homeRt60Val.innerText = '---';
             }
         }
 

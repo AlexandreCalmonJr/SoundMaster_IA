@@ -30,7 +30,11 @@ async function getLocalVersion() {
 
 async function checkForUpdates() {
     try {
-        const response = await axios.get(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
+        const response = await axios.get(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
+            headers: {
+                'User-Agent': 'SoundMasterApp'
+            }
+        });
         const latestVersion = response.data.tag_name.replace('v', '');
         const currentVersion = await getLocalVersion();
 

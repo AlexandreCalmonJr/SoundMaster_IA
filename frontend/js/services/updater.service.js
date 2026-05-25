@@ -104,3 +104,5 @@ if (window.updater) {
         });
     }
 }
+
+window.UpdaterService = UpdaterService;

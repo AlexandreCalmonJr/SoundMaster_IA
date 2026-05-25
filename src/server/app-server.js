@@ -255,6 +255,16 @@ function createAppServer({ app, rootDir, localIp, port, dbDir }) {
         }
     });
 
+    expressApp.get('/api/ai/diagnose', async (req, res) => {
+        try {
+            const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}/diagnose`);
+            const data = await aiRes.json();
+            res.json(data);
+        } catch (error) {
+            res.status(500).json({ error: 'IA offline' });
+        }
+    });
+
     // Rotas de diagnóstico de Status para o aplicativo Android
     expressApp.get('/api/status', (req, res) => {
         res.json({ status: "online", version: "1.0.0", message: "SoundMaster Pro Backend" });

@@ -43,10 +43,11 @@ class TransferFunctionProcessor extends AudioWorkletProcessor {
         // Buffers circulares de entrada (ref = Canal 0, meas = Canal 1)
         this._refBuf     = new Float32Array(this._fftSize);
         this._measBuf    = new Float32Array(this._fftSize);
+        this._writeIdx   = 0;
         this._hopCount   = 0;       // samples acumulados desde o último compute
 
         // Modo demo e filtro biquad para simulação realista
-        this._demo       = true;
+        this._demo       = false;
         this._demoDelay  = 480;     // samples ≈ 10.9 ms @ 44.1 kHz
         this._demoWriteIdx = 0;
         this._demoBuf    = new Float32Array(this._fftSize);
@@ -143,6 +144,7 @@ class TransferFunctionProcessor extends AudioWorkletProcessor {
         this._refBuf  = new Float32Array(size);
         this._measBuf = new Float32Array(size);
         this._demoBuf = new Float32Array(size);
+        this._writeIdx = 0;
         this._buildHann();
         this._allocSpectral();
         this._allocAveraging();
@@ -214,9 +216,9 @@ class TransferFunctionProcessor extends AudioWorkletProcessor {
             const filtered = this._applyBiquad(delayed, this._filterZ, this._bq);
 
             // Escrita nos buffers de análise
-            const wi2 = this._hopCount % n;
-            this._refBuf[wi2]  = pink;
-            this._measBuf[wi2] = filtered;
+            this._refBuf[this._writeIdx]  = pink;
+            this._measBuf[this._writeIdx] = filtered;
+            this._writeIdx = (this._writeIdx + 1) % n;
             this._hopCount++;
 
             if (this._hopCount >= hop) {
@@ -235,9 +237,9 @@ class TransferFunctionProcessor extends AudioWorkletProcessor {
         const len = refSamples.length;
 
         for (let i = 0; i < len; i++) {
-            const wi = this._hopCount % n;
-            this._refBuf[wi]  = refSamples[i];
-            this._measBuf[wi] = measSamples[i];
+            this._refBuf[this._writeIdx]  = refSamples[i];
+            this._measBuf[this._writeIdx] = measSamples[i];
+            this._writeIdx = (this._writeIdx + 1) % n;
             this._hopCount++;
 
             if (this._hopCount >= hop) {
@@ -267,10 +269,10 @@ class TransferFunctionProcessor extends AudioWorkletProcessor {
         xIm.fill(0);
         yIm.fill(0);
 
+        const startIdx = this._writeIdx;
         for (let i = 0; i < n; i++) {
             const w    = this._hann[i];
-            // Buffer circular → acesso sequencial correto
-            const idx  = (this._hopCount + i) % n; // WOLA: janela sobre dados antigos→novos
+            const idx  = (startIdx + i) % n; // WOLA: janela sobre dados antigos→novos
             xRe[i] = this._refBuf[idx]  * w;
             yRe[i] = this._measBuf[idx] * w;
         }

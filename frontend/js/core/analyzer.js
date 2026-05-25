@@ -53,6 +53,43 @@
     let sweepCaptureActive = false;
     let isSweepActive = false;
 
+    function handleTfButtonClick(e) {
+        const btn = e.target.closest('button');
+        if (!btn || !btn.id) return;
+
+        if (btn.id === 'btn-capture-tf') {
+            console.log('[Analyzer] Capturando trace...');
+            if (latestTFData && window.SoundMasterVisualizer) {
+                window.SoundMasterVisualizer.captureCurrentTrace(
+                    latestTFData.magnitude,
+                    latestTFData.phase,
+                    latestTFData.coherence,
+                    { sampleRate: latestTFData.sampleRate || audioCtx?.sampleRate || 48000 }
+                );
+            }
+        } else if (btn.id === 'btn-clear-tf-traces') {
+            if (window.SoundMasterVisualizer) window.SoundMasterVisualizer.clearTraces();
+        } else if (btn.id === 'btn-demo-tf') {
+            isDemoMode = !isDemoMode;
+            btn.classList.toggle('bg-amber-500/20', isDemoMode);
+            btn.classList.toggle('text-amber-300', isDemoMode);
+            console.log(`[Analyzer] Modo Demo: ${isDemoMode ? 'ON' : 'OFF'}`);
+
+            if (transferFunctionNode) {
+                transferFunctionNode.port.postMessage({ type: 'set-demo-mode', value: isDemoMode });
+            }
+        }
+    }
+
+    function handleTfChange(e) {
+        if (e.target?.id !== 'tf-avg-select') return;
+        const seconds = Number(e.target.value);
+        if (transferFunctionNode && Number.isFinite(seconds)) {
+            transferFunctionNode.port.postMessage({ type: 'set-avg', seconds });
+            console.log(`[Analyzer] TF averaging: ${seconds}s`);
+        }
+    }
+
     // Iframe shell
     let _analyzerIframe = null;
 
@@ -419,42 +456,19 @@
         });
 
         // Delegação de Eventos Global para Botões da Transfer Function
-        document.addEventListener('click', (e) => {
-            const btn = e.target.closest('button');
-            if (!btn || !btn.id) return;
+        document.removeEventListener('click', handleTfButtonClick);
+        document.addEventListener('click', handleTfButtonClick);
 
-            if (btn.id === 'btn-capture-tf') {
-                console.log('[Analyzer] Capturando trace...');
-                if (latestTFData && window.SoundMasterVisualizer) {
-                    window.SoundMasterVisualizer.captureCurrentTrace(
-                        latestTFData.magnitude,
-                        latestTFData.phase,
-                        latestTFData.coherence,
-                        { sampleRate: latestTFData.sampleRate || audioCtx?.sampleRate || 48000 }
-                    );
-                }
-            } else if (btn.id === 'btn-clear-tf-traces') {
-                if (window.SoundMasterVisualizer) window.SoundMasterVisualizer.clearTraces();
-            } else if (btn.id === 'btn-demo-tf') {
-                isDemoMode = !isDemoMode;
-                btn.classList.toggle('bg-amber-500/20', isDemoMode);
-                btn.classList.toggle('text-amber-300', isDemoMode);
-                console.log(`[Analyzer] Modo Demo: ${isDemoMode ? 'ON' : 'OFF'}`);
+        document.removeEventListener('change', handleTfChange);
+        document.addEventListener('change', handleTfChange);
 
-                if (transferFunctionNode) {
-                    transferFunctionNode.port.postMessage({ type: 'set-demo-mode', value: isDemoMode });
-                }
-            }
-        });
+        if (_analyzerIframe && _analyzerIframe.contentDocument) {
+            _analyzerIframe.contentDocument.removeEventListener('click', handleTfButtonClick);
+            _analyzerIframe.contentDocument.addEventListener('click', handleTfButtonClick);
 
-        document.addEventListener('change', (e) => {
-            if (e.target?.id !== 'tf-avg-select') return;
-            const seconds = Number(e.target.value);
-            if (transferFunctionNode && Number.isFinite(seconds)) {
-                transferFunctionNode.port.postMessage({ type: 'set-avg', seconds });
-                console.log(`[Analyzer] TF averaging: ${seconds}s`);
-            }
-        });
+            _analyzerIframe.contentDocument.removeEventListener('change', handleTfChange);
+            _analyzerIframe.contentDocument.addEventListener('change', handleTfChange);
+        }
 
         // Evento de page-unload para limpar referências locais de DOM
         window.addEventListener('page-unload', (e) => {
@@ -641,8 +655,8 @@
             }
             
             try {
-                await audioCtx.audioWorklet.addModule('js/core/audio-processor.js');
-                await audioCtx.audioWorklet.addModule('js/core/transfer-function-processor.js');
+                await audioCtx.audioWorklet.addModule(`js/core/audio-processor.js?t=${Date.now()}`);
+                await audioCtx.audioWorklet.addModule(`js/core/transfer-function-processor.js?t=${Date.now()}`);
                 
                 audioWorkletNode = new AudioWorkletNode(audioCtx, 'soundmaster-processor');
                 
@@ -654,6 +668,10 @@
                 transferFunctionNode.port.postMessage({
                     type: 'set-avg',
                     seconds: avgSelect ? Number(avgSelect.value) : 2
+                });
+                transferFunctionNode.port.postMessage({
+                    type: 'set-demo-mode',
+                    value: isDemoMode
                 });
 
                 transferFunctionNode.port.onmessage = (e) => {
@@ -702,6 +720,11 @@
             if (transferFunctionNode) {
                 source.connect(transferFunctionNode, 0, 1);
                 _setupReferenceSource(audioCtx, transferFunctionNode);
+                
+                const tfSilentGain = audioCtx.createGain();
+                tfSilentGain.gain.value = 0;
+                transferFunctionNode.connect(tfSilentGain);
+                tfSilentGain.connect(audioCtx.destination);
             }
 
             analyserFast = audioCtx.createAnalyser();
@@ -795,7 +818,7 @@
 
     async function _setupReferenceSource(ctx, targetNode) {
         try {
-            await ctx.audioWorklet.addModule('js/core/reference-source-processor.js');
+            await ctx.audioWorklet.addModule(`js/core/reference-source-processor.js?t=${Date.now()}`);
             refSource = new AudioWorkletNode(ctx, 'reference-source-processor', {
                 numberOfInputs: 0,
                 numberOfOutputs: 1,
@@ -1239,7 +1262,7 @@
         if (summaryEl) summaryEl.innerText = 'Iniciando Log-Sine Sweep...';
 
         try {
-            await audioCtx.audioWorklet.addModule('js/core/log-sweep-processor.js');
+            await audioCtx.audioWorklet.addModule(`js/core/log-sweep-processor.js?t=${Date.now()}`);
         } catch (e) {
             console.warn('[Sweep] Worklet indisponível, usando fallback.', e);
             await startSweepMeasurementFallback();
@@ -1314,7 +1337,7 @@
             data[i] = Math.sin(phase) * 0.8;
         }
 
-        await audioCtx.audioWorklet.addModule('js/core/capture-processor.js');
+        await audioCtx.audioWorklet.addModule(`js/core/capture-processor.js?t=${Date.now()}`);
         const captureNode = new AudioWorkletNode(audioCtx, 'capture-processor', {
             numberOfInputs: 1,
             numberOfOutputs: 1,

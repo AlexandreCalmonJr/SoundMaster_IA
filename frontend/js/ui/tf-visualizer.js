@@ -277,6 +277,7 @@
         drawGrids(magCtx, w, h, 'magnitude');
         drawGrids(phaseCtx, w, h, 'phase');
 
+
         capturedTraces.forEach((trace, idx) => {
             const traceHzPerBin = trace.sampleRate / (trace.magnitude.length * 2);
             const alpha = Math.max(0.25, 0.65 - idx * 0.08);
