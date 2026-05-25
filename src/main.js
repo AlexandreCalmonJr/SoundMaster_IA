@@ -1,29 +1,91 @@
 const path = require('path');
 const fs = require('fs');
 
-// ✅ Novo: Carregador manual de .env para garantir sincronia de chaves com a IA
-try {
-    const envPath = path.join(__dirname, '..', '.env');
-    if (fs.existsSync(envPath)) {
-        const envContent = fs.readFileSync(envPath, 'utf8');
-        envContent.split('\n').forEach(line => {
-            const [key, ...value] = line.split('=');
-            if (key && value) {
-                process.env[key.trim()] = value.join('=').trim();
+const { app, BrowserWindow, ipcMain } = require('electron');
+
+// Carregador manual de .env para desenvolvimento e produção
+function loadEnvironmentVariables() {
+    const crypto = require('crypto');
+    
+    // 1. Tenta carregar do diretório raiz do projeto (desenvolvimento)
+    const rootEnvPath = path.join(__dirname, '..', '.env');
+    if (fs.existsSync(rootEnvPath)) {
+        try {
+            const envContent = fs.readFileSync(rootEnvPath, 'utf8');
+            envContent.split('\n').forEach(line => {
+                const [key, ...value] = line.split('=');
+                if (key && value) {
+                    process.env[key.trim()] = value.join('=').trim();
+                }
+            });
+            console.log('[Main] Variáveis de ambiente carregadas do .env raiz');
+        } catch (e) {
+            console.warn('[Main] Falha ao carregar .env raiz:', e.message);
+        }
+    }
+
+    // 2. Garante/Gera arquivo .env persistente em userData (fundamental para build em produção)
+    try {
+        const userDataPath = app.getPath('userData');
+        const userEnvPath = path.join(userDataPath, '.env');
+        
+        let existingVars = {};
+        if (fs.existsSync(userEnvPath)) {
+            const userEnvContent = fs.readFileSync(userEnvPath, 'utf8');
+            userEnvContent.split('\n').forEach(line => {
+                const [key, ...value] = line.split('=');
+                if (key && value) {
+                    existingVars[key.trim()] = value.join('=').trim();
+                }
+            });
+        }
+
+        // Se chaves fundamentais estão ausentes, geramos valores persistentes
+        let modified = false;
+        if (!existingVars.JWT_SECRET && !process.env.JWT_SECRET) {
+            existingVars.JWT_SECRET = crypto.randomBytes(32).toString('hex');
+            modified = true;
+        }
+        if (!existingVars.AI_API_KEY && !process.env.AI_API_KEY) {
+            existingVars.AI_API_KEY = crypto.randomBytes(32).toString('hex');
+            modified = true;
+        }
+        if (!existingVars.PORT && !process.env.PORT) {
+            existingVars.PORT = '3001';
+            modified = true;
+        }
+        if (!existingVars.PYTHON_PORT && !process.env.PYTHON_PORT) {
+            existingVars.PYTHON_PORT = '3002';
+            modified = true;
+        }
+
+        if (modified) {
+            const newEnvContent = Object.entries(existingVars)
+                .map(([k, v]) => `${k}=${v}`)
+                .join('\n');
+            fs.writeFileSync(userEnvPath, newEnvContent, 'utf8');
+            console.log('[Main] Novo arquivo .env gerado/atualizado em userData:', userEnvPath);
+        }
+
+        // Carrega as variáveis de userData no process.env (sem sobrescrever as do .env raiz)
+        Object.entries(existingVars).forEach(([k, v]) => {
+            if (!process.env[k]) {
+                process.env[k] = v;
             }
         });
-        console.log('[Main] Variáveis de ambiente carregadas do .env');
+        
+    } catch (e) {
+        console.warn('[Main] Falha ao configurar .env em userData:', e.message);
     }
-} catch (e) {
-    console.warn('[Main] Falha ao carregar .env:', e.message);
 }
 
-const { app, BrowserWindow, ipcMain } = require('electron');
+loadEnvironmentVariables();
 const { createAppServer } = require('./server/app-server');
 const { configureElectronSession, createWindow } = require('./server/electron-window');
 const { getLocalIp } = require('./server/network');
 const { startPythonAI, stopPythonAI } = require('./server/python-ai');
 const { setupUpdater } = require('./server/updater');
+const { setupPythonInstaller } = require('./server/python-installer');
 const historyService = require('./server/history-service');
 const aiPredictor = require('./server/ai-predictor');
 const aes67Service = require('./server/aes67-service');
@@ -65,9 +127,38 @@ function createHttpServer() {
 
 let ioInstance = null;
 
+function setupConsoleBridge(io) {
+    let isLogging = false;
+    const originalLog = console.log;
+    const originalWarn = console.warn;
+    const originalError = console.error;
+
+    const handleLog = (type, originalFn, ...args) => {
+        originalFn.apply(console, args);
+        if (isLogging) return;
+        isLogging = true;
+        try {
+            const msg = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+            if (io) {
+                io.emit('system_log', {
+                    msg: msg,
+                    severity: type,
+                    ts: Date.now()
+                });
+            }
+        } catch (_) {}
+        isLogging = false;
+    };
+
+    console.log = (...args) => handleLog('info', originalLog, ...args);
+    console.warn = (...args) => handleLog('warn', originalWarn, ...args);
+    console.error = (...args) => handleLog('error', originalError, ...args);
+}
+
 function startServer() {
     const { server, io } = createHttpServer();
     ioInstance = io;
+    setupConsoleBridge(io);
 
     server.on('error', (err) => {
         if (err.code === 'EADDRINUSE') {
@@ -128,6 +219,9 @@ app.whenReady().then(async () => {
 
     // Configura o sistema de update
     setupUpdater(mainWindow);
+
+    // Configura o instalador de Python portátil
+    setupPythonInstaller(mainWindow, () => triggerPythonAI());
 
     // Log de Performance (A cada 60s para não poluir)
     setInterval(() => {

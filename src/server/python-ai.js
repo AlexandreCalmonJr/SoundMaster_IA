@@ -22,6 +22,8 @@ function _getVenvPython(rootDir) {
     const candidates = [
         path.join(rootDir, 'venv', isWin ? 'Scripts' : 'bin', isWin ? 'python.exe' : 'python'),
         path.join(rootDir, 'backend', 'ai', 'venv', isWin ? 'Scripts' : 'bin', isWin ? 'python.exe' : 'python'),
+        path.join(rootDir, 'python-portable', 'python.exe'),
+        path.join(rootDir, 'backend', 'ai', 'python-portable', 'python.exe'),
     ];
     return candidates.find(fs.existsSync) || null;
 }
@@ -42,7 +44,7 @@ function _ensurePythonDeps() {
 
     for (const cmd of candidates) {
         try {
-            execSync(`"${cmd}" -c "import fastapi"`, { stdio: 'ignore' });
+            execSync(`"${cmd}" -c "import fastapi, multipart"`, { stdio: 'ignore' });
             console.log(`[Python AI] Dependências já instaladas (${cmd}).`);
             return; // fastapi disponível, deps ok
         } catch (_) {
@@ -53,7 +55,13 @@ function _ensurePythonDeps() {
     // Nenhum python tem fastapi — instalar
     const pythonCmd = candidates.find(c => {
         try { execSync(`"${c}" --version`, { stdio: 'ignore' }); return true; } catch (_) { return false; }
-    }) || 'python';
+    });
+
+    if (!pythonCmd) {
+        console.warn('[Python AI] Python não foi detectado no sistema. A IA local não pôde ser inicializada.');
+        console.warn('[Python AI] Para utilizar as funcionalidades de IA local, por favor instale o Python e execute: pip install -r backend/ai/requirements.txt');
+        return;
+    }
 
     console.log('[Python AI] Instalando dependências Python (pip install -r requirements.txt)...');
     try {
@@ -93,6 +101,14 @@ function startPythonAI(rootDir, onExitCallback) {
         venvPython = isWin
             ? path.join(rootDir, 'backend', 'ai', 'venv', 'Scripts', 'python.exe')
             : path.join(rootDir, 'backend', 'ai', 'venv', 'bin', 'python');
+    }
+
+    if (!fs.existsSync(venvPython)) {
+        // Fallback para Python portátil
+        venvPython = path.join(rootDir, 'python-portable', 'python.exe');
+        if (!fs.existsSync(venvPython)) {
+            venvPython = path.join(rootDir, 'backend', 'ai', 'python-portable', 'python.exe');
+        }
     }
 
     const commands = [];

@@ -10,4 +10,9 @@ __pycache__/
 venv/
 backend/ai/venv/
 backend/ai/models/
+backend/ai/python-portable/
+backend/ai/python-portable.zip
 *.db
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm

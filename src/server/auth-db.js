@@ -23,6 +23,26 @@ function initDatabase(dbDir) {
         );
     `);
 
+    // Gera usuário admin na primeira inicialização se a tabela estiver vazia
+    try {
+        const countStmt = db.prepare('SELECT COUNT(*) as count FROM users');
+        const { count } = countStmt.get();
+        if (count === 0) {
+            console.log('[AuthDB] Tabela de usuários vazia. Criando usuário admin padrão...');
+            const passwordHash = bcrypt.hashSync('admin', 10);
+            const insertStmt = db.prepare(
+                "INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)"
+            );
+            insertStmt.run('admin', 'admin@soundmaster.local', passwordHash, 'admin');
+            console.log('[AuthDB] Usuário admin padrão criado:');
+            console.log(' - Usuário: admin');
+            console.log(' - Senha: admin');
+            console.log(' - Email: admin@soundmaster.local');
+        }
+    } catch (e) {
+        console.error('[AuthDB] Erro ao criar usuário admin padrão:', e.message);
+    }
+
     console.log('[AuthDB] SQLite initialized:', dbPath);
     return db;
 }
