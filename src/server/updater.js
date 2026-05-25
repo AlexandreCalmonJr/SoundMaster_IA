@@ -5,7 +5,7 @@ const path = require('path');
 const AdmZip = require('adm-zip');
 const crypto = require('crypto');
 
-const GITHUB_REPO = 'AlexandreCalmonJr/sound_assist_pibi';
+const GITHUB_REPO = 'AlexandreCalmonJr/SoundMaster_IA';
 const VERSION_FILE = path.join(__dirname, '..', '..', 'version.json');
 
 // ✅ T9: Função para calcular SHA256 do arquivo baixado (P22)
