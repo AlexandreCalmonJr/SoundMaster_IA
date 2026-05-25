@@ -93,7 +93,8 @@
 
         for (let i = 0; i < n; i++) {
             const x = PAD.left + (i / (n - 1)) * plotW;
-            const dbClamped = Math.max(DB_MIN, Math.min(DB_MAX, curveDb[i] ?? DB_MIN));
+            const val = curveDb[i];
+            const dbClamped = Math.max(DB_MIN, Math.min(DB_MAX, (val != null && !isNaN(val)) ? val : DB_MIN));
             const y = PAD.top + plotH * (1 - (dbClamped - DB_MIN) / DB_RANGE);
             if (i === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
@@ -118,7 +119,7 @@
      * @param {object} params - { rt60, t20, t30, edt, c50, c80, d50, sti, sti_category }
      */
     function updateMetricCards(params) {
-        const fmt = (v) => v != null ? `${parseFloat(v).toFixed(2)}s` : '--';
+        const fmt = (v) => v != null ? (isNaN(v) ? '--' : `${parseFloat(v).toFixed(2)}s`) : '--';
 
         const edtEl = _el('schroeder-edt');
         const t20El = _el('schroeder-t20');

@@ -60,6 +60,9 @@
     // Chave: `${binCount}_${sampleRate}` → Float32Array de offsets por bin
     const _cache   = new Map();
 
+    // RMS do ruído rosa (exposto internamente para debug)
+    let _pinkNoiseRms = 0;
+
     // ─── Parser de ficheiro .cal / .txt ───────────────────────────────────────
 
     /**
@@ -395,11 +398,12 @@
 
     async function _persist() {
         try {
-            await fetch('/api/calibration', {
+            const res = await fetch('/api/calibration', {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body:    JSON.stringify({ calibrationData: _points, splOffset: _splOffset, name: _name })
             });
+            if (!res.ok) console.warn('[Calibration] Persistência retornou HTTP', res.status);
         } catch (err) {
             console.warn('[Calibration] Falha ao persistir:', err.message);
         }
@@ -447,8 +451,7 @@
             });
             node.port.onmessage = (e) => {
                 if (e.data.type === 'rms') {
-                    // Opcional: expõe RMS do ruído rosa para debugging
-                    window._pinkNoiseRms = e.data.value;
+                    _pinkNoiseRms = e.data.value;
                 }
             };
             node._isPinkWorklet = true;
@@ -462,8 +465,15 @@
 
     // ─── Inicialização da página ──────────────────────────────────────────────
 
+    let _pageAc = null;
+
     document.addEventListener('page-loaded', (e) => {
         if (e.detail.pageId !== 'analyzer') return;
+
+        // Cancela listeners anteriores (evita duplicação se page-loaded re-firar)
+        if (_pageAc) _pageAc.abort();
+        _pageAc = new AbortController();
+        const { signal } = _pageAc;
 
         // Upload de ficheiro .cal
         const input = _el('cal-file-input');
@@ -478,12 +488,12 @@
                 } catch (err) {
                     alert(`❌ Erro ao carregar ficheiro: ${err.message}`);
                 }
-            });
+            }, { signal });
         }
 
         // Botão limpar
         const btnClear = _el('btn-clear-calibration');
-        if (btnClear) btnClear.addEventListener('click', clearCalibration);
+        if (btnClear) btnClear.addEventListener('click', clearCalibration, { signal });
 
         // Botão calibrar SPL (tom de 94dB)
         const btnSpl = _el('btn-calibrate-spl');
@@ -497,7 +507,7 @@
                 const rawDb = 20 * Math.log10(rms + 1e-6);
                 calibrateSPL(rawDb);
                 alert(`✅ Offset SPL: ${_splOffset.toFixed(1)} dB`);
-            });
+            }, { signal });
         }
 
         // Dropdown de perfis embutidos
@@ -512,7 +522,7 @@
             });
             selectPreset.addEventListener('change', (ev) => {
                 if (ev.target.value) loadPreset(ev.target.value);
-            });
+            }, { signal });
         }
 
         // Recupera perfil guardado do servidor

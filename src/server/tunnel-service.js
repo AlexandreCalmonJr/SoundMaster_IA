@@ -11,8 +11,7 @@ function startTunnel(port) {
         }
         try {
             const cp = spawn('cloudflared', ['tunnel', '--url', `http://localhost:${port}`, '--no-autoupdate'], {
-                stdio: ['ignore', 'pipe', 'pipe'],
-                shell: true
+                stdio: ['ignore', 'pipe', 'pipe']
             });
             let started = false;
             cp.stdout.on('data', (data) => {

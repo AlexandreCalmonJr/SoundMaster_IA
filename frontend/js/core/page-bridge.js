@@ -91,7 +91,7 @@
         };
 
         // Estado local no iframe sincronizado com o parent
-        const _localState = { ...window.parent.AppStore.getState() };
+        const _localState = window.parent.AppStore ? { ...window.parent.AppStore.getState() } : {};
         const _localListeners = {};
 
         // Escutar atualizações do parent e replicar localmente
@@ -110,6 +110,9 @@
             }
         });
 
+        // Solicita estado inicial ao parent (após registrar listener para evitar race)
+        window.parent.postMessage({ type: 'APPSTORE_SYNC_REQUEST' }, window.parent.origin || 'https://pibi.app');
+
         // Proxy para AppStore: cross-frame sync via postMessage sem reter referências de callbacks
         Object.defineProperty(window, 'AppStore', {
             get: () => {
@@ -126,7 +129,7 @@
                     },
                     setState: function (patch) {
                         // Envia para o parent aplicar e disparar APPSTORE_UPDATE de volta
-                        window.parent.postMessage({ type: 'APPSTORE_PATCH', patch: patch }, '*');
+                        window.parent.postMessage({ type: 'APPSTORE_PATCH', patch: patch }, window.parent.origin || 'https://pibi.app');
                     },
                     getState: function () {
                         return _localState;

@@ -14,6 +14,10 @@
     let dualToneNode = null;
     let sineWaveNode = null;
     let sineWaveGainNode = null;
+    let bandLimitedNoiseNode = null;
+    let bandLimitedFilter = null;
+    let bandLimitedGain = null;
+    let _autoStopTimer = null;
 
     let isPinkNoisePlaying = false;
     let isWhiteNoisePlaying = false;
@@ -21,13 +25,15 @@
     let isChirpPlaying = false;
     let isDualTonePlaying = false;
     let isSineWavePlaying = false;
+    let isBandLimitedPlaying = false;
 
     function _getAudioCtx() {
         if (window.SoundMasterAnalyzer && typeof window.SoundMasterAnalyzer.getAudioContext === 'function') {
             const ctx = window.SoundMasterAnalyzer.getAudioContext();
-            if (ctx) return ctx;
+            if (ctx && ctx.state !== 'closed') return ctx;
         }
-        if (!localAudioCtx) {
+        if (!localAudioCtx || localAudioCtx.state === 'closed') {
+            if (localAudioCtx) { try { localAudioCtx.close(); } catch (_) { console.warn('[SignalGenerator] Error closing old AudioContext'); } }
             localAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
         if (localAudioCtx.state === 'suspended') {
@@ -48,7 +54,9 @@
         }
 
         if (autoStop) {
-            setTimeout(() => {
+            if (_autoStopTimer) clearTimeout(_autoStopTimer);
+            _autoStopTimer = setTimeout(function () {
+                _autoStopTimer = null;
                 stopPinkNoise();
             }, durationMs);
         }
@@ -56,7 +64,7 @@
 
     function stopPinkNoise() {
         if (pinkNoiseNode) {
-            try { pinkNoiseNode.disconnect(); } catch (_) {}
+            try { pinkNoiseNode.disconnect(); } catch (_) { console.warn('[SignalGenerator] Error disconnecting pink noise'); }
         }
         isPinkNoisePlaying = false;
         console.log('[SignalGenerator] Pink noise stopped');
@@ -80,7 +88,7 @@
 
     function stopWhiteNoise() {
         if (whiteNoiseNode) {
-            try { whiteNoiseNode.disconnect(); } catch (_) {}
+            try { whiteNoiseNode.disconnect(); } catch (_) { console.warn('[SignalGenerator] Error disconnecting white noise'); }
             whiteNoiseNode = null;
         }
         isWhiteNoisePlaying = false;
@@ -106,7 +114,7 @@
 
     function stopMLS() {
         if (mlsNode) {
-            try { mlsNode.disconnect(); } catch (_) {}
+            try { mlsNode.disconnect(); } catch (_) { console.warn('[SignalGenerator] Error disconnecting MLS'); }
             mlsNode = null;
         }
         isMLSPlaying = false;
@@ -134,7 +142,7 @@
 
     function stopChirp() {
         if (chirpNode) {
-            try { chirpNode.disconnect(); } catch (_) {}
+            try { chirpNode.disconnect(); } catch (_) { console.warn('[SignalGenerator] Error disconnecting chirp'); }
             chirpNode = null;
         }
         isChirpPlaying = false;
@@ -161,7 +169,7 @@
 
     function stopDualTone() {
         if (dualToneNode) {
-            try { dualToneNode.disconnect(); } catch (_) {}
+            try { dualToneNode.disconnect(); } catch (_) { console.warn('[SignalGenerator] Error disconnecting dual tone'); }
             dualToneNode = null;
         }
         isDualTonePlaying = false;
@@ -190,17 +198,75 @@
             try {
                 sineWaveNode.stop();
                 sineWaveNode.disconnect();
-            } catch (_) {}
+            } catch (_) { console.warn('[SignalGenerator] Error stopping sine node'); }
             sineWaveNode = null;
         }
         if (sineWaveGainNode) {
             try {
                 sineWaveGainNode.disconnect();
-            } catch (_) {}
+            } catch (_) { console.warn('[SignalGenerator] Error disconnecting sine gain'); }
             sineWaveGainNode = null;
         }
         isSineWavePlaying = false;
         console.log('[SignalGenerator] Sine wave stopped');
+    }
+
+    async function startBandLimitedNoise(type, centerFreq, bandOctave, amplitude) {
+        const audioCtx = _getAudioCtx();
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+        stopBandLimitedNoise();
+
+        try {
+            if (type === 'pink') {
+                if (window.AcousticCalibration) {
+                    bandLimitedNoiseNode = await AcousticCalibration.createPinkNoiseNode(audioCtx, 0.25);
+                } else {
+                    throw new Error('AcousticCalibration not available for pink noise');
+                }
+            } else {
+                await audioCtx.audioWorklet.addModule('js/core/signal-generators.js');
+                bandLimitedNoiseNode = new AudioWorkletNode(audioCtx, 'white-noise-processor');
+                bandLimitedNoiseNode.parameters.get('amplitude').value = amplitude || 0.3;
+            }
+
+            bandLimitedFilter = audioCtx.createBiquadFilter();
+            bandLimitedFilter.type = 'bandpass';
+            bandLimitedFilter.frequency.value = centerFreq;
+            // Q = sqrt(2^(bandOctave)) / (2^(bandOctave) - 1) for -3dB bandwidth
+            const bw = Math.pow(2, bandOctave);
+            bandLimitedFilter.Q.value = Math.sqrt(bw) / (bw - 1);
+
+            bandLimitedGain = audioCtx.createGain();
+            bandLimitedGain.gain.value = amplitude || 0.3;
+
+            bandLimitedNoiseNode.connect(bandLimitedFilter);
+            bandLimitedFilter.connect(bandLimitedGain);
+            bandLimitedGain.connect(audioCtx.destination);
+            isBandLimitedPlaying = true;
+            console.log(`[SignalGenerator] Band-limited ${type} noise started: ${centerFreq}Hz, ${bandOctave}-octave`);
+            return true;
+        } catch (e) {
+            console.error('[SignalGenerator] Band-limited noise failed:', e);
+            return false;
+        }
+    }
+
+    function stopBandLimitedNoise() {
+        if (bandLimitedNoiseNode) {
+            try { bandLimitedNoiseNode.disconnect(); } catch (_) { console.warn('[SignalGenerator] Error disconnecting band-limited noise'); }
+            bandLimitedNoiseNode = null;
+        }
+        if (bandLimitedFilter) {
+            try { bandLimitedFilter.disconnect(); } catch (_) { console.warn('[SignalGenerator] Error disconnecting band-limited filter'); }
+            bandLimitedFilter = null;
+        }
+        if (bandLimitedGain) {
+            try { bandLimitedGain.disconnect(); } catch (_) { console.warn('[SignalGenerator] Error disconnecting band-limited gain'); }
+            bandLimitedGain = null;
+        }
+        isBandLimitedPlaying = false;
+        if (_autoStopTimer) { clearTimeout(_autoStopTimer); _autoStopTimer = null; }
+        console.log('[SignalGenerator] Band-limited noise stopped');
     }
 
     function stopAll() {
@@ -210,10 +276,11 @@
         stopChirp();
         stopDualTone();
         stopSine();
+        stopBandLimitedNoise();
     }
 
     function isPlayingAny() {
-        return isPinkNoisePlaying || isWhiteNoisePlaying || isMLSPlaying || isChirpPlaying || isDualTonePlaying || isSineWavePlaying;
+        return isPinkNoisePlaying || isWhiteNoisePlaying || isMLSPlaying || isChirpPlaying || isDualTonePlaying || isSineWavePlaying || isBandLimitedPlaying;
     }
 
     window.SignalGeneratorController = {
@@ -229,6 +296,8 @@
         stopDualTone,
         startSine,
         stopSine,
+        startBandLimitedNoise,
+        stopBandLimitedNoise,
         stopAll,
         isPlayingAny,
         isPinkNoisePlaying: () => isPinkNoisePlaying,
@@ -236,7 +305,8 @@
         isMLSPlaying: () => isMLSPlaying,
         isChirpPlaying: () => isChirpPlaying,
         isDualTonePlaying: () => isDualTonePlaying,
-        isSineWavePlaying: () => isSineWavePlaying
+        isSineWavePlaying: () => isSineWavePlaying,
+        isBandLimitedPlaying: () => isBandLimitedPlaying
     };
 
     console.log('[SignalGeneratorController] Carregado.');

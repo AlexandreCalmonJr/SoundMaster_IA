@@ -215,6 +215,9 @@
         if (e.data && e.data.type === 'APPSTORE_PATCH') {
             setState(e.data.patch);
         }
+        if (e.data && e.data.type === 'APPSTORE_SYNC_REQUEST') {
+            e.source.postMessage({ type: 'APPSTORE_UPDATE', patch: getState(), keys: Object.keys(getState()) }, e.origin);
+        }
     });
 
     window.AppStore = { subscribe, setState, getState, addLog, addAISuggestion };

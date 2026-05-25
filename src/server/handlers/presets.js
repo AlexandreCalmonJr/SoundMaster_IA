@@ -21,7 +21,12 @@ function registerPresetHandlers(io, socket, deps) {
 
     socket.on('list_presets', () => {
         db.presets.find({}).sort({ timestamp: -1 }).exec((err, docs) => {
-            if (!err) socket.emit('presets_list', docs);
+            if (err) {
+                logger.error(socket.id, 'LIST_PRESETS_ERROR', { error: err.message });
+                socket.emit('presets_error', { message: 'Failed to load presets' });
+            } else {
+                socket.emit('presets_list', docs);
+            }
         });
     });
 

@@ -23,7 +23,7 @@
         for (var i = 1; i <= NUM_CH; i++) {
             var ch = s.channels ? s.channels[i - 1] : null;
             if (!ch) continue;
-            var vu = ch.vu;
+            var vu = ch.vu ?? -80;
             var pct = Math.max(0, ((vu + 80) / 80) * 100);
             var container = pm._el('sim-ch-vu-' + i);
             if (!container) continue;
@@ -31,13 +31,13 @@
             var peak = container.querySelector('.sim-vu-peak');
             var label = container.parentElement.querySelector('.sim-vu-label');
             if (bar) bar.style.height = pct + '%';
-            if (peak) peak.style.bottom = Math.max(0, ((ch.vuPeak + 80) / 80) * 100) + '%';
+            if (peak) peak.style.bottom = Math.max(0, ((ch.vuPeak ?? -80) + 80) / 80 * 100) + '%';
             if (label) label.textContent = vu > -60 ? vu.toFixed(1) + 'dB' : '-\u221E';
         }
         var masterPct = s.master ? s.master.level * 100 : 0;
         pm._el('sim-master-bar').style.width = masterPct + '%';
         var ml = pm._el('sim-master-label');
-        if (ml) ml.textContent = (s.master && s.master.mute) ? 'MUTE' : Math.round((s.master.level - 1) * 100) + 'dB';
+        if (ml) ml.textContent = (s.master && s.master.mute) ? 'MUTE' : Math.round(((s.master ? s.master.level : 1) - 1) * 100) + 'dB';
     }
 
     function _updateAcousticDisplay() {
@@ -77,7 +77,8 @@
         var div = document.createElement('div');
         div.className = 'flex gap-2' + (role === 'user' ? ' flex-row-reverse' : '');
         var avatar = role === 'user' ? '<div class="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center text-[10px] font-bold flex-shrink-0">U</div>' : '<div class="w-6 h-6 rounded-full bg-cyan-600/30 border border-cyan-500/30 flex items-center justify-center text-[10px] flex-shrink-0">AI</div>';
-        var bubble = role === 'user' ? '<div class="bg-cyan-700/40 rounded-xl rounded-tr-none px-3 py-2 text-xs text-slate-100 max-w-[85%]">' + text + '</div>' : '<div class="bg-slate-800/60 rounded-xl rounded-tl-none px-3 py-2 text-xs text-slate-300 max-w-[85%]">' + text.replace(/\n/g, '<br>') + '</div>';
+        var esc = text.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]});
+        var bubble = role === 'user' ? '<div class="bg-cyan-700/40 rounded-xl rounded-tr-none px-3 py-2 text-xs text-slate-100 max-w-[85%]">' + esc + '</div>' : '<div class="bg-slate-800/60 rounded-xl rounded-tl-none px-3 py-2 text-xs text-slate-300 max-w-[85%]">' + esc.replace(/\n/g, '<br>') + '</div>';
         div.innerHTML = avatar + bubble; container.appendChild(div); container.scrollTop = container.scrollHeight;
     }
 

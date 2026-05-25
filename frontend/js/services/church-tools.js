@@ -1,4 +1,6 @@
 (function () {
+    var _churchController = new AbortController();
+
     function _el(id) {
         const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
         if (iframe && iframe.contentDocument) {
@@ -7,6 +9,8 @@
         }
         return document.getElementById(id);
     }
+
+    function _esc(s){return String(s).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]});}
 
     function initEqGuide() {
         const eqSelect = _el('eq-instrument-select');
@@ -18,13 +22,13 @@
             if (!data) return;
 
             eqDisplay.innerHTML = `
-                <div style="font-size: 2rem; margin-bottom: 10px;">${data.icon}</div>
-                <h3 style="margin-bottom: 15px; color: var(--accent-primary);">${data.title}</h3>
-                <div style="margin-bottom: 10px;"><strong>HPF (Corte de Graves):</strong> <span style="color: var(--text-muted)">${data.hpf}</span></div>
-                <div style="margin-bottom: 10px;"><strong>Área Crítica (Mud):</strong> <span style="color: var(--warning)">${data.mud}</span></div>
-                <div style="margin-bottom: 10px;"><strong>Presença/Clareza:</strong> <span style="color: var(--success)">${data.presence}</span></div>
+                <div style="font-size: 2rem; margin-bottom: 10px;">${_esc(data.icon)}</div>
+                <h3 style="margin-bottom: 15px; color: var(--accent-primary);">${_esc(data.title)}</h3>
+                <div style="margin-bottom: 10px;"><strong>HPF (Corte de Graves):</strong> <span style="color: var(--text-muted)">${_esc(data.hpf)}</span></div>
+                <div style="margin-bottom: 10px;"><strong>Área Crítica (Mud):</strong> <span style="color: var(--warning)">${_esc(data.mud)}</span></div>
+                <div style="margin-bottom: 10px;"><strong>Presença/Clareza:</strong> <span style="color: var(--success)">${_esc(data.presence)}</span></div>
                 <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 0.9rem;">
-                    <em>Dica: ${data.tips}</em>
+                    <em>Dica: ${_esc(data.tips)}</em>
                 </div>
             `;
         }
@@ -42,7 +46,7 @@
             };
         }
 
-        eqSelect.addEventListener('change', updateEqDisplay);
+        eqSelect.addEventListener('change', updateEqDisplay, { signal: _churchController.signal });
         updateEqDisplay();
     }
 
@@ -66,7 +70,7 @@
                     setTimeout(() => MixerService.setOscillator(false, -10), 200);
                     alert('Pulso disparado (Modo Fallback). Ative o microfone na aba Análise para captura real.');
                 }
-            });
+            }, { signal: _churchController.signal });
         }
 
         if (btnClear) {
@@ -80,7 +84,7 @@
                     rtResult.style.display = 'none';
                     rtResult.innerHTML = '';
                 }
-            });
+            }, { signal: _churchController.signal });
         }
 
         // Handler para o Benchmarking
@@ -99,7 +103,7 @@
                 } else {
                     alert('SocketService não disponível.');
                 }
-            });
+            }, { signal: _churchController.signal });
         }
 
         _initMtkControls();
@@ -168,11 +172,11 @@
             rtResult.innerHTML = `
                 <div class="flex justify-between text-[10px] uppercase font-black text-slate-500 mb-4 tracking-tighter">
                     <span>Volume: ${Math.round(volume)}m³</span>
-                    <span>Fórmula: ${formula}</span>
+                    <span>Fórmula: ${_esc(formula)}</span>
                 </div>
                 <h3 class="text-2xl font-black text-white">RT60: ${rt60.toFixed(2)} seg</h3>
-                <p class="text-sm font-bold mt-2 ${statusClass === 'safe' ? 'text-green-400' : (statusClass === 'warning' ? 'text-amber-400' : 'text-red-400')}">${statusText}</p>
-                <p class="text-xs text-slate-300 mt-2 leading-relaxed">${suggestions}</p>
+                <p class="text-sm font-bold mt-2 ${statusClass === 'safe' ? 'text-green-400' : (statusClass === 'warning' ? 'text-amber-400' : 'text-red-400')}">${_esc(statusText)}</p>
+                <p class="text-xs text-slate-300 mt-2 leading-relaxed">${_esc(suggestions)}</p>
                 ${delayHtml}
             `;
 
@@ -189,8 +193,8 @@
             }
         };
 
-        if (btnCalcManual) btnCalcManual.addEventListener('click', runCalculation);
-        if (btnCalcFull) btnCalcFull.addEventListener('click', runCalculation);
+        if (btnCalcManual) btnCalcManual.addEventListener('click', runCalculation, { signal: _churchController.signal });
+        if (btnCalcFull) btnCalcFull.addEventListener('click', runCalculation, { signal: _churchController.signal });
     }
 
     function initBenchmarking() {
@@ -199,8 +203,9 @@
         if (!btnRefresh) return;
 
         // Registrar listener para dados reais (apenas uma vez)
+        // TODO: store handler reference for SocketService.off() cleanup if destroy() is added
         if (window.SocketService && !window._benchmarkingListenerSet) {
-            window.SocketService.on('acoustic_history_data', (data) => {
+            var _acousticHandler = (data) => {
                 const emptyEl = _el('bench-empty-rt60');
                 const fullEl = _el('bench-full-rt60');
                 
@@ -213,7 +218,8 @@
                     fullEl.innerText = val > 0 ? `${val.toFixed(2)}s` : 'Sem dados';
                 }
                 AppStore.addLog('Benchmarking atualizado via histórico acústico real.');
-            });
+            };
+            window.SocketService.on('acoustic_history_data', _acousticHandler);
             window._benchmarkingListenerSet = true;
         }
 
@@ -240,7 +246,9 @@
         console.log('[SoundMasterChurchTools] Inativo - Lógica delegada aos módulos de página.');
     }
 
-    window.SoundMasterChurchTools = { init };    function _initMtkControls() {
+    window.SoundMasterChurchTools = { init };
+
+    function _initMtkControls() {
         const btnRec = _el('btn-rt-rec-mtk');
         const btnStop = _el('btn-rt-stop-mtk');
         const recDot = _el('rt-rec-dot');
@@ -284,6 +292,7 @@
             AppStore.addLog('MTK: Gravação de Multitrack finalizada.');
         };
 
+        // TODO: store unsubscribe reference for cleanup if destroy() is added
         AppStore.subscribe('isRecordingMTK', (isRec) => updateStatusUI(isRec));
     }
 

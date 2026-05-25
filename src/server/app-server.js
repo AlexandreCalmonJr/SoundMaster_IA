@@ -20,7 +20,7 @@ const Logger = require('./logger');
 const fs = require('fs');
 const multer = require('multer');
 
-function createAppServer({ app, rootDir, localIp, port, dbDir }) {
+function createAppServer({ rootDir, localIp, port, dbDir }) {
     const logger = Logger.getInstance(dbDir);
     const expressApp = express();
     const server = http.createServer(expressApp);

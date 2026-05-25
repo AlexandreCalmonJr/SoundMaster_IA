@@ -34,6 +34,7 @@ const dns     = require('dns');
 
 // multicast-dns para descoberta Bonjour/mDNS
 let mdns;
+let mdnsTimer = null;
 try {
     mdns = require('multicast-dns')();
     mdns.setMaxListeners(20);
@@ -143,6 +144,10 @@ function stop() {
     if (_state.timer) {
         clearInterval(_state.timer);
         _state.timer = null;
+    }
+    if (mdnsTimer) {
+        clearInterval(mdnsTimer);
+        mdnsTimer = null;
     }
     _state.running = false;
     _emit('net_diag_status', { running: false });
@@ -283,7 +288,7 @@ function _udpLossProbe(host) {
         const finish = () => {
             if (done) return;
             done = true;
-            try { sock.close(); } catch (_) {}
+            try { sock.close(); } catch (_) { console.warn('[NetDiag] Erro ao fechar socket UDP na sonda de perda'); }
             const loss = Math.round((1 - received / Math.max(sent, 1)) * 100);
             resolve(Math.min(100, Math.max(0, loss)));
         };
@@ -408,7 +413,7 @@ function _startMdnsDiscovery() {
 
     // Query ativa imediata + a cada 30 segundos
     _queryAllServices();
-    const mdnsTimer = setInterval(_queryAllServices, 30000);
+    mdnsTimer = setInterval(_queryAllServices, 30000);
     if (mdnsTimer.unref) mdnsTimer.unref();
 
     console.log('[NetDiag] Descoberta mDNS iniciada.');
@@ -420,7 +425,7 @@ function _queryAllServices() {
         try {
             mdns.query({ questions: [{ name: service, type: 'PTR' }] });
         } catch (e) {
-            // Ignora erros de rede transitórios
+            console.warn(`[NetDiag] Erro ao consultar serviço mDNS ${service}: ${e.message}`);
         }
     });
 }

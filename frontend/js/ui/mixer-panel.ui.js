@@ -11,6 +11,9 @@
 (function () {
     'use strict';
 
+    let _panelController = null;
+    const _socketHandlers = {};
+
     // -------------------------------------------------------------------------
     // Elementos do DOM
     // -------------------------------------------------------------------------
@@ -187,10 +190,7 @@
             div.style.display = 'flex';
             div.style.justifyContent = 'space-between';
             div.style.alignItems = 'center';
-            div.innerHTML = `
-                <span>${p.name} <small style="color:var(--text-muted)">(${new Date(p.timestamp).toLocaleTimeString()})</small></span>
-                <button class="action-btn primary small" style="padding: 4px 8px;">Carregar</button>
-            `;
+            div.innerHTML = '<span>' + p.name.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]}) + ' <small style="color:var(--text-muted)">(' + new Date(p.timestamp).toLocaleTimeString() + ')</small></span>\n                <button class="action-btn primary small" style="padding: 4px 8px;">Carregar</button>';
             div.querySelector('button').onclick = () => MixerService.loadPreset(p._id);
             els.presetsList.appendChild(div);
         });
@@ -214,7 +214,7 @@
                 els.tabSections.forEach(function (s) { s.classList.add('hidden'); });
                 const target = document.getElementById(tab.getAttribute('data-tab'));
                 if (target) target.classList.remove('hidden');
-            });
+            }, { signal: _panelController.signal });
         });
     }
 
@@ -247,11 +247,11 @@
             if (ifaceTab) ifaceTab.click();
 
             MixerService.connect(ip);
-        });
+        }, { signal: _panelController.signal });
 
         els.btnDisconnect && els.btnDisconnect.addEventListener('click', function () {
             MixerService.disconnect();
-        });
+        }, { signal: _panelController.signal });
 
 
 
@@ -263,14 +263,14 @@
         els.masterSlider && els.masterSlider.addEventListener('pointerdown', () => {
             const level = Number(els.masterSlider.value) / 100;
             if (window.SocketService) SocketService.lockFader('master', level);
-        });
+        }, { signal: _panelController.signal });
 
         els.masterSlider && els.masterSlider.addEventListener('input', function () {
             const level = Number(els.masterSlider.value) / 100;
             // Atualiza UI imediatamente (otimismo)
             if (window.SocketService) SocketService.lockFader('master', level);
             _renderMasterLevel(level, AppStore.getState().masterDb);
-        });
+        }, { signal: _panelController.signal });
 
         els.masterSlider && els.masterSlider.addEventListener('change', function () {
             const level = Number(els.masterSlider.value) / 100;
@@ -288,42 +288,42 @@
             _masterDebounce = setTimeout(() => {
                 if (window.SocketService) SocketService.unlockFader('master');
             }, 300);
-        });
+        }, { signal: _panelController.signal });
 
         els.masterSlider && els.masterSlider.addEventListener('pointercancel', () => {
             clearTimeout(_masterDebounce);
             if (window.SocketService) SocketService.unlockFader('master');
-        });
+        }, { signal: _panelController.signal });
 
         els.masterSlider && els.masterSlider.addEventListener('pointerleave', () => {
             clearTimeout(_masterDebounce);
             if (window.SocketService) SocketService.unlockFader('master');
-        });
+        }, { signal: _panelController.signal });
 
         // Botões +1% / -1%
         els.masterDown && els.masterDown.addEventListener('click', function () {
             MixerService.adjustMasterLevel(-1);
-        });
+        }, { signal: _panelController.signal });
         els.masterUp && els.masterUp.addEventListener('click', function () {
             MixerService.adjustMasterLevel(1);
-        });
+        }, { signal: _panelController.signal });
 
         // Ações rápidas de canal
         els.btnQuickHpf && els.btnQuickHpf.addEventListener('click', function () {
             const ch = _getQuickChannel(); if (ch) MixerService.applyHpf(ch, 100);
-        });
+        }, { signal: _panelController.signal });
 
         els.btnQuickGate && els.btnQuickGate.addEventListener('click', function () {
             const ch = _getQuickChannel(); if (ch) MixerService.applyGate(ch);
-        });
+        }, { signal: _panelController.signal });
 
         els.btnAfsOn && els.btnAfsOn.addEventListener('click', function () {
             MixerService.setAfs(true);
-        });
+        }, { signal: _panelController.signal });
 
         els.btnAfsOff && els.btnAfsOff.addEventListener('click', function () {
             MixerService.setAfs(false);
-        });
+        }, { signal: _panelController.signal });
 
         // Ruído Rosa
         let isPinkActive = false;
@@ -335,10 +335,10 @@
                 els.pinkNoiseStatus.innerText = isPinkActive ? 'LIGADO' : 'Desligado';
                 els.pinkNoiseStatus.style.color = isPinkActive ? 'var(--accent-primary)' : 'var(--text-muted)';
             }
-        });
+        }, { signal: _panelController.signal });
 
         // Undo / Redo
-        els.btnUndo && els.btnUndo.addEventListener('click', () => MixerService.undo());
+        els.btnUndo && els.btnUndo.addEventListener('click', () => MixerService.undo(), { signal: _panelController.signal });
 
         // Presets
         els.btnSavePreset && els.btnSavePreset.addEventListener('click', () => {
@@ -346,10 +346,10 @@
             if (!name) { alert('Dê um nome ao preset!'); return; }
             MixerService.savePreset(name);
             if (els.presetNameInput) els.presetNameInput.value = '';
-        });
+        }, { signal: _panelController.signal });
 
         const presetsTab = document.querySelector('[data-tab="mixer-presets"]');
-        presetsTab?.addEventListener('click', () => MixerService.listPresets());
+        presetsTab?.addEventListener('click', () => MixerService.listPresets(), { signal: _panelController.signal });
 
         // Mix Selector
         els.mixBtns.forEach(btn => {
@@ -359,14 +359,14 @@
                 currentMix.type = btn.getAttribute('data-mix-type');
                 currentMix.id = btn.getAttribute('data-mix-id');
                 AppStore.addLog(`Mix Desktop alterado para: ${currentMix.type.toUpperCase()} ${currentMix.id || ''}`);
-            });
+            }, { signal: _panelController.signal });
         });
 
         // BPM Control
         els.fxBpmInput && els.fxBpmInput.addEventListener('change', function() {
             const bpm = parseInt(els.fxBpmInput.value);
             MixerService.setFxBpm(1, bpm); // Ajusta o FX 1 por padrão
-        });
+        }, { signal: _panelController.signal });
 
         // TAP BPM
         els.btnSyncBpm && els.btnSyncBpm.addEventListener('click', function() {
@@ -374,7 +374,7 @@
             const next = current > 140 ? 120 : current + 8;
             els.fxBpmInput.value = next;
             MixerService.setFxBpm(1, next);
-        });
+        }, { signal: _panelController.signal });
 
         // ✅ Novo: Mute Groups
         document.querySelectorAll('.mute-group-btn').forEach(btn => {
@@ -385,7 +385,7 @@
                 btn.classList.toggle('active', !isActive);
                 btn.classList.toggle('bg-red-600', !isActive && groupId === 'all');
                 btn.classList.toggle('bg-cyan-600', !isActive && groupId !== 'all');
-            });
+            }, { signal: _panelController.signal });
         });
 
         // ✅ Novo: Hardware Gain
@@ -393,23 +393,23 @@
             const val = e.target.value;
             if (els.hwGainVal) els.hwGainVal.innerText = val + '%';
             MixerService.setHwGain(els.hwInputNum.value, val / 100);
-        });
+        }, { signal: _panelController.signal });
 
         // ✅ Novo: Phantom Power
         els.hwPhantom?.addEventListener('change', (e) => {
             MixerService.setPhantomPower(els.hwInputNum.value, e.target.checked);
-        });
+        }, { signal: _panelController.signal });
 
         // ✅ Novo: Shows & Snapshots
         els.btnSyncShows?.addEventListener('click', () => {
             MixerService.showControl('list');
             els.btnSyncShows.innerText = '⌛...';
-        });
+        }, { signal: _panelController.signal });
 
         els.btnNewShow?.addEventListener('click', () => {
             const name = prompt('Nome do novo Show:');
             if (name) MixerService.showControl('save', name);
-        });
+        }, { signal: _panelController.signal });
 
         // Esconde botão desconectar inicialmente
         if (els.btnDisconnect) els.btnDisconnect.style.display = 'none';
@@ -473,19 +473,34 @@
             }
         });
 
-        SocketService.on('presets_list', (presets) => _renderPresets(presets));
-        SocketService.on('preset_saved', () => MixerService.listPresets());
+        _socketHandlers.presets_list = (presets) => _renderPresets(presets);
+        _socketHandlers.preset_saved = () => MixerService.listPresets();
+        SocketService.on('presets_list', _socketHandlers.presets_list);
+        SocketService.on('preset_saved', _socketHandlers.preset_saved);
     }
 
     // -------------------------------------------------------------------------
     // Init
     // -------------------------------------------------------------------------
+    function destroy() {
+        if (_panelController) {
+            _panelController.abort();
+            _panelController = null;
+        }
+        Object.keys(_socketHandlers).forEach(function (event) {
+            SocketService.off(event, _socketHandlers[event]);
+        });
+    }
+
     function init() {
+        if (_panelController) _panelController.abort();
+        _panelController = new AbortController();
+
         els = _getEls();
         _initTabs();
         _initEvents();
         _initSubscriptions();
     }
 
-    window.SoundMasterMixerPanel = { init };
+    window.SoundMasterMixerPanel = { init, destroy };
 })();

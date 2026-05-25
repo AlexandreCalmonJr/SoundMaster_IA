@@ -36,6 +36,9 @@
 
     function _ensureCtx() {
         if (!_audioCtx || _audioCtx.state === 'closed') {
+            if (_audioCtx && _audioCtx.state === 'closed') {
+                try { _audioCtx.close(); } catch (_) {}
+            }
             _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
         if (_audioCtx.state === 'suspended') {

@@ -24,6 +24,7 @@
     let canvas = null;
     let ctx = null;
     let isActive = false;
+    let _abortCtrl = null;
 
     const RT60_COLORS = {
         good: { min: 0, max: 1.4, color: [34, 197, 94], label: 'Ótimo' },
@@ -33,6 +34,9 @@
     };
 
     function init() {
+        if (_abortCtrl) _abortCtrl.abort();
+        _abortCtrl = new AbortController();
+        var sig = _abortCtrl.signal;
         const container = _el('mapping-container');
         if (!container) return;
         
@@ -43,32 +47,31 @@
         
         ctx = canvas.getContext('2d');
         
-        setupEventListeners();
+        setupEventListeners(sig);
         loadSavedData();
         loadProfilesFromStorage();
         resizeCanvas();
         
-        window.removeEventListener('resize', resizeCanvas);
-        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('resize', resizeCanvas, { signal: sig });
         
         console.log('[RT60-Mapping] Módulo inicializado');
     }
 
-    function setupEventListeners() {
+    function setupEventListeners(sig) {
         const inputFloorplan = _el('input-floorplan');
         const btnImport = _el('btn-import-floorplan');
         const btnClear = _el('btn-clear-mapping');
         const btnExport = _el('btn-export-mapping');
 
         if (btnImport && inputFloorplan) {
-            btnImport.addEventListener('click', () => inputFloorplan.click());
-            inputFloorplan.addEventListener('change', handleFloorplanUpload);
+            btnImport.addEventListener('click', () => inputFloorplan.click(), { signal: sig });
+            inputFloorplan.addEventListener('change', handleFloorplanUpload, { signal: sig });
         }
         
-        btnClear?.addEventListener('click', clearMapping);
-        btnExport?.addEventListener('click', exportMapping);
+        btnClear?.addEventListener('click', clearMapping, { signal: sig });
+        btnExport?.addEventListener('click', exportMapping, { signal: sig });
         
-        canvas?.addEventListener('click', handleCanvasClick);
+        canvas?.addEventListener('click', handleCanvasClick, { signal: sig });
     }
 
     function resizeCanvas() {
@@ -555,6 +558,17 @@
         return canvas;
     }
 
+    function destroy() {
+        if (_abortCtrl) _abortCtrl.abort();
+        _abortCtrl = null;
+        mappingPoints = [];
+        currentProfile = null;
+        canvas = null;
+        ctx = null;
+        bgImage = null;
+        isActive = false;
+    }
+
     function setActive(active) {
         isActive = active;
         if (canvas) {
@@ -570,6 +584,7 @@
 
     window.RT60Mapping = {
         init,
+        destroy,
         getAverageProfile,
         createCorrectionProfile,
         getProfiles,

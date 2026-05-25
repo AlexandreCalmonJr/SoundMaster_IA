@@ -5,6 +5,8 @@
 (function() {
     'use strict';
 
+    let _chartExportController = new AbortController();
+
     /**
      * Busca elemento pelo ID, tentando primeiro no iframe e depois no parent.
      */
@@ -246,7 +248,7 @@
         if (e.detail.pageId === 'analyzer' || e.detail.pageId === 'spl-heatmap' || e.detail.pageId === 'rt60') {
             setTimeout(bindExportButtons, 300);
         }
-    });
+    }, { signal: _chartExportController.signal });
 
     // Também inicializa quando carregado diretamente no iframe
     (function autoInitExport() {
@@ -265,6 +267,7 @@
         exportAsPDF,
         getAvailableCharts,
         bindExportButtons,
-        CANVAS_IDS: CHART_CANVAS_IDS
+        CANVAS_IDS: CHART_CANVAS_IDS,
+        destroy: function () { if (_chartExportController) { _chartExportController.abort(); _chartExportController = null; } }
     };
 })();

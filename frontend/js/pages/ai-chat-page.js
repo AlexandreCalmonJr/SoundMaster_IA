@@ -129,7 +129,7 @@
                     <span class="text-[10px] uppercase font-bold tracking-wider text-cyan-400">Recomendação da IA</span>
                     <span class="text-[9px] font-mono bg-cyan-950 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500/20">Human-In-The-Loop</span>
                 </div>
-                <p class="text-xs text-white font-semibold mb-2">${command.desc || 'Ajuste de Mixer'}</p>
+                <p class="text-xs text-white font-semibold mb-2">${(command.desc || 'Ajuste de Mixer').replace(/[&<>]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]; })}</p>
                 <div class="grid grid-cols-3 gap-2 bg-slate-900/60 p-2 rounded-lg mb-3 border border-white/5 font-mono text-[10px] text-slate-400">
                     <div>Canal: <span class="text-cyan-300">${command.channel !== undefined ? command.channel : '-'}</span></div>
                     <div>Ação: <span class="text-cyan-300">${command.action || '-'}</span></div>

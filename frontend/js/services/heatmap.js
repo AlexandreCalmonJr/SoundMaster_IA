@@ -83,15 +83,15 @@
         const container = _el('heatmap-container');
         const btnClear = _el('btn-clear-heatmap');
         
-        if(btnUpload && upload) btnUpload.addEventListener('click', () => upload.click());
+        if(btnUpload && upload) btnUpload.onclick = () => upload.click();
         if(upload) upload.addEventListener('change', handleImageUpload);
         if(container) {
-            container.addEventListener('click', handleContainerClick);
-            container.addEventListener('mousedown', handleRulerStart);
-            container.addEventListener('mousemove', handleRulerMove);
-            container.addEventListener('mouseup', handleRulerEnd);
+            container.onclick = handleContainerClick;
+            container.onmousedown = handleRulerStart;
+            container.onmousemove = handleRulerMove;
+            container.onmouseup = handleRulerEnd;
         }
-        if(btnClear) btnClear.addEventListener('click', clearHeatmap);
+        if(btnClear) btnClear.onclick = clearHeatmap;
         
         loadSettings();
         
@@ -125,7 +125,7 @@
     
     function loadSettings() {
         const savedScale = localStorage.getItem('heatmap_scale');
-        if (savedScale) scaleMetersPerPixel = parseFloat(savedScale);
+        if (savedScale) scaleMetersPerPixel = parseFloat(savedScale) || 0.5;
         
         const savedIsolines = localStorage.getItem('heatmap_isolines');
         showIsolines = savedIsolines !== 'false';
@@ -192,7 +192,7 @@
             btnCalibrate.onclick = () => {
                 const input = prompt('Digite a escala (metros por % da tela):\nEx: 20 significa que 100% da largura = 20 metros', scaleMetersPerPixel * 100);
                 if (input) {
-                    scaleMetersPerPixel = parseFloat(input) / 100;
+                    scaleMetersPerPixel = (parseFloat(input) || 50) / 100;
                     localStorage.setItem('heatmap_scale', scaleMetersPerPixel);
                     showToast(`Escala: 1px = ${(scaleMetersPerPixel * 100).toFixed(1)}cm`, 'success');
                 }
@@ -404,7 +404,7 @@
             return;
         }
 
-        _el('heatmap-last-val').innerText = `${db.toFixed(1)} dB`;
+        _el('heatmap-last-val').innerText = (db || 0).toFixed(1) + ' dB';
 
         const point = {
             x,
@@ -458,7 +458,7 @@
             pin.style.top = `${p.y * 100}%`;
             pin.style.backgroundColor = getColorForDb(p.db).replace('0.65', '1');
             pin.style.textShadow = '0px 1px 2px rgba(0,0,0,0.8)';
-            pin.innerText = Math.round(p.db);
+            pin.innerText = Math.round(p.db || 0);
             layer.appendChild(pin);
         });
     }

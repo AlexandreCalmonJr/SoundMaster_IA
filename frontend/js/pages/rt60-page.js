@@ -71,11 +71,17 @@
 
     function init() {
         pm._on(pm._el('btn-trigger-pulse'), 'click', function () { pm._safeCall('SoundMasterAnalyzer', 'triggerImpulse'); });
-        pm._on(pm._el('btn-calculate-rt60'), 'click', function () { pm._safeCall('SoundMasterAnalyzer', 'triggerImpulse'); });
+
+        pm._on(pm._el('btn-calculate-rt60'), 'click', function () {
+            var lastRt60 = pm._call('SoundMasterAnalyzer', 'getLastRt60');
+            if (lastRt60 && window.SchroederRenderer) {
+                var panel = pm._el('schroeder-chart-panel');
+                if (panel) panel.classList.remove('hidden');
+                window.SchroederRenderer.updateMetricCards(lastRt60);
+            }
+        });
 
         pm._on(pm._el('btn-clear-measurements'), 'click', function () { 
-            pm._toggleClasses('rt60-result', ['hidden'], []); 
-            pm._setHTML('rt60-result', ''); 
             pm._toggleClasses('schroeder-chart-panel', ['hidden'], []); 
         });
 
@@ -99,10 +105,16 @@
             }
         }
 
+        var _mtkBusy = false;
         pm._on(pm._el('btn-rt-rec-mtk'), 'click', function () {
+            if (_mtkBusy) return;
+            _mtkBusy = true;
+            this.disabled = true;
             pm._call('MixerService', 'setRecording', true, 'mtk');
             pm._call('AppStore', 'setState', { isRecordingMTK: true });
             pm._call('AppStore', 'addLog', 'MTK: Gravação de Multitrack iniciada.');
+            var self = this;
+            setTimeout(function () { _mtkBusy = false; }, 1000);
         });
         
         pm._on(pm._el('btn-rt-stop-mtk'), 'click', function () {
@@ -114,6 +126,7 @@
         // Listen for new RT60 results dispatched on parent document
         rt60Listener = handleRt60Result;
         if (window.parent && window.parent.document) {
+            window.parent.document.removeEventListener('rt60-result', rt60Listener);
             window.parent.document.addEventListener('rt60-result', rt60Listener);
         }
     }

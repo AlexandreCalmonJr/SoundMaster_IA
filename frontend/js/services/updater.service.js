@@ -38,7 +38,7 @@ const UpdaterService = {
                 <div class="flex items-start justify-between">
                     <div>
                         <h4 class="text-sm font-black uppercase tracking-tighter text-white">Atualização Disponível</h4>
-                        <p class="text-[10px] text-cyan-100 font-bold opacity-80 mt-1">Versão ${update.version}</p>
+                        <p class="text-[10px] text-cyan-100 font-bold opacity-80 mt-1">Versão ${update.version.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}</p>
                     </div>
                     <span class="text-xl">🚀</span>
                 </div>

@@ -35,7 +35,7 @@ function registerMixerConnectionHandlers(io, socket, deps) {
                 try {
                     logger.info(socket.id, 'MIXER_CLEANUP_PREVIOUS');
                     currentMixer.disconnect();
-                } catch (e) {}
+                } catch (e) { console.warn('[MixerConnection] Erro ao desconectar mixer anterior:', e.message); }
                 mixerSingleton.setMixer(null);
             }
 

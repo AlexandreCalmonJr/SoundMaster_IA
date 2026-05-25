@@ -10,6 +10,7 @@
 
     const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     let auxNames = {};
+    let localMuteState = {};
     const _auxDebounce = {};
     const defaultNames = ['Pastor', 'Líder', 'Vocal 1', 'Vocal 2', 'Piano', 'Bateria', 'Guit 1', 'Guit 2', 'Side L', 'Side R'];
 
@@ -30,6 +31,7 @@
         container.className = 'mixer-scroll-container pb-6 flex gap-6 overflow-x-auto';
 
         container.innerHTML = '';
+        var state = AppStore.getState ? AppStore.getState() : {};
         for (let i = 1; i <= 10; i++) {
             const auxName = auxNames[i] || defaultNames[i - 1] || `AUX ${i}`;
             const auxCard = document.createElement('div');
@@ -65,15 +67,19 @@
             `;
             container.appendChild(auxCard);
 
+            localMuteState[i] = state['mute_aux_' + i] || false;
+            if (localMuteState[i]) updateAuxMuteUI(i, true);
+
             // Bind Event Listeners
             const muteBtn = pm._el(`btn-aux-mute-${i}`);
             if (muteBtn) {
                 pm._on(muteBtn, 'click', () => {
-                    const stateKey = `mute_aux_${i}`;
-                    const isMuted = AppStore.getState()[stateKey] || false;
-                    MixerService.sendRaw(`SETD|a|${i - 1}|mute|${isMuted ? 0 : 1}`);
-                    AppStore.setState({ [stateKey]: !isMuted });
-                    AppStore.addLog(`AUX ${i}: ${!isMuted ? 'MUTADO' : 'ATIVO'}`);
+                    var next = !localMuteState[i];
+                    localMuteState[i] = next;
+                    MixerService.sendRaw(`SETD|a|${i - 1}|mute|${next ? 1 : 0}`);
+                    AppStore.setState({ ['mute_aux_' + i]: next });
+                    AppStore.addLog(`AUX ${i}: ${next ? 'MUTADO' : 'ATIVO'}`);
+                    updateAuxMuteUI(i, next);
                 });
             }
 
@@ -82,9 +88,6 @@
                 pm._on(levelInput, 'pointerdown', (e) => {
                     const val = Number(e.target.value) / 100;
                     if (window.SocketService) SocketService.lockFader(`aux_${i}`, val);
-                });
-                pm._on(levelInput, 'input', () => {
-                    // only update local UI — no socket emission
                 });
                 pm._on(levelInput, 'change', (e) => {
                     const val = Number(e.target.value) / 100;
@@ -118,7 +121,8 @@
 
             // Subscriptions
             pm._subscribe('AppStore', `mute_aux_${i}`, (isMuted) => {
-                updateAuxMuteUI(i, isMuted);
+                localMuteState[i] = !!isMuted;
+                updateAuxMuteUI(i, !!isMuted);
             });
 
             pm._subscribe('AppStore', `aux_${i}_level`, (level) => {
@@ -160,6 +164,7 @@
     }
 
     function destroy() {
+        Object.keys(_auxDebounce).forEach(function (k) { clearTimeout(_auxDebounce[k]); delete _auxDebounce[k]; });
         pm.destroy();
     }
 

@@ -16,13 +16,27 @@
     }
     'use strict';
 
+    let _mappingController = new AbortController();
     let canvas, ctx;
     let churchWidth = 10, churchLength = 20;
     let measurements = []; // { x, y, db, hz, status }
     let floorPlanImage = null;
     let resizeObserver = null;
 
+    function _onPageLoaded(e) {
+        if (e.detail.pageId === 'rt60') {
+            setTimeout(function () {
+                init();
+            }, 200);
+        }
+    }
+
     function init() {
+        if (_mappingController) _mappingController.abort();
+        _mappingController = new AbortController();
+
+        document.addEventListener('page-loaded', _onPageLoaded, { signal: _mappingController.signal });
+
         canvas = _el('mapping-canvas');
         if (!canvas) return;
         ctx = canvas.getContext('2d');
@@ -33,7 +47,7 @@
 
         _resizeCanvas();
         
-        canvas.addEventListener('click', _handleCanvasClick);
+        canvas.addEventListener('click', _handleCanvasClick, { signal: _mappingController.signal });
         
         // Reinicializa botões (redundância para SPA)
         const btnClear = _el('btn-clear-mapping');
@@ -41,16 +55,16 @@
             btnClear.addEventListener('click', () => {
                 measurements = [];
                 _drawMap();
-            });
+            }, { signal: _mappingController.signal });
         }
 
         const btnExport = _el('btn-export-mapping');
-        if (btnExport) btnExport.addEventListener('click', _exportMap);
+        if (btnExport) btnExport.addEventListener('click', _exportMap, { signal: _mappingController.signal });
 
         const btnImport = _el('btn-import-floorplan');
         const inputFloorPlan = _el('input-floorplan');
         if (btnImport && inputFloorPlan) {
-            btnImport.addEventListener('click', () => inputFloorPlan.click());
+            btnImport.addEventListener('click', () => inputFloorPlan.click(), { signal: _mappingController.signal });
             inputFloorPlan.addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (file) {
@@ -62,7 +76,7 @@
                     };
                     reader.readAsDataURL(file);
                 }
-            });
+            }, { signal: _mappingController.signal });
         }
 
         return { resizeObserver, canvas };
@@ -271,12 +285,13 @@
     }
 
     function destroy() {
+        if (_mappingController) {
+            _mappingController.abort();
+            _mappingController = null;
+        }
         if (resizeObserver) {
             resizeObserver.disconnect();
             resizeObserver = null;
-        }
-        if (canvas) {
-            canvas.removeEventListener('click', _handleCanvasClick);
         }
     }
 
@@ -287,15 +302,7 @@
         isInitialized: () => !!ctx
     };
 
-    document.addEventListener('page-loaded', (e) => {
-        console.log(`[Mapping] Page loaded: ${e.detail.pageId}`);
-        if (e.detail.pageId === 'rt60') {
-            setTimeout(() => {
-                console.log('[Mapping] Tentando inicializar mapa...');
-                init();
-            }, 200);
-        }
-    });
+    document.addEventListener('page-loaded', _onPageLoaded, { signal: _mappingController.signal });
 
     // Se o script carregar e já estivermos na página (F5), inicializa
     if (_el('mapping-canvas')) {

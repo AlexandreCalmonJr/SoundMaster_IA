@@ -134,7 +134,8 @@
         const rmsBar = _el('rms-bar');
         if (!rmsBar) return;
 
-        const rmsPercent = Math.min(100, Math.max(0, ((rmsDb - minDecibels) / (maxDecibels - minDecibels)) * 100));
+        const rmsDbVal = rmsDb ?? -120;
+        const rmsPercent = Math.min(100, Math.max(0, ((rmsDbVal - minDecibels) / (maxDecibels - minDecibels)) * 100));
         rmsBar.style.width = `${rmsPercent}%`;
         rmsBar.style.backgroundColor = isClipping ? '#ef4444' : '#10b981';
     }

@@ -32,7 +32,16 @@
         <div class="relative bg-slate-900/60 backdrop-blur-md rounded-2xl border border-white/10 p-5 shadow-lg hover:border-cyan-500/20 transition-all duration-300">
             <div class="flex justify-between items-center mb-2 px-1">
                 <h4 class="text-xs font-black uppercase text-slate-400 tracking-widest">Magnitude (Transfer Function)</h4>
-                <span class="text-[10px] font-mono text-cyan-400 font-bold bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-500/10">dB / Hz</span>
+                <div class="flex items-center gap-2">
+                    <button id="btn-toggle-coherence" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-red-500/20 text-red-300 border-red-500/30">Coherence</button>
+                    <button id="btn-multispectrum" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-slate-700 text-slate-500 border-white/10" title="Sobrepor RTA">Σ</button>
+                    <button id="btn-autoscale-mag" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-slate-700 text-slate-400 border-white/10 hover:bg-cyan-700/30" title="Auto-Scale Y">↕</button>
+                    <span class="text-[10px] font-mono text-cyan-400 font-bold bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-500/10">dB / Hz</span>
+                    <span class="w-px h-3 bg-white/10"></span>
+                    <input type="number" id="freq-range-min" value="20" min="10" max="20000" class="w-10 bg-transparent text-[8px] text-cyan-300 font-mono text-center outline-none border border-white/10 rounded" title="Freq min (Hz)">
+                    <span class="text-[8px] text-slate-600">-</span>
+                    <input type="number" id="freq-range-max" value="20000" min="20" max="24000" class="w-10 bg-transparent text-[8px] text-cyan-300 font-mono text-center outline-none border border-white/10 rounded" title="Freq max (Hz)">
+                </div>
             </div>
             <canvas id="tf-magnitude-canvas" class="w-full h-48 md:h-64" aria-label="Gráfico de magnitude da função de transferência de áudio"></canvas>
         </div>
@@ -41,9 +50,46 @@
         <div class="relative bg-slate-900/60 backdrop-blur-md rounded-2xl border border-white/10 p-5 shadow-lg hover:border-amber-500/20 transition-all duration-300">
             <div class="flex justify-between items-center mb-2 px-1">
                 <h4 class="text-xs font-black uppercase text-amber-500 tracking-widest">Resposta de Fase</h4>
-                <span class="text-[10px] font-mono text-amber-400 font-bold bg-amber-950/40 px-2 py-0.5 rounded border border-amber-500/10">Deg / Hz</span>
+                <div class="flex items-center gap-2">
+                    <button id="btn-toggle-phase-mode" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer" aria-label="Alternar entre fase embrulhada e desembrulhada">Wrapped</button>
+                    <button id="btn-toggle-group-delay" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-slate-700 text-slate-500 border-white/10">Group Delay</button>
+                    <span id="tf-phase-unit" class="text-[10px] font-mono text-amber-400 font-bold bg-amber-950/40 px-2 py-0.5 rounded border border-amber-500/10">Deg / Hz</span>
+                    <button id="btn-toggle-lir" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-slate-700 text-slate-500 border-white/10">LIR</button>
+                    <button id="btn-autoscale-phase" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-slate-700 text-slate-400 border-white/10 hover:bg-cyan-700/30" title="Auto-Scale Y">↕</button>
+                </div>
             </div>
             <canvas id="tf-phase-canvas" class="w-full h-48 md:h-64" aria-label="Gráfico de resposta de fase do espectro de áudio"></canvas>
+        </div>
+    </div>
+
+    <!-- LIR (Live Impulse Response) -->
+    <div id="lir-section" class="hidden mb-4">
+        <div class="bg-slate-900/60 backdrop-blur-md rounded-2xl border border-white/10 p-5 shadow-lg hover:border-purple-500/20 transition-all duration-300">
+            <div class="flex justify-between items-center mb-2 px-1">
+                <h4 class="text-xs font-black uppercase text-purple-400 tracking-widest">Live Impulse Response (LIR)</h4>
+                <div class="flex items-center gap-2">
+                    <select id="lir-view-type" class="bg-slate-950 text-white text-[10px] font-mono rounded px-2 py-1 outline-none border border-white/10 cursor-pointer">
+                        <option value="etc">ETC</option>
+                        <option value="log">Log</option>
+                        <option value="lin">Lin</option>
+                    </select>
+                    <select id="lir-time-range" class="bg-slate-950 text-white text-[10px] font-mono rounded px-2 py-1 outline-none border border-white/10 cursor-pointer">
+                        <option value="5">5 ms</option>
+                        <option value="10">10 ms</option>
+                        <option value="20" selected>20 ms</option>
+                        <option value="50">50 ms</option>
+                        <option value="100">100 ms</option>
+                    </select>
+                </div>
+            </div>
+            <canvas id="lir-canvas" class="w-full h-32 md:h-40 rounded-lg" aria-label="Live Impulse Response - resposta ao impulso em tempo real"></canvas>
+            <div class="flex items-center gap-3 mt-1 text-[9px] text-slate-500 font-mono">
+                <span class="text-violet-400 font-bold">IR</span>
+                <span>|</span>
+                <span id="lir-peak-info">Pico: -- dB | t: -- ms</span>
+                <span class="flex-1"></span>
+                <button id="btn-export-ir-wav" class="text-[9px] px-2 py-0.5 bg-slate-700 text-slate-400 border border-white/10 rounded font-bold uppercase hover:text-cyan-400 transition-all">Export .wav</button>
+            </div>
         </div>
     </div>
 
@@ -58,12 +104,44 @@
             <span>High-Mid (2k-6kHz)</span>
             <span>High (6k-20kHz)</span>
         </div>
+        <!-- Peak per Octave Band -->
+        <div class="mt-3 bg-black/20 border border-white/5 rounded-xl p-2">
+            <div class="flex items-center justify-between mb-1 px-1">
+                <span class="text-[8px] font-black uppercase text-slate-600 tracking-widest">Pico por Banda</span>
+                <button id="btn-peak-hold-reset" class="text-[7px] px-1.5 py-0.5 bg-slate-800 text-slate-600 border border-white/10 rounded font-mono hover:text-red-400 transition-all">Reset</button>
+            </div>
+            <div id="peak-octave-container" class="flex gap-1 text-[8px] font-mono text-slate-500 overflow-x-auto pb-1">
+                <!-- populated dynamically -->
+            </div>
+        </div>
     </div>
 
     <!-- Waterfall History -->
-    <div class="bg-slate-900/60 backdrop-blur-md rounded-2xl border border-white/10 p-5 mb-6 shadow-lg hover:border-cyan-500/20 transition-all duration-300">
+    <div class="bg-slate-900/60 backdrop-blur-md rounded-2xl border border-white/10 p-5 mb-4 shadow-lg hover:border-cyan-500/20 transition-all duration-300">
         <h4 class="text-xs font-black uppercase text-slate-400 tracking-widest mb-3 px-1">Histórico Waterfall (Últimos 10s)</h4>
         <canvas id="waterfall-canvas" class="w-full h-24 rounded-lg" aria-label="Gráfico de histórico waterfall do espectro de áudio"></canvas>
+    </div>
+
+    <!-- Spectrograph -->
+    <div class="bg-slate-900/60 backdrop-blur-md rounded-2xl border border-white/10 p-5 mb-6 shadow-lg hover:border-purple-500/20 transition-all duration-300">
+        <div class="flex items-center justify-between mb-3 px-1">
+            <h4 class="text-xs font-black uppercase text-slate-400 tracking-widest">Spectrograph (Espectro × Tempo)</h4>
+            <div class="flex items-center gap-3">
+                <label class="flex items-center gap-1 text-[9px] text-slate-500 font-mono">
+                    <span>Range</span>
+                    <input type="number" id="spec-dynamic-range" value="60" min="20" max="120" class="w-10 bg-transparent text-[9px] text-white font-mono text-center outline-none border border-white/10 rounded" aria-label="Range dinâmico do spectrograph">
+                </label>
+                <label class="flex items-center gap-1 text-[9px] text-slate-500 font-mono">
+                    <span>Speed</span>
+                    <select id="spec-speed" class="bg-transparent text-[9px] text-cyan-300 font-bold outline-none border border-white/10 rounded cursor-pointer">
+                        <option value="1">1x</option>
+                        <option value="2" selected>2x</option>
+                        <option value="4">4x</option>
+                    </select>
+                </label>
+            </div>
+        </div>
+        <canvas id="spectrograph-canvas" class="w-full h-32 rounded-lg" aria-label="Spectrograph - espectro ao longo do tempo"></canvas>
     </div>
 
     <!-- Grids de Feedback e Função de Transferência -->
@@ -99,6 +177,10 @@
                 <div class="bg-black/40 p-4 rounded-xl border border-white/5 text-center">
                     <span class="text-[9px] uppercase font-black text-slate-500 block mb-1">Delay Finder</span>
                     <span id="delay-finder-value" class="text-2xl font-black text-cyan-400 font-mono">0.00 ms</span>
+                    <div id="delay-tracker-bar" class="mt-1 h-0.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-cyan-500 to-green-400 w-0 transition-all duration-300" id="delay-tracker-fill"></div>
+                    </div>
+                    <span id="delay-tracker-status" class="text-[7px] text-slate-600 font-mono">--</span>
                 </div>
                 <div class="bg-black/40 p-4 rounded-xl border border-white/5 text-center">
                     <span class="text-[9px] uppercase font-black text-slate-500 block mb-1">Coerência</span>
@@ -108,6 +190,9 @@
             <div class="mt-4 flex flex-wrap items-center gap-2">
                 <button id="btn-capture-tf" class="flex-1 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">
                     📸 Capturar Trace
+                </button>
+                <button id="btn-capture-all-tf" class="px-2 py-2 bg-cyan-800/50 text-cyan-300 border border-cyan-500/20 hover:bg-cyan-700/50 rounded-lg text-[8px] font-black uppercase transition-all" title="Capturar todos os traces">
+                    📸 All
                 </button>
                 <button id="btn-demo-tf" class="px-3 py-2 bg-slate-800 text-amber-400 border border-amber-500/30 hover:bg-amber-500/10 rounded-lg text-[10px] font-black uppercase transition-all" title="Simular medição perfeita para testes">
                     🧪 Demo
@@ -123,6 +208,9 @@
                 <button id="btn-export-pdf" class="flex-1 py-2 bg-slate-800 border border-white/10 hover:bg-slate-700 text-cyan-400 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">
                     📄 Export PDF
                 </button>
+                <button id="btn-hotkeys-help" class="px-2 py-2 bg-slate-800 border border-white/10 hover:bg-cyan-700/30 text-cyan-500 rounded-lg text-[9px] font-black transition-all" title="Mostrar atalhos de teclado">
+                    ⌨️
+                </button>
             </div>
             <label class="mt-3 flex items-center justify-between gap-3 bg-black/30 border border-white/10 rounded-xl px-3 py-2">
                 <span class="text-[9px] font-black uppercase text-slate-500 tracking-widest">Averaging</span>
@@ -132,11 +220,116 @@
                     <option value="5">5s</option>
                 </select>
             </label>
+            <label class="mt-2 flex items-center justify-between gap-3 bg-black/30 border border-white/10 rounded-xl px-3 py-2">
+                <span class="text-[9px] font-black uppercase text-slate-500 tracking-widest">Smoothing</span>
+                <select id="tf-smoothing-select" class="bg-slate-950 text-cyan-300 text-[10px] font-black uppercase rounded px-2 py-1 outline-none border border-cyan-500/20 cursor-pointer" aria-label="Selecionar suavização fractional-oitava">
+                    <option value="0">None</option>
+                    <option value="48">1/48</option>
+                    <option value="24">1/24</option>
+                    <option value="12">1/12</option>
+                    <option value="6">1/6</option>
+                    <option value="3" selected>1/3</option>
+                </select>
+            </label>
+            <label class="mt-2 flex items-center justify-between gap-3 bg-black/30 border border-white/10 rounded-xl px-3 py-2">
+                <span class="text-[9px] font-black uppercase text-slate-500 tracking-widest">Coherence²</span>
+                <div class="flex items-center gap-2">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="tf-coherence-squared" class="sr-only peer">
+                        <div class="w-7 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[0.5px] after:left-[0.5px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-red-600"></div>
+                    </label>
+                    <span class="text-[9px] text-slate-500 font-mono">Blank</span>
+                    <input type="range" id="tf-blanking-threshold" min="0" max="100" value="20" class="w-16 h-1 accent-red-500 cursor-pointer">
+                </div>
+            </label>
             <div class="mt-3 flex items-center gap-3 bg-cyan-950/30 border border-cyan-500/20 p-3 rounded-xl">
                 <span class="text-xs" aria-hidden="true">🔗</span>
                 <p class="text-[10px] text-cyan-200/70 leading-tight">
                     <b>Dual-Channel:</b> Comparando Mic RTA com Loopback da Mesa (AES67).
                 </p>
+                <span id="polarity-indicator" class="ml-auto text-[9px] font-mono font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-600 border-white/10">Polarity: --</span>
+            </div>
+            <!-- Trace Folders -->
+            <div class="mt-3 bg-black/30 border border-white/10 rounded-xl p-3">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[9px] font-black uppercase text-slate-500 tracking-widest">Pastas de Traces</span>
+                    <div class="flex items-center gap-1">
+                        <input type="text" id="trace-folder-name" placeholder="Nome..." class="w-14 bg-transparent text-[8px] text-white font-mono outline-none border border-white/10 rounded px-1 py-0.5">
+                        <button id="btn-folder-create" class="text-[8px] px-2 py-0.5 bg-cyan-600/30 text-cyan-300 border border-cyan-500/20 rounded font-bold uppercase hover:bg-cyan-600/50 transition-all">+</button>
+                    </div>
+                </div>
+                <select id="trace-folder-select" class="w-full bg-slate-950 text-white text-[8px] font-mono rounded px-1 py-0.5 outline-none border border-white/10 cursor-pointer">
+                    <option value="">— Sem pasta —</option>
+                </select>
+                <button id="btn-folder-delete" class="mt-1 text-[7px] px-2 py-0.5 bg-slate-800 text-slate-600 border border-white/10 rounded font-mono hover:text-red-400 transition-all">🗑 Remover pasta</button>
+            </div>
+
+            <!-- Trace Math -->
+            <div class="mt-3 bg-black/30 border border-white/10 rounded-xl p-3">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[9px] font-black uppercase text-slate-500 tracking-widest">Trace Math</span>
+                    <div class="flex items-center gap-1">
+                        <select id="trace-math-op" class="bg-slate-950 text-white text-[8px] font-mono rounded px-1 py-0.5 outline-none border border-white/10 cursor-pointer">
+                            <option value="subtract">A − B</option>
+                            <option value="normalize">A / B</option>
+                            <option value="average">Avg(A,B,C)</option>
+                        </select>
+                        <button id="btn-trace-math-apply" class="text-[8px] px-2 py-0.5 bg-cyan-600/30 text-cyan-300 border border-cyan-500/20 rounded font-bold uppercase hover:bg-cyan-600/50 transition-all">⏎</button>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1 text-[8px] text-slate-500 font-mono">
+                    <span>A:</span>
+                    <select id="trace-math-a" class="bg-slate-950 text-white text-[8px] font-mono rounded px-1 py-0.5 outline-none border border-white/10 cursor-pointer flex-1"></select>
+                    <span>B:</span>
+                    <select id="trace-math-b" class="bg-slate-950 text-white text-[8px] font-mono rounded px-1 py-0.5 outline-none border border-white/10 cursor-pointer flex-1"></select>
+                </div>
+            </div>
+
+            <!-- Trace Metadata -->
+            <div id="trace-metadata-panel" class="mt-3 bg-black/30 border border-white/10 rounded-xl p-3 hidden">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-[9px] font-black uppercase text-cyan-400 tracking-widest">Trace Metadata</span>
+                    <button id="btn-trace-meta-close" class="text-slate-500 hover:text-white text-[10px]">&times;</button>
+                </div>
+                <div id="trace-meta-content" class="text-[8px] font-mono text-slate-400 space-y-0.5">
+                    <div><span class="text-slate-600">Trace:</span> <span id="meta-trace-idx"></span></div>
+                    <div><span class="text-slate-600">Hora:</span> <span id="meta-timestamp"></span></div>
+                    <div><span class="text-slate-600">Sample Rate:</span> <span id="meta-samplerate"></span></div>
+                    <div><span class="text-slate-600">FFT Size:</span> <span id="meta-fftsize"></span></div>
+                    <div><span class="text-slate-600">Cor:</span> <span id="meta-color"></span></div>
+                </div>
+            </div>
+
+            <!-- Target Curve -->
+            <div class="mt-3 bg-black/30 border border-white/10 rounded-xl p-3">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[9px] font-black uppercase text-slate-500 tracking-widest">Target Curve</span>
+                    <div class="flex items-center gap-1">
+                        <button id="btn-capture-target" class="text-[8px] px-2 py-1 bg-cyan-600/30 text-cyan-300 border border-cyan-500/20 rounded font-bold uppercase hover:bg-cyan-600/50 transition-all">Capturar</button>
+                        <button id="btn-toggle-target" class="text-[8px] px-2 py-1 bg-slate-700 text-slate-400 border border-white/10 rounded font-bold uppercase hover:bg-slate-600 transition-all">Mostrar</button>
+                        <button id="btn-clear-target" class="text-[8px] px-2 py-1 bg-slate-700 text-slate-400 border border-white/10 rounded font-bold uppercase hover:text-red-400 transition-all">✕</button>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-[8px] text-slate-600 font-mono">Offset dB:</span>
+                    <input type="number" id="target-offset" value="0" step="0.5" class="w-12 bg-transparent text-[9px] text-white font-mono text-center outline-none border border-white/10 rounded">
+                </div>
+            </div>
+
+            <!-- Plot Presets -->
+            <div class="mt-3 bg-black/30 border border-white/10 rounded-xl p-3">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[9px] font-black uppercase text-slate-500 tracking-widest">Plot Presets</span>
+                    <div class="flex items-center gap-1">
+                        <input type="text" id="preset-name" placeholder="Nome..." class="w-16 bg-transparent text-[8px] text-white font-mono outline-none border border-white/10 rounded px-1 py-0.5">
+                        <button id="btn-preset-save" class="text-[8px] px-2 py-0.5 bg-cyan-600/30 text-cyan-300 border border-cyan-500/20 rounded font-bold uppercase hover:bg-cyan-600/50 transition-all" title="Salvar preset">💾</button>
+                        <button id="btn-preset-load" class="text-[8px] px-2 py-0.5 bg-slate-700 text-slate-400 border border-white/10 rounded font-bold uppercase hover:bg-slate-600 transition-all" title="Carregar preset">📂</button>
+                    </div>
+                </div>
+                <select id="preset-list" class="w-full bg-slate-950 text-white text-[8px] font-mono rounded px-1 py-0.5 outline-none border border-white/10 cursor-pointer">
+                    <option value="">— sem presets salvos —</option>
+                </select>
+                <button id="btn-preset-delete" class="mt-1 text-[7px] px-2 py-0.5 bg-slate-800 text-slate-600 border border-white/10 rounded font-mono hover:text-red-400 transition-all">🗑 Remover</button>
             </div>
         </div>
     </div>
@@ -225,4 +418,42 @@
             <div id="rms-bar" class="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 w-0 transition-all duration-75 shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
         </div>
     </div>
+
+    <!-- Hotkeys Help Modal -->
+    <div id="hotkeys-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-black text-white uppercase tracking-wider">Atalhos de Teclado</h3>
+                <button id="btn-hotkeys-close" class="text-slate-500 hover:text-white text-lg leading-none">&times;</button>
+            </div>
+            <div class="space-y-1.5 text-[10px] font-mono">
+                <div class="flex justify-between py-1 border-b border-white/5"><span class="text-slate-400">C</span><span class="text-cyan-300">Capturar Trace</span></div>
+                <div class="flex justify-between py-1 border-b border-white/5"><span class="text-slate-400">Shift + C</span><span class="text-cyan-300">Capturar All (TF + RTA)</span></div>
+                <div class="flex justify-between py-1 border-b border-white/5"><span class="text-slate-400">R</span><span class="text-cyan-300">Reset Zoom</span></div>
+                <div class="flex justify-between py-1 border-b border-white/5"><span class="text-slate-400">Z</span><span class="text-cyan-300">Auto-Scale Y</span></div>
+                <div class="flex justify-between py-1 border-b border-white/5"><span class="text-slate-400">G</span><span class="text-cyan-300">Toggle Group Delay</span></div>
+                <div class="flex justify-between py-1 border-b border-white/5"><span class="text-slate-400">L</span><span class="text-cyan-300">Toggle LIR</span></div>
+                <div class="flex justify-between py-1 border-b border-white/5"><span class="text-slate-400">W</span><span class="text-cyan-300">Toggle Wrapped/Unwrapped</span></div>
+                <div class="flex justify-between py-1 border-b border-white/5"><span class="text-slate-400">M</span><span class="text-cyan-300">Toggle Multi-Spectrum</span></div>
+                <div class="flex justify-between py-1 border-b border-white/5"><span class="text-slate-400">← →</span><span class="text-cyan-300">Pan Frequency</span></div>
+                <div class="flex justify-between py-1 border-b border-white/5"><span class="text-slate-400">Shift + ← →</span><span class="text-cyan-300">Widen/Narrow Range</span></div>
+                <div class="flex justify-between py-1 border-b border-white/5"><span class="text-slate-400">↑ ↓</span><span class="text-cyan-300">Zoom Y In/Out</span></div>
+                <div class="flex justify-between py-1 border-b border-white/5"><span class="text-slate-400">Esc</span><span class="text-cyan-300">Limpar cursores</span></div>
+            </div>
+            <p class="mt-4 text-[9px] text-slate-600 text-center">Clique fora para fechar</p>
+        </div>
+    </div>
+    <script>
+        document.getElementById('btn-hotkeys-help')?.addEventListener('click', function() {
+            const modal = document.getElementById('hotkeys-modal');
+            if (modal) modal.classList.remove('hidden');
+        });
+        document.getElementById('btn-hotkeys-close')?.addEventListener('click', function() {
+            const modal = document.getElementById('hotkeys-modal');
+            if (modal) modal.classList.add('hidden');
+        });
+        document.getElementById('hotkeys-modal')?.addEventListener('click', function(e) {
+            if (e.target === this) this.classList.add('hidden');
+        });
+    </script>
 </section>

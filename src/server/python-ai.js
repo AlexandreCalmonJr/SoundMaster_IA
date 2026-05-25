@@ -52,7 +52,7 @@ function _ensurePythonDeps() {
                 return; // fastapi disponível, deps ok
             }
         } catch (_) {
-            // tenta próximo
+            console.warn(`[Python AI] Comando ${cmd} não disponível para verificação de dependências: ${_.message}`);
         }
     }
 
@@ -62,6 +62,7 @@ function _ensurePythonDeps() {
             const versionResult = spawnSync(c, ['--version'], { stdio: 'ignore' });
             return versionResult.status === 0;
         } catch (_) {
+            console.warn(`[Python AI] Comando ${c} não disponível: ${_.message}`);
             return false;
         }
     });
@@ -258,6 +259,7 @@ function _trySpawn(command, scriptPath, rootDir, onExitCallback) {
 
         return proc;
     } catch (_) {
+        console.warn(`[Python AI] Falha ao spawnar processo Python: ${_.message}`);
         return null;
     }
 }

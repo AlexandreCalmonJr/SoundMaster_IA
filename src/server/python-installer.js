@@ -37,6 +37,7 @@ function setupPythonInstaller(mainWindow, onCompleteCallback) {
                     return { installed: false, needsRequirements: true, path: pythonExePath };
                 }
             } catch (_) {
+                console.warn('[Python Installer] Falha ao verificar dependências do Python portátil:', _.message);
                 // Se existe o exe mas falha ao carregar fastapi, necessita reparo/instalação
                 return { installed: false, needsRequirements: true, path: pythonExePath };
             }
@@ -52,7 +53,7 @@ function setupPythonInstaller(mainWindow, onCompleteCallback) {
                 if (checkResult.status === 0) {
                     return { installed: true, path: cmd };
                 }
-            } catch (_) {}
+            } catch (_) { console.warn('[Python Installer] Falha ao verificar Python global:', _.message); }
         }
 
         return { installed: false, path: null };
@@ -106,7 +107,7 @@ function setupPythonInstaller(mainWindow, onCompleteCallback) {
                 
                 try {
                     fs.unlinkSync(zipPath);
-                } catch (_) {}
+                } catch (_) { console.warn('[Python Installer] Falha ao remover zip após extração:', _.message); }
 
                 sendProgress('extracting-python', 100, 'Extração concluída.');
 
@@ -158,7 +159,7 @@ function setupPythonInstaller(mainWindow, onCompleteCallback) {
                 
                 try {
                     fs.unlinkSync(getPipPath);
-                } catch (_) {}
+                } catch (_) { console.warn('[Python Installer] Falha ao remover get-pip.py:', _.message); }
                 sendProgress('installing-pip', 100, 'Gerenciador pip instalado com sucesso.');
             }
 

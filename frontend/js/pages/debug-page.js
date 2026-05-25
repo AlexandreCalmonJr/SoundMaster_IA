@@ -24,17 +24,20 @@
         if (!consoleDiv) return;
         const logs = AppStore.getState().mixerLog;
         consoleDiv.innerHTML = logs.map(l => {
-            let color = '#4ade80'; // Verde para padrão (info)
+            let color = '#4ade80';
             if (l.text.includes('[WARN]') || l.text.toLowerCase().includes('aviso') || l.text.includes('JWT_SECRET_MISSING')) {
-                color = '#fbbf24'; // Amarelo
+                color = '#fbbf24';
             } else if (l.text.includes('[ERROR]') || l.text.toLowerCase().includes('erro') || l.text.includes('falhou')) {
-                color = '#f87171'; // Vermelho
+                color = '#f87171';
             } else if (l.text.includes('[System]')) {
-                color = '#60a5fa'; // Azul
+                color = '#60a5fa';
             }
+            const safeText = l.text.replace(/[&<>"']/g, function (c) {
+                return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+            });
             return `<div style="margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 2px; font-family: monospace; font-size: 10px;">
                 <span style="color: #64748b; font-size: 8px;">[${l.time}]</span> 
-                <span style="color: ${color};">${l.text}</span>
+                <span style="color: ${color};">${safeText}</span>
             </div>`;
         }).join('');
         consoleDiv.scrollTop = consoleDiv.scrollHeight;

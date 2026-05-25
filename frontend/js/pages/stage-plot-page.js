@@ -15,12 +15,14 @@
         pm._setText('sp-actor-count', actors.length + ' instrumento' + (actors.length !== 1 ? 's' : ''));
     }
 
+    function _esc(s){return String(s).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]});}
+
     function _renderActor(a) {
         var wrap = pm._el('sp-canvas-wrap'); if (!wrap) return;
         var pos = _pctToPos(a.pct), el = document.createElement('div');
         el.className = 'sp-actor'; el.id = 'actor_' + a.id;
         el.style.left = pos.x + 'px'; el.style.top = pos.y + 'px';
-        el.innerHTML = '<span class="sp-a-remove" title="Remover">\u2715</span><span class="sp-a-icon">' + a.icon + '</span><span class="sp-a-label">' + (a.name || a.label) + '</span>' + (a.channel ? '<span class="sp-a-ch">CH ' + a.channel + '</span>' : '');
+        el.innerHTML = '<span class="sp-a-remove" title="Remover">\u2715</span><span class="sp-a-icon">' + _esc(a.icon) + '</span><span class="sp-a-label">' + _esc(a.name || a.label) + '</span>' + (a.channel ? '<span class="sp-a-ch">CH ' + _esc(a.channel) + '</span>' : '');
         pm._on(el, 'pointerdown', function (e) { if (e.target.classList.contains('sp-a-remove')) return; e.preventDefault(); dragActor = a; var r = el.getBoundingClientRect(); dragOffX = e.clientX - r.left - r.width / 2; dragOffY = e.clientY - r.top - r.height / 2; el.style.zIndex = 999; el.classList.add('selected'); el.setPointerCapture(e.pointerId); });
         pm._on(el, 'pointermove', function (e) { if (!dragActor || dragActor.id !== a.id) return; var wr = wrap.getBoundingClientRect(); el.style.left = (e.clientX - wr.left - dragOffX) + 'px'; el.style.top = (e.clientY - wr.top - dragOffY) + 'px'; });
         pm._on(el, 'pointerup', function (e) { if (!dragActor || dragActor.id !== a.id) return; var wr = wrap.getBoundingClientRect(); a.pct = _posToPct(e.clientX - wr.left - dragOffX, e.clientY - wr.top - dragOffY); dragActor = null; el.classList.remove('selected'); el.style.zIndex = ''; });

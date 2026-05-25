@@ -169,20 +169,24 @@
             color = '#f97316',
             minDb = -100,
             maxDb = -10,
+            axisOffset = 32,
+            axisBottom = 14,
+            spacing = 1,
             iecCenters = [20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 
                          500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 
                          6300, 8000, 10000, 12500, 16000, 20000]
         } = options;
 
+        const plotW = width - axisOffset;
+        const plotH = height - axisBottom;
         const numBands = iecCenters.length;
-        const spacing = 2;
-        const barWidth = (width - (spacing * (numBands - 1))) / numBands;
+        const barWidth = (plotW - (spacing * (numBands - 1))) / numBands;
         
-        const bandIndex = Math.floor(x / (barWidth + spacing));
+        const bandIndex = Math.floor((x - axisOffset) / (barWidth + spacing));
         const clampedIndex = Math.max(0, Math.min(numBands - 1, bandIndex));
         const centerFreq = iecCenters[clampedIndex];
 
-        const magPercent = 1 - (y / height);
+        const magPercent = 1 - (y / plotH);
         const dbValue = minDb + magPercent * (maxDb - minDb);
 
         const freqLabel = centerFreq >= 1000 

@@ -69,7 +69,7 @@ function registerDiagnosticHandlers(io, socket, deps) {
 
         const { mkdirSync, writeFileSync } = require('fs');
         const tmpDir = path.join(__dirname, '..', '..', '..', 'data', 'tmp');
-        try { mkdirSync(tmpDir, { recursive: true }); } catch (_) {}
+        try { mkdirSync(tmpDir, { recursive: true }); } catch (_) { console.warn('[Diagnostics] Falha ao criar diretório temporário:', _.message); }
         const tmpWav = path.join(tmpDir, `sweep_${Date.now()}.wav`);
 
         const sampleRate = (sweepParams?.sampleRate && Number.isFinite(sweepParams.sampleRate))
@@ -111,7 +111,7 @@ function registerDiagnosticHandlers(io, socket, deps) {
                 py.stderr.on('data', (d) => { stderr += d.toString(); });
 
                 py.on('close', (code) => {
-                    try { require('fs').unlinkSync(tmpWav); } catch (_) {}
+                    try { require('fs').unlinkSync(tmpWav); } catch (_) { console.warn('[Diagnostics] Falha ao remover arquivo WAV temporário:', _.message); }
                     if (code !== 0) {
                         reject(new Error(stderr || `Python exited with code ${code}`));
                     } else {
@@ -161,7 +161,10 @@ function registerDiagnosticHandlers(io, socket, deps) {
             }
 
             const hdrs = { 'Content-Type': 'application/json' };
-            if (AI_API_KEY) hdrs['X-API-Key'] = AI_API_KEY;
+            if (AI_API_KEY) {
+                hdrs['X-API-Key'] = AI_API_KEY;
+                logger.info(socket.id, 'AI_API_KEY_SENT', { sent: true });
+            }
             const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}/hardware_diagnosis`, {
                 method:  'POST',
                 headers: hdrs,

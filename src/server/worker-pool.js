@@ -73,6 +73,7 @@ class WorkerPool {
         worker.on('error', (err) => {
             console.error(`[WorkerPool] Worker ${index} erro:`, err.message);
             worker._busy = false;
+            this._rejectPending(`Worker ${index} error: ${err.message}`);
             // Re-spawna worker morto
             setTimeout(() => this._spawnWorker(index), 1000);
         });
@@ -80,12 +81,21 @@ class WorkerPool {
         worker.on('exit', (code) => {
             if (code !== 0) {
                 console.warn(`[WorkerPool] Worker ${index} saiu com código ${code}. Re-spawning...`);
+                this._rejectPending(`Worker ${index} saiu com código ${code}`);
                 setTimeout(() => this._spawnWorker(index), 500);
             }
         });
 
         this._workers[index] = worker;
         this._drain(worker);
+    }
+
+    _rejectPending(reason) {
+        for (const [taskId, pending] of this._pending) {
+            clearTimeout(pending.timeout);
+            pending.reject(new Error(`[WorkerPool] ${reason}`));
+        }
+        this._pending.clear();
     }
 
     _drain(worker) {

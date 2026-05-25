@@ -5,6 +5,8 @@
 (function () {
     'use strict';
 
+    let _layoutController = null;
+
     function _el(id) {
         const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
         if (iframe && iframe.contentDocument) {
@@ -207,7 +209,7 @@
                 sidebar?.classList.remove('panel-open');
                 document.querySelectorAll('.rail-btn[data-category]').forEach(b => b.classList.remove('active'));
             }
-        });
+        }, { signal: _layoutController.signal });
     }
 
     // Auto-expand the correct category panel when navigating via cards/links
@@ -230,7 +232,7 @@
             // Simulate clicking the category rail button to open the panel
             const railBtn = document.querySelector(`.rail-btn[data-category="${catId}"]`);
             if (railBtn) railBtn.click();
-        });
+        }, { signal: _layoutController.signal });
     }
 
     function initPageSpecifics() {
@@ -262,20 +264,25 @@
     }
 
     function init() {
+        if (_layoutController) _layoutController.abort();
+        _layoutController = new AbortController();
+
         initSidebar();
         initGlobalToggles();
         initBreadcrumbs();
         initAutoExpand();
         initPageSpecifics();
+
+        document.addEventListener('page-loaded', () => {
+            initPageSpecifics();
+        }, { signal: _layoutController.signal });
     }
 
-    window.SoundMasterLayout = { init };
+    window.SoundMasterLayout = {
+        init,
+        destroy: function () { if (_layoutController) { _layoutController.abort(); _layoutController = null; } }
+    };
 
     // NOTE: init() is called explicitly by app.js AFTER sidebar HTML is loaded.
     // Do NOT auto-init here — the sidebar DOM doesn't exist yet.
-
-    // Re-init page-specific logic on route change
-    document.addEventListener('page-loaded', () => {
-        initPageSpecifics();
-    });
 })();

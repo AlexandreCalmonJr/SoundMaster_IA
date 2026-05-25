@@ -28,7 +28,7 @@
             // Link para modo mobile (Celular)
             const mobileHref = `${serverUrl}/mobile/index.html?mode=mobile`;
             if (mobileUrl) {
-                mobileUrl.innerHTML = `<span style="color: var(--cyan-400); font-size: 10px;">Acesso Rede Local: ${mobileHref}</span>`;
+                mobileUrl.innerHTML = '<span style="color: var(--cyan-400); font-size: 10px;">Acesso Rede Local: ' + mobileHref.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]}) + '</span>';
             }
             
             if (mobileLink) mobileLink.href = mobileHref;
@@ -85,10 +85,7 @@
                 li.style.cssText = 'display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);';
                 const location = map.location ? ` - ${map.location}` : '';
                 const channel = map.channel ? ` canal ${map.channel}` : '';
-                li.innerHTML = `
-                    <span><strong>${map.hz} Hz</strong>${channel}${location} - Detectado em ${new Date(map.date).toLocaleDateString()}</span>
-                    <button class="btn-delete-map" data-id="${map._id}" style="background: none; border: none; color: var(--danger); cursor: pointer;">Excluir</button>
-                `;
+                li.innerHTML = '<span><strong>' + String(map.hz).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]}) + ' Hz</strong>' + channel.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]}) + location.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]}) + ' - Detectado em ' + new Date(map.date).toLocaleDateString() + '</span>\n                    <button class="btn-delete-map" data-id="' + String(map._id).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]}) + '" style="background: none; border: none; color: var(--danger); cursor: pointer;">Excluir</button>';
                 list.appendChild(li);
             });
 

@@ -15,7 +15,7 @@
         var vocalVuFill = pm._el('vol-vu-fill');
         var paVuFill = pm._el('vol-pa-fill');
 
-        if (ch1 !== null && vocalVuFill) {
+        if (ch1 != null && vocalVuFill) {
             var pct = _vuToPercent((ch1 < 0 ? Math.log(ch1 + 0.0001) / Math.log(10) * 20 : ch1 * 80) - 80);
             vocalVuFill.style.height = Math.max(0, Math.min(100, pct)) + '%';
         }

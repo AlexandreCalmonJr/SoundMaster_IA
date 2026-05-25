@@ -66,9 +66,6 @@
         body.volunteer-mode .panel-header:not(.vol-header) { display:none; }
         body.volunteer-mode .panel-nav-group:not(.vol-nav-group) { display:none; }
         body.volunteer-mode .version-badge { display:none; }
-        `;
-        document.head.appendChild(style);
-    }
 
         #volunteer-badge {
             display: none;

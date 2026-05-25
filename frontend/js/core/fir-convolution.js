@@ -227,7 +227,7 @@
 
     function setGain(gainDb) {
         if (outputNode) {
-            outputNode.gain.value = Math.pow(10, gainDb / 20);
+            outputNode.gain.value = Math.pow(10, (gainDb || 0) / 20);
         }
     }
 

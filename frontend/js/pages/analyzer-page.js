@@ -30,7 +30,7 @@
         pm._on(pm._el('btn-measure-pink'), 'click', function () { pm._safeCall('SoundMasterAnalyzer', 'toggle'); });
         pm._on(pm._el('btn-log-sweep'), 'click', function () { pm._safeCall('SoundMasterAnalyzer', 'triggerImpulse'); });
         pm._on(pm._el('btn-toggle-auto-cut'), 'change', function () { console.log('[AnalyzerPage] Auto-Cut: ' + (this.checked ? 'ON' : 'OFF')); });
-        pm._on(pm._el('btn-manual-diagnostic'), 'click', function () { if (window.SoundMasterAnalyzer && SoundMasterAnalyzer.hasAnalysis()) { var summaryEl = pm._el('acoustic-summary'), analysis = SoundMasterAnalyzer.getLastAnalysis(); if (summaryEl && analysis) { summaryEl.innerHTML = '<strong>Diagn\u00F3stico:</strong> ' + analysis.text; summaryEl.classList.add('text-cyan-400'); } } });
+        pm._on(pm._el('btn-manual-diagnostic'), 'click', function () { if (window.SoundMasterAnalyzer && SoundMasterAnalyzer.hasAnalysis()) { var summaryEl = pm._el('acoustic-summary'), analysis = SoundMasterAnalyzer.getLastAnalysis(); if (summaryEl && analysis) { summaryEl.innerHTML = '<strong>Diagn\u00F3stico:</strong> ' + analysis.text.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]}); summaryEl.classList.add('text-cyan-400'); } } });
 
         document.querySelectorAll('.subtab-btn[data-subtab]').forEach(function (btn) {
             pm._on(btn, 'click', function () {

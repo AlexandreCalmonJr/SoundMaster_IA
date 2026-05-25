@@ -50,7 +50,8 @@
         peakValues.forEach((db, i) => {
             if (i >= meterBars.length) return;
             // Map db (-60 to 0) to percentage (0% to 100%)
-            const pct = Math.max(0, Math.min(100, ((db + 60) / 60) * 100));
+            const dbVal = db ?? -60;
+            const pct = Math.max(0, Math.min(100, ((dbVal + 60) / 60) * 100));
             meterBars[i].style.height = `${pct}%`;
         });
     }
@@ -114,10 +115,10 @@
             <span class="text-xs">${alert.level === 'critical' ? '🔴' : '⚠️'}</span>
             <div class="flex-1">
                 <div class="flex items-center justify-between font-bold mb-1 text-[10px] uppercase tracking-wider">
-                    <span>${alert.code}</span>
+                    <span>${alert.code.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}</span>
                     <span class="text-slate-500 font-mono font-normal">${time}</span>
                 </div>
-                <div>${alert.message}</div>
+                <div>${alert.message.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}</div>
             </div>
         `;
 

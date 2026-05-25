@@ -1,7 +1,7 @@
 'use strict';
 (function () {
     var pm = createPageModule();
-    var _commits = [], _selectedId = null, _diffData = null, _selectedScope = new Set(), _compareMode = false;
+    var _commits = [], _selectedId = null, _diffData = null, _selectedScope = new Set(), _compareMode = false, _selecting = false;
 
     async function _api(method, path, body) {
         var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
@@ -37,12 +37,22 @@
     }
 
     async function _selectCommit(id) {
-        _selectedId = id;
-        var deleteBtn = pm._el('git-delete-btn');
-        if (deleteBtn) deleteBtn.disabled = false;
-        _renderCommitList();
-        try { var diffs = await _api('GET', '/api/git/diff/' + id); _diffData = diffs; _renderDiff(diffs); _renderRollbackScope(diffs); }
-        catch (e) { pm._setHTML('git-diff-content', '<div class="git-diff-empty">\u274C Erro: ' + pm._esc(e.message) + '</div>'); }
+        if (_selecting) return;
+        _selecting = true;
+        try {
+            _selectedId = id;
+            var deleteBtn = pm._el('git-delete-btn');
+            if (deleteBtn) deleteBtn.disabled = false;
+            _renderCommitList();
+            var diffs = await _api('GET', '/api/git/diff/' + id);
+            _diffData = diffs;
+            _renderDiff(diffs);
+            _renderRollbackScope(diffs);
+        } catch (e) {
+            pm._setHTML('git-diff-content', '<div class="git-diff-empty">\u274C Erro: ' + pm._esc(e.message) + '</div>');
+        } finally {
+            _selecting = false;
+        }
     }
 
     function _renderDiff(diffs) {

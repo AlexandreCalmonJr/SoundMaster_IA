@@ -68,6 +68,42 @@
             <p id="pink-measure-summary" class="text-xs text-slate-400 text-center">Use a mediçao de ruído rosa para capturar a resposta do salao.</p>
         </div>
 
+        <div class="bg-black/30 rounded-xl p-4 border border-white/5 mb-4">
+            <div class="flex items-center gap-4 mb-3">
+                <span class="text-xs font-bold text-slate-400 uppercase">Ruído Limitado por Banda</span>
+                <button id="btn-bandlimited-noise" class="px-4 py-2 bg-cyan-700/40 hover:bg-cyan-600/50 text-cyan-300 border border-cyan-500/30 rounded-lg text-xs font-bold transition-all">▶ Tocar</button>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+                <div>
+                    <label class="text-[8px] text-slate-500 uppercase block mb-1">Tipo</label>
+                    <select id="bl-noise-type" class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-[9px] text-cyan-300 font-mono outline-none cursor-pointer">
+                        <option value="pink">Rosa</option>
+                        <option value="white">Branco</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[8px] text-slate-500 uppercase block mb-1">Freq Central</label>
+                    <select id="bl-noise-freq" class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-[9px] text-cyan-300 font-mono outline-none cursor-pointer">
+                        <option value="63">63 Hz</option>
+                        <option value="125">125 Hz</option>
+                        <option value="250">250 Hz</option>
+                        <option value="500">500 Hz</option>
+                        <option value="1000" selected>1 kHz</option>
+                        <option value="2000">2 kHz</option>
+                        <option value="4000">4 kHz</option>
+                        <option value="8000">8 kHz</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[8px] text-slate-500 uppercase block mb-1">Banda</label>
+                    <select id="bl-noise-band" class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-[9px] text-cyan-300 font-mono outline-none cursor-pointer">
+                        <option value="1">1/1 Oitava</option>
+                        <option value="0.333" selected>1/3 Oitava</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
         <div class="bg-black/30 rounded-xl p-4 border border-white/5">
             <div class="flex items-center gap-4 mb-3">
                 <span class="text-xs font-bold text-slate-400 uppercase">Tom Senoidal</span>

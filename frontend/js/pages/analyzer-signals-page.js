@@ -18,6 +18,7 @@
         const chirpBtn = pm._el('btn-chirp-signal');
         const dualBtn = pm._el('btn-dual-tone');
         const sineBtn = pm._el('btn-sine-wave');
+        const blBtn = pm._el('btn-bandlimited-noise');
 
         // Reset all active classes
         if (pinkBtn) {
@@ -45,6 +46,11 @@
             sineBtn.classList.toggle('text-white', gen.isSineWavePlaying());
             sineBtn.innerText = gen.isSineWavePlaying() ? '⏹ Parar Senoidal' : '🎵 Tom Senoidal';
         }
+        if (blBtn) {
+            blBtn.classList.toggle('bg-cyan-700', gen.isBandLimitedPlaying());
+            blBtn.classList.toggle('text-white', gen.isBandLimitedPlaying());
+            blBtn.innerText = gen.isBandLimitedPlaying() ? '⏹ Parar' : '▶ Tocar';
+        }
     }
 
     function toggleSignal(type, startFn) {
@@ -59,6 +65,7 @@
             case 'chirp': currentlyPlaying = gen.isChirpPlaying(); break;
             case 'dual': currentlyPlaying = gen.isDualTonePlaying(); break;
             case 'sine': currentlyPlaying = gen.isSineWavePlaying(); break;
+            case 'bandlimited': currentlyPlaying = gen.isBandLimitedPlaying(); break;
         }
 
         // Stop all first to prevent overlapping signals
@@ -134,6 +141,14 @@
             const levelDb = levelSlider ? Number(levelSlider.value) : -20;
             const amplitude = Math.pow(10, levelDb / 20);
             toggleSignal('sine', () => gen.startSine(freq, amplitude));
+        });
+
+        pm._on(pm._el('btn-bandlimited-noise'), 'click', () => {
+            const type = (pm._el('bl-noise-type')?.value) || 'pink';
+            const freq = Number(pm._el('bl-noise-freq')?.value) || 1000;
+            const band = Number(pm._el('bl-noise-band')?.value) || 0.333;
+            const amp = 0.25;
+            toggleSignal('bandlimited', () => gen.startBandLimitedNoise(type, freq, band, amp));
         });
 
         pm._on(pm._el('btn-measure-pink'), 'click', () => {

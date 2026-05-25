@@ -32,11 +32,11 @@
             action_type: 'assign_channel',
             channel: channel,
             group: group,
-            weight: weight !== undefined ? weight : 0.5
+            weight: (weight != null && !isNaN(weight)) ? weight : 0.5
         });
         const state = loadState();
         if (!state.assignments) state.assignments = {};
-        state.assignments[channel] = { group: group, weight: weight || 0.5 };
+        state.assignments[channel] = { group: group, weight: (weight != null && !isNaN(weight)) ? weight : 0.5 };
         saveState(state);
     }
 

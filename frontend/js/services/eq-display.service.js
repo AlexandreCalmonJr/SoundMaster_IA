@@ -22,19 +22,20 @@
             return;
         }
 
+        function _e(s){return String(s).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]});}
         containerEl.innerHTML = `
             <div class="bg-slate-800/60 border border-white/10 rounded-2xl p-6 space-y-4">
                 <div class="flex items-center gap-4">
-                    <span class="text-4xl" aria-hidden="true">${eqData.icon}</span>
-                    <h3 class="text-xl font-bold text-cyan-400">${eqData.title}</h3>
+                    <span class="text-4xl" aria-hidden="true">${_e(eqData.icon)}</span>
+                    <h3 class="text-xl font-bold text-cyan-400">${_e(eqData.title)}</h3>
                 </div>
                 <div class="space-y-2 pt-2">
-                    <div><strong>HPF (Corte de Graves):</strong> <span class="text-slate-300 font-mono">${eqData.hpf}</span></div>
-                    <div><strong>Área Crítica (Mud):</strong> <span class="text-amber-400 font-mono">${eqData.mud}</span></div>
-                    <div><strong>Presença/Clareza:</strong> <span class="text-green-400 font-mono">${eqData.presence}</span></div>
+                    <div><strong>HPF (Corte de Graves):</strong> <span class="text-slate-300 font-mono">${_e(eqData.hpf)}</span></div>
+                    <div><strong>Área Crítica (Mud):</strong> <span class="text-amber-400 font-mono">${_e(eqData.mud)}</span></div>
+                    <div><strong>Presença/Clareza:</strong> <span class="text-green-400 font-mono">${_e(eqData.presence)}</span></div>
                 </div>
                 <div class="mt-4 pt-4 border-t border-white/10 text-sm text-slate-400 leading-relaxed italic">
-                    Dica: ${eqData.tips}
+                    Dica: ${_e(eqData.tips)}
                 </div>
             </div>
         `;

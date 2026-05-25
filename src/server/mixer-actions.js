@@ -165,7 +165,7 @@ function createMixerActions(getMixer) {
 
     function setChannelName(channel, name) {
         const input = getMixer().input(channel);
-        const cleanName = name.substring(0, 20); // Máximo 20 caracteres conforme doc
+        const cleanName = String(name || '').substring(0, 20);
         input.setName(cleanName);
         mixerSingleton.updateChannelState(channel, { name: cleanName });
         return `Nome do canal ${channel} alterado para "${cleanName}" e sincronizado com a mesa.`;
@@ -175,10 +175,13 @@ function createMixerActions(getMixer) {
         const mixer = getMixer();
         const faderVal = clamp(level, 0, 1);
         if (target === 'solo') {
+            if (!mixer.volume || !mixer.volume.solo) return 'Função Solo não disponível nesta mesa.';
             mixer.volume.solo.setFaderLevel(faderVal);
         } else if (target === 'hp1') {
+            if (!mixer.volume || !mixer.volume.headphone) return 'Monitoramento de fone não disponível nesta mesa.';
             mixer.volume.headphone(1).setFaderLevel(faderVal);
         } else if (target === 'hp2') {
+            if (!mixer.volume || !mixer.volume.headphone) return 'Monitoramento de fone não disponível nesta mesa.';
             mixer.volume.headphone(2).setFaderLevel(faderVal);
         }
         return `Volume de monitoramento (${target}) ajustado para ${Math.round(faderVal * 100)}%.`;
@@ -220,7 +223,9 @@ function createMixerActions(getMixer) {
     }
 
     function recorderControl(action) {
-        const r = getMixer().recorderDualTrack;
+        const mixer = getMixer();
+        if (!mixer || !mixer.recorderDualTrack) return 'Gravador 2-Track não disponível nesta mesa.';
+        const r = mixer.recorderDualTrack;
         switch (action) {
             case 'start': r.recordStart(); break;
             case 'stop': r.recordStop(); break;
@@ -364,6 +369,9 @@ function createMixerActions(getMixer) {
     function executeMixerCommand(cmd) {
         const mixer = getMixer();
         if (!cmd || !cmd.action) throw new Error('Comando invalido.');
+        if (!mixer || (!mixer.conn && !mixer.isSimulated)) {
+            throw new Error('Conecte-se à mesa primeiro.');
+        }
 
         const actionsMap = {
             'volume_up': (c) => {

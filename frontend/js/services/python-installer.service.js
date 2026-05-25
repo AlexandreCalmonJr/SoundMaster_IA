@@ -203,7 +203,7 @@ const PythonInstallerService = {
                     <h4 style="margin: 0; font-size: 13px; font-weight: 800; text-transform: uppercase; color: #ffffff;">Erro na Instalação</h4>
                     <span style="font-size: 20px;">❌</span>
                 </div>
-                <p style="margin: 0; font-size: 11px; line-height: 1.5; color: #fca5a5;">${errorMsg}</p>
+                <p style="margin: 0; font-size: 11px; line-height: 1.5; color: #fca5a5;">${errorMsg.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}</p>
                 <div style="display: flex; gap: 8px; margin-top: 4px;">
                     <button id="btn-py-retry" style="flex: 1; padding: 8px; background-color: #ffffff; color: #1e1b4b; border: none; border-radius: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; cursor: pointer;">Repetir</button>
                     <button id="btn-py-cancel" style="padding: 8px 16px; background-color: rgba(255, 255, 255, 0.1); color: #ffffff; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; cursor: pointer;">Cancelar</button>

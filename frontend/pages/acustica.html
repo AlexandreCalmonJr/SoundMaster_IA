@@ -71,16 +71,108 @@
                         Calcular Acústica
                     </button>
 
-                    <!-- Container de resultado inserido dinamicamente -->
                     <div id="rt60-result" class="hidden animate-in fade-in slide-in-from-bottom-4"></div>
                 </div>
             </div>
         </div>
 
-        <!-- SEÇÃO 2: Mapa Visual de Cobertura -->
+        <!-- SEÇÃO 2: ETC (Energy Time Curve) -->
         <div class="border-t border-white/10 pt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div class="lg:col-span-1">
-                <span class="text-xs font-mono text-cyan-400 tracking-widest uppercase block mb-1">02 // MAPEAMENTO ESPACIAL</span>
+                <span class="text-xs font-mono text-purple-400 tracking-widest uppercase block mb-1">02 // ETC & RESPOSTA AO IMPULSO</span>
+                <h3 class="text-xl font-black text-white tracking-tight">Energy Time Curve</h3>
+                <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+                    Visualize a curva de decaimento de energia da resposta ao impulso (Schroeder). Identifique reflexões iniciais, som direto e cauda reverberante.
+                </p>
+            </div>
+            <div class="lg:col-span-2">
+                <div class="bg-slate-900/40 border border-white/5 rounded-2xl p-6 shadow-xl space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-sm font-black text-white tracking-tight">Curva de Decaimento (Schroeder)</h4>
+                        <div class="flex items-center gap-3">
+                            <label class="flex items-center gap-1.5">
+                                <span class="text-[9px] text-slate-500 font-mono uppercase font-bold">Filtro</span>
+                                <select id="etc-band-select" class="bg-slate-950 text-white text-[10px] font-mono rounded px-2 py-1 outline-none border border-white/10 cursor-pointer">
+                                    <option value="full">Full Range</option>
+                                    <option value="125">125 Hz</option>
+                                    <option value="250">250 Hz</option>
+                                    <option value="500">500 Hz</option>
+                                    <option value="1000">1000 Hz</option>
+                                    <option value="2000">2000 Hz</option>
+                                    <option value="4000">4000 Hz</option>
+                                    <option value="8000">8000 Hz</option>
+                                </select>
+                            </label>
+                            <label class="flex items-center gap-1.5">
+                                <span class="text-[9px] text-slate-500 font-mono uppercase font-bold">Zoom</span>
+                                <select id="etc-time-range" class="bg-slate-950 text-white text-[10px] font-mono rounded px-2 py-1 outline-none border border-white/10 cursor-pointer">
+                                    <option value="500">500 ms</option>
+                                    <option value="1000" selected>1000 ms</option>
+                                    <option value="2000">2000 ms</option>
+                                    <option value="5000">5000 ms</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <canvas id="etc-canvas" class="w-full h-48 md:h-64 rounded-lg" aria-label="Energy Time Curve - curva de decaimento acústico"></canvas>
+                        <div id="etc-cursor-readout" class="absolute top-2 left-2 text-[10px] font-mono text-white/80 bg-black/60 px-2 py-1 rounded pointer-events-none">
+                            t: -- ms | dB: --
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 text-[10px] text-slate-500 font-mono">
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-cyan-400 inline-block"></span> Schroeder Curve</span>
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-amber-400 inline-block"></span> T20 (-5 a -25 dB)</span>
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-red-400 inline-block"></span> T30 (-5 a -35 dB)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO 3: Tabela de Todas as Bandas -->
+        <div class="border-t border-white/10 pt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1">
+                <span class="text-xs font-mono text-amber-400 tracking-widest uppercase block mb-1">03 // TABELA DE BANDAS</span>
+                <h3 class="text-xl font-black text-white tracking-tight">Todas as Bandas</h3>
+                <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+                    Parâmetros acústicos calculados por banda de frequência (oitava e 1/3 de oitava) a partir da resposta ao impulso.
+                </p>
+                <span id="bands-data-badge" class="inline-block mt-2 text-[7px] px-1.5 py-0.5 rounded font-mono border bg-slate-800 text-slate-600 border-white/10">aguardando dados...</span>
+            </div>
+            <div class="lg:col-span-2 overflow-x-auto">
+                <div class="bg-slate-900/40 border border-white/5 rounded-2xl p-6 shadow-xl">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="text-sm font-black text-white tracking-tight">All Bands</h4>
+                        <button id="btn-export-bands" class="text-[9px] px-3 py-1.5 bg-cyan-600/30 text-cyan-300 border border-cyan-500/20 rounded font-bold uppercase hover:bg-cyan-600/50 transition-all">Export .txt</button>
+                    </div>
+                    <div id="all-bands-table-container" class="overflow-x-auto">
+                        <table id="all-bands-table" class="w-full text-[10px] font-mono border-collapse">
+                            <thead>
+                                <tr class="text-[9px] text-slate-400 uppercase font-black tracking-wider border-b border-white/10">
+                                    <th class="text-left py-2 pr-4">Freq (Hz)</th>
+                                    <th class="text-right py-2 px-3">SPL (dB)</th>
+                                    <th class="text-right py-2 px-3">RT60 (s)</th>
+                                    <th class="text-right py-2 px-3">T20 (s)</th>
+                                    <th class="text-right py-2 px-3">T30 (s)</th>
+                                    <th class="text-right py-2 px-3">EDT (s)</th>
+                                    <th class="text-right py-2 px-3">C50 (dB)</th>
+                                    <th class="text-right py-2 px-3">C80 (dB)</th>
+                                    <th class="text-right py-2 px-3">STI</th>
+                                </tr>
+                            </thead>
+                            <tbody id="all-bands-tbody">
+                                <tr><td colspan="9" class="text-center text-slate-600 py-8">Nenhuma medição disponível. Execute um Log-Sine Sweep no Analisador para obter dados.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO 4: Mapa Visual de Cobertura -->
+        <div class="border-t border-white/10 pt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1">
+                <span class="text-xs font-mono text-cyan-400 tracking-widest uppercase block mb-1">04 // MAPEAMENTO ESPACIAL</span>
                 <h3 class="text-xl font-black text-white tracking-tight">Mapa Visual de Cobertura</h3>
                 <p class="text-xs text-slate-400 mt-2 leading-relaxed">
                     Carregue a planta baixa do templo e registre medições de múltiplos pontos espaciais para visualizar a cobertura acústica.

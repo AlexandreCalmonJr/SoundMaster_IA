@@ -34,20 +34,33 @@ function registerSocketHandlers(io, appDataDir = './logs') {
     let globalHistoryStack = [];
     let globalRedoStack = [];
 
-    const cleanupTimer = setInterval(() => {
-        const now = Date.now();
-        const TTL_MS = 3600000;
-        for (const [k, v] of feedbackCooldowns) {
-            if (now - v > TTL_MS) feedbackCooldowns.delete(k);
+    let cleanupTimer = null;
+
+    function startCleanupTimer() {
+        cleanupTimer = setInterval(() => {
+            const now = Date.now();
+            const TTL_MS = 3600000;
+            for (const [k, v] of feedbackCooldowns) {
+                if (now - v > TTL_MS) feedbackCooldowns.delete(k);
+            }
+            for (const [k, v] of automaticCutState) {
+                if (now - v.timestamp > TTL_MS) automaticCutState.delete(k);
+            }
+            if (feedbackCooldowns.size > 0 || automaticCutState.size > 0) {
+                logger.info('sockethandlers', 'MAP_CLEANUP', { feedbackCooldowns: feedbackCooldowns.size, automaticCutState: automaticCutState.size });
+            }
+        }, 300000);
+        if (cleanupTimer.unref) cleanupTimer.unref();
+    }
+
+    function stopCleanupTimer() {
+        if (cleanupTimer) {
+            clearInterval(cleanupTimer);
+            cleanupTimer = null;
         }
-        for (const [k, v] of automaticCutState) {
-            if (now - v.timestamp > TTL_MS) automaticCutState.delete(k);
-        }
-        if (feedbackCooldowns.size > 0 || automaticCutState.size > 0) {
-            logger.info('sockethandlers', 'MAP_CLEANUP', { feedbackCooldowns: feedbackCooldowns.size, automaticCutState: automaticCutState.size });
-        }
-    }, 300000);
-    if (cleanupTimer.unref) cleanupTimer.unref();
+    }
+
+    startCleanupTimer();
 
     function createThrottle(fn, ms) {
         let lastTime = 0;
@@ -102,10 +115,17 @@ function registerSocketHandlers(io, appDataDir = './logs') {
 
         const rateLimiter = createSocketRateLimiter(1000, 10);
 
+        let _historyLock = false;
         function addToHistory(cmd) {
-            globalHistoryStack.push(cmd);
-            if (globalHistoryStack.length > 50) globalHistoryStack.shift();
-            globalRedoStack = [];
+            if (_historyLock) return;
+            _historyLock = true;
+            try {
+                globalHistoryStack.push(cmd);
+                if (globalHistoryStack.length > 50) globalHistoryStack.shift();
+                globalRedoStack.length = 0;
+            } finally {
+                _historyLock = false;
+            }
         }
 
         function normalizeAutoCutFrequency(hz) {

@@ -16,13 +16,15 @@
     // -------------------------------------------------------------------------
 
     function _clamp(value, min, max) {
-        return Math.min(max, Math.max(min, Number(value)));
+        const num = Number(value);
+        return isNaN(num) ? min : Math.min(max, Math.max(min, num));
     }
 
     function _validateChannel(channel) {
         const ch = Number(channel);
         if (!Number.isInteger(ch) || ch < 1 || ch > 24) {
-            throw new Error('Canal inválido: use um número entre 1 e 24.');
+            console.warn('[MixerService] Canal inválido:', channel);
+            return -1;
         }
         return ch;
     }
@@ -135,6 +137,7 @@
      */
     function applyHpf(channel, hz) {
         const ch = _validateChannel(channel);
+        if (ch < 1) return false;
         const freq = _clamp(hz || 100, 20, 400);
         return _emit('apply_channel_hpf', { channel: ch, hz: freq },
             'HPF ' + freq + 'Hz solicitado no canal ' + ch + '.');
@@ -146,6 +149,7 @@
      */
     function applyGate(channel, threshold) {
         const ch = _validateChannel(channel);
+        if (ch < 1) return false;
         const thresh = _clamp(threshold !== undefined ? threshold : -52, -80, 0);
         return _emit('apply_channel_gate', { channel: ch, enabled: 1, threshold: thresh },
             'Gate leve solicitado no canal ' + ch + '.');
@@ -158,6 +162,7 @@
      */
     function applyCompressor(channel, ratio, threshold) {
         const ch = _validateChannel(channel);
+        if (ch < 1) return false;
         return _emit('apply_channel_compressor', {
             channel: ch,
             ratio: _clamp(ratio || 2.5, 1, 20),
@@ -174,9 +179,11 @@
      * @param {number} [band=2]
      */
     function applyEqCut(target, channel, hz, gain, q, band) {
+        const eqCh = target === 'channel' ? _validateChannel(channel) : -1;
+        if (target === 'channel' && eqCh < 1) return false;
         const payload = {
             target: target,
-            channel: target === 'channel' ? _validateChannel(channel) : null,
+            channel: target === 'channel' ? eqCh : null,
             hz: _clamp(hz, 20, 20000),
             gain: _clamp(gain !== undefined ? gain : -3, -12, 6),
             q: _clamp(q !== undefined ? q : 1.4, 0.2, 10),
@@ -201,6 +208,7 @@
      */
     function runCleanSoundPreset(channel, opts) {
         const ch = _validateChannel(channel);
+        if (ch < 1) return false;
         return _emit('run_clean_sound_preset', Object.assign({ channel: ch }, opts || {}),
             'Preset de som limpo solicitado no canal ' + ch + '.');
     }
@@ -224,6 +232,7 @@
      */
     function applyEQ(channel, freq, q, gainDb) {
         const ch = _validateChannel(channel);
+        if (ch < 1) return false;
         const payload = {
             channel: ch,
             freq: Math.round(freq),
@@ -254,6 +263,7 @@
      */
     function applyNotchFilter(channel, freq, gainDb = -3) {
         const ch = _validateChannel(channel);
+        if (ch < 1) return false;
         const q = 30; // Q bem alto para notch estreito
         
         _logAutoCutAction({
@@ -366,6 +376,7 @@
      */
     function setAuxLevel(channel, auxChannel, level) {
         const ch = _validateChannel(channel);
+        if (ch < 1) return false;
         const aux = _clamp(auxChannel, 1, 10);
         const clamped = _clamp(level, 0, 1);
         
@@ -381,6 +392,7 @@
      */
     function setFxLevel(channel, fxChannel, level) {
         const ch = _validateChannel(channel);
+        if (ch < 1) return false;
         const fx = _clamp(fxChannel, 1, 4);
         const clamped = _clamp(level, 0, 1);
         
@@ -402,6 +414,7 @@
     async function loadNames() {
         try {
             const res = await fetch('/api/mixer/names');
+            if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();
             AppStore.setState({ mixerNames: data });
             return data;
@@ -429,6 +442,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(names)
             });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
             AppStore.setState({ mixerNames: names });
             AppStore.addLog('Etiquetas do mixer salvas e sincronizadas.');
             return await res.json();
@@ -468,6 +482,7 @@
 
     function fadeChannel(channel, level, time) {
         const ch = _validateChannel(channel);
+        if (ch < 1) return false;
         return _emit('fade_channel', { channel: ch, level: level, time: time }, 'Fade Canal ' + ch + ' iniciado...');
     }
 
@@ -484,6 +499,7 @@
 
     function setChannelName(channel, name) {
         const ch = _validateChannel(channel);
+        if (ch < 1) return false;
         const cleanName = String(name || '').substring(0, 20);
         return _emit('set_channel_name', { channel: ch, name: cleanName });
     }
@@ -499,6 +515,7 @@
 
     function setChannelMute(channel, enabled) {
         const ch = _validateChannel(channel);
+        if (ch < 1) return false;
         const state = enabled ? 1 : 0;
         AppStore.setState({ [`mute_ch_${ch}`]: !!enabled });
         return _emit('execute_ai_command', {
@@ -510,6 +527,7 @@
 
     function setChannelLevel(channel, level) {
         const ch = _validateChannel(channel);
+        if (ch < 1) return false;
         const clamped = _clamp(level, 0, 1);
         AppStore.setState({ [`ch_${ch}_level`]: clamped });
         return _emit('execute_ai_command', {

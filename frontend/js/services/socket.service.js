@@ -8,6 +8,7 @@
     'use strict';
 
     let _socket = null;
+    let _initialized = false;
 
     // ─── Offline Command Queue (T26) ─────────────────────────────────────────
     const _offlineQueue = [];
@@ -93,6 +94,9 @@
 
     // ─── Inicialização ────────────────────────────────────────────────────────
     function init() {
+        if (_initialized) return;
+        _initialized = true;
+
         if (typeof io === 'undefined') {
             console.warn('[SocketService] socket.io não disponível.');
             return;
@@ -219,8 +223,18 @@
         _socket.on(event, cb);
     }
 
+    function off(event, cb) {
+        if (!_socket) { return; }
+        _socket.off(event, cb);
+    }
+
+    function destroy() {
+        _initialized = false;
+        if (_socket) { _socket.disconnect(); _socket = null; }
+    }
+
     window.SocketService = {
-        init, emit, isConnected, raw, on,
+        init, emit, isConnected, raw, on, off, destroy,
         lockFader, unlockFader, isFaderLocked,
         getQueueLength: () => _offlineQueue.length,
     };

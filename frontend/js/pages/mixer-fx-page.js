@@ -23,7 +23,7 @@
             fxCard.innerHTML = `
                 <div class="flex items-center justify-between">
                     <span class="text-[10px] font-black text-cyan-400 uppercase tracking-widest">Engine Lexicon ${i}</span>
-                    <span id="fx-type-${i}" class="text-[9px] font-bold text-slate-500 uppercase">${fxTypes[i - 1]}</span>
+                    <span id="fx-type-${i}" class="text-[9px] font-bold text-slate-500 uppercase">${esc(fxTypes[i - 1])}</span>
                 </div>
                 
                 <div class="flex gap-4 items-center">
@@ -115,6 +115,7 @@
     }
 
     function destroy() {
+        Object.keys(_fxDebounce).forEach(function (k) { clearTimeout(_fxDebounce[k]); delete _fxDebounce[k]; });
         pm.destroy();
     }
 
