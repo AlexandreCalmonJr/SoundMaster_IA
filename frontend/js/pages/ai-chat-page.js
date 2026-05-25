@@ -114,7 +114,7 @@
         bubble.className = 'chat-bubble ' + (isUser ? 'chat-user' : 'chat-assistant');
         
         // Render raw dots or loading states as plain text, others as markdown
-        if (text === '...' || text === 'Analisando dados acústicos...') {
+        if (text === '...' || text === 'Analisando dados acústicos...' || text === 'Analisando áudio ao vivo...') {
             bubble.innerText = text;
         } else {
             bubble.innerHTML = _renderMarkdown(text);

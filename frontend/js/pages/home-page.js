@@ -29,7 +29,9 @@
             targetChannel: pm._el('home-target-channel'),
             chatInput: pm._el('home-chat-input'),
             btnListen: pm._el('btn-home-listen'),
-            btnSend: pm._el('btn-home-send')
+            btnSend: pm._el('btn-home-send'),
+            btnClear: pm._el('btn-home-clear'),
+            workspaceWrapper: pm._el('home-workspace-wrapper')
         };
     }
 
@@ -128,7 +130,7 @@
         const bubble = document.createElement('div');
         bubble.id = id;
         bubble.className = 'chat-bubble ' + (isUser ? 'chat-user' : 'chat-assistant') + ' mb-3 p-4 rounded-2xl max-w-[85%] ' + 
-                           (isUser ? 'bg-cyan-900/30 border border-cyan-500/20 text-white ml-auto text-right' : 'bg-slate-800/40 border border-white/5 text-slate-300 mr-auto text-left');
+                           (isUser ? 'ml-auto text-right text-white' : 'mr-auto text-left text-slate-300');
         
         if (text === '...' || text === 'Analisando dados acústicos...' || text === 'Analisando áudio ao vivo...') {
             bubble.innerText = text;
@@ -200,11 +202,23 @@
         
         const hasConversation = history && history.length > 0 && !(history.length === 1 && history[0].id === 'welcome-msg');
         
+        if (els.promptPills) {
+            if (hasConversation) {
+                els.promptPills.classList.add('collapsed');
+            } else {
+                els.promptPills.classList.remove('collapsed');
+            }
+        }
+        
         if (!hasConversation) {
             if (els.introContainer) els.introContainer.style.display = 'flex';
             if (els.chatContainer) {
                 els.chatContainer.classList.add('hidden');
                 els.chatContainer.classList.remove('flex');
+            }
+            if (els.workspaceWrapper) {
+                els.workspaceWrapper.classList.remove('chat-active');
+                els.workspaceWrapper.classList.add('justify-center');
             }
             return;
         }
@@ -213,6 +227,10 @@
         if (els.chatContainer) {
             els.chatContainer.classList.remove('hidden');
             els.chatContainer.classList.add('flex');
+        }
+        if (els.workspaceWrapper) {
+            els.workspaceWrapper.classList.add('chat-active');
+            els.workspaceWrapper.classList.remove('justify-center');
         }
         
         els.chatMessages.innerHTML = '';
@@ -231,7 +249,13 @@
         if (els.btnSend) els.btnSend.disabled = true;
         
         const textTrimmed = text.trim();
-        if (els.chatInput) els.chatInput.value = '';
+        if (els.chatInput) {
+            els.chatInput.value = '';
+            els.chatInput.style.height = 'auto';
+        }
+        if (els.btnClear) {
+            els.btnClear.style.display = 'none';
+        }
         
         const userMsgId = 'msg-' + Math.random().toString(36).substr(2, 9);
         _saveMessageToHistory(textTrimmed, true, null, userMsgId);
@@ -280,10 +304,34 @@
         }
 
         if (els.chatInput) {
-            pm._on(els.chatInput, 'keypress', function (e) {
-                if (e.key === 'Enter' && els.chatInput.value.trim()) {
-                    _sendMessage(els.chatInput.value.trim());
+            // Auto-resize textarea and toggle clear button visibility on input
+            pm._on(els.chatInput, 'input', function () {
+                els.chatInput.style.height = 'auto';
+                els.chatInput.style.height = els.chatInput.scrollHeight + 'px';
+                
+                if (els.btnClear) {
+                    els.btnClear.style.display = els.chatInput.value.trim() ? 'flex' : 'none';
                 }
+            });
+
+            // Enter key sends message, Shift+Enter adds newline
+            pm._on(els.chatInput, 'keydown', function (e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    const text = els.chatInput.value.trim();
+                    if (text) _sendMessage(text);
+                }
+            });
+        }
+
+        if (els.btnClear) {
+            pm._on(els.btnClear, 'click', function () {
+                if (els.chatInput) {
+                    els.chatInput.value = '';
+                    els.chatInput.style.height = 'auto';
+                    els.chatInput.focus();
+                }
+                els.btnClear.style.display = 'none';
             });
         }
 
@@ -362,6 +410,41 @@
         const els = _getEls();
         if (els.chatInput) {
             pm._setTimeout(function () { els.chatInput.focus(); }, 100);
+        }
+
+        // Carregar valores iniciais imediatamente para evitar skeletons vazios
+        // 1. SPL
+        const initialSpl = AppStore.getState?.().splStats;
+        if (els.homeSplVal && initialSpl && initialSpl.leqTotal !== undefined) {
+            els.homeSplVal.innerText = `${initialSpl.leqTotal.toFixed(1)} dBA`;
+        }
+
+        // 2. Status do Mixer
+        const initialConnected = AppStore.getState?.().mixerConnected;
+        if (els.homeMixerStatus) {
+            els.homeMixerStatus.innerText = initialConnected ? 'Online' : 'Offline';
+            els.homeMixerStatus.className = initialConnected ? 'text-green-400 font-bold' : 'text-red-400 font-bold';
+        }
+
+        // 3. RT60
+        const parentWin = window.parent || window;
+        const analyzer = parentWin.SoundMasterAnalyzer;
+        const lastRt = analyzer?.getLastRt60 ? analyzer.getLastRt60() : null;
+        if (els.homeRt60Val && lastRt && lastRt.rt60 !== undefined && lastRt.rt60 !== null) {
+            els.homeRt60Val.innerText = `${lastRt.rt60.toFixed(2)}s`;
+        } else if (els.homeRt60Val) {
+            try {
+                const saved = localStorage.getItem('rt60_mapping_points');
+                if (saved) {
+                    const points = JSON.parse(saved);
+                    if (points && points.length > 0) {
+                        const avg = points.reduce((s, p) => s + p.rt60, 0) / points.length;
+                        els.homeRt60Val.innerText = `${avg.toFixed(2)}s`;
+                    }
+                }
+            } catch (e) {
+                console.warn('[HomePage] Error loading initial RT60:', e);
+            }
         }
 
         // SPL Metrics subscription

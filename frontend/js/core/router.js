@@ -205,9 +205,6 @@ class Router {
             <head>
                 <meta charset="UTF-8">
                 <link rel="stylesheet" href="css/styles.css">
-                <link rel="stylesheet" href="css/app-layout.css">
-                <link rel="stylesheet" href="css/pages.css">
-                <link rel="stylesheet" href="css/components.css">
                 ${conditionalCssTags}
                 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400&display=swap" rel="stylesheet">
                 ${scriptTags}
