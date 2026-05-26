@@ -381,7 +381,8 @@
             btn.addEventListener('click', () => {
                 const groupId = btn.dataset.group;
                 const isActive = btn.classList.contains('active');
-                MixerService.automixControl(groupId, isActive ? 'disable' : 'enable');
+                SocketService.emit('mute_group', { groupId: groupId, enabled: isActive ? 0 : 1 });
+                AppStore.addLog('Mute Group ' + groupId + ': ' + (isActive ? 'OFF' : 'ON'));
                 btn.classList.toggle('active', !isActive);
                 btn.classList.toggle('bg-red-600', !isActive && groupId === 'all');
                 btn.classList.toggle('bg-cyan-600', !isActive && groupId !== 'all');

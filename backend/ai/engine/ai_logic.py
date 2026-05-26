@@ -42,7 +42,10 @@ class LocalLLM:
     """Gerenciador de Modelo Leve Local (TinyLlama/Gemma via Llama-cpp)"""
     _instance = None
     
-    def __init__(self, model_path="models/tinyllama-1.1b-chat.Q4_K_M.gguf"):
+    def __init__(self, model_path=None):
+        # Caminho configurável via env var MODEL_PATH, fallback hardcoded
+        if not model_path:
+            model_path = os.getenv("MODEL_PATH", "models/tinyllama-1.1b-chat.Q4_K_M.gguf")
         # Resolve caminho relativo ao script para robustez
         if not os.path.isabs(model_path):
             script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -200,7 +203,7 @@ class AIEngine:
         # 0.1. Auditoria do Mixer
         if re.search(r'(auditar|auditoria|verificar mesa|status da mesa|analise da mesa|diagnostico da mesa|audit)', text):
             alerts = []
-            suggested_cmd = None
+            suggested_cmds = []
             
             full_state = mixer_state.get('full_state') if mixer_state else None
             inputs = full_state.get('inputs', []) if full_state else []
@@ -213,16 +216,14 @@ class AIEngine:
             
             if master_state and master_state.get('mute') == 1:
                 alerts.append("- **Master Mutado:** O Master geral da mesa esta mutado. Nenhum som saira para os PAs.")
-                if not suggested_cmd:
-                    suggested_cmd = self.command("master_mute", "Desmutar Master", enabled=False)
+                suggested_cmds.append(self.command("master_mute", "Desmutar Master", enabled=False))
             
             # B) Verificar Master Clipando
             if all_vus and 'master' in all_vus:
                 master_vu = self._safe_float(all_vus.get('master'), 0.0)
                 if master_vu > 0.98:
                     alerts.append(f"- **Master Clipando:** O volume geral esta muito alto (VU em {int(master_vu*100)}%). Risco de distorcao.")
-                    if not suggested_cmd:
-                        suggested_cmd = self.command("volume_down", "Abaixar Master em 3dB", target="master", val=3)
+                    suggested_cmds.append(self.command("volume_down", "Abaixar Master em 3dB", target="master", val=3))
             
             # C) Canais Mutados com VU ativo
             for idx, ch in enumerate(inputs):
@@ -236,8 +237,7 @@ class AIEngine:
                 
                 if mute == 1 and vu_val > 0.05:
                     alerts.append(f"- **Mute com Sinal:** O canal {ch_idx} ({ch_name}) esta mutado, mas recebendo sinal ativo (VU em {int(vu_val*100)}%).")
-                    if not suggested_cmd:
-                        suggested_cmd = self.command("channel_mute", f"Desmutar {ch_name}", channel=ch_idx, enabled=False)
+                    suggested_cmds.append(self.command("channel_mute", f"Desmutar {ch_name}", channel=ch_idx, enabled=False))
             
             # D) Vozes sem HPF
             for idx, ch in enumerate(inputs):
@@ -249,8 +249,7 @@ class AIEngine:
                 if any(k in ch_name_lower for k in ['voz', 'past', 'mic', 'preg', 'minist', 'cant', 'lead', 'coral']):
                     if hpf <= 50:
                         alerts.append(f"- **Voz sem HPF:** O canal {ch_idx} ({ch_name}) esta sem filtro passa-altas (HPF em {int(hpf)}Hz). Risco de embolamento de graves.")
-                        if not suggested_cmd:
-                            suggested_cmd = self.command("apply_channel_hpf", f"Ativar HPF 100Hz no {ch_name}", channel=ch_idx, hz=100)
+                        suggested_cmds.append(self.command("apply_channel_hpf", f"Ativar HPF 100Hz no {ch_name}", channel=ch_idx, hz=100))
             
             # E) Sem Compressao em Canais Criticos (Canais de voz ativos sem compressor)
             for idx, ch in enumerate(inputs):
@@ -288,10 +287,13 @@ Identifiquei os seguintes pontos de atencao na mesa de som:
 
 Deseja aplicar a correcao recomendada?
 """
+                # Retorna o comando mais crítico (Master Mutado > Master Clipando > HPF > Mute > Compressor)
+                priority = {"master_mute": 0, "volume_down": 1, "apply_channel_hpf": 2, "channel_mute": 3}
+                suggested_cmds.sort(key=lambda c: priority.get(c["action"], 99))
                 return {
                     "text": "Auditoria concluida. Identifiquei alguns pontos de atencao na mesa de som. Veja o relatorio no chat.",
                     "report": report_md,
-                    "command": suggested_cmd
+                    "command": suggested_cmds[0] if suggested_cmds else None
                 }
 
         # 0.2. Analise Dinamica do Fader e Ganho
@@ -366,8 +368,6 @@ Deseja aplicar a correcao recomendada?
         
         analysis = analysis or {}
         rt60_response = None
-
-        # 1. Dados Técnicos (FFT)
         fft_response = None
         if 'peakHz' in analysis and analysis.get('peakHz', 0) > 0:
             peak = int(analysis.get('peakHz'))

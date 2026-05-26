@@ -3,9 +3,10 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import json
 import math
+import hmac
 import numpy as np
-from fastapi import FastAPI, HTTPException, File, UploadFile, Form
-from fastapi.responses import StreamingResponse
+from fastapi import FastAPI, HTTPException, File, UploadFile, Form, Request
+from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import io
 from scipy.io import wavfile
@@ -14,6 +15,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
 import time
 import asyncio
+from dataclasses import asdict
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 
@@ -26,6 +28,37 @@ _maintenance_engine = PredictiveMaintenanceEngine()
 
 load_dotenv()
 
+# ─── Rate Limiter simples (em memória) ────────────────────────────────────────
+_ratelimit_store: Dict[str, list] = {}
+_RATELIMIT_MAX = 60          # requisições
+_RATELIMIT_WINDOW = 60       # segundos
+
+async def _rate_limit(ip: str):
+    now = time.time()
+    if ip not in _ratelimit_store:
+        _ratelimit_store[ip] = []
+    _ratelimit_store[ip] = [t for t in _ratelimit_store[ip] if now - t < _RATELIMIT_WINDOW]
+    if len(_ratelimit_store[ip]) >= _RATELIMIT_MAX:
+        raise HTTPException(status_code=429, detail="Muitas requisições. Aguarde e tente novamente.")
+    _ratelimit_store[ip].append(now)
+
+# ─── Validações de upload ─────────────────────────────────────────────────────
+_MAX_UPLOAD_MB = 50
+_MAX_UPLOAD_BYTES = _MAX_UPLOAD_MB * 1024 * 1024
+_WAV_MAGIC = b"RIFF"
+
+async def _validate_upload(file: UploadFile):
+    if file.size and file.size > _MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail=f"Arquivo muito grande. Máximo: {_MAX_UPLOAD_MB}MB")
+    content = await file.read()
+    if len(content) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail=f"Arquivo muito grande. Máximo: {_MAX_UPLOAD_MB}MB")
+    if content[:4] != _WAV_MAGIC or content[8:12] != b"WAVE":
+        raise HTTPException(status_code=400, detail="Formato inválido. Envie um arquivo WAV.")
+    if len(content) < 44:
+        raise HTTPException(status_code=400, detail="Arquivo WAV muito pequeno ou corrompido.")
+    return content
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Inicia limpeza de sessões
@@ -35,12 +68,16 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="SoundMaster Pro AI Engine", lifespan=lifespan)
 
+_frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+if _frontend_url == "*" or "*" in _frontend_url:
+    print("[WARN] FRONTEND_URL contém '*' — CORS permissivo. Defina uma URL específica em produção.")
+    _frontend_url = "http://localhost:3000"
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:3001",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
-    os.getenv("FRONTEND_URL", "http://localhost:3000")
+    _frontend_url
 ]
 
 app.add_middleware(
@@ -51,6 +88,16 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization", "X-API-Key"],
     max_age=3600,
 )
+
+@app.middleware("http")
+async def _ratelimit_middleware(request: Request, call_next):
+    if request.url.path != "/":
+        ip = request.client.host if request.client else "unknown"
+        try:
+            await _rate_limit(ip)
+        except HTTPException:
+            return JSONResponse(status_code=429, content={"detail": "Muitas requisições. Aguente e tente novamente."})
+    return await call_next(request)
 
 from fastapi.security import APIKeyHeader
 from fastapi import Depends, status
@@ -63,10 +110,11 @@ async def verify_api_key(api_key: str = Depends(api_key_header)):
 
     if not valid_key:
         if os.getenv("NODE_ENV") == "production":
-              raise HTTPException(
+            raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Servidor não configurado (AI_API_KEY faltando)"
             )
+        print("[WARN] Servidor rodando SEM API Key. Defina AI_API_KEY em produção.")
         return True
 
     if not api_key:
@@ -75,7 +123,7 @@ async def verify_api_key(api_key: str = Depends(api_key_header)):
             detail="API Key ausente"
         )
 
-    if api_key != valid_key:
+    if not hmac.compare_digest(api_key, valid_key):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="API Key inválida"
@@ -110,15 +158,15 @@ async def cleanup_sessions_task():
 
 # Modelos de Dados
 class ChatRequest(BaseModel):
-    message: str = Field(max_length=2000)  # ✅ T12: Limita tamanho da mensagem (Original #13)
+    message: str = Field(max_length=2000)
     analysis: Optional[Dict[str, Any]] = None
     mixer_context: Optional[Dict[str, Any]] = None
-    session_id: Optional[str] = "default"
+    session_id: Optional[str] = Field(default="default", max_length=64, pattern="^[a-zA-Z0-9_-]+$")
 
 class AcousticRequest(BaseModel):
-    volume: float = 1000
-    surface_area: float = 600
-    alpha: float = 0.1
+    volume: float = Field(default=1000, gt=0)
+    surface_area: float = Field(default=600, gt=0)
+    alpha: float = Field(default=0.1, ge=0, lt=1)
 
 class FeedbackSample(BaseModel):
     hz: float
@@ -187,8 +235,6 @@ async def acoustic_analysis_endpoint(
     authenticated: bool = Depends(verify_api_key)
 ):
     try:
-        if request.surface_area <= 0:
-            raise HTTPException(status_code=400, detail="surface_area deve ser maior que zero")
         rt60 = AcousticProcessor.eyring_rt60(request.volume, request.surface_area, request.alpha)
         classification = AcousticProcessor.classify_room(rt60)
         return {
@@ -207,8 +253,6 @@ async def analyze_feedback_endpoint(
     authenticated: bool = Depends(verify_api_key)
 ):
     try:
-        import math
-
         # Mode 2: batch analysis with peakHistory (ported from Node calculation-routes.js)
         if request.peakHistory and len(request.peakHistory) >= 5:
             recent = request.peakHistory[-15:]
@@ -252,19 +296,26 @@ _train_file_lock = asyncio.Lock()
 
 async def _load_training_events():
     if os.path.exists(TRAIN_DATA_PATH):
-        with open(TRAIN_DATA_PATH, "r") as f:
-            return json.load(f)
+        def _read():
+            with open(TRAIN_DATA_PATH, "r") as f:
+                return json.load(f)
+        return await asyncio.to_thread(_read)
     return []
 
 async def _save_training_event(event):
     async with _train_file_lock:
-        os.makedirs(os.path.dirname(TRAIN_DATA_PATH), exist_ok=True)
-        events = await _load_training_events()
-        events.append(event)
-        if len(events) > 1000:
-            events = events[-1000:]
-        with open(TRAIN_DATA_PATH, "w") as f:
-            json.dump(events, f, indent=2)
+        def _write():
+            os.makedirs(os.path.dirname(TRAIN_DATA_PATH), exist_ok=True)
+            events = []
+            if os.path.exists(TRAIN_DATA_PATH):
+                with open(TRAIN_DATA_PATH, "r") as f:
+                    events = json.load(f)
+            events.append(event)
+            if len(events) > 1000:
+                events = events[-1000:]
+            with open(TRAIN_DATA_PATH, "w") as f:
+                json.dump(events, f, indent=2)
+        await asyncio.to_thread(_write)
 
 # ── Curvas alvo para Auto-EQ ──────────────────────────────────────────────
 
@@ -286,7 +337,6 @@ async def auto_eq_endpoint(
     authenticated: bool = Depends(verify_api_key)
 ):
     try:
-        import math
         sr = request.sampleRate or 48000
         fft = request.fftSize or 8192
         hz_per_bin = sr / fft
@@ -469,7 +519,6 @@ async def spl_endpoint(
     authenticated: bool = Depends(verify_api_key)
 ):
     try:
-        import math
         sr = request.sampleRate or 48000
         w = (request.weighting or "A").upper()
         hz_per_bin = sr / (len(request.freqData) * 2)
@@ -550,6 +599,8 @@ async def diagnose_endpoint(
     authenticated: bool = Depends(verify_api_key)
 ):
     try:
+        if len(session_id) > 64 or not all(c.isalnum() or c in '-_' for c in session_id):
+            raise HTTPException(status_code=400, detail="session_id inválido")
         session = get_session(session_id)
         patterns = AcousticProcessor.diagnose_patterns(session.analyses_history)
         return {
@@ -574,8 +625,6 @@ async def hardware_diagnosis_endpoint(
     try:
         engine = PredictiveMaintenanceEngine(request.thresholds or None)
         result = engine.analyze(request.channel, request.snapshots, request.months)
-        # dataclass -> dict via asdict
-        from dataclasses import asdict
         return asdict(result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -651,13 +700,17 @@ def process_wav_bytes(file_bytes: bytes, effect: str, intensity: float = 1.0) ->
             data = dsp_vocal_sep(data, rate)
         elif effect == 'mastering':
             data = dsp_mastering(data, rate)
+        else:
+            raise ValueError(f"Efeito desconhecido: {effect}")
             
         out_buf = io.BytesIO()
         wavfile.write(out_buf, rate, data)
         return out_buf.getvalue()
+    except ValueError:
+        raise
     except Exception as e:
         print(f"[Process Wav Bytes Error]: {e}")
-        return file_bytes
+        raise HTTPException(status_code=500, detail=f"Falha no processamento de áudio: {str(e)}")
 
 def analyze_and_transcribe_wav(file_bytes: bytes) -> str:
     try:
@@ -701,9 +754,15 @@ async def process_audio_endpoint(
     authenticated: bool = Depends(verify_api_key)
 ):
     try:
-        file_bytes = await file.read()
+        file_bytes = await _validate_upload(file)
         processed_bytes = process_wav_bytes(file_bytes, effect, intensity or 1.0)
-        return StreamingResponse(io.BytesIO(processed_bytes), media_type="audio/wav")
+        return StreamingResponse(
+            io.BytesIO(processed_bytes),
+            media_type="audio/wav",
+            headers={"Content-Disposition": "attachment; filename=processed.wav"}
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro no processamento de áudio: {str(e)}")
 
@@ -714,9 +773,15 @@ async def enhance_audio_endpoint(
     authenticated: bool = Depends(verify_api_key)
 ):
     try:
-        file_bytes = await file.read()
+        file_bytes = await _validate_upload(file)
         processed_bytes = process_wav_bytes(file_bytes, effect, 1.0)
-        return StreamingResponse(io.BytesIO(processed_bytes), media_type="audio/wav")
+        return StreamingResponse(
+            io.BytesIO(processed_bytes),
+            media_type="audio/wav",
+            headers={"Content-Disposition": "attachment; filename=enhanced.wav"}
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro no realce de áudio: {str(e)}")
 
@@ -726,13 +791,15 @@ async def transcribe_audio_endpoint(
     authenticated: bool = Depends(verify_api_key)
 ):
     try:
-        file_bytes = await file.read()
+        file_bytes = await _validate_upload(file)
         transcription_text = analyze_and_transcribe_wav(file_bytes)
         return {
             "transcription": transcription_text,
             "text": transcription_text,
             "status": "success"
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro na transcrição: {str(e)}")
 
@@ -740,5 +807,11 @@ if __name__ == "__main__":
     import uvicorn
     # Rodando na porta configurável (padrão 3002)
     print("SoundMaster Pro AI Engine v2 Iniciando...")
-    port = int(os.getenv("PYTHON_PORT", "3002"))
+    try:
+        port = int(os.getenv("PYTHON_PORT", "3002"))
+        if port < 1 or port > 65535:
+            raise ValueError
+    except (ValueError, TypeError):
+        print("[WARN] PYTHON_PORT inválido. Usando porta 3002.")
+        port = 3002
     uvicorn.run(app, host="127.0.0.1", port=port)

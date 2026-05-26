@@ -159,7 +159,9 @@ function startPythonAI(rootDir, onExitCallback) {
         pythonProcess.healthCheck = () => pythonProcess.isReady;
         _waitForHealth(pythonProcess).catch((error) => {
             console.error(`[Python AI] Health-check falhou: ${error.message}`);
-            Logger.getInstance().error('PYTHON', 'PYTHON_HEALTHCHECK_FAILED', error.message);
+            try {
+                Logger.getInstance().error('PYTHON', 'PYTHON_HEALTHCHECK_FAILED', error.message);
+            } catch (_) { /* Logger pode não estar inicializado ainda */ }
         });
     }
     return pythonProcess;
@@ -192,7 +194,15 @@ function _waitForHealth(proc, timeoutMs = 15000, intervalMs = 1000) {
                 }
                 setTimeout(attempt, intervalMs);
             });
-            req.setTimeout(1500, () => req.destroy());
+            req.setTimeout(1500, () => {
+                req.destroy();
+                req.destroyed = true;
+            });
+            req.on('close', () => {
+                if (req.destroyed && Date.now() - startedAt >= timeoutMs) {
+                    reject(new Error('Timeout aguardando servidor Python responder.'));
+                }
+            });
         };
         attempt();
     });

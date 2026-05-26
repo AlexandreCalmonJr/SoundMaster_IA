@@ -19,7 +19,7 @@
             const ipDisplay = _el('server-ip-display');
             const mobileUrl = _el('mobile-url');
             const mobileLink = _el('mobile-open-link');
-            const mobileQrCode = _el('mobile-qr-code');
+            const mobileQrCode = _el('mixer-mobile-qr-code');
 
             if (ipCard) ipCard.style.display = 'block';
             const serverUrl = `http://${config.localIp}:${config.port}`;

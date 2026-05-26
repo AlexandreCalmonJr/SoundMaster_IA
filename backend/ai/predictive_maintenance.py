@@ -152,7 +152,9 @@ class PredictiveMaintenanceEngine:
         Converte spectrum_db (dict ou list) para um array de valores
         por banda de oitava, usando interpolação log-linear.
         """
-        raw = snapshot.get("spectrum_db") or snapshot.get("spectrum") or {}
+        raw = snapshot.get("spectrum_db")
+        if raw is None:
+            raw = snapshot.get("spectrum", {})
 
         # Normaliza para lista de (hz, dB)
         if isinstance(raw, dict):
@@ -482,11 +484,29 @@ def _cli():
     if args.input == "-":
         raw = sys.stdin.read()
     else:
-        with open(args.input) as f:
+        abs_path = os.path.abspath(args.input)
+        allowed = os.path.abspath(os.path.dirname(__file__))
+        if os.path.commonpath([abs_path, allowed]) != allowed:
+            print("Erro: caminho do arquivo fora do diretório permitido.", file=sys.stderr)
+            sys.exit(1)
+        with open(abs_path) as f:
             raw = f.read()
 
-    snapshots  = json.loads(raw)
-    thresholds = json.loads(args.thresholds)
+    try:
+        snapshots  = json.loads(raw)
+        if not isinstance(snapshots, list):
+            raise ValueError("formato inválido")
+    except (json.JSONDecodeError, ValueError) as e:
+        print(f"Erro: JSON inválido no arquivo de entrada: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        thresholds = json.loads(args.thresholds)
+        if not isinstance(thresholds, dict):
+            raise ValueError("thresholds deve ser um objeto JSON")
+    except (json.JSONDecodeError, ValueError) as e:
+        print(f"Erro: thresholds JSON inválido: {e}", file=sys.stderr)
+        sys.exit(1)
 
     engine = PredictiveMaintenanceEngine(thresholds)
     result = engine.analyze(args.channel, snapshots, args.months)

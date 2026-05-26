@@ -44,6 +44,7 @@ class SweepAnalyzer:
         sweep[:fade_in_samples] *= fade_in
         if fade_out_samples > 0:
             fade_out = np.exp(-8 * np.linspace(0, 1, fade_out_samples))
+            fade_out[-1] = 0  # Garante que o último sample chega a zero
             sweep[-fade_out_samples:] *= fade_out
         return sweep
 

@@ -1,7 +1,7 @@
 <section id="tutorials" class="module page-section active">
     <div class="page-hero bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-2xl mb-6 border border-white/5 shadow-lg">
         <h2 class="text-3xl font-bold text-cyan-400 mb-2">Tutoriais Interativos</h2>
-        <p class="subtitle text-slate-400">Aprenda a usar cada módulo do SoundMaster Pro com guias passo a passo.</p>
+        <p class="subtitle text-slate-400">Aprenda a usar cada módulo com guias passo a passo.</p>
     </div>
 
     <!-- Progress Bar -->
@@ -18,8 +18,8 @@
     <div class="grid grid-cols-1 gap-5">
 
         <!-- 1. Autenticação -->
-        <div class="tut-card card bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden" data-flow="auth">
-            <div class="tut-header flex items-center justify-between p-5 cursor-pointer hover:bg-slate-750 transition-colors" role="button" tabindex="0" aria-label="Expandir tutorial de Autenticação">
+        <div class="tut-card card bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden" data-flow="auth" data-doc="/docs/flows/autenticacao/autenticacao-flow.md">
+            <div class="tut-header flex items-center justify-between p-5 cursor-pointer hover:bg-slate-700/50 transition-colors" role="button" tabindex="0" aria-label="Expandir tutorial de Autenticacao">
                 <div class="flex items-center gap-4">
                     <span class="tut-icon flex-shrink-0 w-10 h-10 rounded-lg bg-cyan-900/50 border border-cyan-500/30 flex items-center justify-center text-lg">🔐</span>
                     <div>
@@ -65,21 +65,22 @@
                                 </div>
                             </li>
                         </ol>
+                        <button class="tut-doc-btn mt-4 w-full py-2 bg-slate-700 hover:bg-slate-600 text-cyan-400 hover:text-cyan-300 text-xs font-bold rounded-lg border border-white/10 transition-all" aria-label="Ver documentação completa">📄 Ver Documentação Completa</button>
                     </div>
                     <div class="bg-slate-900/60 rounded-xl p-4 border border-white/5 flex flex-col gap-3">
                         <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Páginas relacionadas</span>
-                        <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors" data-nav="home">Dashboard</button>
+                        <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors" data-target="home">Dashboard</button>
                         <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mt-2">IA disponível</span>
                         <p class="text-xs text-slate-400">Pergunte ao Assistente IA sobre configuração inicial ou gerenciamento de conta.</p>
-                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="ai-chat">Assistente IA</button>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-target="ai-chat">Assistente IA</button>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- 2. Mixer -->
-        <div class="tut-card card bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden" data-flow="mixer">
-            <div class="tut-header flex items-center justify-between p-5 cursor-pointer hover:bg-slate-750 transition-colors" role="button" tabindex="0" aria-label="Expandir tutorial do Mixer">
+        <div class="tut-card card bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden" data-flow="mixer" data-doc="/docs/flows/mixer/mixer-flow.md">
+            <div class="tut-header flex items-center justify-between p-5 cursor-pointer hover:bg-slate-700/50 transition-colors" role="button" tabindex="0" aria-label="Expandir tutorial do Mixer">
                 <div class="flex items-center gap-4">
                     <span class="tut-icon flex-shrink-0 w-10 h-10 rounded-lg bg-purple-900/50 border border-purple-500/30 flex items-center justify-center text-lg">🎚️</span>
                     <div>
@@ -121,26 +122,27 @@
                                 <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 4 como concluído"></button>
                                 <div>
                                     <span class="text-sm font-semibold text-slate-200">4. Comandos via IA</span>
-                                    <p class="text-xs text-slate-500 mt-0.5">No Assistente IA, digite comandos como "aumente o volume do canal 3" ou "aplique HPF no canal 1". O sistema envia o comando ao mixer com confirmação humana (Human-In-The-Loop).</p>
+                                    <p class="text-xs text-slate-500 mt-0.5">No Assistente IA, digite comandos como "aumente o volume do canal 3" ou "aplique HPF no canal 1". O sistema envia o comando ao mixer com confirmação humana.</p>
                                 </div>
                             </li>
                         </ol>
+                        <button class="tut-doc-btn mt-4 w-full py-2 bg-slate-700 hover:bg-slate-600 text-cyan-400 hover:text-cyan-300 text-xs font-bold rounded-lg border border-white/10 transition-all">📄 Ver Documentação Completa</button>
                     </div>
                     <div class="bg-slate-900/60 rounded-xl p-4 border border-white/5 flex flex-col gap-3">
                         <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Páginas relacionadas</span>
-                        <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors" data-nav="systems">Conexão Ui24R</button>
-                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="mixer-input">Canais de Entrada</button>
-                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="voice-presets">Presets de Voz</button>
+                        <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors" data-target="systems">Conexão Ui24R</button>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-target="mixer-input">Canais de Entrada</button>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-target="voice-presets">Presets de Voz</button>
                         <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mt-2">IA disponível</span>
-                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="ai-chat">Assistente IA</button>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-target="ai-chat">Assistente IA</button>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- 3. Medir -->
-        <div class="tut-card card bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden" data-flow="measure">
-            <div class="tut-header flex items-center justify-between p-5 cursor-pointer hover:bg-slate-750 transition-colors" role="button" tabindex="0" aria-label="Expandir tutorial de Medir">
+        <div class="tut-card card bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden" data-flow="measure" data-doc="/docs/flows/medir/medir-flow.md">
+            <div class="tut-header flex items-center justify-between p-5 cursor-pointer hover:bg-slate-700/50 transition-colors" role="button" tabindex="0" aria-label="Expandir tutorial de Medir">
                 <div class="flex items-center gap-4">
                     <span class="tut-icon flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-900/50 border border-emerald-500/30 flex items-center justify-center text-lg">📊</span>
                     <div>
@@ -193,23 +195,24 @@
                                 </div>
                             </li>
                         </ol>
+                        <button class="tut-doc-btn mt-4 w-full py-2 bg-slate-700 hover:bg-slate-600 text-cyan-400 hover:text-cyan-300 text-xs font-bold rounded-lg border border-white/10 transition-all">📄 Ver Documentação Completa</button>
                     </div>
                     <div class="bg-slate-900/60 rounded-xl p-4 border border-white/5 flex flex-col gap-3">
                         <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Páginas relacionadas</span>
-                        <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors" data-nav="analyzer">FFT & Waterfall</button>
-                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="analyzer-calibration">Calibração</button>
-                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="spl-heatmap">Mapa SPL</button>
+                        <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors" data-target="analyzer">FFT & Waterfall</button>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-target="analyzer-calibration">Calibração</button>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-target="spl-heatmap">Mapa SPL</button>
                         <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mt-2">IA disponível</span>
                         <p class="text-xs text-slate-400">Envie a análise acústica do analisador para o Assistente IA obter recomendações.</p>
-                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="ai-chat">Assistente IA</button>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-target="ai-chat">Assistente IA</button>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- 4. Analisar -->
-        <div class="tut-card card bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden" data-flow="analyze">
-            <div class="tut-header flex items-center justify-between p-5 cursor-pointer hover:bg-slate-750 transition-colors" role="button" tabindex="0" aria-label="Expandir tutorial de Analisar">
+        <div class="tut-card card bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden" data-flow="analyze" data-doc="/docs/flows/analisar/analisar-flow.md">
+            <div class="tut-header flex items-center justify-between p-5 cursor-pointer hover:bg-slate-700/50 transition-colors" role="button" tabindex="0" aria-label="Expandir tutorial de Analisar">
                 <div class="flex items-center gap-4">
                     <span class="tut-icon flex-shrink-0 w-10 h-10 rounded-lg bg-amber-900/50 border border-amber-500/30 flex items-center justify-center text-lg">🔬</span>
                     <div>
@@ -255,24 +258,25 @@
                                 </div>
                             </li>
                         </ol>
+                        <button class="tut-doc-btn mt-4 w-full py-2 bg-slate-700 hover:bg-slate-600 text-cyan-400 hover:text-cyan-300 text-xs font-bold rounded-lg border border-white/10 transition-all">📄 Ver Documentação Completa</button>
                     </div>
                     <div class="bg-slate-900/60 rounded-xl p-4 border border-white/5 flex flex-col gap-3">
                         <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Páginas relacionadas</span>
-                        <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors" data-nav="acustica">Acústica</button>
-                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="rt60">RT60</button>
-                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="auto-eq">Auto-EQ</button>
-                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="benchmarking">Benchmarking</button>
+                        <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors" data-target="acustica">Acústica</button>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-target="rt60">RT60</button>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-target="auto-eq">Auto-EQ</button>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-target="benchmarking">Benchmarking</button>
                         <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mt-2">IA disponível</span>
                         <p class="text-xs text-slate-400">Envie o relatório de ruído rosa ou a análise acústica para o Assistente IA receber recomendações de tratamento.</p>
-                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="ai-chat">Assistente IA</button>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-target="ai-chat">Assistente IA</button>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- 5. Diagnóstico -->
-        <div class="tut-card card bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden" data-flow="diagnostics">
-            <div class="tut-header flex items-center justify-between p-5 cursor-pointer hover:bg-slate-750 transition-colors" role="button" tabindex="0" aria-label="Expandir tutorial de Diagnóstico">
+        <div class="tut-card card bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden" data-flow="diagnostics" data-doc="/docs/flows/diagnostico/diagnostico-flow.md">
+            <div class="tut-header flex items-center justify-between p-5 cursor-pointer hover:bg-slate-700/50 transition-colors" role="button" tabindex="0" aria-label="Expandir tutorial de Diagnóstico">
                 <div class="flex items-center gap-4">
                     <span class="tut-icon flex-shrink-0 w-10 h-10 rounded-lg bg-red-900/50 border border-red-500/30 flex items-center justify-center text-lg">🩺</span>
                     <div>
@@ -318,19 +322,37 @@
                                 </div>
                             </li>
                         </ol>
+                        <button class="tut-doc-btn mt-4 w-full py-2 bg-slate-700 hover:bg-slate-600 text-cyan-400 hover:text-cyan-300 text-xs font-bold rounded-lg border border-white/10 transition-all">📄 Ver Documentação Completa</button>
                     </div>
                     <div class="bg-slate-900/60 rounded-xl p-4 border border-white/5 flex flex-col gap-3">
                         <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Páginas relacionadas</span>
-                        <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors" data-nav="debug">Console de Depuração</button>
-                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="systems">Conexão Ui24R</button>
+                        <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors" data-target="debug">Console de Depuração</button>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-target="systems">Conexão Ui24R</button>
                         <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mt-2">IA disponível</span>
                         <p class="text-xs text-slate-400">O Assistente IA monitora o sistema em tempo real e pode identificar problemas antes que apareçam.</p>
-                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-nav="ai-chat">Assistente IA</button>
+                        <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-target="ai-chat">Assistente IA</button>
                     </div>
                 </div>
             </div>
         </div>
 
+    </div>
+
+    <!-- Doc Viewer Modal -->
+    <div id="tut-doc-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden" role="dialog" aria-modal="true" aria-label="Visualizador de documentação">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" id="tut-doc-overlay"></div>
+        <div class="relative bg-slate-900 border border-white/10 rounded-2xl max-w-4xl w-full mx-4 max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
+                <h3 id="tut-doc-title" class="text-lg font-bold text-cyan-400">Documentação</h3>
+                <button id="tut-doc-close" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors text-lg" aria-label="Fechar documentação">✕</button>
+            </div>
+            <div id="tut-doc-content" class="px-6 py-5 overflow-y-auto prose prose-invert prose-cyan max-w-none text-sm text-slate-300 leading-relaxed">
+                <div class="flex items-center justify-center py-16">
+                    <div class="animate-spin w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full"></div>
+                    <span class="ml-3 text-slate-400">Carregando documentação...</span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Reset Progress -->
@@ -340,10 +362,13 @@
 
     <!-- Action Buttons Row -->
     <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4 mb-6">
-        <button class="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-all" data-nav="home">Dashboard</button>
-        <button class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-all" data-nav="ai-chat">Assistente IA</button>
-        <button class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-all" data-nav="analyzer">Analisador</button>
-        <button class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-all" data-nav="mixer-input">Mixer</button>
-        <button class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-all" data-nav="systems">Sistema</button>
+        <button class="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-all" data-target="home">Dashboard</button>
+        <button class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-all" data-target="ai-chat">Assistente IA</button>
+        <button class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-all" data-target="analyzer">Analisador</button>
+        <button class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-all" data-target="mixer-input">Mixer</button>
+        <button class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-all" data-target="systems">Sistema</button>
     </div>
 </section>
+
+<!-- marked.js for markdown rendering -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.7/marked.min.js"></script>

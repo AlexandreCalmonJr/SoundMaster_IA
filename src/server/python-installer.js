@@ -6,7 +6,30 @@ const AdmZip = require('adm-zip');
 const { spawn, execSync, spawnSync } = require('child_process');
 
 const PYTHON_ZIP_URL = 'https://www.python.org/ftp/python/3.10.11/python-3.10.11-embed-amd64.zip';
+const EXPECTED_PYTHON_SHA256 = 'd1be42e7bb1c6dc45139ec0f0d153fcdd9ca4adc27f2a0aafbbd4c7f72a3ef19';
 const GET_PIP_URL = 'https://bootstrap.pypa.io/get-pip.py';
+const EXPECTED_GETPIP_SHA256 = ''; // Preencher com o hash conhecido do get-pip.py se disponível
+
+async function _verifyChecksum(filePath, expectedHash, label) {
+    if (!expectedHash) {
+        console.warn(`[Python Installer] Checksum não configurado para ${label}. Pulando verificação.`);
+        return true;
+    }
+    const crypto = require('crypto');
+    const hash = crypto.createHash('sha256');
+    const stream = fs.createReadStream(filePath);
+    await new Promise((resolve, reject) => {
+        stream.on('data', d => hash.update(d));
+        stream.on('end', resolve);
+        stream.on('error', reject);
+    });
+    const actual = hash.digest('hex');
+    if (actual !== expectedHash) {
+        throw new Error(`Checksum inválido para ${label}: esperado=${expectedHash}, obtido=${actual}`);
+    }
+    console.log(`[Python Installer] Checksum OK para ${label}: ${actual.substring(0, 16)}...`);
+    return true;
+}
 
 function setupPythonInstaller(mainWindow, onCompleteCallback) {
     const userDataPath = app.getPath('userData');
@@ -96,6 +119,9 @@ function setupPythonInstaller(mainWindow, onCompleteCallback) {
 
                 sendProgress('downloading-python', 100, 'Download do Python concluído.');
 
+                // C5: Verifica checksum do Python zip
+                await _verifyChecksum(zipPath, EXPECTED_PYTHON_SHA256, 'Python 3.10.11 embed');
+
                 // 2. Extração do Zip
                 sendProgress('extracting-python', 0, 'Extraindo arquivos do Python portátil...');
                 if (!fs.existsSync(portableDir)) {
@@ -146,6 +172,9 @@ function setupPythonInstaller(mainWindow, onCompleteCallback) {
                 });
 
                 sendProgress('downloading-pip', 100, 'Download do pip concluído.');
+
+                // C5: Verifica checksum do get-pip.py
+                await _verifyChecksum(getPipPath, EXPECTED_GETPIP_SHA256, 'get-pip.py');
 
                 // 5. Instalação do pip
                 sendProgress('installing-pip', 50, 'Bootstraping pip no interpretador portátil...');

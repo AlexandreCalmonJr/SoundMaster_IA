@@ -99,6 +99,15 @@ async function downloadAndInstallUpdate(downloadUrl, newVersion) {
                     
                     console.log('[Updater] Integridade verificada. Extraindo...');
                     const zip = new AdmZip(zipPath);
+                    // C1: ZIP Slip prevention — valida cada entrada antes de extrair
+                    const entries = zip.getEntries();
+                    const resolvedDir = path.resolve(updateDir);
+                    for (const entry of entries) {
+                        const entryPath = path.resolve(updateDir, entry.entryName);
+                        if (!entryPath.startsWith(resolvedDir + path.sep) && entryPath !== resolvedDir) {
+                            throw new Error(`ZIP Slip detectado: entrada "${entry.entryName}" tenta escapar do diretório de destino.`);
+                        }
+                    }
                     zip.extractAllTo(updateDir, true);
                     
                     // Salva a versão atual em um arquivo de controle no userData
@@ -129,9 +138,13 @@ function setupUpdater(mainWindow) {
     });
 
     ipcMain.handle('start-update', async (event, { url, version }) => {
+        // C12: Valida que a URL é do GitHub oficial
+        if (!url || !url.startsWith('https://github.com/') || !url.endsWith('.zip')) {
+            console.error('[Updater] URL de update inválida ou não autorizada:', url);
+            return false;
+        }
         const success = await downloadAndInstallUpdate(url, version);
         if (success) {
-            // Notifica o front que está pronto para reiniciar
             mainWindow.webContents.send('update-ready');
         }
         return success;

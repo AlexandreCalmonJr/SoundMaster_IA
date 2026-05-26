@@ -101,7 +101,6 @@ function registerDiagnosticHandlers(io, socket, deps) {
             const result = await new Promise((resolve, reject) => {
                 const py = spawn(getPythonCommand(), [analyzerPy, tmpWav], {
                     cwd:   path.dirname(analyzerPy),
-                    shell: true,
                 });
 
                 let stdout = '';

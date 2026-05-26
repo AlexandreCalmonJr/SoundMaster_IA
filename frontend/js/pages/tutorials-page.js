@@ -122,6 +122,57 @@
         });
     }
 
+    function _sanitize(html) {
+        var div = document.createElement('div');
+        div.textContent = html;
+        return div.innerHTML;
+    }
+
+    function _renderMarkdown(md) {
+        if (typeof marked !== 'undefined') {
+            return marked.parse(md, { breaks: true, gfm: true });
+        }
+        return '<pre class="text-xs text-slate-400 whitespace-pre-wrap">' + _sanitize(md) + '</pre>';
+    }
+
+    function _openDocViewer(card) {
+        var docUrl = card.getAttribute('data-doc');
+        if (!docUrl) return;
+        var title = card.querySelector('.tut-header h3');
+        var modal = pm._el('tut-doc-modal');
+        var content = pm._el('tut-doc-content');
+        var titleEl = pm._el('tut-doc-title');
+        if (!modal || !content) return;
+
+        if (titleEl) titleEl.textContent = title ? title.textContent : 'Documentação';
+        content.innerHTML = '<div class="flex items-center justify-center py-16"><div class="animate-spin w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full"></div><span class="ml-3 text-slate-400">Carregando documentação...</span></div>';
+        modal.classList.remove('hidden');
+
+        fetch(docUrl)
+            .then(function (res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.text();
+            })
+            .then(function (md) {
+                var html = _renderMarkdown(md);
+                html = html.replace(/<img /g, '<img class="rounded-xl border border-white/10 max-w-full my-4" ');
+                var flowDir = docUrl.substring(0, docUrl.lastIndexOf('/'));
+                html = html.replace(/src="([^"]+)"/g, function (m, src) {
+                    if (src.startsWith('http') || src.startsWith('/')) return m;
+                    return 'src="' + flowDir + '/' + src + '"';
+                });
+                content.innerHTML = html;
+            })
+            .catch(function (err) {
+                content.innerHTML = '<div class="text-red-400 text-center py-8"><p class="text-lg font-bold mb-2">Erro ao carregar</p><p class="text-sm text-slate-400">' + _sanitize(err.message) + '</p></div>';
+            });
+    }
+
+    function _closeDocViewer() {
+        var modal = pm._el('tut-doc-modal');
+        if (modal) modal.classList.add('hidden');
+    }
+
     function init() {
         var cards = document.querySelectorAll('.tut-card');
 
@@ -129,7 +180,7 @@
             var header = card.querySelector('.tut-header');
             if (header) {
                 pm._on(header, 'click', function (e) {
-                    if (e.target.closest('.step-check') || e.target.closest('[data-nav]')) return;
+                    if (e.target.closest('.step-check') || e.target.closest('[data-nav]') || e.target.closest('.tut-doc-btn')) return;
                     _toggleCard(header);
                 });
             }
@@ -141,6 +192,14 @@
                 });
             });
 
+            var docBtns = card.querySelectorAll('.tut-doc-btn');
+            docBtns.forEach(function (btn) {
+                pm._on(btn, 'click', function (e) {
+                    e.stopPropagation();
+                    _openDocViewer(card);
+                });
+            });
+
             _updateCardProgress(card);
         });
 
@@ -149,10 +208,24 @@
             pm._on(resetBtn, 'click', _resetProgress);
         }
 
-        var navBtns = document.querySelectorAll('[data-nav]');
+        var closeBtn = pm._el('tut-doc-close');
+        if (closeBtn) {
+            pm._on(closeBtn, 'click', _closeDocViewer);
+        }
+
+        var overlay = pm._el('tut-doc-overlay');
+        if (overlay) {
+            pm._on(overlay, 'click', _closeDocViewer);
+        }
+
+        pm._on(document, 'keydown', function (e) {
+            if (e.key === 'Escape') _closeDocViewer();
+        });
+
+        var navBtns = document.querySelectorAll('[data-target]');
         navBtns.forEach(function (btn) {
             pm._on(btn, 'click', function () {
-                var target = btn.getAttribute('data-nav');
+                var target = btn.getAttribute('data-target');
                 if (target && window.parent && window.parent.router) {
                     window.parent.router.navigate(target);
                 }

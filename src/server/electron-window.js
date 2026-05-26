@@ -5,12 +5,12 @@ async function configureElectronSession() {
     await session.defaultSession.clearStorageData();
 
     session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
-        const allowed = ['media', 'audioCapture', 'videoCapture', 'notifications'];
+        const allowed = ['media', 'audioCapture', 'notifications'];
         callback(allowed.includes(permission));
     });
 
     session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
-        const allowed = ['media', 'audioCapture', 'videoCapture', 'notifications'];
+        const allowed = ['media', 'audioCapture', 'notifications'];
         return allowed.includes(permission);
     });
 }
@@ -22,6 +22,7 @@ function createWindow(port) {
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
+            sandbox: true,
             preload: path.join(__dirname, '..', 'preload.js')
         },
         autoHideMenuBar: true

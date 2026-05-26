@@ -13,7 +13,8 @@ const { registerMixerConnectionHandlers } = require('./handlers/mixer-connection
 
 const PYTHON_PORT = parseInt(process.env.PYTHON_PORT || '3002', 10);
 
-const RAW_MESSAGE_PREFIX_WHITELIST = ['SETD^', 'SETS^', 'BMSG^', 'NODE^'];
+// H5: Prefixos permitidos para send_raw_message — apenas comandos de leitura não destrutivos
+const RAW_MESSAGE_PREFIX_WHITELIST = ['NODE^']; // Apenas consultas de estado
 
 function registerSocketHandlers(io, appDataDir = './logs') {
     const logger = Logger.getInstance(appDataDir);

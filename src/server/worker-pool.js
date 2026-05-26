@@ -198,9 +198,14 @@ if (!isMainThread) {
             case TASK.DISK_IO: {
                 // Operações de disco pesadas (ler/escrever snapshots grandes)
                 const fs = require('fs').promises;
-                const { op, filePath, data: fileData } = task.data;
-                if (op === 'read')  return JSON.parse(await fs.readFile(filePath, 'utf8'));
-                if (op === 'write') { await fs.writeFile(filePath, JSON.stringify(fileData, null, 2)); return { ok: true }; }
+                const { op, filePath, allowedDir, data: fileData } = task.data;
+                // C4: Restringe operações de disco ao diretório permitido
+                const resolved = path.resolve(filePath);
+                if (!allowedDir || !resolved.startsWith(path.resolve(allowedDir) + path.sep)) {
+                    throw new Error(`Acesso a disco negado: caminho fora do diretório permitido.`);
+                }
+                if (op === 'read')  return JSON.parse(await fs.readFile(resolved, 'utf8'));
+                if (op === 'write') { await fs.writeFile(resolved, JSON.stringify(fileData, null, 2)); return { ok: true }; }
                 throw new Error(`Operação desconhecida: ${op}`);
             }
 

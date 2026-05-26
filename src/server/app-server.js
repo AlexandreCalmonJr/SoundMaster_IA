@@ -2,6 +2,7 @@ const path = require('path');
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
+const helmet = require('helmet');
 const { Server } = require('socket.io');
 const mixerSingleton = require('./mixer-singleton');
 const crypto = require('crypto');
@@ -31,7 +32,10 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     if (!fs.existsSync(uploadsDir)) {
         fs.mkdirSync(uploadsDir, { recursive: true });
     }
-    const upload = multer({ dest: uploadsDir });
+    const upload = multer({ dest: uploadsDir, limits: { fileSize: 50 * 1024 * 1024 } });
+
+    // M21: Extensões de áudio permitidas
+    const AUDIO_EXTENSIONS = ['.wav', '.mp3', '.aiff', '.flac', '.ogg', '.m4a', '.aac'];
 
     const ALLOWED_ORIGINS = [
         "http://localhost:3000",
@@ -46,6 +50,22 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     expressApp.use(cors({
         origin: ALLOWED_ORIGINS,
         credentials: true
+    }));
+
+    expressApp.use(helmet({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+                fontSrc: ["'self'", "https://fonts.gstatic.com"],
+                scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+                scriptSrcAttr: ["'unsafe-inline'"],
+                imgSrc: ["'self'", "data:", "blob:"],
+                connectSrc: ["'self'", "ws:", "wss:"],
+                upgradeInsecureRequests: null,
+            }
+        },
+        hsts: false
     }));
 
     // Rate Limiting para a API
@@ -67,7 +87,8 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     });
 
     expressApp.use(express.static(path.join(rootDir, 'frontend')));
-    expressApp.use(express.json());
+    expressApp.use('/docs', express.static(path.join(rootDir, 'docs')));
+    expressApp.use(express.json({ limit: '1mb' }));
 
     // Inicializa banco centralizado IMEDIATAMENTE (presets + mappings no mesmo diretório)
     db.initDatabase(dbDir);
@@ -265,11 +286,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
         }
     });
 
-    // Rotas de diagnóstico de Status para o aplicativo Android
-    expressApp.get('/api/status', (req, res) => {
-        res.json({ status: "online", version: "1.0.0", message: "SoundMaster Pro Backend" });
-    });
-
+    // Rota de Healthcheck (única)
     expressApp.get('/api/health', (req, res) => {
         res.json({ status: "online", message: "Healthy" });
     });
@@ -278,6 +295,12 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     expressApp.post('/api/audio/process', upload.single('file'), async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+        }
+        // M21: Valida extensão do arquivo
+        const ext = path.extname(req.file.originalname).toLowerCase();
+        if (!AUDIO_EXTENSIONS.includes(ext)) {
+            fs.unlink(req.file.path, () => {});
+            return res.status(400).json({ error: 'Formato de áudio não suportado. Envie WAV, MP3, AIFF, FLAC, OGG, M4A ou AAC.' });
         }
         try {
             const { effect, intensity } = req.body;
@@ -321,6 +344,11 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
         if (!req.file) {
             return res.status(400).json({ error: 'Nenhum arquivo enviado' });
         }
+        const ext = path.extname(req.file.originalname).toLowerCase();
+        if (!AUDIO_EXTENSIONS.includes(ext)) {
+            fs.unlink(req.file.path, () => {});
+            return res.status(400).json({ error: 'Formato de áudio não suportado.' });
+        }
         try {
             const { effect } = req.body;
             
@@ -359,6 +387,11 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     expressApp.post('/api/audio/transcribe', upload.single('file'), async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+        }
+        const ext = path.extname(req.file.originalname).toLowerCase();
+        if (!AUDIO_EXTENSIONS.includes(ext)) {
+            fs.unlink(req.file.path, () => {});
+            return res.status(400).json({ error: 'Formato de áudio não suportado.' });
         }
         try {
             const formData = new FormData();

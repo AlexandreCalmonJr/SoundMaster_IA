@@ -83,8 +83,13 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (isMobileMode) {
             window.router.navigate('mobile');
         } else if (window.AuthService && AuthService.isAuthenticated()) {
-            updateUserUI();
-            window.router.navigate('home');
+            const user = await AuthService.fetchMe();
+            if (user) {
+                updateUserUI();
+                window.router.navigate('home');
+            } else {
+                window.location.replace('auth.html');
+            }
         } else {
             window.location.replace('auth.html');
         }

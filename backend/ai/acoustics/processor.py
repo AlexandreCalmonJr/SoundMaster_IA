@@ -6,7 +6,9 @@ class AcousticProcessor:
     def eyring_rt60(volume, surface_area, alpha):
         """Mais preciso que Sabine para alpha > 0.2 (salas tratadas ou muito absortivas)"""
         if surface_area <= 0:
-            return 0 # Evita divisão por zero
+            raise ValueError("surface_area deve ser maior que zero")
+        if volume <= 0:
+            raise ValueError("volume deve ser maior que zero")
         if alpha >= 1: alpha = 0.99
         if alpha <= 0: alpha = 0.01 # Evita math.log(1) = 0
         return (-0.161 * volume) / (surface_area * math.log(1 - alpha))

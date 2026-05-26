@@ -266,7 +266,6 @@ class Router {
                 <html lang="pt-br">
                 <head>
                     <link rel="stylesheet" href="css/styles.css">
-                    <link rel="stylesheet" href="css/app-layout.css">
                 </head>
                 <body class="bg-transparent text-slate-200 flex flex-col items-center justify-center min-h-[60vh] gap-4">
                     <div class="text-6xl">⚠️</div>

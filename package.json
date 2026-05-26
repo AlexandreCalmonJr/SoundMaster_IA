@@ -1,7 +1,7 @@
 {
   "name": "soundmaster",
   "version": "1.2.0",
-  "description": "",
+  "description": "SoundMaster Pro - Ecossistema inteligente de controle e análise de áudio para técnicos de som de igreja e eventos.",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
@@ -28,21 +28,27 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true
-    }
+    },
+    "extraResources": [
+      {
+        "from": "docs/",
+        "to": "docs/",
+        "filter": ["**/*"]
+      }
+    ]
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Alexandre Calmon Jr. <alexandre@soundmaster.app>",
+  "license": "MIT",
   "type": "commonjs",
   "dependencies": {
     "@seald-io/nedb": "^4.1.2",
-    "@tensorflow/tfjs": "^4.22.0",
     "adm-zip": "^0.5.17",
     "axios": "^1.16.0",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.10.0",
     "cors": "^2.8.6",
-    "dgram": "^1.0.1",
+    "helmet": "^8.0.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.1",
     "jsonwebtoken": "^9.0.3",

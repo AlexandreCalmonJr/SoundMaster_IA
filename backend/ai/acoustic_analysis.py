@@ -11,7 +11,6 @@ Autor: Alexandre Calmon Jr.
 """
 
 import numpy as np
-from scipy.signal import fftconvolve
 from scipy.stats import linregress
 import logging
 
@@ -122,7 +121,8 @@ def deconvolve_sweep(recording: np.ndarray,
         "schroeder":    schroeder_db,
         "schroeder_raw": schroeder,
         "sample_rate":  sample_rate,
-        "peak_idx":     pre_samples,  # posição do pico na IR truncada
+        "peak_idx":     pre_samples,  # posição do pico na IR truncada (backward compat)
+        "pre_samples":  pre_samples,  # samples antes do pico (nome descritivo)
         "duration_s":   len(ir) / sample_rate,
         "snr_db":       round(float(snr_db), 1),
         "n_samples":    len(ir),
@@ -459,10 +459,10 @@ def _next_pow2(n: int) -> int:
 
 
 def _find_level_idx(schroeder_db: np.ndarray, target_db: float):
-    """Retorna o índice onde a curva de Schroeder cruza target_db."""
-    for i, v in enumerate(schroeder_db):
-        if v <= target_db:
-            return i
+    """Retorna o índice onde a curva de Schroeder cruza target_db (vetorizado O(n) em C)."""
+    indices = np.where(schroeder_db <= target_db)[0]
+    if len(indices) > 0:
+        return int(indices[0])
     return None
 
 

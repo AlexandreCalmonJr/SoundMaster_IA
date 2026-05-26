@@ -1,8 +1,9 @@
 const { execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
-const cacheDir = 'C:\\Users\\alexandre\\AppData\\Local\\electron-builder\\Cache\\winCodeSign';
+const cacheDir = path.join(os.homedir(), 'AppData', 'Local', 'electron-builder', 'Cache', 'winCodeSign');
 const targetDir = path.join(cacheDir, 'winCodeSign-2.6.0');
 const exe7z = path.join(__dirname, '..', 'node_modules', '7zip-bin', 'win', 'x64', '7za.exe');
 

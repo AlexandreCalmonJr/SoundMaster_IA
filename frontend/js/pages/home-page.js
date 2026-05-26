@@ -17,7 +17,7 @@
             localIpCard: pm._el('local-ip-card'),
             serverIpDisplay: pm._el('server-ip-display'),
             mobileLink: pm._el('mobile-link'),
-            mobileQrCode: pm._el('mobile-qr-code'),
+            mobileQrCode: pm._el('home-mobile-qr-code'),
             
             btnToggleIp: pm._el('btn-toggle-ip'),
             aiRing: pm._el('home-ai-ring'),

@@ -99,8 +99,15 @@ if (fs.existsSync(updateConfigPath)) {
     try {
         const config = JSON.parse(fs.readFileSync(updateConfigPath, 'utf8'));
         if (fs.existsSync(config.path)) {
-            ROOT_DIR = config.path;
-            console.log('[Main] Usando arquivos da versão atualizada:', config.version);
+            // C2: Valida que o path da atualização está dentro de userData/updates/
+            const resolved = path.resolve(config.path);
+            const allowed = path.resolve(app.getPath('userData'), 'updates');
+            if (resolved.startsWith(allowed + path.sep) || resolved === allowed) {
+                ROOT_DIR = config.path;
+                console.log('[Main] Usando arquivos da versão atualizada:', config.version);
+            } else {
+                console.error('[Main] Caminho de update inválido (fora de userData/updates/):', config.path);
+            }
         }
     } catch (e) {
         console.error('[Main] Erro ao ler configuração de update:', e.message);
@@ -224,10 +231,11 @@ app.whenReady().then(async () => {
     setupPythonInstaller(mainWindow, () => triggerPythonAI());
 
     // Log de Performance (A cada 60s para não poluir)
-    setInterval(() => {
+    const perfInterval = setInterval(() => {
         const usage = process.memoryUsage();
         console.log(`[Status] Memória: ${Math.round(usage.heapUsed / 1024 / 1024)}MB | CPU: ${Math.round(process.cpuUsage().user / 1000000)}s`);
     }, 60000);
+    perfInterval.unref();
 
     app.on('activate', () => {
         triggerPythonAI();

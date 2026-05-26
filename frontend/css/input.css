@@ -1340,3 +1340,92 @@
   color: #fff !important;
   box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
 }
+
+/* ==========================================
+   MISSING TAILWIND CLASSES (audit fix)
+   ========================================== */
+
+/* Animation classes */
+.animate-in {
+  animation: fadeIn 0.3s ease-out, slideUp 0.3s ease-out;
+}
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+.slide-in-from-bottom-4 {
+  animation: slideUp 0.3s ease-out;
+}
+.slide-in-from-top-4 {
+  animation: slideDown 0.3s ease-out;
+}
+.zoom-in-95 {
+  animation: zoomIn 0.3s ease-out;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes zoomIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* White background opacity */
+.active\:scale-\[0\.99\]:active {
+  transform: scale(0.99);
+}
+.active\:scale-\[0\.98\]:active {
+  transform: scale(0.98);
+}
+.active\:scale-\[0\.95\]:active {
+  transform: scale(0.95);
+}
+.shadow-\[0_0_15px_rgba\(16\,185\,129\,0\.5\)\] {
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+}
+.bg-white\/\[0\.07\] {
+  background-color: rgba(255, 255, 255, 0.07);
+}
+.hover\:bg-white\/\[0\.07\]:hover {
+  background-color: rgba(255, 255, 255, 0.07);
+}
+
+/* Toggle switch after pseudo-element utilities (Coherence² toggle) */
+.after\:h-3::after {
+  height: 0.75rem;
+}
+.after\:w-3::after {
+  width: 0.75rem;
+}
+.after\:top-\[0\.5px\]::after {
+  top: 0.5px;
+}
+.after\:left-\[0\.5px\]::after {
+  left: 0.5px;
+}
+.after\:border::after {
+  border-width: 1px;
+  border-style: solid;
+}
+.after\:border-gray-300::after {
+  border-color: #d1d5db;
+}
+
+/* Settings toggle unchecked state */
+.peer-unchecked\:bg-slate-600 {
+  background-color: #475569;
+}
+
+/* Card class for tutorials */
+.card {
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  padding: 1.25rem;
+}
+
+/* Subtitle class (global fallback) */
+.subtitle {
+  color: #94a3b8;
+  font-weight: 500;
+}
