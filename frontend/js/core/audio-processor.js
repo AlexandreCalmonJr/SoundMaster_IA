@@ -23,13 +23,20 @@ class SoundMasterProcessor extends AudioWorkletProcessor {
 
     process(inputs, outputs, parameters) {
         const input = inputs[0];
-        if (input.length > 0) {
-            const inputChannel = input[0];
-            
-            // ✅ Correção Auditoria: Envia áudio bruto acumulado em vez de bloco a bloco (128 samples)
-            // Isso reduz de ~375 msgs/sec para ~11 msgs/sec, melhorando muito a performance.
-            for (let i = 0; i < inputChannel.length; i++) {
-                this._accBuffer[this._accIdx++] = inputChannel[i];
+        if (input && input.length > 0) {
+            const ch0 = input[0];
+            const ch1 = input[1]; // 2nd channel (stereo USB class-compliant)
+
+            // Mix down stereo to mono for measurement
+            const mono = ch1 ? new Float32Array(ch0.length) : ch0;
+            if (ch1) {
+                for (let i = 0; i < ch0.length; i++) {
+                    mono[i] = (ch0[i] + ch1[i]) / 2;
+                }
+            }
+
+            for (let i = 0; i < mono.length; i++) {
+                this._accBuffer[this._accIdx++] = mono[i];
                 if (this._accIdx >= this._accBufferSize) {
                     this.port.postMessage({
                         type: 'raw-data',
@@ -39,14 +46,13 @@ class SoundMasterProcessor extends AudioWorkletProcessor {
                 }
             }
 
-            for (let i = 0; i < inputChannel.length; i++) {
-                this._buffer[this._writeIndex] = inputChannel[i];
+            for (let i = 0; i < mono.length; i++) {
+                this._buffer[this._writeIndex] = mono[i];
                 this._writeIndex++;
 
                 if (this._writeIndex >= this._bufferSize) {
                     this._writeIndex = 0;
-                    
-                    // Aplica a Janela de Hann apenas para análise de espectro (FFT)
+
                     const windowedBuffer = new Float32Array(this._bufferSize);
                     for (let j = 0; j < this._bufferSize; j++) {
                         windowedBuffer[j] = this._buffer[j] * this._hannWindow[j];

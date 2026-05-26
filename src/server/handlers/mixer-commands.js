@@ -184,6 +184,41 @@ function registerMixerCommandHandlers(io, socket, deps) {
         }
     });
 
+    socket.on('apply_eq_batch', (data) => {
+        if (!actions.ensureMixer(socket)) return;
+        try {
+            const { target, channel, bands } = data;
+            if (!bands || !Array.isArray(bands) || bands.length === 0) {
+                socket.emit('mixer_status', { connected: true, msg: 'Nenhum filtro para aplicar.' });
+                return;
+            }
+            const ch = target === 'channel' ? (channel || 1) : null;
+            const result = actions.batchApplyEq(target, ch, bands);
+            if (addToHistory) addToHistory({ type: 'eq_batch', target, channel: ch, snapshot: result.snapshot });
+            socket.emit('feedback_cut_success', { msg: result.msg, canUndo: true });
+        } catch (error) {
+            socket.emit('mixer_status', { connected: true, msg: error.message });
+        }
+    });
+
+    socket.on('undo_eq_correction', (data) => {
+        if (!actions.ensureMixer(socket)) return;
+        try {
+            const entries = globalHistoryStack || [];
+            const idx = entries.map((e, i) => ({ e, i })).filter(x => x.e.type === 'eq_batch').pop();
+            if (!idx) {
+                socket.emit('mixer_status', { connected: true, msg: 'Nada para desfazer.' });
+                return;
+            }
+            const entry = idx.e;
+            actions.restoreEqSnapshot(entry.target, entry.channel, entry.snapshot);
+            globalHistoryStack.splice(idx.i, 1);
+            socket.emit('feedback_cut_success', { msg: 'EQ restaurado (undo).' });
+        } catch (error) {
+            socket.emit('mixer_status', { connected: true, msg: `Erro undo: ${error.message}` });
+        }
+    });
+
     socket.on('set_phantom_power', (data) => {
         if (!rateLimiter(socket, 'set_phantom_power')) return;
         if (!actions.ensureMixer(socket)) return;

@@ -67,15 +67,15 @@
      * Conecta ao mixer no IP fornecido.
      * @param {string} ip
      */
-    function connect(ip) {
+    function connect(ip, brand) {
         if (!ip || !ip.trim()) {
             AppStore.addLog('⚠️ Insira um IP válido para conectar.');
             return;
         }
         const cleanIp = ip.trim();
         AppStore.setState({ mixerIp: cleanIp, mixerStatusMsg: 'Conectando...' });
-        AppStore.addLog('Tentando conectar em ' + cleanIp + '...');
-        SocketService.emit('connect_mixer', cleanIp);
+        AppStore.addLog(`Tentando conectar em ${cleanIp} (${brand || 'soundcraft'})...`);
+        SocketService.emit('connect_mixer', { ip: cleanIp, brand: brand || 'soundcraft' });
     }
 
     /**

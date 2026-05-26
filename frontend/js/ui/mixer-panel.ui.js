@@ -26,6 +26,7 @@
             btnConnect:       $('btn-connect-mixer'),
             btnDisconnect:    $('btn-disconnect-mixer'),
             ipInput:          $('mixer-ip'),
+            brandSelect:      $('mixer-brand'),
             iframe:           $('mixer-iframe'),
             placeholder:      $('mixer-placeholder'),
             statusBadge:      $('mixer-status-badge'),
@@ -225,7 +226,8 @@
         // Conexão
         els.btnConnect && els.btnConnect.addEventListener('click', function () {
             const ip = els.ipInput ? els.ipInput.value.trim() : '';
-            if (!ip) { alert('Insira o IP da mesa Soundcraft Ui.'); return; }
+            const brand = els.brandSelect ? els.brandSelect.value : 'soundcraft';
+            if (!ip) { alert('Insira o IP da mesa.'); return; }
 
             // Abre iframe (apenas se não for modo simulado interno)
             if (els.placeholder) els.placeholder.style.display = 'none';
@@ -246,7 +248,7 @@
             const ifaceTab = document.querySelector('[data-tab="mixer-interface"]');
             if (ifaceTab) ifaceTab.click();
 
-            MixerService.connect(ip);
+            MixerService.connect(ip, brand);
         }, { signal: _panelController.signal });
 
         els.btnDisconnect && els.btnDisconnect.addEventListener('click', function () {

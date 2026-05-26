@@ -276,6 +276,17 @@
         document.addEventListener('page-loaded', () => {
             initPageSpecifics();
         }, { signal: _layoutController.signal });
+
+        AppStore.subscribe(state => {
+            const badge = _el('lite-badge');
+            if (badge) {
+                badge.style.display = state.liteMode ? 'inline' : 'none';
+            }
+            const aiBtn = document.querySelector('.rail-btn[data-target="ai-chat"]');
+            if (aiBtn) {
+                aiBtn.style.display = state.liteMode ? 'none' : '';
+            }
+        });
     }
 
     window.SoundMasterLayout = {

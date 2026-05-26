@@ -10,6 +10,7 @@ const { registerMixerCommandHandlers } = require('./handlers/mixer-commands');
 const { registerPresetHandlers } = require('./handlers/presets');
 const { registerDiagnosticHandlers } = require('./handlers/diagnostics');
 const { registerMixerConnectionHandlers } = require('./handlers/mixer-connection');
+const { isAiAvailable, isLiteMode, setAiAvailable } = require('./python-ai');
 
 const PYTHON_PORT = parseInt(process.env.PYTHON_PORT || '3002', 10);
 
@@ -187,6 +188,13 @@ function registerSocketHandlers(io, appDataDir = './logs') {
             } catch (error) {
                 logger.error(socket.id, 'RAW_MESSAGE_ERROR', { error: error.message });
             }
+        });
+
+        socket.on('get_ai_status', () => {
+            socket.emit('ai_status', {
+                available: isAiAvailable(),
+                lite: isLiteMode()
+            });
         });
 
         socket.on('ping_mixer', () => {

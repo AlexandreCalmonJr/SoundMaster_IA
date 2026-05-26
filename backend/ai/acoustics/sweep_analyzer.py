@@ -44,34 +44,56 @@ class SweepAnalyzer:
         sweep[:fade_in_samples] *= fade_in
         if fade_out_samples > 0:
             fade_out = np.exp(-8 * np.linspace(0, 1, fade_out_samples))
-            fade_out[-1] = 0  # Garante que o último sample chega a zero
+            fade_out[-1] = 0
             sweep[-fade_out_samples:] *= fade_out
         return sweep
 
-    def analyze(self, recording, sample_rate=None, sweep_params=None):
+    def _align_reference(self, recording, reference, n_pre_samples):
+        """Alinha recording com reference: trunca silêncio inicial do recording."""
+        if n_pre_samples > 0 and n_pre_samples < len(recording):
+            recording = recording[n_pre_samples:]
+        # Garantir mesmo comprimento mínimo
+        min_len = min(len(recording), len(reference))
+        return recording[:min_len], reference[:min_len]
+
+    def analyze(self, recording, reference=None, sample_rate=None, sweep_params=None):
         """
         Pipeline completo de análise acústica.
-        Delega deconvolução e parâmetros de reverberação ao módulo core.
-        Adiciona: C50, C80, D50, D80, quality_flags.
+        Se reference for fornecido (do AudioWorklet JS), usa-o como sweep real,
+        garantindo que a deconvolução use o sinal exato que foi reproduzido.
+        Caso contrário, gera sweep internamente (fallback).
+        Inclui multiband RT60 no resultado.
         """
         if sample_rate is None:
             sample_rate = self.fs
         recording = np.array(recording, dtype=np.float64)
 
-        if sweep_params is None:
-            sweep_params = {
-                'start_freq': 20, 'end_freq': 20000,
-                'duration': 12, 'amplitude': 0.8, 'fade_out_ms': 500
-            }
-        sweep = self.generate_sweep_signal(**sweep_params)
+        if reference is not None:
+            reference = np.array(reference, dtype=np.float64)
+            # Alinhar: trunca silêncio pré-sweep do recording
+            n_pre = int((sweep_params or {}).get('silencePre', 0) * sample_rate)
+            rec_aligned, ref_aligned = self._align_reference(recording, reference, n_pre)
+            sweep = ref_aligned
+            recording_used = rec_aligned
+        else:
+            if sweep_params is None:
+                sweep_params = {
+                    'start_freq': 20, 'end_freq': 20000,
+                    'duration': 12, 'amplitude': 0.8, 'fade_out_ms': 500
+                }
+            sweep = self.generate_sweep_signal(**sweep_params)
+            recording_used = recording
 
-        # Usa o módulo core para deconvolução e decay params
-        ir_data = acoustic_analysis.deconvolve_sweep(recording, sweep, sample_rate)
+        ir_data = acoustic_analysis.deconvolve_sweep(recording_used, sweep, sample_rate)
         rev = acoustic_analysis.calculate_reverberation_params(ir_data)
 
-        ir = ir_data["ir"]
         snr_db = ir_data["snr_db"]
         rt60_est = rev.get("rt60_est") or rev.get("t30") or rev.get("t20") or 0
+
+        # Multiband RT60 nas bandas de oitava
+        multiband = acoustic_analysis.calculate_multiband_rt60(
+            recording_used, sweep, sample_rate
+        ) if hasattr(acoustic_analysis, 'calculate_multiband_rt60') else {}
 
         downsample_factor = max(1, len(ir_data["schroeder"]) // 512)
         schroeder_downsampled = ir_data["schroeder"][::downsample_factor].tolist()
@@ -84,6 +106,15 @@ class SweepAnalyzer:
             'c80': rev["c80"],
             'd50': rev["d50"],
             'd80': rev["d80"],
+            'multiband': {
+                band: {
+                    'edt': m.get('edt', 0),
+                    't20': m.get('t20', 0),
+                    't30': m.get('t30', 0),
+                    'rt60': m.get('rt60_est', m.get('t30', m.get('t20', 0))),
+                }
+                for band, m in (multiband or {}).items()
+            },
             'sti': None,
             'sti_raw': None,
             'sti_category': 'N/A',
@@ -110,18 +141,32 @@ class SweepAnalyzer:
 
 
 def main():
-    import sys
+    import argparse
     from scipy.io import wavfile
-    if len(sys.argv) < 2:
-        print(json.dumps({'error': 'Usage: python sweep_analyzer.py <recording_wav>'}, indent=2))
-        return
+
+    parser = argparse.ArgumentParser(description='Sweep Acoustic Analyzer')
+    parser.add_argument('recording', help='Path to recording WAV file')
+    parser.add_argument('--reference', help='Path to reference WAV file (from AudioWorklet)')
+    parser.add_argument('--sweep-params', help='JSON string of sweep parameters')
+    args = parser.parse_args()
+
     try:
-        sr, data = wavfile.read(sys.argv[1])
+        sr, data = wavfile.read(args.recording)
         if len(data.shape) > 1:
             data = data[:, 0]
         data = data.astype(np.float64) / 32768.0
+
+        sweep_params = json.loads(args.sweep_params) if args.sweep_params else None
+
+        reference = None
+        if args.reference:
+            ref_sr, ref_data = wavfile.read(args.reference)
+            if len(ref_data.shape) > 1:
+                ref_data = ref_data[:, 0]
+            reference = ref_data.astype(np.float64) / 32768.0
+
         analyzer = SweepAnalyzer(sample_rate=sr)
-        result = analyzer.analyze(data, sample_rate=sr)
+        result = analyzer.analyze(data, reference=reference, sample_rate=sr, sweep_params=sweep_params)
         print(json.dumps(result, indent=2))
     except Exception as e:
         print(json.dumps({'error': str(e)}, indent=2))

@@ -209,12 +209,17 @@ function startPythonAI(rootDir, onExitCallback) {
     if (pythonProcess) {
         pythonProcess.isReady = false;
         pythonProcess.healthCheck = () => pythonProcess.isReady;
-        _waitForHealth(pythonProcess).catch((error) => {
+        _waitForHealth(pythonProcess).then(() => {
+            setAiAvailable(true);
+        }).catch((error) => {
             console.error(`[Python AI] Health-check falhou: ${error.message}`);
+            setAiAvailable(false);
             try {
                 Logger.getInstance().error('PYTHON', 'PYTHON_HEALTHCHECK_FAILED', error.message);
             } catch (_) { /* Logger pode não estar inicializado ainda */ }
         });
+    } else {
+        setAiAvailable(false);
     }
     return pythonProcess;
 }
@@ -332,4 +337,11 @@ function stopPythonAI(pythonProcess) {
     }
 }
 
-module.exports = { startPythonAI, stopPythonAI, getPythonPort, getPythonCommand };
+let _aiAvailable = false;
+let _liteMode = false;
+
+function setAiAvailable(v) { _aiAvailable = v; if (!v) _liteMode = true; }
+function isAiAvailable() { return _aiAvailable; }
+function isLiteMode() { return _liteMode; }
+
+module.exports = { startPythonAI, stopPythonAI, getPythonPort, getPythonCommand, setAiAvailable, isAiAvailable, isLiteMode };

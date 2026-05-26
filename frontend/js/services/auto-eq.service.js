@@ -321,6 +321,7 @@
 
     /**
      * Envia os filtros PEQ calculados para a mesa Soundcraft via Socket.IO.
+     * Usa o novo evento apply_eq_batch (com snapshot + undo).
      *
      * @param {Array}  peqBands   - resultado de analyze().peq
      * @param {string} target     - 'master' | 'channel'
@@ -336,22 +337,18 @@
             return;
         }
 
-        const applied = [];
-        for (const f of peqBands) {
-            SocketService.emit('apply_eq_cut', {
-                target,
-                channel: target === 'channel' ? channel : undefined,
-                hz:   f.hz,
-                gain: f.gainDb,
-                q:    f.q,
-                band: f.band,
-            });
-            applied.push(`Band${f.band}(${f.hz}Hz, ${f.gainDb}dB, Q${f.q})`);
-        }
+        const bands = peqBands.map(f => ({ hz: f.hz, gainDb: f.gainDb, q: f.q, band: f.band }));
+        SocketService.emit('apply_eq_batch', { target, channel, bands });
 
+        const applied = bands.map(f => `Band${f.band}(${f.hz}Hz, ${f.gainDb}dB, Q${f.q})`);
         console.log(`[AutoEQ] PEQ aplicado (${target}): ${applied.join(', ')}`);
         AppStore.setState({ autoEqApplied: { target, channel, bands: peqBands, ts: Date.now() } });
         return applied;
+    }
+
+    function requestUndo() {
+        if (!SocketService || !SocketService.isConnected()) return;
+        SocketService.emit('undo_eq_correction', {});
     }
 
     // ─── Exportação GEQ ──────────────────────────────────────────────────────
@@ -400,6 +397,7 @@
     window.AutoEQ = {
         analyze,
         applyToMixer,
+        requestUndo,
         setTarget,
         getTargetNames,
         getLastResult,

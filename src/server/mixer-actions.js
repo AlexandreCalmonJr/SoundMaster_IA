@@ -443,11 +443,70 @@ function createMixerActions(getMixer) {
         return handler(cmd);
     }
 
+    function _snapshotEq(target, channel) {
+        const state = target === 'master'
+            ? mixerSingleton.getMasterState()
+            : mixerSingleton.getChannelState(channel);
+        const currentEq = (state && state.eq) || {};
+        const snapshot = {};
+        for (let b = 1; b <= 4; b++) {
+            const bandState = currentEq[b] || {};
+            snapshot[b] = {
+                hz: bandState.hz || 250,
+                gain: bandState.gain || 0,
+                q: bandState.q || 1.4,
+            };
+        }
+        return snapshot;
+    }
+
+    function _applyBands(target, channel, bands, snapshot) {
+        const mixer = getMixer();
+        const eq = target === 'master' ? mixer.master.eq() : mixer.input(channel).eq();
+        const applied = [];
+        for (const f of bands) {
+            const frequency = clamp(f.hz || 250, 20, 20000);
+            const cutGain = clamp(f.gainDb !== undefined ? f.gainDb : f.gain || 0, -12, 6);
+            const qValue = clamp(f.q || 1.4, 0.2, 10);
+            const bandIndex = clamp(f.band || 1, 1, 4);
+            eq.band(bandIndex).setFreq(frequency);
+            eq.band(bandIndex).setGain(cutGain);
+            eq.band(bandIndex).setQ(qValue);
+            if (eq.band(bandIndex).setType) eq.band(bandIndex).setType(0);
+            const patch = { [bandIndex]: { hz: frequency, gain: cutGain, q: qValue } };
+            if (target === 'master') {
+                mixerSingleton.updateMasterState({ eq: Object.assign({}, mixerSingleton.getMasterState().eq || {}, patch) });
+            } else {
+                const current = mixerSingleton.getChannelState(channel) || {};
+                mixerSingleton.updateChannelState(channel, { eq: Object.assign({}, current.eq || {}, patch) });
+            }
+            applied.push(`Band${bandIndex}(${frequency}Hz, ${cutGain}dB, Q${qValue})`);
+        }
+        const label = target === 'master' ? 'Master' : `canal ${channel || 1}`;
+        return { msg: `EQ aplicado no ${label}: ${applied.join(', ')}.`, snapshot };
+    }
+
+    function batchApplyEq(target, channel, bands) {
+        const snapshot = _snapshotEq(target, channel);
+        return _applyBands(target, channel, bands, snapshot);
+    }
+
+    function restoreEqSnapshot(target, channel, snapshot) {
+        const bands = Object.entries(snapshot || {}).map(([band, state]) => ({
+            hz: state.hz, gain: state.gain, q: state.q, band: Number(band)
+        }));
+        const result = _applyBands(target, channel, bands, null);
+        const label = target === 'master' ? 'Master' : `canal ${channel || 1}`;
+        result.msg = `EQ restaurado no ${label} (undo).`;
+        return result;
+    }
+
     return {
         applyChannelCompressor, applyChannelGate, applyChannelHpf, applyEqCut,
         applyOscillator, ensureMixer, executeMixerCommand, setAfs,
         setAuxLevel, setFxLevel, setDelay, runCleanSoundPreset,
-        setPhantom, setChannelName, cutFeedback, automixAssignChannel
+        setPhantom, setChannelName, cutFeedback, automixAssignChannel,
+        batchApplyEq, restoreEqSnapshot
     };
 }
 

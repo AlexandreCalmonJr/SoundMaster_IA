@@ -83,8 +83,19 @@
 
                 <input type="number" id="aeq-channel-input" min="1" max="24" value="1" aria-label="Número do canal de destino" class="w-16 bg-slate-900 border border-white/10 rounded-lg px-2 py-2 text-sm text-white text-center outline-none hidden">
                 <button id="aeq-apply-btn" class="px-5 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-bold transition-colors">⚡ Aplicar</button>
+                <button id="aeq-undo-btn" class="hidden px-5 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-sm font-bold transition-colors">↩ Desfazer</button>
             </div>
             <div id="aeq-status" class="text-xs text-slate-500 mt-2 min-h-[18px]"></div>
+            <div id="aeq-confirm-overlay" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60" style="position:fixed;top:0;left:0;width:100%;height:100%">
+                <div class="bg-slate-800 border border-white/10 rounded-2xl p-6 max-w-md mx-4 shadow-2xl">
+                    <h4 class="text-lg font-bold text-white mb-3">Confirmar Aplicação de EQ</h4>
+                    <div id="aeq-confirm-summary" class="text-sm text-slate-300 mb-4 space-y-1"></div>
+                    <div class="flex gap-3 justify-end">
+                        <button id="aeq-confirm-cancel" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-bold transition-colors">Cancelar</button>
+                        <button id="aeq-confirm-ok" class="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-bold transition-colors">Confirmar</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="card bg-slate-800/50 border border-white/10 rounded-xl p-5">

@@ -113,6 +113,7 @@
         _socket.on('connect', () => {
             _isOnline = true;
             AppStore.addLog('✅ Conectado ao servidor.');
+            _socket.emit('get_ai_status');
 
             if (_reconnectTs !== null) {
                 const secondsOffline = Math.round((Date.now() - _reconnectTs) / 1000);
@@ -121,7 +122,7 @@
                 _flushQueue();
                 const deltaWindow = Math.max(10, secondsOffline + 2);
                 _socket.emit('request_state_delta', { windowSecs: deltaWindow });
-                AppStore.addLog(`♻️ Delta solicitado: últimos ${deltaWindow}s.`);
+                AppStore.addLog(`♻️ Delta solicitado: últimos ${secondsOffline}s.`);
             }
         });
 
@@ -158,7 +159,13 @@
         _socket.on('show_status',      (data) => AppStore.setState({ currentShow: data.show }));
         _socket.on('snapshot_status',  (data) => AppStore.setState({ currentSnapshot: data.snapshot }));
         _socket.on('cue_status',       (data) => AppStore.setState({ currentCue: data.cue }));
-        _socket.on('system_log',       (data) => AppStore.addLog(`[System] ${data.msg || data}`));
+        _socket.on('ai_status', (data) => {
+        AppStore.setState({
+            aiAvailable: !!data.available,
+            liteMode: !!data.lite
+        });
+    });
+    _socket.on('system_log',       (data) => AppStore.addLog(`[System] ${data.msg || data}`));
         _socket.on('mixer_log',        (msg)  => AppStore.addLog(`[Mixer] ${msg}`));
         _socket.on('snapshot_saved',   (data) => AppStore.addLog(`✅ Snapshot: ${data.name || 'OK'}`));
         _socket.on('pong_mixer',       ()     => AppStore.addLog('🏓 Mesa respondeu.'));

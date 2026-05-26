@@ -1,4 +1,5 @@
-const { SoundcraftUI, ConnectionStatus } = require('soundcraft-ui-connection');
+const { ConnectionStatus } = require('soundcraft-ui-connection');
+const { createMixer, isSimulatedIp } = require('../mixers/mixer-factory');
 
 const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
 const connectSchema = require('zod').string().regex(ipRegex).or(require('zod').enum(['offline', 'simulado', '127.0.0.1']));
@@ -17,10 +18,20 @@ function registerMixerConnectionHandlers(io, socket, deps) {
         logger.info(socket.id, 'STATE_DELTA_SENT', { windowSecs });
     });
 
-    socket.on('connect_mixer', async (ip) => {
+    socket.on('connect_mixer', async (data) => {
         try {
+            let ip, brand;
+            if (typeof data === 'string') {
+                ip = data;
+            } else if (typeof data === 'object' && data !== null) {
+                ip = data.ip;
+                brand = data.brand;
+            } else {
+                throw new Error('Dados de conexão inválidos');
+            }
+
             const validatedIp = connectSchema.parse(ip);
-            logger.info(socket.id, 'MIXER_CONNECT_ATTEMPT', { ip: validatedIp });
+            logger.info(socket.id, 'MIXER_CONNECT_ATTEMPT', { ip: validatedIp, brand });
 
             const currentMixer = mixerSingleton.getMixer();
 
@@ -39,9 +50,7 @@ function registerMixerConnectionHandlers(io, socket, deps) {
                 mixerSingleton.setMixer(null);
             }
 
-            const newMixer = validatedIp === 'offline' || validatedIp === 'simulado' || validatedIp === '127.0.0.1'
-                ? buildSimulatedMixer(socket)
-                : new SoundcraftUI(validatedIp);
+            const newMixer = createMixer(validatedIp, { socket, mixerSingleton, brand });
 
             mixerSingleton.setMixer(newMixer);
 
@@ -51,14 +60,21 @@ function registerMixerConnectionHandlers(io, socket, deps) {
             }
 
             newMixer.status$.subscribe(status => {
+                const brandName = newMixer.brand === 'behringer' ? 'Behringer X32' : 'Soundcraft Ui24R';
                 const statusMap = {
-                    [ConnectionStatus.Open]:        { connected: true,  msg: 'Conectado à Soundcraft Ui!' },
+                    [ConnectionStatus.Open]:        { connected: true,  msg: `Conectado à ${brandName}!` },
                     [ConnectionStatus.Close]:       { connected: false, msg: 'Desconectado da mesa.' },
                     [ConnectionStatus.Error]:       { connected: false, msg: 'Erro na conexão com a mesa.' },
                     [ConnectionStatus.Reconnecting]:{ connected: false, msg: 'Reconectando...' }
                 };
                 const s = statusMap[status];
-                if (s) socket.emit('mixer_status', s);
+                if (s) {
+                    socket.emit('mixer_status', s);
+                } else if (status === 0 || status === 'open') {
+                    socket.emit('mixer_status', { connected: true, msg: `Conectado à ${brandName}!` });
+                } else if (status === 2 || status === 'error') {
+                    socket.emit('mixer_status', { connected: false, msg: 'Erro na conexão com a mesa.' });
+                }
             });
 
             await newMixer.connect();
@@ -144,81 +160,7 @@ function registerMixerConnectionHandlers(io, socket, deps) {
         }
     });
 
-    function buildSimulatedMixer(socket) {
-        return {
-            isSimulated: true,
-            targetIp: 'simulado',
-            conn: { sendMessage: (msg) => socket.emit('mixer_log', `RAW: ${msg}`) },
-            master: {
-                faderLevel$: { subscribe: () => {} },
-                faderLevelDB$: { subscribe: () => {} },
-                setFaderLevel: (v) => socket.emit('mixer_log', `[Sim] Master Fader -> ${Math.round(v*100)}%`),
-                changeFaderLevelDB: (v) => socket.emit('mixer_log', `[Sim] Master Fader -> ${v}dB`),
-                mute: () => socket.emit('mixer_log', '[Sim] Master MUTADO'),
-                unmute: () => socket.emit('mixer_log', '[Sim] Master ATIVADO'),
-                fadeTo: (v, ms) => socket.emit('mixer_log', `[Sim] Master Fade -> ${Math.round(v*100)}% em ${ms}ms`),
-                eq: () => ({ band: () => ({ setFreq: () => {}, setGain: () => {}, setQ: () => {}, setType: () => {} }) }),
-                afs: () => ({ enable: () => {}, disable: () => {} }),
-                toggleDim: () => {},
-                setPan: (v) => socket.emit('mixer_log', `[Sim] Master Pan -> ${v}`),
-                setDelayL: (ms) => socket.emit('mixer_log', `[Sim] Master Delay L -> ${ms}ms`),
-                setDelayR: (ms) => socket.emit('mixer_log', `[Sim] Master Delay R -> ${ms}ms`)
-            },
-            input: (id) => ({
-                setFaderLevel: (v) => socket.emit('mixer_log', `[Sim] Canal ${id} Fader -> ${Math.round(v * 100)}%`),
-                mute: () => socket.emit('mixer_log', `[Sim] Canal ${id} MUTADO`),
-                unmute: () => socket.emit('mixer_log', `[Sim] Canal ${id} ATIVADO`),
-                setPan: (v) => socket.emit('mixer_log', `[Sim] Canal ${id} Pan -> ${v}`),
-                toggleSolo: () => socket.emit('mixer_log', `[Sim] Canal ${id} SOLO alternado`),
-                setDelay: (ms) => socket.emit('mixer_log', `[Sim] Canal ${id} Delay -> ${ms}ms`),
-                fadeTo: (v, ms) => socket.emit('mixer_log', `[Sim] Canal ${id} Fade -> ${Math.round(v * 100)}% em ${ms}ms`),
-                setName: (name) => socket.emit('mixer_log', `[Sim] Canal ${id} Nome -> ${name}`),
-                multiTrackSelect: () => socket.emit('mixer_log', `[Sim] Canal ${id} adicionado ao MTK`),
-                multiTrackUnselect: () => socket.emit('mixer_log', `[Sim] Canal ${id} removido do MTK`),
-                automixAssignGroup: (group) => socket.emit('mixer_log', `[Sim] Canal ${id} Automix -> ${group}`),
-                automixSetWeight: (weight) => socket.emit('mixer_log', `[Sim] Canal ${id} Peso Automix -> ${weight}`),
-                changeFaderLevelDB: (d) => socket.emit('mixer_log', `[Sim] Canal ${id} Volume -> ${d}dB`),
-                eq: () => ({
-                    setHpfFreq: (f) => socket.emit('mixer_log', `[Sim] Canal ${id} HPF -> ${f}Hz`),
-                    setHpfSlope: (s) => socket.emit('mixer_log', `[Sim] Canal ${id} HPF Slope -> ${s}`),
-                    band: (b) => ({
-                        setFreq: (f) => socket.emit('mixer_log', `[Sim] Canal ${id} EQ B${b} Freq -> ${f}Hz`),
-                        setGain: (g) => socket.emit('mixer_log', `[Sim] Canal ${id} EQ B${b} Gain -> ${g}dB`),
-                        setQ: (q) => socket.emit('mixer_log', `[Sim] Canal ${id} EQ B${b} Q -> ${q}`),
-                        setType: (t) => socket.emit('mixer_log', `[Sim] Canal ${id} EQ B${b} Type -> ${t}`)
-                    })
-                }),
-                gate: () => ({ enable: () => {}, disable: () => {}, setThreshold: () => {} }),
-                compressor: () => ({ enable: () => {}, setRatio: () => {}, setThreshold: () => {}, setAttack: () => {}, setRelease: () => {} }),
-                aux: () => ({ setFaderLevel: () => {}, setPost: () => {}, setPostProc: () => {}, setPan: () => {} }),
-                fx: () => ({ setFaderLevel: () => {}, setPost: () => {} }),
-                faderLevel$: { subscribe: () => {} },
-                mute$: { subscribe: () => {} },
-                name$: { subscribe: () => {} }
-            }),
-            aux: (id) => ({ setDelay: (ms) => socket.emit('mixer_log', `[Sim] Aux ${id} Delay -> ${ms}ms`) }),
-            hw: (id) => ({
-                setGain: (v) => socket.emit('mixer_log', `[Sim] HW ${id} Gain -> ${v}`),
-                phantomOn: () => socket.emit('mixer_log', `[Sim] HW ${id} Phantom ON`),
-                phantomOff: () => socket.emit('mixer_log', `[Sim] HW ${id} Phantom OFF`),
-                oscillator: () => ({ enable: () => {}, disable: () => {}, setType: () => {}, setFaderLevel: () => {} })
-            }),
-            recorderDualTrack: { recording$: { subscribe: () => {} } },
-            recorderMultiTrack: { recording$: { subscribe: () => {} } },
-            automix: { groups: { a: { state$: { subscribe: () => {} } }, b: { state$: { subscribe: () => {} } } }, responseTimeMs$: { subscribe: () => {} } },
-            deviceInfo: { firmware$: { subscribe: () => {} }, capabilities$: { subscribe: () => {} } },
-            shows: { currentShow$: { subscribe: () => {} }, currentSnapshot$: { subscribe: () => {} }, currentCue$: { subscribe: () => {} } },
-            vuProcessor: { vuData$: { subscribe: () => {} } },
-            channelSync: { getSelectedChannel: () => ({ subscribe: () => {} }), selectChannel: () => {} },
-            player: { state$: { subscribe: () => {} }, track$: { subscribe: () => {} }, play: () => {}, pause: () => {}, stop: () => {}, next: () => {}, prev: () => {}, setShuffle: () => {}, setAuto: () => {}, setManual: () => {}, loadPlaylist: () => {} },
-            muteGroup: () => ({ state$: { subscribe: () => {} }, mute: () => {}, unmute: () => {} }),
-            clearMuteGroups: () => {},
-            volume: { solo: { setFaderLevel: () => {} }, headphone: () => ({ setFaderLevel: () => {} }) },
-            fx: () => ({ setBpm: () => {}, setParam: () => {} }),
-            disconnect: () => { mixerSingleton.setMixer(null); },
-            connect: async () => {}
-        };
-    }
+
 }
 
 module.exports = { registerMixerConnectionHandlers };

@@ -838,13 +838,15 @@
         try {
             console.log('[Analyzer] startAnalyzer()');
             const deviceId = micSelect?.value || 'default';
+            const deviceLabel = micSelect?.selectedOptions?.[0]?.text || 'Padrão';
+            const useStereo = deviceLabel.toLowerCase().includes('usb') || deviceLabel.toLowerCase().includes('interface');
             const constraints = {
                 audio: {
                     deviceId: deviceId !== 'default' ? { exact: deviceId } : undefined,
                     echoCancellation: false,
                     noiseSuppression: false,
                     autoGainControl: false,
-                    channelCount: 1
+                    channelCount: useStereo ? 2 : 1
                 }
             };
 
@@ -1783,7 +1785,7 @@
             recording: Array.from(recording),
             reference: Array.from(reference),
             sampleRate,
-            sweepParams: { f0: 20, f1: 20000, duration: 10, amplitude: 0.85 }
+            sweepParams: { f0: 20, f1: 20000, duration: 10, amplitude: 0.85, silencePre: 0.5 }
         });
     }
 

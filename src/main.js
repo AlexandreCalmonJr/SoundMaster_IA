@@ -86,6 +86,7 @@ const { getLocalIp } = require('./server/network');
 const { startPythonAI, stopPythonAI } = require('./server/python-ai');
 const { setupUpdater } = require('./server/updater');
 const { setupPythonInstaller } = require('./server/python-installer');
+const AudioCaptureService = require('./server/audio-capture-service');
 const historyService = require('./server/history-service');
 const aiPredictor = require('./server/ai-predictor');
 const aes67Service = require('./server/aes67-service');
@@ -198,7 +199,66 @@ function triggerPythonAI() {
                 severity: 'error',
                 ts: Date.now()
             });
+            ioInstance.emit('ai_status', { available: false, lite: true });
         }
+    });
+
+    if (!pythonProcess) {
+        if (ioInstance) {
+            ioInstance.emit('ai_status', { available: false, lite: true, msg: 'Python não detectado — rodando em Modo Lite. IA indisponível.' });
+        }
+    }
+
+    if (pythonProcess) {
+        pythonProcess.healthCheck().catch(() => {
+            if (ioInstance) {
+                ioInstance.emit('ai_status', { available: false, lite: true, msg: 'Servidor Python não respondeu — Modo Lite ativado.' });
+            }
+        });
+    }
+}
+
+function setupAudioCapture(mainWindow, audioCaptureService) {
+    ipcMain.handle('audio-capture-list-devices', async () => {
+        return await audioCaptureService.listDevices();
+    });
+
+    ipcMain.handle('audio-capture-start', async (event, options) => {
+        await audioCaptureService.startCapture(options);
+        if (!audioCaptureService.active) return { fallback: true };
+
+        audioCaptureService.on('audio', (samples, sampleRate, channels) => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('audio-capture-data', {
+                    samples: Array.from(samples),
+                    sampleRate,
+                    channels
+                });
+            }
+        });
+        audioCaptureService.on('stop', (data) => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('audio-capture-stopped', data);
+            }
+        });
+        audioCaptureService.on('error', (err) => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('audio-capture-error', { message: err.message });
+            }
+        });
+        audioCaptureService.on('fallback', (data) => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('audio-capture-started', { method: data.method, reason: data.reason });
+            }
+        });
+
+        mainWindow.webContents.send('audio-capture-started', { method: 'wasapi', sampleRate: options.sampleRate || 48000 });
+        return { active: true };
+    });
+
+    ipcMain.handle('audio-capture-stop', () => {
+        audioCaptureService.stopCapture();
+        return { stopped: true };
     });
 }
 
@@ -229,6 +289,10 @@ app.whenReady().then(async () => {
 
     // Configura o instalador de Python portátil
     setupPythonInstaller(mainWindow, () => triggerPythonAI());
+
+    // Configura captura WASAPI/ASIO via Electron IPC
+    const audioCaptureService = new AudioCaptureService();
+    setupAudioCapture(mainWindow, audioCaptureService);
 
     // Log de Performance (A cada 60s para não poluir)
     const perfInterval = setInterval(() => {

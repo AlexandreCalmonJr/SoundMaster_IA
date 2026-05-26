@@ -33,7 +33,9 @@
       {
         "from": "docs/",
         "to": "docs/",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ]
   },
@@ -48,12 +50,13 @@
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.10.0",
     "cors": "^2.8.6",
-    "helmet": "^8.0.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.1",
+    "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.1.1",
     "multicast-dns": "^7.2.5",
+    "osc": "^2.4.5",
     "socket.io": "^4.8.3",
     "soundcraft-ui-connection": "^6.0.3",
     "zod": "^4.4.3"

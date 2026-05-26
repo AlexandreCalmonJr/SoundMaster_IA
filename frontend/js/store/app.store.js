@@ -80,6 +80,8 @@
         },
 
         // IA
+        aiAvailable: false,   // Python AI server disponível
+        liteMode: true,       // Modo Lite (sem Python)
         aiStatus: 'offline',  // 'online' | 'offline' | 'loading'
         aiSuggestions: [],    // [{ desc, command }]
         aiChatHistory: _loadPersisted('aiChatHistory', []), // [{ text, isUser, command, id, ts }]

@@ -36,7 +36,56 @@
         });
 
         pm._on(pm._el('aeq-export-btn'), 'click', function () { if (!window.AutoEQ) return; var csv = AutoEQ.exportGEQ(); var blob = new Blob([csv], { type: 'text/csv' }); var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'auto-eq-geq.csv'; a.click(); });
-        pm._on(pm._el('aeq-apply-btn'), 'click', function () { if (!_lastResult || !window.AutoEQ) return; var dest = pm._el('aeq-dest-select') ? pm._el('aeq-dest-select').value : 'master'; var ch = parseInt(pm._el('aeq-channel-input') ? pm._el('aeq-channel-input').value : 1) || 1; var res = AutoEQ.applyToMixer(_lastResult.peq, dest, ch); if (res && res.length) { _setStatus('\u2705 ' + res.length + ' filtro(s) PEQ enviado(s) para a mesa (' + (dest === 'master' ? 'Master' : 'Canal ' + ch) + ').', 'ok'); } else { _setStatus('Nenhum filtro significativo para aplicar (desvio < 0.5dB).', 'err'); } });
+
+        function _showUndoBtn(show) {
+            var btn = pm._el('aeq-undo-btn');
+            if (btn) btn.style.display = show ? '' : 'none';
+        }
+
+        function _doApply() {
+            if (!_lastResult || !window.AutoEQ) return;
+            var dest = pm._el('aeq-dest-select') ? pm._el('aeq-dest-select').value : 'master';
+            var ch = parseInt(pm._el('aeq-channel-input') ? pm._el('aeq-channel-input').value : 1) || 1;
+            var res = AutoEQ.applyToMixer(_lastResult.peq, dest, ch);
+            if (res && res.length) {
+                _setStatus('\u2705 ' + res.length + ' filtro(s) PEQ enviado(s) para a mesa (' + (dest === 'master' ? 'Master' : 'Canal ' + ch) + ').', 'ok');
+                _showUndoBtn(true);
+            } else {
+                _setStatus('Nenhum filtro significativo para aplicar (desvio < 0.5dB).', 'err');
+            }
+        }
+
+        function _showConfirmDialog() {
+            if (!_lastResult) return;
+            var overlay = pm._el('aeq-confirm-overlay');
+            var summary = pm._el('aeq-confirm-summary');
+            if (!overlay || !summary) { _doApply(); return; }
+            var html = _lastResult.peq.map(function (f) { return '<div>Band' + f.band + ': <strong>' + f.hz + 'Hz</strong>, ' + (f.gainDb >= 0 ? '+' : '') + f.gainDb.toFixed(1) + 'dB, Q' + f.q.toFixed(1) + '</div>'; }).join('');
+            var dest = pm._el('aeq-dest-select') ? pm._el('aeq-dest-select').value : 'master';
+            var ch = parseInt(pm._el('aeq-channel-input') ? pm._el('aeq-channel-input').value : 1) || 1;
+            summary.innerHTML = '<div class="text-cyan-300 font-bold mb-2">Destino: ' + (dest === 'master' ? 'Master' : 'Canal ' + ch) + '</div>' + html;
+            overlay.classList.remove('hidden');
+        }
+
+        pm._on(pm._el('aeq-apply-btn'), 'click', _showConfirmDialog);
+        pm._on(pm._el('aeq-confirm-ok'), 'click', function () {
+            var overlay = pm._el('aeq-confirm-overlay');
+            if (overlay) overlay.classList.add('hidden');
+            _doApply();
+        });
+        pm._on(pm._el('aeq-confirm-cancel'), 'click', function () {
+            var overlay = pm._el('aeq-confirm-overlay');
+            if (overlay) overlay.classList.add('hidden');
+        });
+        pm._on(pm._el('aeq-undo-btn'), 'click', function () {
+            if (!window.AutoEQ) return;
+            AutoEQ.requestUndo();
+            _setStatus('↩ EQ desfeito.', 'ok');
+            _showUndoBtn(false);
+        });
+
+        pm._on(pm._el('aeq-dest-select'), 'change', function () { _showUndoBtn(false); });
+        pm._on(pm._el('aeq-channel-input'), 'input', function () { _showUndoBtn(false); });
         pm._safeCall('AutoEQ', 'setTarget', 'smaart');
     }
 
