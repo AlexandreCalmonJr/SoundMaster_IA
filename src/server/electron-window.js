@@ -2,7 +2,6 @@ const { BrowserWindow, session } = require('electron');
 const path = require('path');
 
 async function configureElectronSession() {
-    await session.defaultSession.clearStorageData();
 
     session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
         const allowed = ['media', 'audioCapture', 'notifications'];

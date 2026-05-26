@@ -80,19 +80,19 @@ function registerDiagnosticHandlers(io, socket, deps) {
             const int16Data = new Int16Array(recording.map(v => Math.max(-32768, Math.min(32767, Math.round(v * 32768)))));
             const header = Buffer.alloc(44);
             const dv = new DataView(header.buffer);
-            dv.setUint32(0,  0x52494646, false);
-            dv.setUint32(4,  36 + int16Data.byteLength, false);
-            dv.setUint32(8,  0x57415645, false);
-            dv.setUint32(12, 0x666D7420, false);
-            dv.setUint32(16, 16,         false);
-            dv.setUint16(20, 1,          false);
-            dv.setUint16(22, 1,          false);
-            dv.setUint32(24, sampleRate,           false);
-            dv.setUint32(28, sampleRate * 2,       false);
-            dv.setUint16(32, 2,          false);
-            dv.setUint16(34, 16,         false);
-            dv.setUint32(36, 0x64617461, false);
-            dv.setUint32(40, int16Data.byteLength, false);
+            dv.setUint32(0,  0x52494646, true);
+            dv.setUint32(4,  36 + int16Data.byteLength, true);
+            dv.setUint32(8,  0x57415645, true);
+            dv.setUint32(12, 0x666D7420, true);
+            dv.setUint32(16, 16,         true);
+            dv.setUint16(20, 1,          true);
+            dv.setUint16(22, 1,          true);
+            dv.setUint32(24, sampleRate,           true);
+            dv.setUint32(28, sampleRate * 2,       true);
+            dv.setUint16(32, 2,          true);
+            dv.setUint16(34, 16,         true);
+            dv.setUint32(36, 0x64617461, true);
+            dv.setUint32(40, int16Data.byteLength, true);
 
             writeFileSync(tmpWav, Buffer.concat([header, Buffer.from(int16Data.buffer)]));
 
@@ -134,6 +134,17 @@ function registerDiagnosticHandlers(io, socket, deps) {
     socket.on('get_hardware_diagnosis', async (data = {}) => {
         const channel = data.channel || 'Canal 1';
         const months  = Math.max(1, Math.min(24, Number(data.months) || 6));
+
+        if (!historyService.db) {
+            logger.error(socket.id, 'HARDWARE_DIAGNOSIS_ERROR', { channel, error: 'historyService.db não inicializado' });
+            socket.emit('hardware_diagnosis_result', {
+                channel, code: 'ERRO', severity: 'ok', confidence: 0,
+                summary: 'Banco de dados de histórico não está disponível.',
+                recommendations: ['Verificar inicialização do banco de dados.'],
+                bands: [], stats: { n_snapshots: 0 }
+            });
+            return;
+        }
 
         try {
             const cutoffMs = Date.now() - months * 30 * 86400 * 1000;

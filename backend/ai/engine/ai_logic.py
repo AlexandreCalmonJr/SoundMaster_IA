@@ -45,7 +45,7 @@ class LocalLLM:
     def __init__(self, model_path=None):
         # Caminho configurável via env var MODEL_PATH, fallback hardcoded
         if not model_path:
-            model_path = os.getenv("MODEL_PATH", "models/tinyllama-1.1b-chat.Q4_K_M.gguf")
+            model_path = os.getenv("MODEL_PATH", "models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf")
         # Resolve caminho relativo ao script para robustez
         if not os.path.isabs(model_path):
             script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -75,13 +75,35 @@ class LocalLLM:
             except Exception as e:
                 print(f"[AI Engine] Falha ao carregar modelo: {e}")
 
+    def reload_if_needed(self):
+        if self.enabled:
+            return True
+        if not os.path.exists(self.model_path):
+            return False
+        try:
+            from llama_cpp import Llama
+            self.llm = Llama(model_path=self.model_path, n_ctx=512, n_threads=4, verbose=False)
+            self.enabled = True
+            print(f"[AI Engine] Modelo carregado após download: {self.model_path}")
+            return True
+        except Exception as e:
+            print(f"[AI Engine] Falha ao carregar modelo após download: {e}")
+            return False
+
     def query(self, prompt, context_data=None):
         if not self.enabled:
             return None
         if not self.llm:
             return None
 
-        system_prompt = "Você é o SoundMaster IA, um engenheiro de som especialista. Seja conciso, técnico e prestativo."
+        profile_names = {'janelas_vidro': 'Janelas/Vidro', 'teto_alto': 'Teto Alto', 'paredes_paralelas': 'Paredes Paralelas'}
+        system_prompt = (
+            "Você é o SoundMaster IA, engenheiro de som especialista em igrejas e auditórios. "
+            "Seja conciso, técnico e direto ao ponto. "
+            "Use termos técnicos em português (ganho, equalização, reverberação, microfonia, retorno). "
+            f"Perfil ativo da sala: {profile_names.get(context_data.get('room_profile'), context_data.get('room_profile', 'desconhecido')) if context_data else 'desconhecido'}. "
+            "Sugira ações práticas no mixer digital quando aplicável."
+        )
         if context_data:
             system_prompt += f" Contexto Atual: RT60={context_data.get('rt60')}s, Pico={context_data.get('peakHz')}Hz, RMS={context_data.get('rms')}dB."
 
@@ -199,6 +221,10 @@ class AIEngine:
         analysis = analysis or (self.session.analyses_history[-1] if self.session.analyses_history else {})
         if analysis and isinstance(analysis, dict):
             self.session.add_analysis(analysis)
+
+        classification = None
+        if mixer_state and isinstance(mixer_state, dict):
+            classification = mixer_state.get('classification')
 
         # 0.1. Auditoria do Mixer
         if re.search(r'(auditar|auditoria|verificar mesa|status da mesa|analise da mesa|diagnostico da mesa|audit)', text):
@@ -338,19 +364,34 @@ Deseja aplicar a correcao recomendada?
             rt60 = analysis.get('rt60', '--')
             peak = analysis.get('peakHz', '--')
             rms = analysis.get('rms', '--')
+            profile_names = {'janelas_vidro': 'Janelas/Vidro', 'teto_alto': 'Teto Alto', 'paredes_paralelas': 'Paredes Paralelas'}
+            profile_label = profile_names.get(self.session.room_profile, self.session.room_profile)
             
-            status_msg = f"Oi! Estou monitorando o sistema. {hw_note}"
+            status_msg = f"Olá! SoundMaster operacional. {hw_note}"
             if rt60 != '--':
-                status_msg += f"Atualmente a sala está com RT60 de {rt60}s e o nível médio está em {rms}dB. "
+                status_msg += f"Sala com RT60 de {rt60}s, nível médio {rms}dB. Perfil ativo: {profile_label}. "
             else:
                 status_msg += "Aguardando primeira medição para análise completa. "
+            
+            if len(self.session.analyses_history) >= 3:
+                recent = self.session.analyses_history[-3:]
+                rt60s = [a.get('rt60', 0) for a in recent if a.get('rt60')]
+                if rt60s:
+                    avg_rt60 = sum(rt60s) / len(rt60s)
+                    status_msg += f"Média RT60 das últimas 3 medições: {avg_rt60:.2f}s. "
+            
+            if classification and 'topClass' in classification:
+                detected = classification['topClass']
+                score = classification.get('topScore', 0)
+                if score > 0.3:
+                    status_msg += f"Som detectado: {detected} ({score:.0%} confiança). "
             
             status_msg += "Como posso ajudar no seu mix hoje?"
             
             return {
                 "text": status_msg,
                 "command": None,
-                "context": {"rt60": rt60, "peak": peak}
+                "context": {"rt60": rt60, "peak": peak, "room_profile": self.session.room_profile, "classification": classification}
             }
 
         # 1. Gatilho de Relatório Completo
@@ -509,14 +550,19 @@ Deseja aplicar a correcao recomendada?
                 return {"text": f"Mutando canal {channel} no Aux {aux_ch}.", "command": self.command("set_aux_level", "Mute Aux", channel=channel, aux=aux_ch, level=0)}
 
         # 3. Fallback: IA Local (Modelo Leve)
+        if self.llm:
+            self.llm.reload_if_needed()
         if self.llm and self.llm.enabled:
             print(f"[AI Engine] Usando modelo local para: {text}")
             # Passamos o contexto atual para o modelo
             ctx = {
                 "rt60": self._safe_float(analysis.get('rt60', 1.2), 1.2),
                 "peakHz": self._safe_float(analysis.get('peakHz', 0), 0),
-                "rms": self._safe_float(analysis.get('rms', -45), -45)
+                "rms": self._safe_float(analysis.get('rms', -45), -45),
+                "room_profile": self.session.room_profile
             }
+            if classification:
+                ctx["classification"] = classification
             llm_response = self.llm.query(text, context_data=ctx)
             if llm_response:
                 return {"text": llm_response, "command": None, "source": "local_llm"}

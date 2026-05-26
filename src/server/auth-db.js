@@ -47,8 +47,6 @@ function initDatabase(dbDir) {
         const { count } = countStmt.get();
         if (count === 0) {
             console.log('[AuthDB] Tabela de usuários vazia. Criando usuário admin padrão...');
-            const crypto = require('crypto');
-            const tempPassword = crypto.randomBytes(4).toString('hex');
             const passwordHash = bcrypt.hashSync('admin', 10);
             const insertStmt = db.prepare(
                 "INSERT INTO users (username, email, password_hash, role, must_change_password) VALUES (?, ?, ?, ?, ?)"
@@ -70,10 +68,10 @@ function initDatabase(dbDir) {
 function createUser(username, email, password) {
     const passwordHash = bcrypt.hashSync(password, 10);
     const stmt = db.prepare(
-        'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)'
+        'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)'
     );
-    const result = stmt.run(username, email, passwordHash);
-    return { id: result.lastInsertRowid, username, email };
+    const result = stmt.run(username, email, passwordHash, 'user');
+    return { id: result.lastInsertRowid, username, email, role: 'user' };
 }
 
 function findUserByUsername(username) {

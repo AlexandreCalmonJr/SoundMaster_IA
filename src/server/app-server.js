@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const { Server } = require('socket.io');
 const mixerSingleton = require('./mixer-singleton');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 
 const db = require('./database');
@@ -90,6 +91,22 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     expressApp.use('/docs', express.static(path.join(rootDir, 'docs')));
     expressApp.use(express.json({ limit: '1mb' }));
 
+    // Middleware de autenticação JWT para rotas REST protegidas
+    function authenticateToken(req, res, next) {
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ error: 'Token não fornecido' });
+        }
+        try {
+            const secret = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
+            req.user = jwt.verify(token, secret);
+            next();
+        } catch (err) {
+            return res.status(403).json({ error: 'Token inválido ou expirado' });
+        }
+    }
+
     // Inicializa banco centralizado IMEDIATAMENTE (presets + mappings no mesmo diretório)
     db.initDatabase(dbDir);
     authDb.initDatabase(dbDir);
@@ -98,13 +115,13 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     registerAuthRoutes(expressApp);
     expressApp.use('/api/calculate', calculationRoutes);
 
-    // ── Mixer Git REST API ───────────────────────────────────────────────────
-    expressApp.get('/api/git/commits', async (req, res) => {
+    // ── Mixer Git REST API (protegidas) ──────────────────────────────────────
+    expressApp.get('/api/git/commits', authenticateToken, async (req, res) => {
         try { res.json(await mixerGit.list(parseInt(req.query.limit) || 50)); }
         catch (e) { res.status(500).json({ error: e.message }); }
     });
 
-    expressApp.get('/api/git/commits/:id', async (req, res) => {
+    expressApp.get('/api/git/commits/:id', authenticateToken, async (req, res) => {
         try {
             const c = await mixerGit.getById(req.params.id);
             if (!c) return res.status(404).json({ error: 'Commit não encontrado' });
@@ -112,7 +129,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
-    expressApp.post('/api/git/commits', async (req, res) => {
+    expressApp.post('/api/git/commits', authenticateToken, async (req, res) => {
         try {
             const { label, auto } = req.body || {};
             const state = mixerSingleton.getStateTree();
@@ -121,24 +138,24 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
-    expressApp.delete('/api/git/commits/:id', async (req, res) => {
+    expressApp.delete('/api/git/commits/:id', authenticateToken, async (req, res) => {
         try { res.json(await mixerGit.deleteById(req.params.id)); }
         catch (e) { res.status(500).json({ error: e.message }); }
     });
 
-    expressApp.get('/api/git/diff/:idA/:idB', async (req, res) => {
+    expressApp.get('/api/git/diff/:idA/:idB', authenticateToken, async (req, res) => {
         try { res.json(await mixerGit.diffById(req.params.idA, req.params.idB)); }
         catch (e) { res.status(500).json({ error: e.message }); }
     });
 
-    expressApp.get('/api/git/diff/:id', async (req, res) => {
+    expressApp.get('/api/git/diff/:id', authenticateToken, async (req, res) => {
         try {
             const current = mixerSingleton.getStateTree();
             res.json(await mixerGit.diffWithCurrent(req.params.id, current));
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
-    expressApp.post('/api/git/rollback/:id', async (req, res) => {
+    expressApp.post('/api/git/rollback/:id', authenticateToken, async (req, res) => {
         try {
             const { scope } = req.body || {};
             const current   = mixerSingleton.getStateTree();
@@ -495,7 +512,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
         }
     });
 
-    expressApp.post('/api/mixer/command', express.json(), (req, res) => {
+    expressApp.post('/api/mixer/command', authenticateToken, express.json(), (req, res) => {
         try {
             const cmd = req.body;
             const actions = createMixerActions(() => mixerSingleton.getMixer());
@@ -552,6 +569,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     }
 
     function ipMatchesCidr(ip, baseIp, mask) {
+        if (!ip.includes('.')) return false;
         const ipParts = ip.split('.').map(Number);
         const baseParts = baseIp.split('.').map(Number);
         const maskBits = (~((1 << (32 - mask)) - 1)) >>> 0;

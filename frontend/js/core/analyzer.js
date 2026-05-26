@@ -1142,7 +1142,14 @@
             }
             
             analyser.getFloatFrequencyData(freqData);
-            
+
+            // RAW RMS (antes da calibração) para uso exclusivo da página de calibração SPL
+            let _rawSum = 0;
+            for (let _i = 1; _i < freqData.length; _i++) {
+                _rawSum += Math.pow(10, freqData[_i] / 10);
+            }
+            window._rawFreqRMS_dB = 10 * Math.log10(_rawSum + 1e-12);
+
             if (freqData.every(v => !isFinite(v))) {
                 silentFrameCount += 1;
                 if (silentFrameCount === 10) {

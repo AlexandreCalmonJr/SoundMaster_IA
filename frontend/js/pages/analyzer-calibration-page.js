@@ -72,14 +72,12 @@
         const btnCalibrate = pm._el('btn-calibrate-spl');
         if (btnCalibrate) {
             pm._on(btnCalibrate, 'click', () => {
-                // Access parent context for live RMS value (or bridged window.currentGlobalRMS)
-                const rms = window.currentGlobalRMS || window.parent.currentGlobalRMS;
-                if (!rms) {
+                const rawDb = window._rawFreqRMS_dB;
+                if (rawDb == null || !isFinite(rawDb)) {
                     alert('⚠️ Erro: Sinal do microfone inativo ou muito baixo. Ative o microfone em "FFT & Waterfall" e ligue o calibrador acústico de 1kHz a 94dB.');
                     return;
                 }
 
-                const rawDb = 20 * Math.log10(rms + 1e-6);
                 cal.calibrateSPL(rawDb);
                 updateUI();
                 alert(`✅ Calibração de SPL concluída! Novo offset: ${cal.getCurrentSplOffset().toFixed(1)} dB`);

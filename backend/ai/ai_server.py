@@ -21,10 +21,12 @@ from contextlib import asynccontextmanager
 
 # Importações Modulares
 from engine.ai_logic import AIEngine, SessionContext
+from engine.classifier import AudioClassifier
 from acoustics.processor import AcousticProcessor
 from predictive_maintenance import PredictiveMaintenanceEngine
 
 _maintenance_engine = PredictiveMaintenanceEngine()
+_classifier = AudioClassifier()
 
 load_dotenv()
 
@@ -186,6 +188,12 @@ class TrainRequest(BaseModel):
     prevDb: float
     gain: float
     isFeedback: bool
+
+class ClassifyRequest(BaseModel):
+    audio: list[float]
+    sampleRate: int = 16000
+    k: int = 5
+    threshold: float = 0.1
 
 class AutoEqRequest(BaseModel):
     freqData: list[float]
@@ -784,6 +792,26 @@ async def enhance_audio_endpoint(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro no realce de áudio: {str(e)}")
+
+@app.post("/api/ai/classify")
+async def classify_endpoint(
+    request: ClassifyRequest,
+    authenticated: bool = Depends(verify_api_key)
+):
+    try:
+        if not _classifier.enabled:
+            return {"classes": [], "topClass": None, "topScore": None}
+        results = _classifier.get_top_classes(
+            request.audio, request.sampleRate, request.k, request.threshold
+        )
+        top = results[0] if results else None
+        return {
+            "classes": results,
+            "topClass": top["name"] if top else None,
+            "topScore": top["score"] if top else None,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/transcribe")
 async def transcribe_audio_endpoint(

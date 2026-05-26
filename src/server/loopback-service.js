@@ -58,31 +58,26 @@ class LoopbackService {
     }
 
     processAudio({ buffer, channels, bitDepth }) {
-        const bytesPerSample = bitDepth / 8; // 3 bytes para 24-bit
+        if (this.referenceChannel >= channels) {
+            console.warn(`[Loopback] referenceChannel (${this.referenceChannel}) >= channels (${channels}). Ignorando.`);
+            return;
+        }
+        const bytesPerSample = bitDepth / 8;
         const totalSamples = buffer.length / (channels * bytesPerSample);
-        
-        const extractedSamples = new Float32Array(totalSamples);
+        const MAX_BUFFER_SAMPLES = this.maxBufferSize * 4;
 
         for (let s = 0; s < totalSamples; s++) {
-            // Calcula offset para o canal de referência no buffer intercalado
             const offset = (s * channels + this.referenceChannel) * bytesPerSample;
-            
             if (offset + 2 >= buffer.length) break;
 
-            // Converte 3 bytes PCM (24-bit BE ou LE - Soundcraft costuma usar BE no RTP)
-            // No aes67-service.js atual, a extração parece ser Big Endian (ou manual)
-            // Vamos usar a mesma lógica do multi-channel-analyzer.js (Little Endian lá)
-            // NOTA: AES67 padrão é Big Endian (Network Order)
             let val = (buffer[offset] << 16) | (buffer[offset + 1] << 8) | buffer[offset + 2];
-            
-            // Ajusta sinal para 24-bit assinado
             if (val & 0x800000) val |= 0xFF000000;
-            
-            extractedSamples[s] = val / 8388607.0; // Normaliza 24-bit para -1.0 a 1.0
+            this.sampleBuffer.push(val / 8388607.0);
         }
 
-        // Acumula e envia drenando excedentes (while loop para evitar acúmulo)
-        this.sampleBuffer.push(...extractedSamples);
+        if (this.sampleBuffer.length > MAX_BUFFER_SAMPLES) {
+            this.sampleBuffer.splice(0, this.sampleBuffer.length - MAX_BUFFER_SAMPLES);
+        }
 
         while (this.sampleBuffer.length >= this.maxBufferSize) {
             if (this.io) {
@@ -90,7 +85,7 @@ class LoopbackService {
                     samples: this.sampleBuffer.slice(0, this.maxBufferSize)
                 });
             }
-            this.sampleBuffer = this.sampleBuffer.slice(this.maxBufferSize);
+            this.sampleBuffer.splice(0, this.maxBufferSize);
         }
     }
 }

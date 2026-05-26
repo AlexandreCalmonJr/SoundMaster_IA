@@ -375,8 +375,10 @@
             sumPwr += Math.pow(10, dbW / 10);
         }
 
-        // Converte potência acumulada → dB + offset de calibração
-        return 10 * Math.log10(sumPwr + 1e-30) + REF_DB;
+        // Se calibração SPL está ativa (offset != 0), freqData já está em dBSPL → REF_DB=0
+        const hasSplCal = window.AcousticCalibration && window.AcousticCalibration.getCurrentSplOffset() !== 0;
+        const refDb = hasSplCal ? 0 : REF_DB;
+        return 10 * Math.log10(sumPwr + 1e-30) + refDb;
     }
 
     // ─── Funções de ponderação analítica (domínio da frequência) ─────────────

@@ -393,12 +393,8 @@
 
         let db = 75; 
         if (window.currentGlobalRMS) {
-            // Conversão simplificada para dB SPL usando o offset calibrado
-            let rawDb = 20 * Math.log10(window.currentGlobalRMS + 1e-6);
-            if (window.AcousticCalibration) {
-                rawDb += window.AcousticCalibration.getCurrentSplOffset();
-            }
-            db = rawDb;
+            // currentGlobalRMS já inclui calibração (aplicada em analyzer.js)
+            db = 20 * Math.log10(window.currentGlobalRMS + 1e-6);
         } else {
             alert('Ative o microfone na aba Visual para gravar leituras reais!');
             return;

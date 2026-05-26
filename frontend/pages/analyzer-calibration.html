@@ -23,6 +23,11 @@
         <p class="text-xs text-slate-500 mb-6">Carregue o arquivo de calibração (.txt ou .cal) fornecido pelo fabricante (ex: Dayton EMM-6, Sonarworks).</p>
 
         <div class="flex flex-col gap-4 max-w-md">
+            <label class="text-sm text-slate-400 font-medium">Perfil do Microfone:</label>
+            <select id="cal-preset-select" class="w-full bg-slate-700/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer">
+                <option value="">— Selecionar perfil —</option>
+            </select>
+
             <input type="file" id="cal-file-input" accept=".txt,.cal" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-cyan-600 file:text-white hover:file:bg-cyan-500 cursor-pointer">
             
             <div class="bg-black/40 rounded-xl p-4 border border-white/5 flex items-center justify-between">

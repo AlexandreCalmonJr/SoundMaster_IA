@@ -78,24 +78,28 @@ function registerSocketHandlers(io, appDataDir = './logs') {
         const hits = new Map();
         const cleanupInterval = setInterval(() => {
             const cutoff = Date.now() - windowMs;
-            for (const [key, ts] of hits) {
-                if (ts < cutoff) hits.delete(key);
+            for (const [key, timestamps] of hits) {
+                const recent = timestamps.filter(ts => ts > cutoff);
+                if (recent.length === 0) hits.delete(key);
+                else hits.set(key, recent);
             }
         }, windowMs);
         if (cleanupInterval.unref) cleanupInterval.unref();
         return (socket, eventName) => {
             const key = `${socket.id}:${eventName}`;
             const now = Date.now();
-            const last = hits.get(key) || 0;
-            if (now - last < windowMs) {
-                const count = [...hits.entries()].filter(([k]) => k.startsWith(`${socket.id}:${eventName}`)).length;
-                if (count >= maxRequests) {
-                    logger.warn(socket.id, 'RATE_LIMIT_EXCEEDED', { event: eventName });
-                    socket.emit('mixer_status', { connected: true, msg: `Limite de taxa excedido para ${eventName}. Aguarde.` });
-                    return false;
-                }
+            let timestamps = hits.get(key);
+            if (!timestamps) {
+                timestamps = [];
+                hits.set(key, timestamps);
             }
-            hits.set(key, now);
+            const recent = timestamps.filter(ts => now - ts < windowMs);
+            if (recent.length >= maxRequests) {
+                logger.warn(socket.id, 'RATE_LIMIT_EXCEEDED', { event: eventName });
+                socket.emit('mixer_status', { connected: true, msg: `Limite de taxa excedido para ${eventName}. Aguarde.` });
+                return false;
+            }
+            timestamps.push(now);
             return true;
         };
     }

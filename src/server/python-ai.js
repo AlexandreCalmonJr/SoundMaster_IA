@@ -88,8 +88,60 @@ function _ensurePythonDeps() {
     }
 }
 
+function _findPython() {
+    const candidates = ['python', 'python3'];
+    if (process.platform === 'win32') candidates.push('py');
+    for (const cmd of candidates) {
+        try {
+            const r = spawnSync(cmd, ['--version'], { stdio: 'ignore' });
+            if (r.status === 0) return cmd;
+        } catch (_) {}
+    }
+    return null;
+}
+
+function _ensureAIModelAsync(rootDir) {
+    const modelsDir = path.join(rootDir, 'models');
+    const modelName = 'tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf';
+    const modelPath = path.join(modelsDir, modelName);
+
+    if (fs.existsSync(modelPath)) {
+        console.log('[Python AI] Modelo de IA já existe em:', modelPath);
+        return;
+    }
+
+    const downloadScript = path.join(rootDir, 'scripts', 'download_model.py');
+    if (!fs.existsSync(downloadScript)) {
+        console.warn('[Python AI] Script de download não encontrado em:', downloadScript);
+        return;
+    }
+
+    const pythonCmd = _findPython();
+    if (!pythonCmd) {
+        console.warn('[Python AI] Python não encontrado. Não foi possível baixar o modelo de IA.');
+        return;
+    }
+
+    console.log('[Python AI] Modelo de IA não encontrado. Iniciando download (~670MB) em background...');
+    console.log('[Python AI] O servidor de IA iniciará sem o modelo; ele será ativado automaticamente após o download.');
+
+    const proc = spawn(pythonCmd, [downloadScript], { stdio: 'inherit', cwd: rootDir });
+
+    proc.on('close', (code) => {
+        if (code === 0) {
+            console.log('[Python AI] ✅ Modelo baixado com sucesso! O chat IA local será ativado na próxima requisição.');
+        } else {
+            console.warn(`[Python AI] ⚠️ Download do modelo falhou (código ${code}). O chat IA funcionará sem LLM local.`);
+        }
+    });
+    proc.on('error', (err) => {
+        console.warn(`[Python AI] ⚠️ Erro ao iniciar download do modelo: ${err.message}`);
+    });
+}
+
 function startPythonAI(rootDir, onExitCallback) {
     _ensurePythonDeps();
+    _ensureAIModelAsync(rootDir);
 
     let pythonScript = path.join(rootDir, 'ai_server.py');
     if (!fs.existsSync(pythonScript)) {
