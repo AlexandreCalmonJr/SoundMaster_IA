@@ -32,10 +32,14 @@
             var result = AutoEQ.analyze(freqData, sampleRate, fftSize); _lastResult = result;
             if (window.AutoEqRenderer) { AutoEqRenderer.renderStats(result.stats, targetName); AutoEqRenderer.renderPEQ(pm._el('aeq-peq-content'), result.peq); AutoEqRenderer.renderGEQ(pm._el('aeq-geq-content'), result.geq); AutoEqRenderer.drawGraph(canvas, result, freqData, sampleRate, fftSize); }
             var exportBtn = pm._el('aeq-export-btn'); if (exportBtn) exportBtn.disabled = false;
+            var exportLakeBtn = pm._el('aeq-export-lake-btn'); if (exportLakeBtn) exportLakeBtn.disabled = false;
+            var exportPeqBtn = pm._el('aeq-export-peq-btn'); if (exportPeqBtn) exportPeqBtn.disabled = false;
             var applyRow = pm._el('aeq-apply-row'); if (applyRow) applyRow.style.display = '';
         });
 
-        pm._on(pm._el('aeq-export-btn'), 'click', function () { if (!window.AutoEQ) return; var csv = AutoEQ.exportGEQ(); var blob = new Blob([csv], { type: 'text/csv' }); var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'auto-eq-geq.csv'; a.click(); });
+        pm._on(pm._el('aeq-export-btn'), 'click', function () { if (!window.AutoEQ) return; AutoEQ.downloadEqData(AutoEQ.exportGEQ(), 'auto-eq-geq.csv', 'text/csv'); });
+        pm._on(pm._el('aeq-export-lake-btn'), 'click', function () { if (!window.AutoEQ || !_lastResult) return; AutoEQ.downloadEqData(AutoEQ.exportLake(_lastResult.peq), 'auto-eq-lake.txt', 'text/plain'); });
+        pm._on(pm._el('aeq-export-peq-btn'), 'click', function () { if (!window.AutoEQ || !_lastResult) return; AutoEQ.downloadEqData(AutoEQ.exportGenericPEQ(_lastResult.peq), 'auto-eq-peq.txt', 'text/plain'); });
 
         function _showUndoBtn(show) {
             var btn = pm._el('aeq-undo-btn');

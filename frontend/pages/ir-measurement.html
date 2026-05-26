@@ -1,0 +1,91 @@
+<section id="ir-measurement" class="module page-section">
+    <div class="flex items-center gap-4 mb-8">
+        <span class="p-3 bg-purple-900/40 rounded-2xl text-2xl">📊</span>
+        <div>
+            <h2 class="text-3xl font-black text-white tracking-tighter">Resposta ao Impulso (IR)</h2>
+            <p class="text-slate-400 font-medium">Meça o IR do sistema, visualize ETC, gere filtro inverso e exporte para convolução</p>
+        </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="flex gap-2 mb-6">
+        <div id="ir-step-1" class="flex-1 h-1.5 bg-purple-500 rounded-full"></div>
+        <div id="ir-step-2" class="flex-1 h-1.5 bg-slate-700 rounded-full"></div>
+        <div id="ir-step-3" class="flex-1 h-1.5 bg-slate-700 rounded-full"></div>
+    </div>
+
+    <!-- Step 1: Capture IR -->
+    <div id="ir-panel-1" class="bg-slate-800/60 border border-white/10 rounded-2xl p-6 space-y-4">
+        <h3 class="text-lg font-bold text-white">1. Capturar Resposta ao Impulso</h3>
+        <div class="bg-black/40 rounded-xl p-4 border border-white/5">
+            <p class="text-sm text-slate-300 mb-3">Ative o Transfer Function no Analyzer com microfone de medição posicionado no ponto de audiência.</p>
+            <p class="text-xs text-amber-400">Dica: use sweep (sine chirp) no gerador de sinais e microfone no centro da audiência.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+            <button id="ir-capture-btn" class="px-6 py-4 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold transition-all">📸 Capturar IR</button>
+            <div class="bg-black/30 rounded-xl p-3 border border-white/5 flex items-center justify-between">
+                <span class="text-xs text-slate-500">IR Capturado:</span>
+                <span id="ir-status" class="text-sm font-mono text-slate-500 text-right">Nenhum</span>
+            </div>
+        </div>
+        <div class="bg-black/50 rounded-xl p-4 border border-white/5">
+            <canvas id="ir-wave-canvas" class="w-full h-32 rounded-lg"></canvas>
+        </div>
+        <div class="flex gap-3">
+            <button id="ir-next-1" disabled class="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold transition-all opacity-50 cursor-not-allowed">ETC + Decaimento →</button>
+        </div>
+    </div>
+
+    <!-- Step 2: ETC & Decay -->
+    <div id="ir-panel-2" class="hidden bg-slate-800/60 border border-white/10 rounded-2xl p-6 space-y-4">
+        <h3 class="text-lg font-bold text-white">2. Energy-Time Curve (ETC) & Decaimento</h3>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="bg-black/40 rounded-xl p-4 border border-white/5">
+                <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">ETC (dB)</h4>
+                <canvas id="ir-etc-canvas" class="w-full h-32 rounded-lg"></canvas>
+            </div>
+            <div class="bg-black/40 rounded-xl p-4 border border-white/5">
+                <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">Decaimento por Frequência</h4>
+                <canvas id="ir-decay-canvas" class="w-full h-32 rounded-lg"></canvas>
+            </div>
+        </div>
+        <div class="bg-blue-900/20 border border-blue-500/20 rounded-xl p-4">
+            <p class="text-xs text-blue-200/70 leading-relaxed">💡 Reflexões precoces (&lt;50ms após o pico) são boas — reforçam o som. Reflexões tardias (&gt;80ms) causam eco e perda de inteligibilidade.</p>
+        </div>
+        <div class="flex gap-3">
+            <button id="ir-back-1" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm">← Voltar</button>
+            <button id="ir-next-2" class="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold transition-all">Filtro Inverso →</button>
+        </div>
+    </div>
+
+    <!-- Step 3: Inverse Filter & Export -->
+    <div id="ir-panel-3" class="hidden bg-slate-800/60 border border-white/10 rounded-2xl p-6 space-y-4">
+        <h3 class="text-lg font-bold text-white">3. Filtro Inverso & Exportação</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-black/40 rounded-xl p-4 border border-white/5">
+                <label class="text-xs font-bold uppercase text-slate-500 block mb-2">Método</label>
+                <select id="ir-inverse-method" class="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-purple-500">
+                    <option value="minimum-phase">Fase Mínima (recomendado)</option>
+                    <option value="time-reverse">Inversão Temporal</option>
+                    <option value="least-squares">Mínimos Quadrados (Wiener)</option>
+                </select>
+            </div>
+            <div class="bg-black/40 rounded-xl p-4 border border-white/5">
+                <button id="ir-generate-btn" class="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold transition-all">⚡ Gerar Filtro Inverso</button>
+                <span id="ir-generate-status" class="text-xs text-slate-500 block text-center mt-2"></span>
+            </div>
+        </div>
+        <div class="bg-black/50 rounded-xl p-4 border border-white/5">
+            <canvas id="ir-inverse-canvas" class="w-full h-24 rounded-lg"></canvas>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+            <button id="ir-export-wav-btn" disabled class="py-3 bg-slate-700 text-slate-400 rounded-xl text-sm font-bold transition-all cursor-not-allowed">↓ Exportar IR (WAV)</button>
+            <button id="ir-export-inverse-btn" disabled class="py-3 bg-slate-700 text-slate-400 rounded-xl text-sm font-bold transition-all cursor-not-allowed">↓ Filtro Inverso (WAV)</button>
+            <button id="ir-apply-convolution-btn" disabled class="py-3 bg-slate-700 text-slate-400 rounded-xl text-sm font-bold transition-all cursor-not-allowed">🔊 Carregar no Convolver</button>
+        </div>
+        <div class="flex gap-3">
+            <button id="ir-back-2" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm">← Voltar</button>
+            <button id="ir-finish" class="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold transition-all">Concluir ✅</button>
+        </div>
+    </div>
+</section>

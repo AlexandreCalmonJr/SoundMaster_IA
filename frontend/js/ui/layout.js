@@ -25,6 +25,7 @@
                 { id: 'acustica',     label: 'Acústica' },
                 { id: 'benchmarking', label: 'Benchmarking' },
                 { id: 'spl-heatmap',  label: 'Mapa de Calor SPL' },
+                { id: 'coverage-map', label: 'Mapa de Cobertura' },
             ]
         },
         analysis: {
@@ -33,6 +34,7 @@
                 { id: 'analyzer',             label: 'FFT & Waterfall' },
                 { id: 'analyzer-signals',     label: 'Gerador de Sinais' },
                 { id: 'analyzer-calibration', label: 'Calibração' },
+                { id: 'ir-measurement',       label: 'Resposta ao Impulso' },
                 { id: 'feedback-detector',    label: 'Detector Feedback' },
                 { id: 'eq-guide',             label: 'Guia de EQ' },
             ]
@@ -52,6 +54,7 @@
             items: [
                 { id: 'eq',           label: 'Equalização' },
                 { id: 'auto-eq',      label: 'Auto-EQ / Target Curve' },
+                { id: 'delay-align',  label: 'Alinhamento Delay' },
             ]
         },
         automation: {

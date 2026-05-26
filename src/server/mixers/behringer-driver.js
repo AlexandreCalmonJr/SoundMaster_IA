@@ -133,6 +133,58 @@ class BehringerMaster {
     afs() { return { enable: () => {}, disable: () => {} }; }
 }
 
+function _handleOscMessage(msg, driverCache) {
+    if (!msg || !msg.address) return;
+    const addr = msg.address;
+    const args = msg.args || [];
+
+    const chMatch = addr.match(/^\/ch\/(\d{2})\/(.+)/);
+    if (chMatch) {
+        const chIdx = parseInt(chMatch[1], 10);
+        const param = chMatch[2];
+        const val = args[0] && args[0].value;
+
+        if (driverCache._inputCache[chIdx]) {
+            const ch = driverCache._inputCache[chIdx];
+            if (param === 'mix/fader' && typeof val === 'number') {
+                ch._events.emit('faderLevel', val);
+            } else if (param === 'mix/on' && typeof val === 'number') {
+                ch._events.emit('mute', val === 0);
+            } else if (param === 'config/name' && typeof val === 'string') {
+                ch._events.emit('name', val);
+            }
+        }
+        return;
+    }
+
+    const lrMatch = addr.match(/^\/lr\/(.+)/);
+    if (lrMatch && driverCache._master) {
+        const param = lrMatch[1];
+        const val = args[0] && args[0].value;
+        if (param === 'mix/fader' && typeof val === 'number') {
+            driverCache._master._events.emit('faderLevel', val);
+            const dbVal = val > 0 ? 20 * Math.log10(val) : -Infinity;
+            driverCache._master._events.emit('faderLevelDB', dbVal);
+        }
+        return;
+    }
+
+    const headampMatch = addr.match(/^\/headamp\/(\d{2})\/(.+)/);
+    if (headampMatch) {
+        const chIdx = parseInt(headampMatch[1], 10);
+        const param = headampMatch[2];
+        const val = args[0] && args[0].value;
+        driverCache._headampGains = driverCache._headampGains || {};
+        if (param === 'gain') driverCache._headampGains[chIdx] = val;
+        return;
+    }
+
+    if (addr === '/xinfo' && args.length > 0) {
+        driverCache.model = String(args[0].value || 'X32');
+        return;
+    }
+}
+
 function buildBehringerMixer(ip, options) {
     const { socket, mixerSingleton } = options;
     const driverEvents = new EventEmitter();
@@ -233,7 +285,6 @@ function buildBehringerMixer(ip, options) {
         volume: { solo: { setFaderLevel: () => {} }, headphone: () => ({ setFaderLevel: () => {} }) },
 
         disconnect: () => {
-            if (driver._server) try { driver._server.close(); } catch (_) {}
             if (driver._client) try { driver._client.close(); } catch (_) {}
             if (mixerSingleton) mixerSingleton.setMixer(null);
         },
@@ -259,6 +310,10 @@ function buildBehringerMixer(ip, options) {
                             console.warn(`[Behringer] OSC send error (${address}):`, e.message);
                         }
                     };
+
+                    driver._client.on('message', (oscMsg) => {
+                        _handleOscMessage(oscMsg, driver);
+                    });
 
                     driver._client.on('ready', () => {
                         driverEvents.emit('status', 0);

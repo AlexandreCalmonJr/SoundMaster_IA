@@ -131,6 +131,40 @@ class YamahaMaster {
     afs() { return { enable: () => {}, disable: () => {} }; }
 }
 
+function _handleOscMessageTF(msg, driverCache) {
+    if (!msg || !msg.address) return;
+    const addr = msg.address;
+    const args = msg.args || [];
+
+    const chMatch = addr.match(/^\/tf\/(\d+)\/(.+)/);
+    if (chMatch) {
+        const chIdx = parseInt(chMatch[1], 10);
+        const param = chMatch[2];
+        const val = args[0] && args[0].value;
+
+        if (driverCache._inputCache[chIdx]) {
+            const ch = driverCache._inputCache[chIdx];
+            if (param === 'mix/level' && typeof val === 'number') {
+                ch._events.emit('faderLevel', val);
+            } else if (param === 'mix/on' && typeof val === 'number') {
+                ch._events.emit('mute', val === 0);
+            }
+        }
+        return;
+    }
+
+    const stMatch = addr.match(/^\/st\/(.+)/);
+    if (stMatch && driverCache._master) {
+        const param = stMatch[1];
+        const val = args[0] && args[0].value;
+        if (param === 'mix/level' && typeof val === 'number') {
+            driverCache._master._events.emit('faderLevel', val);
+            const dbVal = val > 0 ? 20 * Math.log10(val) : -Infinity;
+            driverCache._master._events.emit('faderLevelDB', dbVal);
+        }
+    }
+}
+
 function buildYamahaMixer(ip, options) {
     const { socket, mixerSingleton } = options;
     const driverEvents = new EventEmitter();
@@ -256,6 +290,10 @@ function buildYamahaMixer(ip, options) {
                             console.warn(`[Yamaha] OSC send error (${address}):`, e.message);
                         }
                     };
+
+                    driver._client.on('message', (oscMsg) => {
+                        _handleOscMessageTF(oscMsg, driver);
+                    });
 
                     driver._client.on('ready', () => {
                         driverEvents.emit('status', 0);

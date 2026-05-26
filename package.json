@@ -33,9 +33,17 @@
       {
         "from": "docs/",
         "to": "docs/",
-        "filter": [
-          "**/*"
-        ]
+        "filter": ["**/*"]
+      },
+      {
+        "from": "scripts/",
+        "to": "scripts/",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "backend/ai/",
+        "to": "backend/ai/",
+        "filter": ["**/*", "!.git"]
       }
     ]
   },

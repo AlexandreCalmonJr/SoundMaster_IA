@@ -360,6 +360,38 @@
         return lines.join('\n');
     }
 
+    // ─── Exportação PEQ (Lake / Genérico) ─────────────────────────────────────
+
+    function exportLake(peqBands) {
+        if (!peqBands || peqBands.length === 0) return '';
+        const lines = ['# Lake Mesa EQ Preset (SoundAssist)', '# Formato: Filtro,Freq(Hz),Gain(dB),Q,Tipo'];
+        peqBands.forEach((b, i) => {
+            const type = b.type || 'PEQ';
+            lines.push(`PEQ${i + 1},${b.hz},${b.gainDb.toFixed(1)},${b.q.toFixed(2)},${type}`);
+        });
+        return lines.join('\n');
+    }
+
+    function exportGenericPEQ(peqBands) {
+        if (!peqBands || peqBands.length === 0) return '';
+        const lines = ['# SoundAssist PEQ Export', '# freq_hz gain_db q type'];
+        peqBands.forEach(b => {
+            const type = b.type || 'PEQ';
+            lines.push(`${b.hz}\t${b.gainDb.toFixed(1)}\t${b.q.toFixed(2)}\t${type}`);
+        });
+        return lines.join('\n');
+    }
+
+    function downloadEqData(content, filename, mimeType) {
+        const blob = new Blob([content], { type: mimeType || 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
     // ─── Controlo de curva alvo ───────────────────────────────────────────────
 
     function setTarget(name, customPoints = null) {

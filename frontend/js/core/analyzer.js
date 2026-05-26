@@ -846,7 +846,8 @@
                     echoCancellation: false,
                     noiseSuppression: false,
                     autoGainControl: false,
-                    channelCount: useStereo ? 2 : 1
+                    channelCount: useStereo ? 2 : 1,
+                    latency: 0.001
                 }
             };
 
@@ -858,7 +859,10 @@
             silentFrameCount = 0;
             await _populateDeviceList();
             
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)({
+                latencyHint: 'interactive',
+                sampleRate: 48000
+            });
             
             if (audioCtx.state === 'suspended') {
                 await audioCtx.resume();
@@ -1922,6 +1926,8 @@
         isAnalyzing: () => isAnalyzing,
         getLastAnalysis: () => lastAnalysis,
         getFreqData: getFreqDataSnapshot,
+        getDelayMs: () => latestTFData ? latestTFData.delayMs : null,
+        getTransferFunctionData: () => latestTFData,
         getLastRt60: () => lastRt60Result,
         getAudioContext: () => audioCtx,
         startPinkNoiseMeasurement: startPinkNoiseMeasurement,

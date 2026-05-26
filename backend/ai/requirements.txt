@@ -10,3 +10,4 @@ python-multipart>=0.0.9
 llama-cpp-python>=0.2.0  # Chat LLM local com TinyLlama (pre-built wheels disponíveis desde 0.2.x)
 requests>=2.28.0
 tqdm>=4.64.0
+sounddevice>=0.5.0  # WASAPI/ASIO capture via Python (wheels pré-compilados)
