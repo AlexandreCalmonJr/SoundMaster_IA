@@ -37,6 +37,37 @@
             var applyRow = pm._el('aeq-apply-row'); if (applyRow) applyRow.style.display = '';
         });
 
+        pm._on(pm._el('aeq-ai-btn'), 'click', async function () {
+            if (!window.AIService) { _setStatus('AIService não disponível.', 'err'); return; }
+            _setStatus('🤖 Consultando IA Python para cálculo do EQ...', '');
+            var freqData = null, sampleRate = 48000, fftSize = 8192;
+            var liveAnalyzer = window.SoundMasterAnalyzer;
+            if (liveAnalyzer && typeof liveAnalyzer.getFreqData === 'function') { var snap = liveAnalyzer.getFreqData(); if (snap) { freqData = Array.from(snap.data); sampleRate = snap.sampleRate || 48000; fftSize = snap.fftSize || 8192; } }
+            if (!freqData || freqData.length === 0) { _setStatus('❌ Sem dados do analisador ao vivo.', 'err'); return; }
+            var targetSel = pm._el('aeq-target-select');
+            var targetName = targetSel ? targetSel.value : 'smaart';
+            try {
+                var result = await AIService.autoEqFromAI(freqData, sampleRate, fftSize, targetName);
+                if (result && result.peq) {
+                    _lastResult = result;
+                    if (window.AutoEqRenderer) {
+                        AutoEqRenderer.renderStats(result.stats, targetName);
+                        AutoEqRenderer.renderPEQ(pm._el('aeq-peq-content'), result.peq);
+                        AutoEqRenderer.renderGEQ(pm._el('aeq-geq-content'), result.geq);
+                        var canvas = pm._el('aeq-canvas');
+                        if (canvas && result.geq) AutoEqRenderer.drawGraph(canvas, result, freqData, sampleRate, fftSize);
+                    }
+                    var exportBtn = pm._el('aeq-export-btn'); if (exportBtn) exportBtn.disabled = false;
+                    var exportLakeBtn = pm._el('aeq-export-lake-btn'); if (exportLakeBtn) exportLakeBtn.disabled = false;
+                    var exportPeqBtn = pm._el('aeq-export-peq-btn'); if (exportPeqBtn) exportPeqBtn.disabled = false;
+                    var applyRow = pm._el('aeq-apply-row'); if (applyRow) applyRow.style.display = '';
+                    _setStatus('✅ EQ calculado pela IA Python.', 'ok');
+                } else {
+                    _setStatus('❌ IA não retornou resultados. Usando motor local.', 'err');
+                    pm._el('aeq-analyze-btn') && pm._el('aeq-analyze-btn').click();
+                }
+            } catch (e) { _setStatus('❌ Erro IA: ' + e.message, 'err'); }
+        });
         pm._on(pm._el('aeq-export-btn'), 'click', function () { if (!window.AutoEQ) return; AutoEQ.downloadEqData(AutoEQ.exportGEQ(), 'auto-eq-geq.csv', 'text/csv'); });
         pm._on(pm._el('aeq-export-lake-btn'), 'click', function () { if (!window.AutoEQ || !_lastResult) return; AutoEQ.downloadEqData(AutoEQ.exportLake(_lastResult.peq), 'auto-eq-lake.txt', 'text/plain'); });
         pm._on(pm._el('aeq-export-peq-btn'), 'click', function () { if (!window.AutoEQ || !_lastResult) return; AutoEQ.downloadEqData(AutoEQ.exportGenericPEQ(_lastResult.peq), 'auto-eq-peq.txt', 'text/plain'); });

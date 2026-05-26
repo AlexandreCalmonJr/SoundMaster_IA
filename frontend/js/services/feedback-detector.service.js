@@ -43,6 +43,12 @@
         );
         const allAboveThreshold = _history.every(p => p.db > threshold);
 
+        // Also check YAMNet classification — if AI says "Feedback", trust it
+        const lastClass = window._lastYamnetClassification;
+        if (lastClass && lastClass.topClass && /feedback|howl|squeal/i.test(lastClass.topClass)) {
+            return true;
+        }
+
         return allSimilarFreq && allAboveThreshold;
     }
 

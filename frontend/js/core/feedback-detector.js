@@ -60,6 +60,9 @@
                     autoCutHistory[bandId] = newCut;
                     autoCutCooldown = 60; // 1 second cooldown at 60fps
 
+                    if (window.AIService && typeof AIService.sendTrainingEvent === 'function') {
+                        AIService.sendTrainingEvent(exactFreq, peakDb, neighborAvg, newCut, true);
+                    }
                     if (window.MixerService) {
                         if (typeof MixerService.applyNotchFilter === 'function') {
                             MixerService.applyNotchFilter('master', exactFreq, -3);

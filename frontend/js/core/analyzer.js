@@ -54,6 +54,26 @@
     let sweepCaptureActive = false;
     let isSweepActive = false;
 
+    // YAMNet live classification
+    let _classifyBuffer = [];
+    let _classifyFrameCount = 0;
+    let _lastClassification = null;
+    let _classifyCooldown = 0;
+
+    const _CLASS_ICON_MAP = [
+        { match: /speech|voice|conversation|narration/i, icon: '🎤', label: 'Fala', detail: 'Voz/fala detectada' },
+        { match: /music|song|instrument|guitar|piano|drum|bass/i, icon: '🎵', label: 'Música', detail: 'Conteúdo musical' },
+        { match: /feedback|howl|squeal|oscillation/i, icon: '🚨', label: 'Microfonia', detail: 'Risco de feedback detectado!' },
+        { match: /applause|clap/i, icon: '👏', label: 'Aplausos', detail: 'Aplausos da plateia' },
+        { match: /laughter/i, icon: '😂', label: 'Risada', detail: 'Risada da plateia' },
+        { match: /silence|quiet|still/i, icon: '🔇', label: 'Silêncio', detail: 'Ambiente silencioso' },
+        { match: /noise|rumble|hum/i, icon: '💨', label: 'Ruído', detail: 'Ruído ambiente' },
+        { match: /wind|breath/i, icon: '🌬️', label: 'Sopro', detail: 'Sopro ou ruído de boca' },
+        { match: /telephone|ring|bell/i, icon: '🔔', label: 'Campainha', detail: 'Toque de telefone/sino' },
+        { match: /vehicle|car|engine|traffic/i, icon: '🚗', label: 'Trânsito', detail: 'Ruído de veículo' },
+        { match: /footstep|step|walk/i, icon: '👣', label: 'Passos', detail: 'Passos no palco' },
+    ];
+
     function handleTfButtonClick(e) {
         const btn = e.target.closest('button');
         if (!btn || !btn.id) return;
@@ -1134,6 +1154,55 @@
         }
     }
 
+    function _mapClassification(className) {
+        if (!className) return { icon: _CLASS_DEFAULT_ICON, label: _CLASS_DEFAULT_LABEL, detail: _CLASS_DEFAULT_DETAIL };
+        for (const entry of _CLASS_ICON_MAP) {
+            if (entry.match.test(className)) return entry;
+        }
+        return { icon: _CLASS_DEFAULT_ICON, label: _CLASS_DEFAULT_LABEL, detail: className };
+    }
+
+    function _renderClassification(result) {
+        _lastClassification = result;
+        window._lastYamnetClassification = result;
+        const badge = document.getElementById('ai-classification-badge');
+        const iconEl = document.getElementById('ai-classification-icon');
+        const labelEl = document.getElementById('ai-classification-label');
+        const scoreEl = document.getElementById('ai-classification-score');
+        const detailEl = document.getElementById('ai-classification-detail');
+        if (!badge || !labelEl) return;
+
+        if (!result || !result.topClass) {
+            badge.classList.add('hidden');
+            return;
+        }
+
+        const mapped = _mapClassification(result.topClass);
+        if (iconEl) iconEl.textContent = mapped.icon;
+        labelEl.textContent = mapped.label;
+        if (scoreEl) scoreEl.textContent = Math.round((result.topScore || 0) * 100) + '%';
+        if (detailEl) detailEl.textContent = mapped.detail;
+        badge.classList.remove('hidden');
+
+        // Color coding based on detection
+        const isFeedback = mapped.label === 'Microfonia';
+        const isSilence = mapped.label === 'Silêncio';
+        badge.className = 'rounded-xl p-3 flex items-center gap-3 animate-in fade-in duration-500 ' +
+            (isFeedback ? 'bg-gradient-to-r from-red-900/60 to-orange-900/40 border border-red-500/30' :
+             isSilence ? 'bg-gradient-to-r from-slate-900/60 to-slate-800/40 border border-slate-500/30' :
+             'bg-gradient-to-r from-indigo-900/60 to-purple-900/40 border border-indigo-500/30');
+    }
+
+    async function _runClassification(samples, sampleRate) {
+        if (!window.AIService || typeof window.AIService.classifyAudio !== 'function') return;
+        try {
+            const result = await AIService.classifyAudio(samples, sampleRate, 3, 0.05);
+            if (result && result.topClass) {
+                _renderClassification(result);
+            }
+        } catch (_) {}
+    }
+
     function analyze() {
         if (!isAnalyzing) return;
         
@@ -1552,6 +1621,21 @@
                     db: peakDb, 
                     prevDb: lastAnalysis?.details?.peakDb || -100 
                 });
+            }
+
+            // YAMNet live classification (every ~2 seconds)
+            _classifyCooldown--;
+            if (timeData && peakDb > -60 && audioCtx) {
+                _classifyBuffer.push(...timeData);
+                _classifyFrameCount++;
+                const requiredFrames = Math.ceil(audioCtx.sampleRate / timeData.length) * 2;
+                if (_classifyFrameCount >= requiredFrames && _classifyCooldown <= 0) {
+                    const samples = _classifyBuffer.slice(0, Math.min(_classifyBuffer.length, audioCtx.sampleRate * 2));
+                    _classifyBuffer = [];
+                    _classifyFrameCount = 0;
+                    _classifyCooldown = 120;
+                    _runClassification(samples, audioCtx.sampleRate);
+                }
             }
         } catch (err) {
             console.error('[Analyzer] analyze() error:', err);

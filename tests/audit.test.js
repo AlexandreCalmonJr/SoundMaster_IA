@@ -81,6 +81,7 @@ const EXPECTED_MENU_STRUCTURE = {
     icon: 'desktop',
     submenus: [
       { id: 'systems', name: 'Conexão Ui24R', file: 'pages/systems.html' },
+      { id: 'hardware-diagnostics', name: 'Diagnóstico de Hardware', file: 'pages/hardware-diagnostics.html' },
       { id: 'aes67', name: 'Saúde de Cabos (AES67)', file: 'pages/aes67.html' },
       { id: 'settings', name: 'Preferências', file: 'pages/settings.html' },
       { id: 'debug', name: 'Console de Depuração', file: 'pages/debug.html' }
@@ -125,6 +126,7 @@ const EXPECTED_PAGES = [
   { id: 'systems', file: 'pages/systems.html', category: 'Sistema' },
   { id: 'aes67', file: 'pages/aes67.html', category: 'Sistema' },
   { id: 'settings', file: 'pages/settings.html', category: 'Sistema' },
+  { id: 'hardware-diagnostics', file: 'pages/hardware-diagnostics.html', category: 'Sistema' },
   { id: 'debug', file: 'pages/debug.html', category: 'Sistema' },
   { id: 'ai-chat', file: 'pages/ai-chat.html', category: null },
   { id: 'mobile', file: 'pages/mobile.html', category: null },
@@ -155,14 +157,14 @@ describe('📋 AUDITA - Estrutura de Menus', function() {
     assert.strictEqual(directMenus.length, 4, `Esperado 4 menus diretos, encontrado ${directMenus.length}`);
   });
 
-  it('Deve ter 21 submenus no total', function() {
+  it('Deve ter 22 submenus no total', function() {
     let submenuCount = 0;
     Object.values(EXPECTED_MENU_STRUCTURE).forEach(menu => {
       if (menu.submenus) {
         submenuCount += menu.submenus.length;
       }
     });
-    assert.strictEqual(submenuCount, 21, `Esperado 21 submenus, encontrado ${submenuCount}`);
+    assert.strictEqual(submenuCount, 22, `Esperado 22 submenus, encontrado ${submenuCount}`);
   });
 
   it('Deve ter 3 submenus em "Medir"', function() {
@@ -185,8 +187,8 @@ describe('📋 AUDITA - Estrutura de Menus', function() {
     assert.strictEqual(EXPECTED_MENU_STRUCTURE.automation.submenus.length, 3, 'Automação deve ter 3 submenus');
   });
 
-  it('Deve ter 4 submenus em "Sistema"', function() {
-    assert.strictEqual(EXPECTED_MENU_STRUCTURE.system.submenus.length, 4, 'Sistema deve ter 4 submenus');
+  it('Deve ter 5 submenus em "Sistema"', function() {
+    assert.strictEqual(EXPECTED_MENU_STRUCTURE.system.submenus.length, 5, 'Sistema deve ter 5 submenus');
   });
 });
 
@@ -219,11 +221,11 @@ describe('🧩 AUDITA - Componentes Shell', function() {
 
 describe('📄 AUDITA - Páginas e Views', function() {
   
-  it('Deve haver 26 páginas no total', function() {
+  it('Deve haver 27 páginas no total', function() {
     assert.strictEqual(
       EXPECTED_PAGES.length,
-      26,
-      `Esperado 26 páginas, encontrado ${EXPECTED_PAGES.length}`
+      27,
+      `Esperado 27 páginas, encontrado ${EXPECTED_PAGES.length}`
     );
   });
 
@@ -358,9 +360,9 @@ describe('🏷️ AUDITA - Categorização de Páginas', function() {
     assert.strictEqual(count, 3, `Esperado 3 páginas em Automação, encontrado ${count}`);
   });
 
-  it('Deve haver 4 páginas na categoria "Sistema"', function() {
+  it('Deve haver 5 páginas na categoria "Sistema"', function() {
     const count = EXPECTED_PAGES.filter(p => p.category === 'Sistema').length;
-    assert.strictEqual(count, 4, `Esperado 4 páginas em Sistema, encontrado ${count}`);
+    assert.strictEqual(count, 5, `Esperado 5 páginas em Sistema, encontrado ${count}`);
   });
 });
 

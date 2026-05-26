@@ -98,11 +98,15 @@ class LocalLLM:
 
         profile_names = {'janelas_vidro': 'Janelas/Vidro', 'teto_alto': 'Teto Alto', 'paredes_paralelas': 'Paredes Paralelas'}
         system_prompt = (
-            "Você é o SoundMaster IA, engenheiro de som especialista em igrejas e auditórios. "
-            "Seja conciso, técnico e direto ao ponto. "
-            "Use termos técnicos em português (ganho, equalização, reverberação, microfonia, retorno). "
+            "Você é o SoundMaster IA — assistente amigável de som para igrejas. "
+            "Fale de forma simples, calorosa e acolhedora, como um colega ajudando outro. "
+            "EVITE jargão técnico. Use palavras do dia a dia. "
+            "Exemplos: 'som abafado' ao invés de 'excesso de energia subsônica'; "
+            "'chiado' ao invés de 'sibilância'; 'o som está estranho' ao invés de 'anomalia espectral'. "
+            "Cumprimente com 'Bom dia!', 'Olá!', 'Tudo bem?'. "
+            "Seja paciente e encorajador. Seu objetivo é ajudar voluntários de igreja a terem um som melhor. "
             f"Perfil ativo da sala: {profile_names.get(context_data.get('room_profile'), context_data.get('room_profile', 'desconhecido')) if context_data else 'desconhecido'}. "
-            "Sugira ações práticas no mixer digital quando aplicável."
+            "Sugira ações práticas de forma simples."
         )
         if context_data:
             system_prompt += f" Contexto Atual: RT60={context_data.get('rt60')}s, Pico={context_data.get('peakHz')}Hz, RMS={context_data.get('rms')}dB."
@@ -226,6 +230,13 @@ class AIEngine:
         if mixer_state and isinstance(mixer_state, dict):
             classification = mixer_state.get('classification')
 
+        # Saudação inicial
+        if re.search(r'^(bom dia|boa tarde|boa noite|olá|ola|oi|oie|fala|e aí|e ai|tudo bem|hello|hey)', text):
+            return {"text": "Bom dia! 😊 Como posso ajudar com o som hoje? Pode me falar o que está achando — se está abafado, estranho, baixo demais... estou aqui pra ajudar!", "command": None}
+
+        if re.search(r'(obrigado|valeu|brigado|thanks|muito obrigado)', text):
+            return {"text": "Por nada! Fico feliz em ajudar. Qualquer coisa é só chamar! 😊", "command": None}
+
         # 0.1. Auditoria do Mixer
         if re.search(r'(auditar|auditoria|verificar mesa|status da mesa|analise da mesa|diagnostico da mesa|audit)', text):
             alerts = []
@@ -241,14 +252,14 @@ class AIEngine:
                 master_state = full_state.get('master')
             
             if master_state and master_state.get('mute') == 1:
-                alerts.append("- **Master Mutado:** O Master geral da mesa esta mutado. Nenhum som saira para os PAs.")
-                suggested_cmds.append(self.command("master_mute", "Desmutar Master", enabled=False))
+                alerts.append("- **Master sem som:** O volume geral da mesa esta mutado! Nada vai sair para as caixas de som.")
+                suggested_cmds.append(self.command("master_mute", "Tirar mute do Master", enabled=False))
             
             # B) Verificar Master Clipando
             if all_vus and 'master' in all_vus:
                 master_vu = self._safe_float(all_vus.get('master'), 0.0)
                 if master_vu > 0.98:
-                    alerts.append(f"- **Master Clipando:** O volume geral esta muito alto (VU em {int(master_vu*100)}%). Risco de distorcao.")
+                    alerts.append(f"- **Som distorcendo:** O volume geral esta muito alto ({int(master_vu*100)}%). O som pode estar estourando.")
                     suggested_cmds.append(self.command("volume_down", "Abaixar Master em 3dB", target="master", val=3))
             
             # C) Canais Mutados com VU ativo
@@ -262,8 +273,8 @@ class AIEngine:
                     vu_val = self._safe_float(all_vus['channels'].get(str(ch_idx)) or all_vus['channels'].get(ch_idx), 0.0)
                 
                 if mute == 1 and vu_val > 0.05:
-                    alerts.append(f"- **Mute com Sinal:** O canal {ch_idx} ({ch_name}) esta mutado, mas recebendo sinal ativo (VU em {int(vu_val*100)}%).")
-                    suggested_cmds.append(self.command("channel_mute", f"Desmutar {ch_name}", channel=ch_idx, enabled=False))
+                    alerts.append(f"- **Mudo mas com som:** O canal {ch_idx} ({ch_name}) esta mutado, mas tem gente falando/tocando nele ({int(vu_val*100)}% de sinal).")
+                    suggested_cmds.append(self.command("channel_mute", f"Tirar mute do {ch_name}", channel=ch_idx, enabled=False))
             
             # D) Vozes sem HPF
             for idx, ch in enumerate(inputs):
@@ -274,8 +285,8 @@ class AIEngine:
                 
                 if any(k in ch_name_lower for k in ['voz', 'past', 'mic', 'preg', 'minist', 'cant', 'lead', 'coral']):
                     if hpf <= 50:
-                        alerts.append(f"- **Voz sem HPF:** O canal {ch_idx} ({ch_name}) esta sem filtro passa-altas (HPF em {int(hpf)}Hz). Risco de embolamento de graves.")
-                        suggested_cmds.append(self.command("apply_channel_hpf", f"Ativar HPF 100Hz no {ch_name}", channel=ch_idx, hz=100))
+                        alerts.append(f"- **Voz sem filtro de graves:** O canal {ch_idx} ({ch_name}) nao tem o filtro de graves ligado. Pode estar pegando muito som grosso.")
+                        suggested_cmds.append(self.command("apply_channel_hpf", f"Ligar filtro de graves no {ch_name}", channel=ch_idx, hz=100))
             
             # E) Sem Compressao em Canais Criticos (Canais de voz ativos sem compressor)
             for idx, ch in enumerate(inputs):
@@ -290,16 +301,16 @@ class AIEngine:
                 
                 if any(k in ch_name_lower for k in ['voz', 'past', 'mic', 'preg']):
                     if comp == 0 and vu_val > 0.1:
-                        alerts.append(f"- **Voz sem Compressor:** Canal {ch_idx} ({ch_name}) esta recebendo sinal ativo mas esta sem compressor. Risco de picos de volume.")
+                        alerts.append(f"- **Voz sem proteção de volume:** Canal {ch_idx} ({ch_name}) ta com som mas sem compressor ligado. Pode dar picos de volume repentinos.")
             
             if not alerts:
                 report_md = """
-# Auditoria de Mesa Soundcraft
+# Auditoria da Mesa
 
-Tudo certo! Nao detectei nenhum problema critico de mutes, EQs ou filtros nas vozes ativas.
+Tudo certo! Nao encontrei nenhum problema. :)
 """
                 return {
-                    "text": "Auditoria concluida. Todos os canais estao configurados corretamente.",
+                    "text": "Fiz uma varredura rápida na mesa e está tudo beleza! Nenhum canal mutado sem querer, nada estranho. Pode ficar tranquilo! 😊",
                     "report": report_md,
                     "command": None
                 }
@@ -395,10 +406,10 @@ Deseja aplicar a correcao recomendada?
             }
 
         # 1. Gatilho de Relatório Completo
-        if re.search(r'(relatorio|auditoria|resumo técnico|estatistica)', text):
+        if re.search(r'(relatorio|resumo|estatistica|cenario|cenário)', text):
             report_md = self.generate_technical_report(analysis)
             return {
-                "text": "Gerando seu relatório técnico detalhado agora. Analisando inteligibilidade (STI) e distância crítica...",
+                "text": "Claro! Vou preparar um resumo do som da sua sala pra você. Só um instante...",
                 "report": report_md,
                 "command": self.command("log", "Relatório Gerado: Relatório técnico enviado ao usuário")
             }
@@ -422,17 +433,17 @@ Deseja aplicar a correcao recomendada?
 
             if is_pink or "rosa" in text:
                 fft_response = {
-                    "text": f"Ouvindo a mesa completa: Pico em {peak}Hz. {room_suggestion}",
+                    "text": f"Estou ouvindo o som geral da sala. Tem uma frequência em {peak}Hz que está aparecendo mais. {room_suggestion or 'Vou dar uma ajustada fina ali.'}",
                     "command": self.command("eq_cut", f"Ajuste Geral {peak}Hz", target="master", hz=peak, gain=-3, q=1.0)
                 }
             elif "microfonia" in text or "apito" in text:
                  fft_response = {
-                    "text": f"ALERTA GERAL: Microfonia em {peak}Hz. Aplicando Notch no Master.",
+                    "text": f"Puxa, detectei aquele apinho chato em {peak}Hz! Vou aplicar um corte ali pra resolver.",
                     "command": self.command("eq_cut", f"Notch Global {peak}Hz", target="master", hz=peak, gain=-8, q=5.0, band=4)
                 }
             elif not has_specific_channel:
                 fft_response = {
-                    "text": f"Análise Global: Identifiquei acúmulo em {peak}Hz no som da sala. {room_suggestion or 'Sugiro limpar o Master.'}",
+                    "text": f"Olha só, reparei que tem uma frequência em {peak}Hz que está acumulando no som. {room_suggestion or 'Vou dar uma limpada lá.'}",
                     "command": self.command("eq_cut", f"Limpeza Sala {peak}Hz", target="master", hz=peak, gain=-2, q=1.5)
                 }
 
@@ -450,7 +461,7 @@ Deseja aplicar a correcao recomendada?
                 
                 if r125 > 2.0:
                     return {
-                        "text": f"O tempo de reverberacao RT60 em 125Hz esta muito alto ({r125}s), gerando ressonancia de graves na sala. Sugiro aplicar um corte corretivo no equalizador Master.",
+                        "text": f"O som grave está demorando muito pra sumir na sala ({r125} segundos). Isso deixa o som 'embolado'. Vou dar um ajuste no grave do equalizador geral pra melhorar.",
                         "command": self.command("eq_cut", "Corte RT60 Grave 125Hz", target="master", hz=125, gain=-4, q=1.0, band=1)
                     }
                 
@@ -465,7 +476,7 @@ Deseja aplicar a correcao recomendada?
                     profile_names = {'teto_alto': 'Teto Alto', 'paredes_paralelas': 'Paredes Paralelas', 'janelas_vidro': 'Janelas/Vidro'}
                     self.session.room_profile = detected_profile
                     return {
-                        "text": f"Assinatura acustica de {profile_names[detected_profile]} detectada via RT60. Perfil atualizado.",
+                        "text": f"Ah, percebi! Pela forma como o som se comporta, sua sala parece ser do tipo 'perfil de {profile_names[detected_profile]}'. Já ajustei minhas sugestões pra esse tipo de ambiente.",
                         "command": self.command("set_room_profile", f"Perfil: {detected_profile}", profile=detected_profile)
                     }
 
@@ -475,7 +486,7 @@ Deseja aplicar a correcao recomendada?
                 s1k = self._safe_float(spec.get('1000', -100), -100)
                 if s125 > s1k + 10:
                     return {
-                        "text": "Excesso de energia subsônica (125Hz) detectado no espectro. Sugiro HPF.",
+                        "text": "Estou sentindo que tem muito som grosso, grave demais. Isso pode estar 'embolando' o som. Vou sugerir um ajuste pra limpar isso.",
                         "command": self.command("eq_cut", "Limpeza 125Hz", target="master", hz=125, gain=-3, q=1.0)
                     }
         
@@ -495,7 +506,7 @@ Deseja aplicar a correcao recomendada?
             if detected_profile and detected_profile != self.session.room_profile:
                 profile_names = {'teto_alto': 'Teto Alto', 'paredes_paralelas': 'Paredes Paralelas', 'janelas_vidro': 'Janelas/Vidro'}
                 rt60_response = {
-                    "text": f"Detectei assinatura de {profile_names[detected_profile]}. Alterando perfil.",
+                    "text": f"Pelo som, acho que sua sala se parece com um ambiente do tipo '{profile_names[detected_profile]}'. Já ajustei minhas dicas pra isso!",
                     "command": self.command("set_room_profile", f"Mudar perfil para {detected_profile}", profile=detected_profile)
                 }
                 self.session.room_profile = detected_profile
@@ -503,14 +514,14 @@ Deseja aplicar a correcao recomendada?
 
             if bands.get('125', 0) > 2.0:
                 rt60_response = {
-                    "text": f"RT60 em 125Hz critico ({bands['125']}s). Sugiro corte no Master.",
+                    "text": f"O som grave tá demorando muito pra sumir na sala ({bands['125']}s). Isso deixa o som 'sujo'. Vou sugerir um corte no equalizador geral.",
                     "command": self.command("eq_cut", "Corte RT60 Grave 125Hz", target="master", hz=125, gain=-4, q=1.0, band=1)
                 }
             else:
                 avg_mid = (bands.get('500', 0) + bands.get('1000', 0)) / 2
                 if avg_mid > 1.5:
                     rt60_response = {
-                        "text": f"Reverberação média alta ({avg_mid:.1f}s). Sugiro reduzir 800Hz no Master.",
+                        "text": f"O som está 'ecoando' mais que o normal na sala ({avg_mid:.1f}s). As palavras podem ficar meio embaralhadas. Vou dar uma ajustada.",
                         "command": self.command("eq_cut", "Melhorar Inteligibilidade", target="master", hz=800, gain=-3, q=1.2)
                     }
 
@@ -518,36 +529,78 @@ Deseja aplicar a correcao recomendada?
         if fft_response: return fft_response
 
         # 2. Respostas por Texto
-        if re.search(r'(voz|pregador|pregação|pastor)', text):
+        if re.search(r'(voz|pregador|pregação|pastor|pregar|fala)', text):
             target = f"canal {channel}" if has_specific_channel else "canal de voz principal"
             return {
-                "text": f"Otimizando {target}. Aplicando clareza.",
+                "text": f"Vou dar uma ajustada no {target} pra voz ficar mais clara e presente!",
                 "command": self.command("run_clean_sound_preset", f"Voz {target}", channel=channel)
             }
         
-        if re.search(r'(instrumentos|banda|musical)', text):
+        if re.search(r'(instrumentos|banda|musical|louvor|ministério|ministerio)', text):
             return {
-                "text": "Ouvindo a banda. Equilibrando Master.",
+                "text": "Vou ouvir a banda e dar uma equilibrada geral pro som ficar bonito!",
                 "command": self.command("eq_cut", "Espaço Banda", target="master", hz=400, gain=-2, q=0.8)
             }
 
-        if re.search(r'(delay|atraso|distancia|metros)', text):
+        if re.search(r'(delay|atraso|distancia|metros|distância)', text):
             dist_match = re.search(r'(\d+(?:[.,]\d+)?)\s*(?:m|metro)', text)
             if dist_match:
                 meters = float(dist_match.group(1).replace(',', '.'))
                 ms = round(meters * 2.915, 1)
                 return {
-                    "text": f"Para {meters}m, delay ideal: {ms}ms no Aux 9.",
+                    "text": f"Pra {meters} metros de distância, o delay ideal é de {ms}ms no retorno. Vou aplicar!",
                     "command": self.command("set_delay", f"Delay {meters}m", aux=9, ms=ms)
                 }
 
-        if re.search(r'(retorno|monitor|auxiliar)', text):
-            aux_match = re.search(r'(?:aux|monitor|auxiliar)\s*(\d{1,2})', text)
+        if re.search(r'(retorno|monitor|auxiliar|volta|ouvir no palco)', text):
+            aux_match = re.search(r'(?:aux|monitor|auxiliar|retorno)\s*(\d{1,2})', text)
             aux_ch = int(aux_match.group(1)) if aux_match else 1
             if "mais" in text or "aumentar" in text:
-                return {"text": f"Aumentando canal {channel} no Aux {aux_ch}.", "command": self.command("set_aux_level", "Aumentar Aux", channel=channel, aux=aux_ch, level=0.8)}
-            if "mudo" in text or "mutar" in text:
-                return {"text": f"Mutando canal {channel} no Aux {aux_ch}.", "command": self.command("set_aux_level", "Mute Aux", channel=channel, aux=aux_ch, level=0)}
+                return {"text": f"Beleza! Vou aumentar o canal {channel} no retorno {aux_ch}.", "command": self.command("set_aux_level", "Aumentar Aux", channel=channel, aux=aux_ch, level=0.8)}
+            if "mudo" in text or "mutar" in text or "tira" in text:
+                return {"text": f"Ok, vou tirar o canal {channel} do retorno {aux_ch}.", "command": self.command("set_aux_level", "Mute Aux", channel=channel, aux=aux_ch, level=0)}
+
+        # Entender linguagem do dia a dia (não técnica)
+        if re.search(r'(abafado|embolado|sujo|estranho|estourando|ruim|horrivel|piorou)', text):
+            return {
+                "text": "Poxa, que pena que o som não tá legal! 😕 Pode ser que tenha algum acúmulo de frequência. Vou dar uma olhada no equalizador e sugerir uma limpeza.",
+                "command": self.command("eq_cut", "Limpeza Geral", target="master", hz=400, gain=-2, q=1.0)
+            }
+        if re.search(r'(baixo|frac[oa]|pouco som|quase nao ouve|nao ta saindo)', text):
+            return {
+                "text": "Vou dar uma verificada! Pode ser que algum canal esteja com volume baixo ou mute ligado sem querer. Deixa comigo!",
+                "command": self.command("log", "Verificação de volume solicitada")
+            }
+        if re.search(r'(alto demais|estourando|muito alto|ta doendo)', text):
+            return {
+                "text": "Nossa, vou baixar um pouco então! Melhor prevenir do que estourar as caixas de som e incomodar a galera. 😅",
+                "command": self.command("volume_down", "Abaixar volume geral", target="master", val=3)
+            }
+        if re.search(r'(apito|apitando|microfonia|chiado|zumbido|assovio|guincho|realimenta)', text):
+            return {
+                "text": "Ah, esse apito chato! 😬 Vou procurar a frequência e dar um corte pra resolver. Pode ficar tranquilo!",
+                "command": self.command("eq_cut", "Corte de Apito", target="master", hz=1000, gain=-5, q=3.0)
+            }
+        if re.search(r'(eco|reverberando|soando|espaco|vazio|acustica)', text):
+            return {
+                "text": "Parece que a sala está muito 'viva', com muito eco. Infelizmente não posso mudar a construção da sala, mas posso ajudar com ajustes no equalizador pra melhorar!",
+                "command": self.command("eq_cut", "Melhorar acústica", target="master", hz=800, gain=-2, q=1.0)
+            }
+        if re.search(r'(grosso|pesado|grave demais|bumbo|sub|tremendo)', text):
+            return {
+                "text": "Tem muito grave acumulado, né? Vou limpar as frequências graves pra não ficar 'embolado'. O som vai ficar mais limpo!",
+                "command": self.command("eq_cut", "Limpeza de Graves", target="master", hz=125, gain=-3, q=1.0)
+            }
+        if re.search(r'(fino|agudo|fino demais|sibilancia|brilho|agudo)', text):
+            return {
+                "text": "Os agudos estão incomodando? Vou suavizar as frequências mais altas pra ficar mais confortável.",
+                "command": self.command("eq_cut", "Suavizar Agudos", target="master", hz=6000, gain=-2, q=1.5)
+            }
+        if re.search(r'(claro|entender|inteligivel|entendo|entender as palavras)', text):
+            return {
+                "text": "A clareza da voz é super importante! Vou dar uma ajustada nas frequências da voz pra ficar mais nítido. 😊",
+                "command": self.command("run_clean_sound_preset", "Melhorar clareza da voz", channel=channel)
+            }
 
         # 3. Fallback: IA Local (Modelo Leve)
         if self.llm:
@@ -567,4 +620,4 @@ Deseja aplicar a correcao recomendada?
             if llm_response:
                 return {"text": llm_response, "command": None, "source": "local_llm"}
 
-        return {"text": "Estou ouvindo. Posso sugerir ajustes técnicos, aplicar presets de voz ou gerar um relatório detalhado da sua acústica.", "command": None}
+        return {"text": "Olá! 😊 Me diga o que você está sentindo no som: está baixo, estranho, abafado, apitando? Pode falar do seu jeito que eu entendo e ajudo!", "command": None}

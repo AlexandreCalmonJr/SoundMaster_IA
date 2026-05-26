@@ -69,6 +69,7 @@
             title: 'Sistema',
             items: [
                 { id: 'systems', label: 'Conexão Ui24R' },
+                { id: 'hardware-diagnostics', label: 'Diagnóstico de Hardware' },
                 { id: 'aes67',   label: 'Saúde de Cabos (AES67)' },
                 { id: 'settings', label: 'Preferências' },
                 { id: 'debug',    label: 'Console de Depuração' },

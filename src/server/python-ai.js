@@ -1,6 +1,7 @@
 const { spawn, execSync, spawnSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const Logger = require('./logger');
 const http = require('http');
 const { app } = require('electron');
@@ -30,10 +31,52 @@ function _getVenvPython(rootDir) {
     return candidates.find(fs.existsSync) || null;
 }
 
+const DEPS_STATE_PATH = path.join(__dirname, '..', '..', 'backend', 'ai', '.deps_state.json');
+
+function _areLongPathsEnabled() {
+    if (process.platform !== 'win32') return true;
+    try {
+        const out = execSync('reg query "HKLM\\System\\CurrentControlSet\\Control\\FileSystem" /v LongPathsEnabled', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
+        return out.includes('0x1');
+    } catch (_) {
+        return false;
+    }
+}
+
+function _getFileHash(filePath) {
+    try {
+        const content = fs.readFileSync(filePath, 'utf8');
+        return crypto.createHash('sha256').update(content).digest('hex');
+    } catch (_) {
+        return '';
+    }
+}
+
 function _ensurePythonDeps() {
     const requirementsPath = REQS_PATH;
     if (!fs.existsSync(requirementsPath)) {
         console.warn('[Python AI] requirements.txt não encontrado em:', requirementsPath);
+        return;
+    }
+
+    const currentHash = _getFileHash(requirementsPath);
+    const longPathsEnabled = _areLongPathsEnabled();
+    const statePath = DEPS_STATE_PATH;
+
+    // Tenta ler o estado atual
+    let savedState = null;
+    if (fs.existsSync(statePath)) {
+        try {
+            savedState = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+        } catch (_) {}
+    }
+
+    // Se o estado já for válido e bem-sucedido, ignora a instalação
+    if (savedState &&
+        savedState.requirementsHash === currentHash &&
+        savedState.longPathsEnabled === longPathsEnabled &&
+        savedState.success === true) {
+        console.log('[Python AI] Dependências Python já validadas e atualizadas.');
         return;
     }
 
@@ -44,25 +87,30 @@ function _ensurePythonDeps() {
     candidates.push('python', 'python3');
     if (process.platform === 'win32') candidates.push('py');
 
-    for (const cmd of candidates) {
-        try {
-            const checkResult = spawnSync(cmd, ['-c', 'import fastapi, multipart'], { stdio: 'ignore' });
-            if (checkResult.status === 0) {
-                console.log(`[Python AI] Dependências já instaladas (${cmd}).`);
-                return; // fastapi disponível, deps ok
-            }
-        } catch (_) {
-            console.warn(`[Python AI] Comando ${cmd} não disponível para verificação de dependências: ${_.message}`);
+    // Se as dependências de base (fastapi e multipart) já estiverem instaladas E o estado tiver gravado sucesso=false para o mesmo hash e longPaths,
+    // nós não tentamos reinstalar para não travar o startup da aplicação em um loop eterno de falhas.
+    if (savedState &&
+        savedState.requirementsHash === currentHash &&
+        savedState.longPathsEnabled === longPathsEnabled &&
+        savedState.success === false) {
+        // Verifica se pelo menos o fastapi e multipart estão instalados
+        for (const cmd of candidates) {
+            try {
+                const checkResult = spawnSync(cmd, ['-c', 'import fastapi, multipart'], { stdio: 'ignore' });
+                if (checkResult.status === 0) {
+                    console.log(`[Python AI] Instalação anterior falhou, mas fastapi/multipart estão disponíveis (${cmd}). Iniciando em modo Lite.`);
+                    return;
+                }
+            } catch (_) {}
         }
     }
 
-    // Nenhum python tem fastapi — instalar
+    // Nenhum python com as dependências válidas. Vamos encontrar o executável Python
     const pythonCmd = candidates.find(c => {
         try {
             const versionResult = spawnSync(c, ['--version'], { stdio: 'ignore' });
             return versionResult.status === 0;
         } catch (_) {
-            console.warn(`[Python AI] Comando ${c} não disponível: ${_.message}`);
             return false;
         }
     });
@@ -73,19 +121,67 @@ function _ensurePythonDeps() {
         return;
     }
 
-    console.log('[Python AI] Instalando dependências Python (pip install -r requirements.txt)...');
+    let installReqsPath = requirementsPath;
+    let isLiteInstall = false;
+
+    if (process.platform === 'win32' && !longPathsEnabled) {
+        isLiteInstall = true;
+        console.warn('[Python AI] ⚠️ Windows Long Path support is disabled (LongPathsEnabled = 0).');
+        console.warn('[Python AI] Skipping heavy dependencies ("tensorflow", "tensorflow-hub", "llama-cpp-python") to prevent installation failure.');
+        console.warn('[Python AI] To enable full AI features (YAMNet sound classification & local LLM chat), please:');
+        console.warn('[Python AI] 1. Open PowerShell as Administrator.');
+        console.warn('[Python AI] 2. Run: Set-ItemProperty -Path "HKLM:\\System\\CurrentControlSet\\Control\\FileSystem" -Name "LongPathsEnabled" -Value 1');
+        console.warn('[Python AI] 3. Restart the application to trigger a full dependency installation.');
+
+        // Gera requirements_lite.txt filtrando os pacotes problemáticos
+        try {
+            const content = fs.readFileSync(requirementsPath, 'utf8');
+            const lines = content.split(/\r?\n/);
+            const filteredLines = lines.filter(line => {
+                const clean = line.trim().toLowerCase();
+                return !clean.startsWith('tensorflow') && !clean.startsWith('llama-cpp-python');
+            });
+            const litePath = path.join(path.dirname(requirementsPath), 'requirements_lite.txt');
+            fs.writeFileSync(litePath, filteredLines.join('\n'), 'utf8');
+            installReqsPath = litePath;
+        } catch (err) {
+            console.error('[Python AI] Falha ao criar requirements_lite.txt, usando requirements.txt padrão:', err.message);
+            isLiteInstall = false;
+        }
+    }
+
+    console.log(`[Python AI] Instalando dependências Python (pip install -r ${path.basename(installReqsPath)})...`);
+    let installSuccess = false;
+
     try {
-        const installResult = spawnSync(pythonCmd, ['-m', 'pip', 'install', '-r', requirementsPath, '--quiet'], {
+        const installResult = spawnSync(pythonCmd, ['-m', 'pip', 'install', '-r', installReqsPath, '--quiet'], {
             stdio: 'inherit',
             timeout: 300000, // 5 min
         });
         if (installResult.error) throw installResult.error;
         if (installResult.status !== 0) throw new Error(`Exit code: ${installResult.status}`);
         console.log('[Python AI] Dependências instaladas com sucesso.');
+        installSuccess = true;
     } catch (e) {
         console.error('[Python AI] Falha ao instalar dependências:', e.message);
         console.warn('[Python AI] Execute manualmente: pip install -r backend/ai/requirements.txt');
+    } finally {
+        // Limpa requirements_lite.txt se foi criado
+        if (isLiteInstall && installReqsPath !== requirementsPath && fs.existsSync(installReqsPath)) {
+            try {
+                fs.unlinkSync(installReqsPath);
+            } catch (_) {}
+        }
     }
+
+    // Salva o novo estado
+    try {
+        fs.writeFileSync(statePath, JSON.stringify({
+            requirementsHash: currentHash,
+            longPathsEnabled: longPathsEnabled,
+            success: installSuccess
+        }, null, 2), 'utf8');
+    } catch (_) {}
 }
 
 function _findPython() {
@@ -208,16 +304,18 @@ function startPythonAI(rootDir, onExitCallback) {
 
     if (pythonProcess) {
         pythonProcess.isReady = false;
-        pythonProcess.healthCheck = () => pythonProcess.isReady;
-        _waitForHealth(pythonProcess).then(() => {
+        const healthPromise = _waitForHealth(pythonProcess).then(() => {
             setAiAvailable(true);
+            return true;
         }).catch((error) => {
             console.error(`[Python AI] Health-check falhou: ${error.message}`);
             setAiAvailable(false);
             try {
                 Logger.getInstance().error('PYTHON', 'PYTHON_HEALTHCHECK_FAILED', error.message);
             } catch (_) { /* Logger pode não estar inicializado ainda */ }
+            throw error;
         });
+        pythonProcess.healthCheck = () => healthPromise;
     } else {
         setAiAvailable(false);
     }

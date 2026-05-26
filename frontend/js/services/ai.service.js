@@ -201,6 +201,97 @@
         }
     }
 
+    /**
+     * Classifica áudio em tempo real via YAMNet (Python).
+     * Envia amostras PCM Float32 para o endpoint /api/ai/classify.
+     * @param {Float32Array|number[]} samples  - 1 segundo de áudio (~48000 samples a 48kHz)
+     * @param {number} sampleRate               - taxa de amostragem (padrão 48000)
+     * @param {number} [k=5]                    - top-K classes
+     * @param {number} [threshold=0.1]          - score mínimo
+     * @returns {Promise<{classes:Array, topClass:string, topScore:number}>}
+     */
+    async function classifyAudio(samples, sampleRate = 48000, k = 5, threshold = 0.1) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        try {
+            const response = await fetch('/api/ai/classify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    audio: Array.from(samples),
+                    sampleRate,
+                    k,
+                    threshold
+                }),
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            if (!response.ok) return { classes: [], topClass: null, topScore: null };
+            return await response.json();
+        } catch (err) {
+            clearTimeout(timeoutId);
+            return { classes: [], topClass: null, topScore: null };
+        }
+    }
+
+    /**
+     * Envia dados espectrais para o Auto-EQ do Python.
+     */
+    async function autoEqFromAI(freqData, sampleRate, fftSize, targetCurve = 'smaart') {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        try {
+            const response = await fetch('/api/calculate/auto-eq', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ freqData: Array.from(freqData), sampleRate, fftSize, targetCurve }),
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            if (!response.ok) return null;
+            return await response.json();
+        } catch (err) {
+            clearTimeout(timeoutId);
+            return null;
+        }
+    }
+
+    /**
+     * Envia diagnóstico de hardware para o Python (análise de tendência).
+     */
+    async function hardwareDiagnosis(channel, snapshots) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        try {
+            const response = await fetch('/hardware_diagnosis', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ channel, snapshots, months: 6 }),
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            if (!response.ok) return null;
+            return await response.json();
+        } catch (err) {
+            clearTimeout(timeoutId);
+            return null;
+        }
+    }
+
+    /**
+     * Envia um evento de treinamento para o Python (feedback do usuário).
+     * Isso alimenta o modelo de ML para melhorar predições futuras.
+     */
+    async function sendTrainingEvent(freq, db, prevDb, gain, isFeedback) {
+        try {
+            await fetch('/train', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ freq, db, prevDb, gain, isFeedback })
+            });
+        } catch (_) {}
+    }
+
     async function listenAndAnalyze(channel) {
         if (!window.SoundMasterAnalyzer) {
             throw new Error('Analisador não disponível');
@@ -229,5 +320,5 @@
         return result;
     }
 
-    window.AIService = { ask, ping, calculateAcoustics, listenAndAnalyze };
+    window.AIService = { ask, ping, calculateAcoustics, listenAndAnalyze, classifyAudio, autoEqFromAI, hardwareDiagnosis, sendTrainingEvent };
 })();

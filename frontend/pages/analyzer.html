@@ -350,6 +350,20 @@
                 <div id="acoustic-summary" class="text-xs font-semibold text-slate-200 bg-black/40 p-3 rounded-xl border border-white/5">
                     Aguardando captação do ambiente para análise...
                 </div>
+
+                <!-- AI Audio Classification Badge (YAMNet) -->
+                <div id="ai-classification-badge" class="hidden bg-gradient-to-r from-indigo-900/60 to-purple-900/40 border border-indigo-500/30 rounded-xl p-3 flex items-center gap-3 animate-in fade-in duration-500">
+                    <span id="ai-classification-icon" class="text-2xl" aria-hidden="true">🎤</span>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span id="ai-classification-label" class="text-sm font-black text-white truncate">Fala</span>
+                            <span id="ai-classification-score" class="text-[10px] font-bold text-indigo-300 bg-indigo-500/20 px-1.5 py-0.5 rounded">98%</span>
+                        </div>
+                        <div class="flex items-center gap-1 text-[9px] font-mono text-slate-500 mt-0.5">
+                            <span id="ai-classification-detail">Speech claro captado pelo YAMNet</span>
+                        </div>
+                    </div>
+                </div>
                 
                 <ul id="acoustic-detail-list" class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[9px] text-slate-400 font-mono uppercase tracking-wider">
                     <!-- Preenchido via JS -->

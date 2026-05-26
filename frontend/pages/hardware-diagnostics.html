@@ -1,0 +1,62 @@
+<section id="hardware-diagnostics" class="module page-section">
+    <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+        <div class="flex items-center gap-4">
+            <span class="p-3 bg-cyan-900/40 rounded-2xl text-2xl">🔧</span>
+            <div>
+                <h2 class="text-3xl font-black text-white tracking-tighter">Diagnóstico de Hardware</h2>
+                <p class="text-slate-400 font-medium">Análise preditiva de cabos, conectores e cápsulas via IA</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="toolbar flex flex-wrap gap-3 items-center bg-slate-800/50 border border-white/10 rounded-xl p-4 mb-6">
+        <label for="hd-channel-select" class="text-xs text-slate-400 font-bold">Canal</label>
+        <select id="hd-channel-select" class="bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-cyan-500">
+            <option value="1">Canal 1</option>
+            <option value="2">Canal 2</option>
+            <option value="3">Canal 3</option>
+            <option value="4">Canal 4</option>
+            <option value="5">Canal 5</option>
+            <option value="6">Canal 6</option>
+            <option value="7">Canal 7</option>
+            <option value="8">Canal 8</option>
+        </select>
+        <button id="hd-analyze-btn" class="px-5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg text-sm font-bold transition-colors">🔍 Diagnosticar Hardware</button>
+        <button id="hd-save-snapshot-btn" class="px-5 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-bold transition-colors">📸 Salvar Snapshot</button>
+        <button id="hd-clear-btn" class="px-5 py-2 bg-slate-700 hover:bg-red-600 text-white rounded-lg text-sm font-bold transition-colors">🗑 Limpar Histórico</button>
+    </div>
+
+    <div id="hd-status" class="text-xs text-slate-500 mb-4 min-h-[18px]"></div>
+
+    <div id="hd-result" class="hidden mb-6">
+        <div class="bg-slate-800/50 border border-white/10 rounded-xl p-6">
+            <div class="flex items-center gap-3 mb-4">
+                <span id="hd-diagnosis-icon" class="text-3xl">✅</span>
+                <div>
+                    <div id="hd-diagnosis-code" class="text-lg font-black text-white">NORMAL</div>
+                    <div id="hd-diagnosis-summary" class="text-xs text-slate-400">Sem anomalias detectadas</div>
+                </div>
+                <div class="ml-auto flex items-center gap-2">
+                    <span class="text-[10px] text-slate-500">Confiança:</span>
+                    <span id="hd-confidence" class="text-sm font-black text-cyan-400">0%</span>
+                </div>
+            </div>
+            <div id="hd-recommendations" class="bg-black/30 border border-white/10 rounded-xl p-3 mb-4 text-xs text-slate-300 space-y-1"></div>
+            <div id="hd-bands-container" class="grid grid-cols-2 md:grid-cols-5 gap-2 text-center"></div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="card bg-slate-800/50 border border-white/10 rounded-xl p-5">
+            <h3 class="text-sm font-bold text-white mb-3">Tendência por Banda</h3>
+            <canvas id="hd-trend-canvas" class="w-full h-48 rounded-lg"></canvas>
+            <p class="text-[10px] text-slate-600 mt-2">Drift da resposta por banda de oitava ao longo do tempo</p>
+        </div>
+        <div class="card bg-slate-800/50 border border-white/10 rounded-xl p-5">
+            <h3 class="text-sm font-bold text-white mb-3">Snapshots Salvos</h3>
+            <div id="hd-snapshots-list" class="text-xs text-slate-500 space-y-1 max-h-48 overflow-y-auto">
+                <div class="text-center py-4">Nenhum snapshot salvo. Clique em "Salvar Snapshot" para começar.</div>
+            </div>
+        </div>
+    </div>
+</section>

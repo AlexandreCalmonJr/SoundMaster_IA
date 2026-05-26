@@ -340,6 +340,13 @@
         const bands = peqBands.map(f => ({ hz: f.hz, gainDb: f.gainDb, q: f.q, band: f.band }));
         SocketService.emit('apply_eq_batch', { target, channel, bands });
 
+        // Training: envia cada banda como evento de treino
+        if (window.AIService && typeof AIService.sendTrainingEvent === 'function') {
+            bands.forEach(function (b) {
+                AIService.sendTrainingEvent(b.hz, 0, 0, b.gainDb, false);
+            });
+        }
+
         const applied = bands.map(f => `Band${f.band}(${f.hz}Hz, ${f.gainDb}dB, Q${f.q})`);
         console.log(`[AutoEQ] PEQ aplicado (${target}): ${applied.join(', ')}`);
         AppStore.setState({ autoEqApplied: { target, channel, bands: peqBands, ts: Date.now() } });
