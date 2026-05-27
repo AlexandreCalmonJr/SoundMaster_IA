@@ -85,7 +85,7 @@
         pm._on(pm._el('vol-btn-preset-louvor'), 'click', function () { _setLevels(85, 65); });
         pm._on(pm._el('vol-btn-preset-pregacao'), 'click', function () { _setLevels(75, 60); });
         pm._on(pm._el('vol-btn-preset-silencio'), 'click', function () { _setLevels(0, 0); pm._safeCall('MixerService', 'setChannelMute', 1, true); pm._safeCall('MixerService', 'setMasterMute', true); });
-        pm._on(pm._el('vol-btn-ai-chat'), 'click', function () { pm._safeCall('router', 'navigate', 'ai-chat'); });
+        pm._on(pm._el('vol-btn-ai-chat'), 'click', function () { pm._safeCall('router', 'navigate', 'home'); });
         pm._on(pm._el('vol-btn-exit'), 'click', function () { pm._safeCall('router', 'navigate', 'home'); });
 
         var presets = { claro: { vocal: 80, pa: 70 }, suave: { vocal: 65, pa: 60 }, potente: { vocal: 90, pa: 75 }, estavel: { vocal: 70, pa: 65 } };

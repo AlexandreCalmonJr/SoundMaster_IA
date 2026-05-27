@@ -63,6 +63,9 @@
                     if (window.AIService && typeof AIService.sendTrainingEvent === 'function') {
                         AIService.sendTrainingEvent(exactFreq, peakDb, neighborAvg, newCut, true);
                     }
+                    window.dispatchEvent(new CustomEvent('feedback:auto-cut', {
+                        detail: { freq: exactFreq, gain: newCut, peakDb, isAuto: true }
+                    }));
                     if (window.MixerService) {
                         if (typeof MixerService.applyNotchFilter === 'function') {
                             MixerService.applyNotchFilter('master', exactFreq, -3);

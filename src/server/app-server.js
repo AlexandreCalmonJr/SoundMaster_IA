@@ -303,6 +303,40 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
         }
     });
 
+    // Chat History Persistence (NeDB)
+    expressApp.post('/api/chat/save/:session_id', (req, res) => {
+        try {
+            const { session_id } = req.params;
+            const { messages } = req.body;
+            if (!Array.isArray(messages)) {
+                return res.status(400).json({ error: 'messages must be an array' });
+            }
+            db.settings.update(
+                { type: 'chat_history_' + session_id },
+                { $set: { messages: messages.slice(-100), timestamp: Date.now() } },
+                { upsert: true },
+                (err) => {
+                    if (err) return res.status(500).json({ error: err.message });
+                    res.json({ success: true });
+                }
+            );
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    });
+
+    expressApp.get('/api/chat/load/:session_id', (req, res) => {
+        try {
+            const { session_id } = req.params;
+            db.settings.findOne({ type: 'chat_history_' + session_id }, (err, doc) => {
+                if (err) return res.status(500).json({ error: err.message });
+                res.json(doc || { messages: [] });
+            });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    });
+
     // Rota de Healthcheck (única)
     expressApp.get('/api/health', (req, res) => {
         res.json({ status: "online", message: "Healthy" });

@@ -34,7 +34,7 @@ const ROUTE_MAP = {
     'debug':             { path: 'pages/debug.html',             title: 'Console de Depuração', category: 'Sistema' },
     'settings':          { path: 'pages/settings.html',          title: 'Preferências',        category: 'Sistema' },
     'ir-measurement':    { path: 'pages/ir-measurement.html',    title: 'Resposta ao Impulso', category: 'analysis' },
-    'ai-chat':           { path: 'pages/ai-chat.html',           title: 'Assistente IA',       category: null },
+    'ai-chat':           { path: 'pages/home.html',              title: 'Dashboard',           category: null, redirect: 'home' },
     'mobile':            { path: 'pages/mobile.html',            title: 'Modo Remoto',         category: null },
     'volunteer-mode':    { path: 'pages/volunteer-mode.html',  title: 'Modo Voluntário',     category: null },
     'testbed':           { path: 'pages/testbed.html',          title: 'Testbed',             category: null },
@@ -110,6 +110,13 @@ class Router {
         if (!ROUTE_MAP[pageId]) {
             console.warn(`[Router] Rota desconhecida: ${pageId}`);
             return;
+        }
+
+        // Handle redirect routes
+        const routeData = ROUTE_MAP[pageId];
+        if (routeData.redirect) {
+            console.log(`[Router] Redirecionando ${pageId} → ${routeData.redirect}`);
+            return this.navigate(routeData.redirect);
         }
 
         if (window.AuthService && !AuthService.isAuthenticated()) {

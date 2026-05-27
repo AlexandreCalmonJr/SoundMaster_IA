@@ -11,7 +11,7 @@
     'use strict';
 
     const AI_URL = '/api/ai';
-    const TIMEOUT_MS = 30000;
+    const TIMEOUT_MS = 60000;
 
     // -------------------------------------------------------------------------
     // Helpers
@@ -97,11 +97,13 @@
         const controller = new AbortController();
         const timeoutId = setTimeout(function () { controller.abort(); }, TIMEOUT_MS);
 
+        var sessionId = AppStore.getState().aiSessionId || 'default';
+
         try {
             const response = await fetch(AI_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message, channel, analysis: enrichedAnalysis, mixer_context: _getMixerSnapshot(channel) }),
+                body: JSON.stringify({ message, channel, analysis: enrichedAnalysis, mixer_context: _getMixerSnapshot(channel), session_id: sessionId }),
                 signal: controller.signal
             });
 

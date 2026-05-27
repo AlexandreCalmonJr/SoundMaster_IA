@@ -25,6 +25,7 @@ RT60_STANDARDS = {
 class SessionContext:
     def __init__(self):
         self.history = []
+        self.conversation = []
         self.room_profile = 'janelas_vidro'
         self.analyses_history = []
         self.last_activity = time.time()
@@ -37,6 +38,16 @@ class SessionContext:
         self.analyses_history.append(analysis)
         if len(self.analyses_history) > 50:
             self.analyses_history.pop(0)
+
+    def add_message(self, role, content):
+        self.touch()
+        self.conversation.append({
+            "role": role,
+            "content": content,
+            "ts": time.time()
+        })
+        if len(self.conversation) > 20:
+            self.conversation.pop(0)
 
 class LocalLLM:
     """Gerenciador de Modelo Leve Local (TinyLlama/Gemma via Llama-cpp)"""
@@ -64,7 +75,7 @@ class LocalLLM:
             try:
                 # pyrefly: ignore [missing-import]
                 from llama_cpp import Llama
-                self.llm = Llama(model_path=model_path, n_ctx=512, n_threads=4, verbose=False)
+                self.llm = Llama(model_path=model_path, n_ctx=2048, n_threads=4, verbose=False)
                 self.enabled = True
                 print(f"[AI Engine] Modelo Local carregado: {model_path}")
                 print("[AI Engine] READY")
@@ -82,7 +93,7 @@ class LocalLLM:
             return False
         try:
             from llama_cpp import Llama
-            self.llm = Llama(model_path=self.model_path, n_ctx=512, n_threads=4, verbose=False)
+            self.llm = Llama(model_path=self.model_path, n_ctx=2048, n_threads=4, verbose=False)
             self.enabled = True
             print(f"[AI Engine] Modelo carregado após download: {self.model_path}")
             return True
@@ -90,7 +101,7 @@ class LocalLLM:
             print(f"[AI Engine] Falha ao carregar modelo após download: {e}")
             return False
 
-    def query(self, prompt, context_data=None):
+    def query(self, prompt, context_data=None, conversation=None):
         if not self.enabled:
             return None
         if not self.llm:
@@ -109,12 +120,19 @@ class LocalLLM:
             "Sugira ações práticas de forma simples."
         )
         if context_data:
-            system_prompt += f" Contexto Atual: RT60={context_data.get('rt60')}s, Pico={context_data.get('peakHz')}Hz, RMS={context_data.get('rms')}dB."
+            master_eq_info = context_data.get('master_eq', 'nenhum corte ativo')
+            system_prompt += f" Contexto Atual: RT60={context_data.get('rt60')}s, Pico={context_data.get('peakHz')}Hz, RMS={context_data.get('rms')}dB. EQ Master atual: {master_eq_info}."
 
-        full_prompt = f"<|system|>\n{system_prompt}</s>\n<|user|>\n{prompt}</s>\n<|assistant|>\n"
+        history_text = ""
+        if conversation:
+            for msg in conversation[-10:]:
+                tag = "<|user|>" if msg["role"] == "user" else "<|assistant|>"
+                history_text += f"{tag}\n{msg['content']}</s>\n"
+
+        full_prompt = f"<|system|>\n{system_prompt}</s>\n{history_text}<|user|>\n{prompt}</s>\n<|assistant|>\n"
         try:
             with self._lock:
-                output = self.llm(full_prompt, max_tokens=128, stop=["</s>"], echo=False)
+                output = self.llm(full_prompt, max_tokens=512, stop=["</s>"], echo=False)
             return output['choices'][0]['text'].strip()
         except Exception as e:
             print(f"[AI Engine] Erro no query LLM: {e}")
@@ -157,6 +175,50 @@ class AIEngine:
             normalized[canonical] = self._safe_float(value, 0.0)
         return normalized
 
+    def _get_existing_eq_bands(self, mixer_state, target="master", channel_num=None):
+        if not mixer_state or not isinstance(mixer_state, dict):
+            return []
+        full_state = mixer_state.get('full_state')
+        if not full_state or not isinstance(full_state, dict):
+            return []
+        if target == "master":
+            master = full_state.get('master', {})
+            if not isinstance(master, dict):
+                return []
+            eq_data = master.get('eq')
+            return list(eq_data.values()) if isinstance(eq_data, dict) else []
+        elif target == "channel" and channel_num:
+            inputs = full_state.get('inputs', [])
+            if not isinstance(inputs, list) or not (0 <= channel_num - 1 < len(inputs)):
+                return []
+            ch = inputs[channel_num - 1]
+            if not isinstance(ch, dict):
+                return []
+            eq_data = ch.get('eq')
+            return list(eq_data.values()) if isinstance(eq_data, dict) else []
+        return []
+
+    def _has_eq_near(self, mixer_state, hz, target="master", channel_num=None, tolerance=0.15):
+        bands = self._get_existing_eq_bands(mixer_state, target, channel_num)
+        for band in bands:
+            existing_hz = self._safe_float(band.get('hz', 0))
+            if existing_hz > 0 and abs(existing_hz - hz) / max(hz, 1) < tolerance:
+                gain = self._safe_float(band.get('gain', 0))
+                return f"{existing_hz:.0f}Hz ({gain:+.0f}dB)"
+        return None
+
+    def _eq_summary_str(self, mixer_state, target="master", channel_num=None):
+        bands = self._get_existing_eq_bands(mixer_state, target, channel_num)
+        if not bands:
+            return "nenhum corte aplicado"
+        parts = []
+        for band in bands:
+            hz = self._safe_float(band.get('hz', 0))
+            gain = self._safe_float(band.get('gain', 0))
+            if hz > 0:
+                parts.append(f"{hz:.0f}Hz ({gain:+.0f}dB)")
+        return ", ".join(parts) if parts else "nenhum corte aplicado"
+
     def _normalize_spectrum(self, analysis):
         if not analysis:
             return {}
@@ -164,6 +226,23 @@ class AIEngine:
         if not isinstance(raw, dict):
             return {}
         return {str(key): self._safe_float(value, -100.0) for key, value in raw.items()}
+
+    def _get_channel_name(self, mixer_state, channel_num):
+        if not mixer_state or not isinstance(mixer_state, dict):
+            return None
+        full_state = mixer_state.get('full_state')
+        if not full_state or not isinstance(full_state, dict):
+            ch_state = mixer_state.get('channel')
+            if ch_state and isinstance(ch_state, dict):
+                return ch_state.get('name')
+            return None
+        inputs = full_state.get('inputs', [])
+        if not isinstance(inputs, list) or not (1 <= channel_num <= len(inputs)):
+            return None
+        ch = inputs[channel_num - 1]
+        if not isinstance(ch, dict):
+            return None
+        return ch.get('name')
 
     def extract_channel(self, text):
         channel_match = re.search(r'(?:canal|ch)\s*(\d{1,2})', text)
@@ -225,6 +304,8 @@ class AIEngine:
         analysis = analysis or (self.session.analyses_history[-1] if self.session.analyses_history else {})
         if analysis and isinstance(analysis, dict):
             self.session.add_analysis(analysis)
+
+        self.session.add_message("user", text)
 
         classification = None
         if mixer_state and isinstance(mixer_state, dict):
@@ -530,7 +611,10 @@ Deseja aplicar a correcao recomendada?
 
         # 2. Respostas por Texto
         if re.search(r'(voz|pregador|pregação|pastor|pregar|fala)', text):
-            target = f"canal {channel}" if has_specific_channel else "canal de voz principal"
+            ch_name = self._get_channel_name(mixer_state, channel)
+            target = f"'{ch_name}' (canal {channel})" if ch_name else f"canal {channel}"
+            if not has_specific_channel:
+                target = f"'{ch_name}'" if ch_name else "canal de voz principal"
             return {
                 "text": f"Vou dar uma ajustada no {target} pra voz ficar mais clara e presente!",
                 "command": self.command("run_clean_sound_preset", f"Voz {target}", channel=channel)
@@ -562,6 +646,14 @@ Deseja aplicar a correcao recomendada?
 
         # Entender linguagem do dia a dia (não técnica)
         if re.search(r'(abafado|embolado|sujo|estranho|estourando|ruim|horrivel|piorou)', text):
+            eq_exists = self._has_eq_near(mixer_state, 400, "master")
+            if eq_exists:
+                alt_hz = 600 if self._has_eq_near(mixer_state, 600, "master") else 300
+                alt_exists = self._has_eq_near(mixer_state, alt_hz, "master")
+                return {
+                    "text": f"Poxa, que pena que o som não tá legal! 😕 Já tem um ajuste em {eq_exists}. Vou sugerir uma limpeza em {alt_hz}Hz pra não acumular cortes na mesma frequência." if not alt_exists else f"Poxa, que pena que o som não tá legal! 😕 Já tem cortes em várias frequências. Pode ser um problema de acústica da sala mesmo.",
+                    "command": self.command("eq_cut", f"Limpeza Alternativa {alt_hz}Hz", target="master", hz=alt_hz, gain=-2, q=1.0) if not alt_exists else self.command("log", "Múltiplos EQs já existentes, ação ignorada")
+                }
             return {
                 "text": "Poxa, que pena que o som não tá legal! 😕 Pode ser que tenha algum acúmulo de frequência. Vou dar uma olhada no equalizador e sugerir uma limpeza.",
                 "command": self.command("eq_cut", "Limpeza Geral", target="master", hz=400, gain=-2, q=1.0)
@@ -577,6 +669,13 @@ Deseja aplicar a correcao recomendada?
                 "command": self.command("volume_down", "Abaixar volume geral", target="master", val=3)
             }
         if re.search(r'(apito|apitando|microfonia|chiado|zumbido|assovio|guincho|realimenta)', text):
+            apito_hz = 1000
+            eq_exists = self._has_eq_near(mixer_state, apito_hz, "master")
+            if eq_exists:
+                return {
+                    "text": f"Ah, esse apito chato! 😬 Mas já tem um corte em {eq_exists}. Vou procurar outra frequência ou aumentar o corte atual pra resolver de vez.",
+                    "command": self.command("eq_cut", "Reforço Corte Apito", target="master", hz=apito_hz, gain=-8, q=3.0)
+                }
             return {
                 "text": "Ah, esse apito chato! 😬 Vou procurar a frequência e dar um corte pra resolver. Pode ficar tranquilo!",
                 "command": self.command("eq_cut", "Corte de Apito", target="master", hz=1000, gain=-5, q=3.0)
@@ -587,19 +686,58 @@ Deseja aplicar a correcao recomendada?
                 "command": self.command("eq_cut", "Melhorar acústica", target="master", hz=800, gain=-2, q=1.0)
             }
         if re.search(r'(grosso|pesado|grave demais|bumbo|sub|tremendo)', text):
+            grave_hz = 125
+            eq_exists = self._has_eq_near(mixer_state, grave_hz, "master")
+            if eq_exists:
+                alt_hz = 250 if not self._has_eq_near(mixer_state, 250, "master") else 80
+                return {
+                    "text": f"Já tem um ajuste em {eq_exists}. Vou tentar limpar em {alt_hz}Hz pra complementar sem exagerar nos graves.",
+                    "command": self.command("eq_cut", f"Limpeza Grave {alt_hz}Hz", target="master", hz=alt_hz, gain=-2, q=1.0)
+                }
             return {
                 "text": "Tem muito grave acumulado, né? Vou limpar as frequências graves pra não ficar 'embolado'. O som vai ficar mais limpo!",
                 "command": self.command("eq_cut", "Limpeza de Graves", target="master", hz=125, gain=-3, q=1.0)
             }
         if re.search(r'(fino|agudo|fino demais|sibilancia|brilho|agudo)', text):
+            agudo_hz = 6000
+            eq_exists = self._has_eq_near(mixer_state, agudo_hz, "master")
+            if eq_exists:
+                alt_hz = 4000
+                return {
+                    "text": f"Já tem um ajuste em {eq_exists}. Vou tentar suavizar em {alt_hz}Hz que também ajuda nos agudos sem criar cortes repetidos.",
+                    "command": self.command("eq_cut", f"Suavizar Agudos {alt_hz}Hz", target="master", hz=alt_hz, gain=-2, q=1.5)
+                }
             return {
                 "text": "Os agudos estão incomodando? Vou suavizar as frequências mais altas pra ficar mais confortável.",
                 "command": self.command("eq_cut", "Suavizar Agudos", target="master", hz=6000, gain=-2, q=1.5)
             }
         if re.search(r'(claro|entender|inteligivel|entendo|entender as palavras)', text):
+            ch_name = self._get_channel_name(mixer_state, channel)
+            target = f"'{ch_name}' (canal {channel})" if ch_name else f"canal {channel}"
             return {
-                "text": "A clareza da voz é super importante! Vou dar uma ajustada nas frequências da voz pra ficar mais nítido. 😊",
-                "command": self.command("run_clean_sound_preset", "Melhorar clareza da voz", channel=channel)
+                "text": f"A clareza da voz é super importante! Vou dar uma ajustada nas frequências do {target} pra ficar mais nítido. 😊",
+                "command": self.command("run_clean_sound_preset", f"Melhorar clareza {target}", channel=channel)
+            }
+
+        # 2.5. Presets e Cenas
+        if re.search(r'(salvar preset|salvar cena|guardar config|salvar config)', text):
+            name_match = re.search(r'(?:como|nome|chamar)\s*["\']?([^"\'.,!?]+)', text)
+            preset_name = name_match.group(1).strip() if name_match else f"Preset {time.strftime('%d/%m %H:%M')}"
+            return {
+                "text": f"Beleza! Vou salvar o estado atual da mesa como '{preset_name}' pra você. 😊",
+                "command": self.command("save_preset", f"Salvar preset: {preset_name}", name=preset_name)
+            }
+        if re.search(r'(carregar preset|carregar cena|aplicar preset|restaurar preset)', text):
+            return {
+                "text": "Claro! Vou listar os presets salvos pra você escolher qual quer carregar.",
+                "command": self.command("list_presets", "Listar presets salvos")
+            }
+        if re.search(r'(criar cena|nova cena|capture scene)', text):
+            scene_name_match = re.search(r'(?:como|nome|chamar)\s*["\']?([^"\'.,!?]+)', text)
+            scene_name = scene_name_match.group(1).strip() if scene_name_match else f"Cena {time.strftime('%d/%m %H:%M')}"
+            return {
+                "text": f"Vou criar uma nova cena '{scene_name}' com o estado atual da mesa! 🎯",
+                "command": self.command("save_scene", f"Criar cena: {scene_name}", name=scene_name)
             }
 
         # 3. Fallback: IA Local (Modelo Leve)
@@ -612,11 +750,12 @@ Deseja aplicar a correcao recomendada?
                 "rt60": self._safe_float(analysis.get('rt60', 1.2), 1.2),
                 "peakHz": self._safe_float(analysis.get('peakHz', 0), 0),
                 "rms": self._safe_float(analysis.get('rms', -45), -45),
-                "room_profile": self.session.room_profile
+                "room_profile": self.session.room_profile,
+                "master_eq": self._eq_summary_str(mixer_state, "master"),
             }
             if classification:
                 ctx["classification"] = classification
-            llm_response = self.llm.query(text, context_data=ctx)
+            llm_response = self.llm.query(text, context_data=ctx, conversation=self.session.conversation)
             if llm_response:
                 return {"text": llm_response, "command": None, "source": "local_llm"}
 

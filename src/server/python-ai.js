@@ -127,19 +127,18 @@ function _ensurePythonDeps() {
     if (process.platform === 'win32' && !longPathsEnabled) {
         isLiteInstall = true;
         console.warn('[Python AI] ⚠️ Windows Long Path support is disabled (LongPathsEnabled = 0).');
-        console.warn('[Python AI] Skipping heavy dependencies ("tensorflow", "tensorflow-hub", "llama-cpp-python") to prevent installation failure.');
-        console.warn('[Python AI] To enable full AI features (YAMNet sound classification & local LLM chat), please:');
-        console.warn('[Python AI] 1. Open PowerShell as Administrator.');
-        console.warn('[Python AI] 2. Run: Set-ItemProperty -Path "HKLM:\\System\\CurrentControlSet\\Control\\FileSystem" -Name "LongPathsEnabled" -Value 1');
-        console.warn('[Python AI] 3. Restart the application to trigger a full dependency installation.');
+        console.warn('[Python AI] tensorflow e lama-cpp-python serao instalados via wheels pre-compilados.');
+        console.warn('[Python AI] Para desativar este aviso no futuro, execute como Administrador:');
+        console.warn('[Python AI]   Set-ItemProperty -Path "HKLM:\\System\\CurrentControlSet\\Control\\FileSystem" -Name "LongPathsEnabled" -Value 1');
 
-        // Gera requirements_lite.txt filtrando os pacotes problemáticos
+        // Gera requirements_lite.txt filtrando APENAS llama-cpp-python (source .tar.gz com vendor/ profundo)
+        // tensorflow fica incluso porque instala via wheel pre-compilado (.whl), sem path profundo.
         try {
             const content = fs.readFileSync(requirementsPath, 'utf8');
             const lines = content.split(/\r?\n/);
             const filteredLines = lines.filter(line => {
                 const clean = line.trim().toLowerCase();
-                return !clean.startsWith('tensorflow') && !clean.startsWith('llama-cpp-python');
+                return !clean.startsWith('llama-cpp-python');
             });
             const litePath = path.join(path.dirname(requirementsPath), 'requirements_lite.txt');
             fs.writeFileSync(litePath, filteredLines.join('\n'), 'utf8');
@@ -171,6 +170,27 @@ function _ensurePythonDeps() {
             try {
                 fs.unlinkSync(installReqsPath);
             } catch (_) {}
+        }
+    }
+
+    // Instala llama-cpp-python separadamente (via wheel pre-compilado, sem path profundo)
+    if (process.platform === 'win32') {
+        const llamaIndexUrl = 'https://abetlen.github.io/llama-cpp-python/whl/cpu';
+        console.log('[Python AI] Instalando llama-cpp-python via wheel pre-compilado...');
+        try {
+            const llamaResult = spawnSync(pythonCmd, [
+                '-m', 'pip', 'install', 'llama-cpp-python',
+                '--extra-index-url', llamaIndexUrl,
+                '--quiet', '--no-cache-dir'
+            ], { stdio: 'inherit', timeout: 180000 });
+            if (llamaResult.status === 0) {
+                console.log('[Python AI] llama-cpp-python instalado com sucesso via wheel.');
+                installSuccess = true;
+            } else {
+                console.warn('[Python AI] Falha ao instalar llama-cpp-python via wheel. LLM local indisponível.');
+            }
+        } catch (e) {
+            console.warn('[Python AI] Erro ao instalar llama-cpp-python:', e.message);
         }
     }
 

@@ -31,6 +31,12 @@
             btnListen: pm._el('btn-home-listen'),
             btnSend: pm._el('btn-home-send'),
             btnClear: pm._el('btn-home-clear'),
+            btnSendAnalysis: pm._el('btn-home-send-analysis'),
+            btnExportChat: pm._el('btn-home-export-chat'),
+            btnCycleSuggestions: pm._el('btn-cycle-suggestions'),
+            suggestionCards: pm._el('home-suggestion-cards'),
+            quickActions: pm._el('home-quick-actions'),
+            charCounter: pm._el('home-char-counter'),
             workspaceWrapper: pm._el('home-workspace-wrapper')
         };
     }
@@ -134,7 +140,8 @@
         if (text === '...' || text === 'Analisando dados acústicos...' || text === 'Analisando áudio ao vivo...') {
             bubble.innerText = text;
         } else {
-            bubble.innerHTML = _renderMarkdown(text);
+            const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            bubble.innerHTML = _renderMarkdown(text) + '<span class="text-[9px] text-slate-600 mt-1 block">' + ts + '</span>';
         }
 
         if (command && !isUser) {
@@ -239,6 +246,215 @@
         els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
     }
 
+    // -------------------------------------------------------------------------
+    // Session ID
+    // -------------------------------------------------------------------------
+
+    function _getSessionId() {
+        let sid = AppStore.getState().aiSessionId;
+        if (!sid) {
+            sid = 'ses-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+            AppStore.setState({ aiSessionId: sid });
+        }
+        return sid;
+    }
+
+    // -------------------------------------------------------------------------
+    // Suggestion Cards
+    // -------------------------------------------------------------------------
+
+    const _suggestionSets = [
+        [
+            { icon: '🔍', title: 'Auditar Mixer', desc: 'Verificar canais, mutes e HPF', prompt: 'auditar mixer' },
+            { icon: '📐', title: 'Relatório Acústico', desc: 'Análise detalhada da sala', prompt: 'relatório acústico detalhado' },
+            { icon: '🚨', title: 'Resolver Microfonia', desc: 'Encontrar e cortar feedback', prompt: 'resolver apito microfonia' },
+            { icon: '🔊', title: 'Clarear Voz', desc: 'Otimizar EQ da voz principal', prompt: 'clarear voz principal' },
+        ],
+        [
+            { icon: '🎚️', title: 'Ajustar EQ Canal', desc: 'Equalizar canal específico', prompt: 'ajustar equalização canal' },
+            { icon: '🎤', title: 'Preset de Voz', desc: 'Aplicar preset vocal IA', prompt: 'aplicar preset de voz' },
+            { icon: '⚡', title: 'HPF Automático', desc: 'Filtrar graves em vozes', prompt: 'aplicar hpf nos vocais' },
+            { icon: '📊', title: 'Análise RT60', desc: 'Calcular reverberação da sala', prompt: 'analisar rt60 da sala' },
+        ],
+        [
+            { icon: '🔧', title: 'Diagnóstico', desc: 'Verificar saúde do sistema', prompt: 'diagnosticar sistema' },
+            { icon: '🎯', title: 'Calibrar PA', desc: 'Otimizar sistema principal', prompt: 'calibrar sistema pa' },
+            { icon: '📋', title: 'Relatório', desc: 'Relatório técnico completo', prompt: 'relatório técnico completo' },
+            { icon: '🔇', title: 'Verificar Mutes', desc: 'Checar canais mutados', prompt: 'verificar canais mutados' },
+        ],
+    ];
+
+    let _currentSetIndex = 0;
+
+    function _renderSuggestionCards(setIndex) {
+        const els = _getEls();
+        const container = pm._el('home-suggestion-cards');
+        if (!container) return;
+        const set = _suggestionSets[setIndex] || _suggestionSets[0];
+        container.innerHTML = '';
+        set.forEach(function (card, i) {
+            const btn = document.createElement('button');
+            btn.className = 'suggestion-card flex flex-col items-start gap-1.5 bg-slate-900/40 border border-white/5 hover:border-cyan-500/30 hover:bg-slate-800/30 p-3.5 rounded-2xl text-left transition-all group cursor-pointer suggestion-card-enter';
+            btn.dataset.prompt = card.prompt;
+            btn.innerHTML = `
+                <div class="text-lg">${card.icon}</div>
+                <div class="text-xs font-bold text-slate-200 group-hover:text-cyan-400 transition-colors">${card.title}</div>
+                <div class="text-[9px] text-slate-500 leading-tight">${card.desc}</div>
+            `;
+            container.appendChild(btn);
+            pm._setTimeout(function () {
+                btn.classList.add('suggestion-card-enter-active');
+            }, i * 50);
+        });
+    }
+
+    function _cycleSuggestions() {
+        _currentSetIndex = (_currentSetIndex + 1) % _suggestionSets.length;
+        _renderSuggestionCards(_currentSetIndex);
+    }
+
+    // -------------------------------------------------------------------------
+    // Character Counter
+    // -------------------------------------------------------------------------
+
+    function _updateCharCounter() {
+        const els = _getEls();
+        const counter = pm._el('home-char-counter');
+        const input = els.chatInput;
+        if (counter && input) {
+            const len = input.value.length;
+            counter.textContent = len + '/5000';
+            counter.style.color = len > 4500 ? 'rgb(239, 68, 68)' : len > 4000 ? 'rgb(234, 179, 8)' : 'rgb(100, 116, 139)';
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Acoustic Analysis
+    // -------------------------------------------------------------------------
+
+    function _getCurrentAnalysis() {
+        var analyzer = (window.parent || window).SoundMasterAnalyzer;
+        if (analyzer && analyzer.hasAnalysis && analyzer.hasAnalysis()) {
+            return analyzer.getLastAnalysis();
+        }
+        return null;
+    }
+
+    function _getAnalyzer() {
+        return (window.parent || window).SoundMasterAnalyzer;
+    }
+
+    function _buildRt60Multiband(lastRt60) {
+        if (!lastRt60) return null;
+        if (lastRt60.multiband && typeof lastRt60.multiband === 'object' && Object.keys(lastRt60.multiband).length) {
+            return lastRt60.multiband;
+        }
+        const value = Number(lastRt60.rt60);
+        if (!Number.isFinite(value)) return null;
+        return { '125': value, '500': value, '1000': value, '4000': value };
+    }
+
+    async function _sendAcousticAnalysis() {
+        const els = _getEls();
+        const channel = Number(els.targetChannel ? els.targetChannel.value : 1);
+        const analysis = _getCurrentAnalysis();
+        if (!analysis) {
+            _saveMessageToHistory('Ative o analisador e aguarde alguns segundos antes de enviar a análise.', false, null, 'msg-err-' + Date.now());
+            return;
+        }
+
+        _saveMessageToHistory('📎 Análise acústica enviada para IA', true, null, 'msg-' + Math.random().toString(36).substr(2, 9));
+
+        var analyzer = _getAnalyzer();
+        var lastRt60 = analyzer && analyzer.getLastRt60 ? analyzer.getLastRt60() : null;
+        var rt60Multiband = _buildRt60Multiband(lastRt60);
+        const payload = {
+            schema_version: '1.1',
+            summary: analysis.text,
+            spectrum_db: analysis.details && analysis.details.spectrum_v11 ? analysis.details.spectrum_v11 : {},
+            rt60_multiband: rt60Multiband,
+            peakHz: analysis.details ? analysis.details.peakHz : null,
+            peakDb: analysis.details ? analysis.details.peakDb : null,
+            rms: analysis.details ? analysis.details.rmsDb : null,
+        };
+
+        const loadingId = 'msg-loading-' + Date.now();
+        _saveMessageToHistory('Analisando dados acústicos...', false, null, loadingId);
+
+        try {
+            const result = await AIService.ask('Análise acústica do salão', channel, payload);
+            const currentHistory = AppStore.getState().aiChatHistory || [];
+            const filtered = currentHistory.filter(function (msg) { return msg.id !== loadingId; });
+            AppStore.setState({ aiChatHistory: filtered });
+            const aiMsgId = 'msg-' + Math.random().toString(36).substr(2, 9);
+            _saveMessageToHistory(result.text, false, result.command, aiMsgId);
+            if (result.report) {
+                _saveMessageToHistory(result.report, false, null, 'msg-' + Math.random().toString(36).substr(2, 9));
+            }
+            _persistHistory();
+        } catch (err) {
+            const currentHistory = AppStore.getState().aiChatHistory || [];
+            const filtered = currentHistory.filter(function (msg) { return msg.id !== loadingId; });
+            AppStore.setState({ aiChatHistory: filtered });
+            _saveMessageToHistory('Erro ao processar análise: ' + err.message, false, null, 'msg-err-' + Date.now());
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // History Persistence
+    // -------------------------------------------------------------------------
+
+    function _persistHistory() {
+        var sid = _getSessionId();
+        var history = AppStore.getState().aiChatHistory || [];
+        var payload = history.map(function (msg) {
+            return { role: msg.isUser ? 'user' : 'assistant', content: msg.text, ts: msg.ts / 1000 };
+        });
+        fetch('/api/chat/save/' + encodeURIComponent(sid), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: payload })
+        }).catch(function () {});
+    }
+
+    // -------------------------------------------------------------------------
+    // Export Chat
+    // -------------------------------------------------------------------------
+
+    function _exportChat() {
+        const history = AppStore.getState().aiChatHistory || [];
+        if (!history.length) return;
+        const lines = [];
+        history.forEach(function (msg) {
+            if (msg.id === 'welcome-msg') return;
+            const role = msg.isUser ? 'Você' : 'IA';
+            const time = msg.ts ? new Date(msg.ts).toLocaleTimeString() : '';
+            lines.push('**' + role + '** (' + time + '):\n' + msg.text + '\n');
+        });
+        const md = lines.join('\n---\n\n');
+        const blob = new Blob([md], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'chat-soundmaster-' + new Date().toISOString().slice(0, 10) + '.md';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // -------------------------------------------------------------------------
+    // Quick Actions
+    // -------------------------------------------------------------------------
+
+    function _quickAction(fn) {
+        const ok = fn();
+        if (ok === false) {
+            _saveMessageToHistory('⚠️ Conecte-se à mesa antes de realizar ações rápidas.', false, null, 'msg-err-' + Date.now());
+        }
+        return ok;
+    }
+
     async function _sendMessage(text) {
         if (!text || !text.trim()) return;
         const els = _getEls();
@@ -276,6 +492,7 @@
                 const reportMsgId = 'msg-' + Math.random().toString(36).substr(2, 9);
                 _saveMessageToHistory(result.report, false, null, reportMsgId);
             }
+            _persistHistory();
         } catch (err) {
             const currentHistory = AppStore.getState().aiChatHistory || [];
             const filtered = currentHistory.filter(msg => msg.id !== loadingId);
@@ -303,7 +520,7 @@
         }
 
         if (els.chatInput) {
-            // Auto-resize textarea and toggle clear button visibility on input
+            // Auto-resize textarea, toggle clear button, update char counter
             pm._on(els.chatInput, 'input', function () {
                 els.chatInput.style.height = 'auto';
                 els.chatInput.style.height = els.chatInput.scrollHeight + 'px';
@@ -311,6 +528,7 @@
                 if (els.btnClear) {
                     els.btnClear.style.display = els.chatInput.value.trim() ? 'flex' : 'none';
                 }
+                _updateCharCounter();
             });
 
             // Enter key sends message, Shift+Enter adds newline
@@ -348,6 +566,64 @@
                     const text = pill.dataset.prompt || pill.innerText;
                     _sendMessage(text);
                 });
+            });
+        }
+
+        // Suggestion Cards Cycling
+        if (els.btnCycleSuggestions) {
+            pm._on(els.btnCycleSuggestions, 'click', _cycleSuggestions);
+        }
+
+        // Suggestion Cards click delegation
+        if (els.suggestionCards) {
+            pm._on(els.suggestionCards, 'click', function (e) {
+                var card = e.target.closest('[data-prompt]');
+                if (card) {
+                    var prompt = card.dataset.prompt;
+                    if (prompt) _sendMessage(prompt);
+                }
+            });
+        }
+
+        // Send Acoustic Analysis
+        if (els.btnSendAnalysis) {
+            pm._on(els.btnSendAnalysis, 'click', function () {
+                _sendAcousticAnalysis();
+            });
+        }
+
+        // Export Chat
+        if (els.btnExportChat) {
+            pm._on(els.btnExportChat, 'click', _exportChat);
+        }
+
+        // Quick Actions
+        if (els.quickActions) {
+            pm._on(els.quickActions, 'click', function (e) {
+                var btn = e.target.closest('[data-action]');
+                if (!btn) return;
+                var action = btn.dataset.action;
+                var channel = Number(els.targetChannel ? els.targetChannel.value : 1);
+                var ok = false;
+
+                if (action === 'clean') {
+                    ok = _quickAction(function () { return MixerService.runCleanSoundPreset(channel); });
+                } else if (action === 'hpf') {
+                    ok = _quickAction(function () { return MixerService.applyHpf(channel, 100); });
+                } else if (action === 'gate') {
+                    ok = _quickAction(function () { return MixerService.applyGate(channel); });
+                } else if (action === 'eq250') {
+                    ok = _quickAction(function () { return MixerService.applyEqCut('channel', channel, 250, -3, 1.1, 2); });
+                } else if (action === 'eq3k') {
+                    ok = _quickAction(function () { return MixerService.applyEqCut('channel', channel, 3200, -2.5, 1.5, 3); });
+                } else if (action === 'afs') {
+                    ok = _quickAction(function () { return MixerService.setAfs(true); });
+                }
+
+                if (ok) {
+                    btn.classList.add('active-pill');
+                    pm._setTimeout(function () { btn.classList.remove('active-pill'); }, 1500);
+                }
             });
         }
 
@@ -390,6 +666,7 @@
                         const reportMsgId = 'msg-' + Math.random().toString(36).substr(2, 9);
                         _saveMessageToHistory(result.report, false, null, reportMsgId);
                     }
+                    _persistHistory();
                 } catch (err) {
                     const currentHistory = AppStore.getState().aiChatHistory || [];
                     const filtered = currentHistory.filter(msg => msg.id !== loadingId);
@@ -492,6 +769,31 @@
         const history = AppStore.getState?.().aiChatHistory || [];
         _renderHistory(history);
 
+        // Render initial suggestion cards
+        _renderSuggestionCards(0);
+
+        // Load persisted history from server
+        (function () {
+            var sid = _getSessionId();
+            fetch('/api/chat/load/' + encodeURIComponent(sid)).then(function (r) { return r.json(); }).then(function (data) {
+                if (data && data.messages && data.messages.length > 0) {
+                    var restored = data.messages.map(function (msg) {
+                        return {
+                            text: msg.content,
+                            isUser: msg.role === 'user',
+                            command: null,
+                            id: 'hist-' + msg.ts + '-' + Math.random().toString(36).substr(2, 4),
+                            executed: false,
+                            ts: msg.ts * 1000
+                        };
+                    });
+                    if (restored.length > 0) {
+                        AppStore.setState({ aiChatHistory: restored });
+                    }
+                }
+            }).catch(function () {});
+        })();
+
         // Listen for new RT60 results
         _rt60Listener = (e) => {
             const rtValEl = pm._el('home-rt60-val');
@@ -502,6 +804,22 @@
         if (window.parent && window.parent.document) {
             window.parent.document.addEventListener('rt60-result', _rt60Listener);
         }
+
+        // Listen for Feedback Detector auto-cut events and persist to AI history
+        window.addEventListener('feedback:auto-cut', function (e) {
+            var sid = _getSessionId();
+            var detail = e.detail || {};
+            var sysMsg = {
+                role: 'system',
+                content: 'Feedback Detector: corte automático aplicado em ' + detail.freq + 'Hz (' + (detail.gain || -3) + 'dB).' + (detail.peakDb !== undefined ? ' Pico: ' + detail.peakDb.toFixed(1) + 'dB.' : ''),
+                ts: Date.now() / 1000
+            };
+            fetch('/api/chat/save/' + encodeURIComponent(sid), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messages: [sysMsg] })
+            }).catch(function () {});
+        });
     }
 
     function destroy() {

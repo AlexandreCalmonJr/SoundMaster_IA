@@ -160,7 +160,7 @@ async def cleanup_sessions_task():
 
 # Modelos de Dados
 class ChatRequest(BaseModel):
-    message: str = Field(max_length=2000)
+    message: str = Field(max_length=5000)
     analysis: Optional[Dict[str, Any]] = None
     mixer_context: Optional[Dict[str, Any]] = None
     session_id: Optional[str] = Field(default="default", max_length=64, pattern="^[a-zA-Z0-9_-]+$")
@@ -233,7 +233,20 @@ async def chat_endpoint(
         result = await run_in_threadpool(
             ai_engine.process, request.message, request.analysis, request.mixer_context
         )
+        if result and result.get("text"):
+            session.add_message("assistant", result["text"])
         return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/chat/history/{session_id}")
+async def get_chat_history(
+    session_id: str,
+    authenticated: bool = Depends(verify_api_key)
+):
+    try:
+        session = get_session(session_id)
+        return {"messages": session.conversation}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

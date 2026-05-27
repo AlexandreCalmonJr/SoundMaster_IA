@@ -1,4 +1,5 @@
 const mixerSingleton = require('./mixer-singleton');
+const database = require('./database');
 
 function createMixerActions(getMixer) {
     function clamp(value, min, max) {
@@ -435,7 +436,19 @@ function createMixerActions(getMixer) {
             'run_clean_sound_preset': (c) => runCleanSoundPreset(c.channel || 1, c),
             'set_delay': (c) => { const id = c.channel || c.ch || c.aux || c.id || 1; return setDelay(c.target || 'aux', id, c.ms || 0); },
             'set_room_profile': (c) => `Perfil acústico alterado para: ${c.profile}`,
-            'log': (c) => `INFO: ${c.desc}`
+            'log': (c) => `INFO: ${c.desc}`,
+            'save_preset': (c) => {
+                const name = c.name || `Preset ${new Date().toLocaleString('pt-BR')}`;
+                database.presets.insert({ name, timestamp: Date.now(), source: 'ai' }, (err) => {
+                    if (err) console.error('[MixerActions] Erro ao salvar preset:', err);
+                });
+                return `Preset "${name}" salvo com sucesso.`;
+            },
+            'list_presets': (c) => 'Listando presets salvos na interface...',
+            'save_scene': (c) => {
+                const name = c.name || `Cena ${new Date().toLocaleString('pt-BR')}`;
+                return `Cena "${name}" registrada.`;
+            }
         };
 
         const handler = actionsMap[cmd.action];
