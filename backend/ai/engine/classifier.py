@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
+# Silencia logs redundantes do TensorFlow/oneDNN antes de qualquer import
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+
 import csv
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
 
 # pyrefly: ignore [missing-import]
 import numpy as np
@@ -87,7 +93,8 @@ class AudioClassifier:
                 backend_name = 'tflite-runtime'
             except ImportError:
                 import importlib
-                tflite = importlib.import_module("tensorflow.lite")
+                tf = importlib.import_module("tensorflow")
+                tflite = tf.lite
                 backend_name = 'tensorflow.lite'
                 
             interp = tflite.Interpreter(model_path=tflite_path)
@@ -139,18 +146,28 @@ class AudioClassifier:
         return resampled.astype(np.float32)
 
     def _classify_tflite(self, audio):
-        """Executa inferência via tflite-runtime."""
+        """Executa inferência via tflite-runtime ou tensorflow.lite."""
         if self.model is None:
             raise RuntimeError("YAMNet TFLite interpreter is not loaded.")
         input_details = self.model.get_input_details()
         output_details = self.model.get_output_details()
-        # YAMNet TFLite espera [1, N] float32
-        wav_input = audio.reshape(1, -1)
-        self.model.resize_input_tensor(input_details[0]['index'], wav_input.shape)
-        self.model.allocate_tensors()
+        expected_shape = tuple(input_details[0]['shape'])  # e.g. (15600,) ou (1, 15600)
+        total_samples = int(np.prod(expected_shape))
+        if len(audio) == 0:
+            audio = np.zeros(total_samples, dtype=np.float64)
+        elif len(audio) > total_samples:
+            audio = audio[:total_samples]
+        elif len(audio) < total_samples:
+            audio = np.pad(audio, (0, total_samples - len(audio)))
+        wav_input = audio.reshape(expected_shape).astype(np.float32)
+        if hasattr(self.model, 'resize_input_tensor'):
+            self.model.resize_input_tensor(input_details[0]['index'], wav_input.shape)
+            self.model.allocate_tensors()
         self.model.set_tensor(input_details[0]['index'], wav_input)
         self.model.invoke()
         scores = self.model.get_tensor(output_details[0]['index'])  # shape [frames, 521]
+        # scores pode ser [1, 521] ou [521]; achatar para média
+        scores = np.atleast_2d(scores)
         return np.mean(scores, axis=0)
 
     def _classify_tfhub(self, audio):
@@ -175,6 +192,8 @@ class AudioClassifier:
         if audio.ndim > 1:
             audio = audio.mean(axis=1)
         audio = self._resample(audio, sample_rate)
+        if len(audio) == 0:
+            return []
         peak = np.max(np.abs(audio))
         if peak > 0:
             audio = audio / peak

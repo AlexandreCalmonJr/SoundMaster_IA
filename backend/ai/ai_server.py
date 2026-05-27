@@ -246,7 +246,9 @@ async def chat_endpoint(
         result = await run_in_threadpool(
             ai_engine.process, request.message, request.analysis, request.mixer_context
         )
-        if result and result.get("text"):
+        if not result or not result.get("text"):
+            result = {"text": "Entendi! Pode me dar mais detalhes sobre o que está sentindo no som?", "command": None}
+        if result.get("text"):
             session.add_message("assistant", result["text"])
         return result
     except Exception as e:

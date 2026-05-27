@@ -126,6 +126,27 @@ def test_process_wav():
     assert response.headers["content-type"] == "audio/wav"
     assert len(response.content) > 44
 
+def test_classify_silence():
+    response = client.post("/api/ai/classify", json={
+        "audio": [0.0] * 16000,
+        "sampleRate": 16000,
+        "k": 3,
+        "threshold": 0.01
+    })
+    assert response.status_code == 200
+    data = response.json()
+    assert "classes" in data
+    assert "topClass" in data
+
+def test_classify_no_audio():
+    response = client.post("/api/ai/classify", json={
+        "audio": [],
+        "sampleRate": 16000,
+        "k": 1,
+        "threshold": 0.1
+    })
+    assert response.status_code == 200
+
 def test_chat_history():
     response = client.get("/chat/history/test-session")
     assert response.status_code == 200

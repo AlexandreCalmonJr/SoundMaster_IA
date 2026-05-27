@@ -248,6 +248,53 @@ class OllamaLLM:
             print(f"[Ollama] Erro na consulta: {e}")
             return None
 
+class LlamaLLM:
+    """Gerenciador de modelo local via llama-cpp-python (modelo GGUF)."""
+    def __init__(self, model_path, n_ctx=2048, n_threads=4):
+        from llama_cpp import Llama
+        self.model = Llama(model_path=model_path, n_ctx=n_ctx, n_threads=n_threads, verbose=False)
+        self.enabled = True
+
+    def query(self, prompt, context_data=None, conversation=None):
+        if not self.enabled:
+            return None
+        profile_names = {'janelas_vidro': 'Janelas/Vidro', 'teto_alto': 'Teto Alto', 'paredes_paralelas': 'Paredes Paralelas'}
+        system = (
+            "Você é o SoundMaster IA — assistente amigável de som para igrejas. "
+            "Fale de forma simples, calorosa e acolhedora, como um colega ajudando outro. "
+            "EVITE jargão técnico. Use palavras do dia a dia. "
+            "Exemplos: 'som abafado' ao invés de 'excesso de energia subsônica'; "
+            "'chiado' ao invés de 'sibilância'; 'o som está estranho' ao invés de 'anomalia espectral'. "
+            "Cumprimente com 'Bom dia!', 'Olá!', 'Tudo bem?'. "
+            "Seja paciente e encorajador. Seu objetivo é ajudar voluntários de igreja a terem um som melhor. "
+            f"Perfil ativo da sala: {profile_names.get(context_data.get('room_profile'), context_data.get('room_profile', 'desconhecido')) if context_data else 'desconhecido'}. "
+            "Sugira ações práticas de forma simples."
+        )
+        if context_data:
+            master_eq_info = context_data.get('master_eq', 'nenhum corte ativo')
+            system += f" Contexto Atual: RT60={context_data.get('rt60')}s, Pico={context_data.get('peakHz')}Hz, RMS={context_data.get('rms')}dB. EQ Master atual: {master_eq_info}."
+        
+        messages = [{"role": "system", "content": system}]
+        if conversation:
+            for msg in conversation[-10:]:
+                role = "user" if msg["role"] == "user" else "assistant"
+                messages.append({"role": role, "content": msg["content"]})
+        messages.append({"role": "user", "content": prompt})
+
+        try:
+            response = self.model.create_chat_completion(
+                messages=messages,
+                max_tokens=512,
+                temperature=0.7
+            )
+            return response["choices"][0]["message"]["content"].strip()
+        except Exception as e:
+            print(f"[Llama] Erro na consulta: {e}")
+            return None
+
+    def reload_if_needed(self):
+        return self.enabled
+
 class LocalLLM:
     """Gerenciador de Modelo Local — tenta Ollama primeiro, depois llama-cpp."""
     _instance = None
@@ -280,8 +327,7 @@ class LocalLLM:
 
         if os.path.exists(model_path) and self._test_llama_crash():
             try:
-                from llama_cpp import Llama
-                self.llm = Llama(model_path=model_path, n_ctx=2048, n_threads=4, verbose=False)
+                self.llm = LlamaLLM(model_path=model_path, n_ctx=2048, n_threads=4)
                 self.enabled = True
                 print(f"[AI Engine] Modelo llama-cpp carregado: {model_path}")
                 return
@@ -299,9 +345,12 @@ class LocalLLM:
     def _test_llama_crash():
         import subprocess, sys
         test_code = (
-            "import sys, os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); "
-            "try: from llama_cpp import Llama; print('OK')\n"
-            "except Exception as e: print('ERR:' + str(e))"
+            "import sys, os\n"
+            "try:\n"
+            "    from llama_cpp import Llama\n"
+            "    print('OK')\n"
+            "except Exception as e:\n"
+            "    print('ERR:' + str(e))"
         )
         try:
             script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
