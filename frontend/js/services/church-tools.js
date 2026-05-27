@@ -1,5 +1,7 @@
 (function () {
     var _churchController = new AbortController();
+    var _mtkUnsub = null;
+    var _acousticHandler = null;
 
     function _el(id) {
         const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
@@ -203,9 +205,8 @@
         if (!btnRefresh) return;
 
         // Registrar listener para dados reais (apenas uma vez)
-        // TODO: store handler reference for SocketService.off() cleanup if destroy() is added
         if (window.SocketService && !window._benchmarkingListenerSet) {
-            var _acousticHandler = (data) => {
+            _acousticHandler = (data) => {
                 const emptyEl = _el('bench-empty-rt60');
                 const fullEl = _el('bench-full-rt60');
                 
@@ -292,8 +293,20 @@
             AppStore.addLog('MTK: Gravação de Multitrack finalizada.');
         };
 
-        // TODO: store unsubscribe reference for cleanup if destroy() is added
-        AppStore.subscribe('isRecordingMTK', (isRec) => updateStatusUI(isRec));
+        if (_mtkUnsub) _mtkUnsub();
+        _mtkUnsub = AppStore.subscribe('isRecordingMTK', (isRec) => updateStatusUI(isRec));
     }
 
+    function destroy() {
+        if (_churchController) _churchController.abort();
+        _churchController = new AbortController();
+        if (_mtkUnsub) { _mtkUnsub(); _mtkUnsub = null; }
+        if (_acousticHandler && window.SocketService) {
+            window.SocketService.off('acoustic_history_data', _acousticHandler);
+            _acousticHandler = null;
+        }
+        window._benchmarkingListenerSet = false;
+    }
+
+    window.SoundMasterChurchTools.destroy = destroy;
 })();

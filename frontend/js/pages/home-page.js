@@ -806,7 +806,7 @@
         }
 
         // Listen for Feedback Detector auto-cut events and persist to AI history
-        window.addEventListener('feedback:auto-cut', function (e) {
+        window._feedbackAutoCutHandler = function (e) {
             var sid = _getSessionId();
             var detail = e.detail || {};
             var sysMsg = {
@@ -819,13 +819,18 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ messages: [sysMsg] })
             }).catch(function () {});
-        });
+        };
+        window.addEventListener('feedback:auto-cut', window._feedbackAutoCutHandler);
     }
 
     function destroy() {
         if (window.parent && window.parent.document && _rt60Listener) {
             window.parent.document.removeEventListener('rt60-result', _rt60Listener);
             _rt60Listener = null;
+        }
+        if (window._feedbackAutoCutHandler) {
+            window.removeEventListener('feedback:auto-cut', window._feedbackAutoCutHandler);
+            window._feedbackAutoCutHandler = null;
         }
         pm.destroy();
     }

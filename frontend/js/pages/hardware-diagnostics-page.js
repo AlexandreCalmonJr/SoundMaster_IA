@@ -64,6 +64,12 @@
             return;
         }
         _setStatus('🔍 Analisando hardware com IA...', '');
+        var container = _el('hd-result');
+        if (container) container.classList.remove('hidden');
+        var codeEl = _el('hd-diagnosis-code');
+        var summaryEl = _el('hd-diagnosis-summary');
+        if (codeEl) { codeEl.textContent = 'ANALISANDO...'; codeEl.className = 'text-lg font-black text-amber-400 animate-pulse'; }
+        if (summaryEl) summaryEl.textContent = 'Aguardando resultado da IA...';
         var ch = _el('hd-channel-select') ? parseInt(_el('hd-channel-select').value) : 1;
         var result = null;
         if (window.AIService && typeof AIService.hardwareDiagnosis === 'function') {

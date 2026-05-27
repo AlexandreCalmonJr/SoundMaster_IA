@@ -22,6 +22,7 @@
 
         pm._on(pm._el('aeq-analyze-btn'), 'click', function () {
             if (!window.AutoEQ) { _setStatus('AutoEQ service n\u00E3o carregado.', 'err'); return; }
+            pm._el('aeq-stat-rms').classList.add('animate-pulse');
             var freqData = null, sampleRate = 48000, fftSize = 8192;
             var liveAnalyzer = window.SoundMasterAnalyzer;
             if (liveAnalyzer && typeof liveAnalyzer.getFreqData === 'function') { var snap = liveAnalyzer.getFreqData(); if (snap) { freqData = snap.data; sampleRate = snap.sampleRate || 48000; fftSize = snap.fftSize || 8192; } }
@@ -35,11 +36,13 @@
             var exportLakeBtn = pm._el('aeq-export-lake-btn'); if (exportLakeBtn) exportLakeBtn.disabled = false;
             var exportPeqBtn = pm._el('aeq-export-peq-btn'); if (exportPeqBtn) exportPeqBtn.disabled = false;
             var applyRow = pm._el('aeq-apply-row'); if (applyRow) applyRow.style.display = '';
+            pm._el('aeq-stat-rms').classList.remove('animate-pulse');
         });
 
         pm._on(pm._el('aeq-ai-btn'), 'click', async function () {
             if (!window.AIService) { _setStatus('AIService não disponível.', 'err'); return; }
             _setStatus('🤖 Consultando IA Python para cálculo do EQ...', '');
+            pm._el('aeq-stat-rms').classList.add('animate-pulse');
             var freqData = null, sampleRate = 48000, fftSize = 8192;
             var liveAnalyzer = window.SoundMasterAnalyzer;
             if (liveAnalyzer && typeof liveAnalyzer.getFreqData === 'function') { var snap = liveAnalyzer.getFreqData(); if (snap) { freqData = Array.from(snap.data); sampleRate = snap.sampleRate || 48000; fftSize = snap.fftSize || 8192; } }
@@ -67,6 +70,7 @@
                     pm._el('aeq-analyze-btn') && pm._el('aeq-analyze-btn').click();
                 }
             } catch (e) { _setStatus('❌ Erro IA: ' + e.message, 'err'); }
+            pm._el('aeq-stat-rms').classList.remove('animate-pulse');
         });
         pm._on(pm._el('aeq-export-btn'), 'click', function () { if (!window.AutoEQ) return; AutoEQ.downloadEqData(AutoEQ.exportGEQ(), 'auto-eq-geq.csv', 'text/csv'); });
         pm._on(pm._el('aeq-export-lake-btn'), 'click', function () { if (!window.AutoEQ || !_lastResult) return; AutoEQ.downloadEqData(AutoEQ.exportLake(_lastResult.peq), 'auto-eq-lake.txt', 'text/plain'); });

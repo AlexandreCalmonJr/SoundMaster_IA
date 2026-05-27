@@ -60,6 +60,10 @@
     let _lastClassification = null;
     let _classifyCooldown = 0;
 
+    // Throttle: salta rendering pesado a cada N frames (melhor em mobile)
+    let _frameCount = 0;
+    let _frameSkip = 2;
+
     const _CLASS_ICON_MAP = [
         { match: /speech|voice|conversation|narration/i, icon: '🎤', label: 'Fala', detail: 'Voz/fala detectada' },
         { match: /music|song|instrument|guitar|piano|drum|bass/i, icon: '🎵', label: 'Música', detail: 'Conteúdo musical' },
@@ -1302,7 +1306,12 @@
             updatePeakPerOctave(freqData, audioCtx.sampleRate, analyser.fftSize);
 
             // --- Renderização visual se o canvas estiver ativo ---
-            if (canvas && canvasCtx) {
+            // Throttle: pula rendering a cada _frameSkip frames
+            // (dados do analyser continuam a ser lidos todos os frames)
+            _frameCount++;
+            var _shouldRender = (_frameCount % _frameSkip === 0);
+
+            if (canvas && canvasCtx && _shouldRender) {
                 const iecCenters = [
                     20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 
                     500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 
@@ -2039,11 +2048,14 @@
 
     // Auto-init
     (function autoInit() {
+        var _autoInitDone = false;
+
         function tryInit() {
             _analyzerIframe = document.getElementById('agent-workspace-iframe');
             if (_el('fft-canvas')) {
                 initGlobalAnalyzer();
                 initAnalyzer();
+                _autoInitDone = true;
                 return true;
             }
             return false;
@@ -2052,13 +2064,13 @@
         if (tryInit()) return;
 
         document.addEventListener('page-loaded', (e) => {
-            if (e.detail.pageId === 'analyzer') {
+            if (e.detail.pageId === 'analyzer' && !_autoInitDone) {
                 setTimeout(tryInit, 100);
             }
         });
 
         document.addEventListener('iframe-loaded', (e) => {
-            if (e.detail.pageId === 'analyzer') {
+            if (e.detail.pageId === 'analyzer' && !_autoInitDone) {
                 setTimeout(tryInit, 100);
             }
         });

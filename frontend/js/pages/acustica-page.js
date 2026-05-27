@@ -36,6 +36,24 @@
         window.removeEventListener('resize', _resizeEtcCanvas);
         window.addEventListener('resize', _resizeEtcCanvas);
 
+        // Validação inline dos inputs de dimensões
+        function _validateInput(id) {
+            var el = pm._el(id);
+            if (!el) return;
+            var val = parseFloat(el.value);
+            var valid = !isNaN(val) && val > 0 && val <= 999;
+            el.classList.toggle('border-red-500/50', !valid);
+            el.classList.toggle('border-cyan-500/50', valid);
+        }
+        ['rt-length', 'rt-width', 'rt-height', 'rt-delay-dist'].forEach(function (id) {
+            var el = pm._el(id);
+            if (el) el.addEventListener('input', function () { _validateInput(id); });
+        });
+        // Validação inicial
+        setTimeout(function () {
+            ['rt-length', 'rt-width', 'rt-height', 'rt-delay-dist'].forEach(_validateInput);
+        }, 100);
+
         // Eyring & Sabine Acoustic Calculator
         var _calcBusy = false;
         pm._on(pm._el('btn-calc-rt60'), 'click', async function () {
