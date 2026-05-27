@@ -259,6 +259,12 @@ class AIEngine:
         from acoustics.processor import AcousticProcessor
         
         analysis = analysis or (self.session.analyses_history[-1] if self.session.analyses_history else {})
+        
+        # Se não há dados reais de análise, pede medição primeiro
+        has_data = bool(analysis.get('rt60') or analysis.get('rt60_multiband') or analysis.get('rms'))
+        if not has_data and not self.session.analyses_history:
+            return None
+        
         rt60_avg = self._safe_float(analysis.get('rt60', 1.2), 1.2)
         rt60_info = AcousticProcessor.classify_room(rt60_avg)
         
@@ -488,8 +494,13 @@ Deseja aplicar a correcao recomendada?
             }
 
         # 1. Gatilho de Relatório Completo
-        if re.search(r'(relatorio|resumo|estatistica|cenario|cenário)', text):
+        if re.search(r'(relat[oó]rio|resumo|estat[ií]stica|cen[aá]rio)', text):
             report_md = self.generate_technical_report(analysis)
+            if report_md is None:
+                return {
+                    "text": "Ainda não tenho dados acústicos para gerar um relatório. Primeiro ative o analisador e faça uma medição de ruído rosa ou aguarde o microfone captar o som ambiente. Depois peça o relatório novamente! 😊",
+                    "command": None
+                }
             return {
                 "text": "Claro! Vou preparar um resumo do som da sua sala pra você. Só um instante...",
                 "report": report_md,
@@ -646,7 +657,7 @@ Deseja aplicar a correcao recomendada?
                 return {"text": f"Ok, vou tirar o canal {channel} do retorno {aux_ch}.", "command": self.command("set_aux_level", "Mute Aux", channel=channel, aux=aux_ch, level=0)}
 
         # Entender linguagem do dia a dia (não técnica)
-        if re.search(r'(abafado|embolado|sujo|estranho|estourando|ruim|horrivel|piorou)', text):
+        if re.search(r'(abafad[oa]|embolad[oa]|suj[oa]|estranh[oa]|estourando|ruim|horr[ií]vel|piorou|n[aã]o.*legal|est[áa].*estranho)', text):
             eq_exists = self._has_eq_near(mixer_state, 400, "master")
             if eq_exists:
                 alt_hz = 600 if self._has_eq_near(mixer_state, 600, "master") else 300
@@ -686,7 +697,7 @@ Deseja aplicar a correcao recomendada?
                 "text": "Parece que a sala está muito 'viva', com muito eco. Infelizmente não posso mudar a construção da sala, mas posso ajudar com ajustes no equalizador pra melhorar!",
                 "command": self.command("eq_cut", "Melhorar acústica", target="master", hz=800, gain=-2, q=1.0)
             }
-        if re.search(r'(grosso|pesado|grave demais|bumbo|sub|tremendo)', text):
+        if re.search(r'(gross[oa]|pesad[oa]|grave demais|bumbo|sub|tremend[oa])', text):
             grave_hz = 125
             eq_exists = self._has_eq_near(mixer_state, grave_hz, "master")
             if eq_exists:
@@ -699,7 +710,7 @@ Deseja aplicar a correcao recomendada?
                 "text": "Tem muito grave acumulado, né? Vou limpar as frequências graves pra não ficar 'embolado'. O som vai ficar mais limpo!",
                 "command": self.command("eq_cut", "Limpeza de Graves", target="master", hz=125, gain=-3, q=1.0)
             }
-        if re.search(r'(fino|agudo|fino demais|sibilancia|brilho|agudo)', text):
+        if re.search(r'(fin[oa]|agud[oa]|fino demais|sibil[âa]ncia|brilho)', text):
             agudo_hz = 6000
             eq_exists = self._has_eq_near(mixer_state, agudo_hz, "master")
             if eq_exists:
@@ -712,7 +723,7 @@ Deseja aplicar a correcao recomendada?
                 "text": "Os agudos estão incomodando? Vou suavizar as frequências mais altas pra ficar mais confortável.",
                 "command": self.command("eq_cut", "Suavizar Agudos", target="master", hz=6000, gain=-2, q=1.5)
             }
-        if re.search(r'(claro|entender|inteligivel|entendo|entender as palavras)', text):
+        if re.search(r'(clar[oa]|entender|intelig[ií]vel|entendo|entender as palavras)', text):
             ch_name = self._get_channel_name(mixer_state, channel)
             target = f"'{ch_name}' (canal {channel})" if ch_name else f"canal {channel}"
             return {
@@ -760,4 +771,11 @@ Deseja aplicar a correcao recomendada?
             if llm_response:
                 return {"text": llm_response, "command": None, "source": "local_llm"}
 
+        # Fallback: mostra as palavras-chave detectadas para dar feedback ao usuário
+        palavras = [p for p in text.split() if len(p) > 3]
+        encontradas = [p for p in palavras if re.search(r'(voz|som|canal|microfone|palco|sala|abafad|estranh|baixo|alto|grave|agudo|apito|eco|retorno|monitor|auditoria|ajud[oa]|problema|volume|fader|mute|compressor|equalizador|hpf|gate|delay|reverb|preset|cena|feedback)', p)]
+        if encontradas:
+            dica = f"Entendi! Você falou sobre: {', '.join(encontradas[:5])}. "
+            dica += "Vou analisar e sugerir ajustes. Pode me dar mais detalhes?"
+            return {"text": dica, "command": None, "context": {"keywords": encontradas}}
         return {"text": "Olá! 😊 Me diga o que você está sentindo no som: está baixo, estranho, abafado, apitando? Pode falar do seu jeito que eu entendo e ajudo!", "command": None}
