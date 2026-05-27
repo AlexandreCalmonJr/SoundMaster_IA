@@ -192,48 +192,35 @@ function setupPythonInstaller(mainWindow, onCompleteCallback) {
                 sendProgress('installing-pip', 100, 'Gerenciador pip instalado com sucesso.');
             }
 
-            // 6. Instalação de dependências do requirements.txt
-            if (fs.existsSync(reqsTxtPath)) {
-                sendProgress('installing-requirements', 10, 'Instalando dependências de IA (FastAPI, NumPy, SciPy...) - Isso pode demorar de 1 a 3 minutos...');
-                
-                return new Promise((resolve, reject) => {
-                    const pipProcess = spawn(pythonExePath, ['-m', 'pip', 'install', '-r', reqsTxtPath, '--quiet'], {
-                        cwd: portableDir
-                    });
+            // 6. Instalação de dependências (core obrigatório + opcionais separadamente)
+            const installUtils = require('./python-install-utils.js');
+            sendProgress('installing-requirements', 10, 'Instalando dependências essenciais (FastAPI, NumPy, SciPy...)...');
+            const coreOk = installUtils.installCoreReqs(pythonExePath, (msg) => {
+                sendProgress('installing-requirements', 30, msg);
+            });
 
-                    let progressPercent = 10;
-                    const progressInterval = setInterval(() => {
-                        if (progressPercent < 90) {
-                            progressPercent += 5;
-                            sendProgress('installing-requirements', progressPercent, `Instalando pacotes de IA... (Aproximadamente ${progressPercent}%)`);
-                        }
-                    }, 5000);
-
-                    pipProcess.on('close', (code) => {
-                        clearInterval(progressInterval);
-                        if (code === 0) {
-                            sendProgress('completed', 100, 'Instalação completa! IA pronta para uso.');
-                            if (onCompleteCallback) {
-                                onCompleteCallback();
-                            }
-                            resolve(true);
-                        } else {
-                            reject(new Error(`Falha na instalação dos pacotes Python (Código de saída: ${code})`));
-                        }
-                    });
-
-                    pipProcess.on('error', (err) => {
-                        clearInterval(progressInterval);
-                        reject(err);
-                    });
-                });
-            } else {
-                sendProgress('completed', 100, 'Instalação completa! requirements.txt não encontrado.');
-                if (onCompleteCallback) {
-                    onCompleteCallback();
-                }
-                return true;
+            if (!coreOk) {
+                throw new Error('Falha na instalação dos pacotes Python essenciais. Verifique sua conexão com a internet.');
             }
+            sendProgress('installing-requirements', 60, 'Dependências essenciais instaladas.');
+
+            sendProgress('installing-requirements', 70, 'Instalando dependências opcionais (TensorFlow, classificação de áudio)...');
+            const optResults = installUtils.installOptionalReqs(pythonExePath, (msg) => {
+                sendProgress('installing-requirements', 80, msg);
+            });
+            const failed = optResults.filter(r => !r.ok);
+            if (failed.length > 0) {
+                console.warn('[Python Installer] Pacotes opcionais que não puderam ser instalados:');
+                for (const f of failed) {
+                    console.warn(`  - ${f.name}: ${f.error}`);
+                }
+            }
+
+            sendProgress('completed', 100, 'Instalação completa! IA pronta para uso.');
+            if (onCompleteCallback) {
+                onCompleteCallback();
+            }
+            return true;
 
         } catch (error) {
             console.error('[Python Installer Error]:', error);

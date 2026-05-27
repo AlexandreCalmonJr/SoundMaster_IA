@@ -89,7 +89,8 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
 
     expressApp.use(express.static(path.join(rootDir, 'frontend')));
     expressApp.use('/docs', express.static(path.join(rootDir, 'docs')));
-    expressApp.use(express.json({ limit: '1mb' }));
+    expressApp.use(express.json({ limit: '50mb' }));
+    expressApp.use(express.urlencoded({ limit: '50mb', extended: true }));
 
     // Middleware de autenticação JWT para rotas REST protegidas
     function authenticateToken(req, res, next) {

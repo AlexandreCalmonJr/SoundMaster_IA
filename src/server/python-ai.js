@@ -4,6 +4,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const Logger = require('./logger');
 const http = require('http');
+const installUtils = require('./python-install-utils.js');
 let app = null;
 try { app = require('electron').app; } catch (_) { app = null; }
 
@@ -18,7 +19,8 @@ function getPythonCommand() {
     return resolvedPythonCommand;
 }
 
-const REQS_PATH = path.join(__dirname, '..', '..', 'backend', 'ai', 'requirements.txt');
+const REQS_PATH = installUtils.REQS_PATH;
+const DEPS_STATE_PATH = path.join(__dirname, '..', '..', 'backend', 'ai', '.deps_state.json');
 
 function _getVenvPython(rootDir) {
     const isWin = process.platform === 'win32';
@@ -32,17 +34,7 @@ function _getVenvPython(rootDir) {
     return candidates.find(fs.existsSync) || null;
 }
 
-const DEPS_STATE_PATH = path.join(__dirname, '..', '..', 'backend', 'ai', '.deps_state.json');
 
-function _areLongPathsEnabled() {
-    if (process.platform !== 'win32') return true;
-    try {
-        const out = execSync('reg query "HKLM\\System\\CurrentControlSet\\Control\\FileSystem" /v LongPathsEnabled', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
-        return out.includes('0x1');
-    } catch (_) {
-        return false;
-    }
-}
 
 function _getFileHash(filePath) {
     try {
@@ -54,153 +46,79 @@ function _getFileHash(filePath) {
 }
 
 function _ensurePythonDeps() {
-    const requirementsPath = REQS_PATH;
-    if (!fs.existsSync(requirementsPath)) {
-        console.warn('[Python AI] requirements.txt não encontrado em:', requirementsPath);
+    if (!fs.existsSync(REQS_PATH)) {
+        console.warn('[Python AI] requirements.txt não encontrado em:', REQS_PATH);
         return;
     }
 
-    const currentHash = _getFileHash(requirementsPath);
-    const longPathsEnabled = _areLongPathsEnabled();
+    const currentHash = _getFileHash(REQS_PATH);
     const statePath = DEPS_STATE_PATH;
 
-    // Tenta ler o estado atual
+    // Cache: se já validamos este hash com sucesso, não repete
     let savedState = null;
     if (fs.existsSync(statePath)) {
-        try {
-            savedState = JSON.parse(fs.readFileSync(statePath, 'utf8'));
-        } catch (_) {}
+        try { savedState = JSON.parse(fs.readFileSync(statePath, 'utf8')); } catch (_) {}
     }
-
-    // Se o estado já for válido e bem-sucedido, ignora a instalação
-    if (savedState &&
-        savedState.requirementsHash === currentHash &&
-        savedState.longPathsEnabled === longPathsEnabled &&
-        savedState.success === true) {
-        console.log('[Python AI] Dependências Python já validadas e atualizadas.');
+    if (savedState && savedState.hash === currentHash && savedState.success === true) {
+        console.log('[Python AI] Dependências Python já validadas.');
         return;
     }
 
-    // Procura python (prioriza venv, depois sistema)
-    const venvPython = _getVenvPython(path.join(__dirname, '..', '..'));
-    const candidates = [];
-    if (venvPython) candidates.push(venvPython);
-    candidates.push('python', 'python3');
-    if (process.platform === 'win32') candidates.push('py');
-
-    // Se as dependências de base (fastapi e multipart) já estiverem instaladas E o estado tiver gravado sucesso=false para o mesmo hash e longPaths,
-    // nós não tentamos reinstalar para não travar o startup da aplicação em um loop eterno de falhas.
-    if (savedState &&
-        savedState.requirementsHash === currentHash &&
-        savedState.longPathsEnabled === longPathsEnabled &&
-        savedState.success === false) {
-        // Verifica se pelo menos o fastapi e multipart estão instalados
-        for (const cmd of candidates) {
+    // Se o estado salvo mostra falha mas fastapi roda, ignora reinstalação
+    if (savedState && savedState.hash === currentHash && savedState.success === false) {
+        for (const candidate of ['python', 'python3', ...(process.platform === 'win32' ? ['py'] : [])]) {
             try {
-                const checkResult = spawnSync(cmd, ['-c', 'import fastapi, multipart'], { stdio: 'ignore' });
-                if (checkResult.status === 0) {
-                    console.log(`[Python AI] Instalação anterior falhou, mas fastapi/multipart estão disponíveis (${cmd}). Iniciando em modo Lite.`);
+                const r = spawnSync(candidate, ['-c', 'import fastapi, multipart'], { stdio: 'ignore' });
+                if (r.status === 0) {
+                    console.log('[Python AI] Instalação anterior falhou mas core está funcional. Modo Lite.');
                     return;
                 }
             } catch (_) {}
         }
     }
 
-    // Nenhum python com as dependências válidas. Vamos encontrar o executável Python
+    // Encontra Python
+    const venvPython = _getVenvPython(path.join(__dirname, '..', '..'));
+    const candidates = [];
+    if (venvPython) candidates.push(venvPython);
+    candidates.push('python', 'python3');
+    if (process.platform === 'win32') candidates.push('py');
+
     const pythonCmd = candidates.find(c => {
-        try {
-            const versionResult = spawnSync(c, ['--version'], { stdio: 'ignore' });
-            return versionResult.status === 0;
-        } catch (_) {
-            return false;
-        }
+        try { return spawnSync(c, ['--version'], { stdio: 'ignore' }).status === 0; } catch (_) { return false; }
     });
 
     if (!pythonCmd) {
-        console.warn('[Python AI] Python não foi detectado no sistema. A IA local não pôde ser inicializada.');
-        console.warn('[Python AI] Para utilizar as funcionalidades de IA local, por favor instale o Python e execute: pip install -r backend/ai/requirements.txt');
+        console.warn('[Python AI] Python não encontrado.');
         return;
     }
 
-    let installReqsPath = requirementsPath;
-    let isLiteInstall = false;
+    // Instala core (obrigatório)
+    console.log('[Python AI] Instalando dependências essenciais...');
+    const coreOk = installUtils.installCoreReqs(pythonCmd);
+    if (!coreOk) {
+        console.error('[Python AI] Falha ao instalar dependências essenciais. Execute manualmente:');
+        console.error('[Python AI]   pip install -r backend/ai/requirements.txt');
+        return;
+    }
+    console.log('[Python AI] Dependências essenciais OK.');
 
-    if (process.platform === 'win32' && !longPathsEnabled) {
-        isLiteInstall = true;
-        console.warn('[Python AI] ⚠️ Windows Long Path support is disabled (LongPathsEnabled = 0).');
-        console.warn('[Python AI] tensorflow e lama-cpp-python serao instalados via wheels pre-compilados.');
-        console.warn('[Python AI] Para desativar este aviso no futuro, execute como Administrador:');
-        console.warn('[Python AI]   Set-ItemProperty -Path "HKLM:\\System\\CurrentControlSet\\Control\\FileSystem" -Name "LongPathsEnabled" -Value 1');
-
-        // Gera requirements_lite.txt filtrando APENAS llama-cpp-python (source .tar.gz com vendor/ profundo)
-        // tensorflow fica incluso porque instala via wheel pre-compilado (.whl), sem path profundo.
-        try {
-            const content = fs.readFileSync(requirementsPath, 'utf8');
-            const lines = content.split(/\r?\n/);
-            const filteredLines = lines.filter(line => {
-                const clean = line.trim().toLowerCase();
-                return !clean.startsWith('llama-cpp-python');
-            });
-            const litePath = path.join(path.dirname(requirementsPath), 'requirements_lite.txt');
-            fs.writeFileSync(litePath, filteredLines.join('\n'), 'utf8');
-            installReqsPath = litePath;
-        } catch (err) {
-            console.error('[Python AI] Falha ao criar requirements_lite.txt, usando requirements.txt padrão:', err.message);
-            isLiteInstall = false;
+    // Instala opcionais (falhas são apenas avisos)
+    const optResults = installUtils.installOptionalReqs(pythonCmd);
+    for (const r of optResults) {
+        if (r.ok) {
+            console.log(`[Python AI] ${r.name} instalado.`);
+        } else {
+            console.warn(`[Python AI] ${r.name} não disponível para esta plataforma.`);
         }
     }
 
-    console.log(`[Python AI] Instalando dependências Python (pip install -r ${path.basename(installReqsPath)})...`);
-    let installSuccess = false;
-
-    try {
-        const installResult = spawnSync(pythonCmd, ['-m', 'pip', 'install', '-r', installReqsPath, '--quiet'], {
-            stdio: 'inherit',
-            timeout: 300000, // 5 min
-        });
-        if (installResult.error) throw installResult.error;
-        if (installResult.status !== 0) throw new Error(`Exit code: ${installResult.status}`);
-        console.log('[Python AI] Dependências instaladas com sucesso.');
-        installSuccess = true;
-    } catch (e) {
-        console.error('[Python AI] Falha ao instalar dependências:', e.message);
-        console.warn('[Python AI] Execute manualmente: pip install -r backend/ai/requirements.txt');
-    } finally {
-        // Limpa requirements_lite.txt se foi criado
-        if (isLiteInstall && installReqsPath !== requirementsPath && fs.existsSync(installReqsPath)) {
-            try {
-                fs.unlinkSync(installReqsPath);
-            } catch (_) {}
-        }
-    }
-
-    // Instala llama-cpp-python separadamente (via wheel pre-compilado, sem path profundo)
-    if (process.platform === 'win32') {
-        const llamaIndexUrl = 'https://abetlen.github.io/llama-cpp-python/whl/cpu';
-        console.log('[Python AI] Instalando llama-cpp-python via wheel pre-compilado...');
-        try {
-            const llamaResult = spawnSync(pythonCmd, [
-                '-m', 'pip', 'install', 'llama-cpp-python',
-                '--extra-index-url', llamaIndexUrl,
-                '--quiet', '--no-cache-dir'
-            ], { stdio: 'inherit', timeout: 180000 });
-            if (llamaResult.status === 0) {
-                console.log('[Python AI] llama-cpp-python instalado com sucesso via wheel.');
-                installSuccess = true;
-            } else {
-                console.warn('[Python AI] Falha ao instalar llama-cpp-python via wheel. LLM local indisponível.');
-            }
-        } catch (e) {
-            console.warn('[Python AI] Erro ao instalar llama-cpp-python:', e.message);
-        }
-    }
-
-    // Salva o novo estado
+    // Salva estado
     try {
         fs.writeFileSync(statePath, JSON.stringify({
-            requirementsHash: currentHash,
-            longPathsEnabled: longPathsEnabled,
-            success: installSuccess
+            hash: currentHash,
+            success: true,
+            timestamp: Date.now()
         }, null, 2), 'utf8');
     } catch (_) {}
 }

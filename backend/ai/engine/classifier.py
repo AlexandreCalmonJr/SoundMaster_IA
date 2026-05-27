@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
 import csv
+
+# pyrefly: ignore [missing-import]
 import numpy as np
 
 CLASS_MAP_URL = "https://raw.githubusercontent.com/tensorflow/models/master/research/audioset/yamnet/yamnet_class_map.csv"
@@ -71,7 +73,7 @@ class AudioClassifier:
         self._setup_tfhub()
 
     def _setup_tflite(self):
-        """Carrega YAMNet via tflite-runtime (opção leve e offline)."""
+        """Carrega YAMNet via tflite-runtime ou tensorflow.lite (opçao leve e offline)."""
         tflite_path = os.path.join(self.models_dir, 'yamnet.tflite')
         # Baixa o modelo TFLite se não existir
         if not os.path.exists(tflite_path):
@@ -79,16 +81,24 @@ class AudioClassifier:
             if not self._download(self._YAMNET_TFLITE_URL, tflite_path):
                 return False
         try:
-            import tflite_runtime.interpreter as tflite
+            try:
+                import importlib
+                tflite = importlib.import_module("tflite_runtime.interpreter")
+                backend_name = 'tflite-runtime'
+            except ImportError:
+                import importlib
+                tflite = importlib.import_module("tensorflow.lite")
+                backend_name = 'tensorflow.lite'
+                
             interp = tflite.Interpreter(model_path=tflite_path)
             interp.allocate_tensors()
             self.model = interp
             self._backend = 'tflite'
             self.enabled = True
-            print(f"[Classifier] YAMNet TFLite carregado ({len(self.class_names)} classes). Backend: tflite-runtime")
+            print(f"[Classifier] YAMNet TFLite carregado ({len(self.class_names)} classes). Backend: {backend_name}")
             return True
         except ImportError:
-            print("[Classifier] tflite-runtime não instalado. Tentando tensorflow_hub...")
+            print("[Classifier] tflite-runtime e tensorflow nao instalados. Tentando tensorflow_hub...")
             return False
         except Exception as e:
             print(f"[Classifier] Falha ao carregar YAMNet TFLite: {e}")
@@ -97,15 +107,20 @@ class AudioClassifier:
     def _setup_tfhub(self):
         """Fallback: carrega YAMNet via tensorflow_hub (online no 1º start)."""
         try:
-            import tensorflow_hub as hub
+            import importlib
+            hub = importlib.import_module("tensorflow_hub")
             print("[Classifier] Carregando YAMNet do TF Hub (requer internet)...")
             self.model = hub.load('https://tfhub.dev/google/yamnet/1')
             self._backend = 'tfhub'
             self.enabled = True
             print(f"[Classifier] YAMNet TF Hub carregado ({len(self.class_names)} classes).")
         except ImportError:
-            print("[Classifier] Nenhum backend disponível (tflite-runtime nem tensorflow-hub).")
-            print("[Classifier] Execute: pip install tflite-runtime")
+            import platform
+            print("[Classifier] Nenhum backend disponivel (tflite-runtime nem tensorflow).")
+            if platform.system() == 'Windows' or platform.system() == 'Darwin':
+                print("[Classifier] Execute: pip install tensorflow")
+            else:
+                print("[Classifier] Execute: pip install tflite-runtime")
         except Exception as e:
             print(f"[Classifier] Erro ao carregar YAMNet via TF Hub: {e}")
 
@@ -125,6 +140,8 @@ class AudioClassifier:
 
     def _classify_tflite(self, audio):
         """Executa inferência via tflite-runtime."""
+        if self.model is None:
+            raise RuntimeError("YAMNet TFLite interpreter is not loaded.")
         input_details = self.model.get_input_details()
         output_details = self.model.get_output_details()
         # YAMNet TFLite espera [1, N] float32
@@ -138,7 +155,10 @@ class AudioClassifier:
 
     def _classify_tfhub(self, audio):
         """Executa inferência via tensorflow_hub."""
-        import tensorflow as tf
+        import importlib
+        tf = importlib.import_module("tensorflow")
+        if self.model is None or not callable(self.model):
+            raise RuntimeError("YAMNet TF Hub model is not loaded or not callable.")
         result = self.model(audio)
         if isinstance(result, (list, tuple)):
             scores = result[0]

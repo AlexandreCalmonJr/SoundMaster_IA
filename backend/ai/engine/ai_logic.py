@@ -51,56 +51,253 @@ class SessionContext:
         if len(self.conversation) > 20:
             self.conversation.pop(0)
 
-class LocalLLM:
-    """Gerenciador de Modelo Leve Local (TinyLlama/Gemma via Llama-cpp)"""
+class OllamaLLM:
+    """Gerenciador de modelo via Ollama (download automático + API REST)."""
     _instance = None
-    _LLM_TIMEOUT = 120  # segundos máximo para inferência
+    _instance_lock = None
+    _OLLAMA_HOST = "http://127.0.0.1:11434"
+    _DEFAULT_MODEL = "llama3.2:1b"
+    _TIMEOUT = 120
+    _OLLAMA_URL = "https://ollama.com/download/OllamaSetup.exe"
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            import threading
+            if cls._instance_lock is None:
+                cls._instance_lock = threading.Lock()
+            with cls._instance_lock:
+                if cls._instance is None:
+                    instance = super().__new__(cls)
+                    instance._initialized = False
+                    cls._instance = instance
+        return cls._instance
+
+    def __init__(self, model_name=None):
+        if self._initialized:
+            return
+        self._initialized = True
+        import threading
+        self._lock = threading.Lock()
+        self.model_name = model_name or os.getenv("OLLAMA_MODEL", self._DEFAULT_MODEL)
+        self.enabled = False
+        self._proc = None
+
+        if self._ensure_ollama():
+            self.enabled = True
+            print(f"[Ollama] Modelo pronto: {self.model_name}")
+        else:
+            print("[Ollama] Não disponível. Usando fallback.")
+
+    def _find_ollama(self):
+        import shutil, os
+        # Caminhos comuns no Windows
+        candidates = [
+            shutil.which("ollama"),
+            os.path.expandvars(r"%LOCALAPPDATA%\Programs\Ollama\ollama.exe"),
+            os.path.expandvars(r"%PROGRAMFILES%\Ollama\ollama.exe"),
+            r"C:\Program Files\Ollama\ollama.exe",
+        ]
+        for c in candidates:
+            if c and os.path.exists(c):
+                return c
+        return None
+
+    def _download_ollama(self):
+        import urllib.request, os, sys
+        installer = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "OllamaSetup.exe")
+        if os.path.exists(installer):
+            print("[Ollama] Instalador já baixado. Instalando...")
+        else:
+            print(f"[Ollama] Baixando Ollama de {self._OLLAMA_URL}...")
+            try:
+                urllib.request.urlretrieve(self._OLLAMA_URL, installer)
+                print("[Ollama] Download concluído.")
+            except Exception as e:
+                print(f"[Ollama] Falha no download: {e}")
+                return False
+        try:
+            import subprocess
+            subprocess.run([installer, "/S"], check=True, timeout=120)
+            print("[Ollama] Instalação concluída.")
+            return True
+        except Exception as e:
+            print(f"[Ollama] Falha na instalação: {e}")
+            return False
+
+    def _start_ollama(self):
+        import subprocess, time
+        ollama_path = self._find_ollama()
+        if not ollama_path:
+            return False
+        try:
+            self._proc = subprocess.Popen(
+                [ollama_path, "serve"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                creationflags=subprocess.CREATE_NO_WINDOW
+            )
+            time.sleep(3)
+            return True
+        except Exception as e:
+            print(f"[Ollama] Falha ao iniciar servidor: {e}")
+            return False
+
+    def _pull_model(self):
+        import subprocess, time
+        ollama_path = self._find_ollama()
+        if not ollama_path:
+            return False
+        try:
+            print(f"[Ollama] Baixando modelo {self.model_name} (primeira vez pode levar minutos)...")
+            result = subprocess.run(
+                [ollama_path, "pull", self.model_name],
+                capture_output=True, text=True, timeout=300
+            )
+            if result.returncode == 0:
+                print(f"[Ollama] Modelo {self.model_name} pronto.")
+                return True
+            print(f"[Ollama] Falha ao baixar modelo: {result.stderr}")
+            return False
+        except subprocess.TimeoutExpired:
+            print("[Ollama] Timeout ao baixar modelo.")
+            return False
+        except Exception as e:
+            print(f"[Ollama] Erro ao baixar modelo: {e}")
+            return False
+
+    def _ollama_online(self):
+        import urllib.request, json
+        try:
+            req = urllib.request.Request(f"{self._OLLAMA_HOST}/api/tags", method="GET")
+            resp = urllib.request.urlopen(req, timeout=5)
+            return resp.status == 200
+        except Exception:
+            return False
+
+    def _ensure_ollama(self):
+        """Garante que Ollama está disponível. Falha rápido se não estiver."""
+        import time
+        deadline = time.time() + 8
+        if self._ollama_online():
+            return self._has_model()
+        ollama_path = self._find_ollama()
+        if not ollama_path:
+            return False
+        if not self._ollama_online():
+            print("[Ollama] Iniciando servidor...")
+            if not self._start_ollama():
+                return False
+            while time.time() < deadline:
+                if self._ollama_online():
+                    break
+                time.sleep(1)
+        if not self._has_model():
+            if time.time() < deadline:
+                return self._pull_model()
+            return False
+        return True
+
+    def _has_model(self):
+        import urllib.request, json
+        try:
+            req = urllib.request.Request(f"{self._OLLAMA_HOST}/api/tags")
+            resp = urllib.request.urlopen(req, timeout=5)
+            data = json.loads(resp.read())
+            for m in data.get("models", []):
+                if self.model_name in m.get("name", ""):
+                    return True
+            return False
+        except Exception:
+            return False
+
+    def query(self, prompt, context_data=None, conversation=None):
+        if not self.enabled:
+            return None
+        profile_names = {'janelas_vidro': 'Janelas/Vidro', 'teto_alto': 'Teto Alto', 'paredes_paralelas': 'Paredes Paralelas'}
+        system = (
+            "Você é o SoundMaster IA — assistente amigável de som para igrejas. "
+            "Fale de forma simples, calorosa e acolhedora, como um colega ajudando outro. "
+            "EVITE jargão técnico. Use palavras do dia a dia. "
+            "Exemplos: 'som abafado' ao invés de 'excesso de energia subsônica'; "
+            "'chiado' ao invés de 'sibilância'; 'o som está estranho' ao invés de 'anomalia espectral'. "
+            "Cumprimente com 'Bom dia!', 'Olá!', 'Tudo bem?'. "
+            "Seja paciente e encorajador. Seu objetivo é ajudar voluntários de igreja a terem um som melhor. "
+            f"Perfil ativo da sala: {profile_names.get(context_data.get('room_profile'), context_data.get('room_profile', 'desconhecido')) if context_data else 'desconhecido'}. "
+            "Sugira ações práticas de forma simples."
+        )
+        if context_data:
+            master_eq_info = context_data.get('master_eq', 'nenhum corte ativo')
+            system += f" Contexto Atual: RT60={context_data.get('rt60')}s, Pico={context_data.get('peakHz')}Hz, RMS={context_data.get('rms')}dB. EQ Master atual: {master_eq_info}."
+        messages = [{"role": "system", "content": system}]
+        if conversation:
+            for msg in conversation[-10:]:
+                role = "user" if msg["role"] == "user" else "assistant"
+                messages.append({"role": role, "content": msg["content"]})
+        messages.append({"role": "user", "content": prompt})
+        import json, urllib.request
+        payload = json.dumps({"model": self.model_name, "messages": messages, "stream": False, "options": {"num_predict": 512}}).encode()
+        try:
+            with self._lock:
+                req = urllib.request.Request(f"{self._OLLAMA_HOST}/api/chat", data=payload, headers={"Content-Type": "application/json"}, method="POST")
+                resp = urllib.request.urlopen(req, timeout=self._TIMEOUT)
+                data = json.loads(resp.read())
+            return data.get("message", {}).get("content", "").strip()
+        except urllib.request.HTTPError as e:
+            print(f"[Ollama] HTTP {e.code}: {e.read().decode()[:200]}")
+            return None
+        except Exception as e:
+            print(f"[Ollama] Erro na consulta: {e}")
+            return None
+
+class LocalLLM:
+    """Gerenciador de Modelo Local — tenta Ollama primeiro, depois llama-cpp."""
+    _instance = None
+    _LLM_TIMEOUT = 120
 
     def __init__(self, model_path=None):
-        # Caminho configurável via env var MODEL_PATH, fallback hardcoded
-        if not model_path:
-            model_path = os.getenv("MODEL_PATH", "models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf")
-        # Resolve caminho relativo ao script para robustez
-        if not os.path.isabs(model_path):
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            # ai_logic.py está em engine/, models está em ../models/
-            potential_path = os.path.join(os.path.dirname(script_dir), model_path)
-            if os.path.exists(potential_path):
-                model_path = potential_path
-
-        self.model_path = model_path
         self.llm = None
         self.enabled = False
         import threading
         self._lock = threading.Lock()
 
+        # Tenta Ollama primeiro
+        print("[AI Engine] Tentando Ollama...")
+        ollama = OllamaLLM()
+        if ollama.enabled:
+            self.llm = ollama
+            self.enabled = True
+            print("[AI Engine] Usando Ollama como backend LLM.")
+            return
+
+        # Fallback: llama-cpp-python
+        if not model_path:
+            model_path = os.getenv("MODEL_PATH", "models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf")
+        if not os.path.isabs(model_path):
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            potential_path = os.path.join(os.path.dirname(script_dir), model_path)
+            if os.path.exists(potential_path):
+                model_path = potential_path
+        self.model_path = model_path
+
         if os.path.exists(model_path) and self._test_llama_crash():
             try:
-                # pyrefly: ignore [missing-import]
                 from llama_cpp import Llama
                 self.llm = Llama(model_path=model_path, n_ctx=2048, n_threads=4, verbose=False)
                 self.enabled = True
-                print(f"[AI Engine] Modelo Local carregado: {model_path}")
-                print("[AI Engine] READY")
+                print(f"[AI Engine] Modelo llama-cpp carregado: {model_path}")
+                return
             except ImportError:
-                print("[AI Engine] llama-cpp-python não instalado. Chat IA offline.")
-                print("[AI Engine] Para ativar: pip install llama-cpp-python")
-                print("[AI Engine] Nota: no Windows, instale primeiro: https://github.com/abetlen/llama-cpp-python#installation")
+                print("[AI Engine] llama-cpp-python não instalado.")
             except Exception as e:
-                print(f"[AI Engine] Falha ao carregar modelo: {e}")
+                print(f"[AI Engine] Falha ao carregar modelo llama-cpp: {e}")
                 self.llm = None
-                import gc
-                gc.collect()
-        elif os.path.exists(model_path):
-            print("[AI Engine] llama-cpp-python incompatível com esta CPU. Modelo local desabilitado.")
-            print("[AI Engine] O chat continuará funcionando em modo simulação via navegador.")
+                import gc; gc.collect()
+
+        if not self.enabled:
+            print("[AI Engine] Nenhum LLM local disponível. Usando regras + simulação.")
 
     @staticmethod
     def _test_llama_crash():
-        """Testa se llama_cpp pode ser carregado sem crashar (0xc000001d).
-        Roda em subprocesso separado para não derrubar o app principal."""
-        import subprocess
-        import sys
+        import subprocess, sys
         test_code = (
             "import sys, os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); "
             "try: from llama_cpp import Llama; print('OK')\n"
@@ -114,7 +311,6 @@ class LocalLLM:
             )
             if result.returncode != 0:
                 print(f"[AI Engine] llama_cpp incompatível com esta CPU (código {result.returncode}).")
-                print(f"[AI Engine] O app continuará funcionando sem o modelo local.")
                 return False
             output = result.stdout.strip()
             if output.startswith('ERR:'):
@@ -122,71 +318,18 @@ class LocalLLM:
                 return False
             if output == 'OK':
                 return True
-            print(f"[AI Engine] Teste llama_cpp retorno inesperado: {output}")
             return False
         except subprocess.TimeoutExpired:
             print("[AI Engine] Teste llama_cpp: timeout")
             return False
 
     def reload_if_needed(self):
-        if self.enabled:
-            return True
-        if not os.path.exists(self.model_path):
-            return False
-        if not self._test_llama_crash():
-            return False
-        try:
-            from llama_cpp import Llama
-            self.llm = Llama(model_path=self.model_path, n_ctx=2048, n_threads=4, verbose=False)
-            self.enabled = True
-            print(f"[AI Engine] Modelo carregado após download: {self.model_path}")
-            return True
-        except Exception as e:
-            print(f"[AI Engine] Falha ao carregar modelo após download: {e}")
-            return False
+        return self.enabled
 
     def query(self, prompt, context_data=None, conversation=None):
-        if not self.enabled:
+        if not self.enabled or not self.llm:
             return None
-        if not self.llm:
-            return None
-
-        profile_names = {'janelas_vidro': 'Janelas/Vidro', 'teto_alto': 'Teto Alto', 'paredes_paralelas': 'Paredes Paralelas'}
-        system_prompt = (
-            "Você é o SoundMaster IA — assistente amigável de som para igrejas. "
-            "Fale de forma simples, calorosa e acolhedora, como um colega ajudando outro. "
-            "EVITE jargão técnico. Use palavras do dia a dia. "
-            "Exemplos: 'som abafado' ao invés de 'excesso de energia subsônica'; "
-            "'chiado' ao invés de 'sibilância'; 'o som está estranho' ao invés de 'anomalia espectral'. "
-            "Cumprimente com 'Bom dia!', 'Olá!', 'Tudo bem?'. "
-            "Seja paciente e encorajador. Seu objetivo é ajudar voluntários de igreja a terem um som melhor. "
-            f"Perfil ativo da sala: {profile_names.get(context_data.get('room_profile'), context_data.get('room_profile', 'desconhecido')) if context_data else 'desconhecido'}. "
-            "Sugira ações práticas de forma simples."
-        )
-        if context_data:
-            master_eq_info = context_data.get('master_eq', 'nenhum corte ativo')
-            system_prompt += f" Contexto Atual: RT60={context_data.get('rt60')}s, Pico={context_data.get('peakHz')}Hz, RMS={context_data.get('rms')}dB. EQ Master atual: {master_eq_info}."
-
-        history_text = ""
-        if conversation:
-            for msg in conversation[-10:]:
-                tag = "<|user|>" if msg["role"] == "user" else "<|assistant|>"
-                history_text += f"{tag}\n{msg['content']}</s>\n"
-
-        full_prompt = f"<|system|>\n{system_prompt}</s>\n{history_text}<|user|>\n{prompt}</s>\n<|assistant|>\n"
-        try:
-            with self._lock:
-                from concurrent.futures import ThreadPoolExecutor, TimeoutError
-                with ThreadPoolExecutor(max_workers=1) as pool:
-                    future = pool.submit(self.llm, full_prompt, max_tokens=512, stop=["</s>"], echo=False)
-                    output = future.result(timeout=self._LLM_TIMEOUT)
-            return output['choices'][0]['text'].strip()
-        except TimeoutError:
-            print(f"[AI Engine] Timeout na inferência LLM ({self._LLM_TIMEOUT}s)")
-            return None
-        except Exception as e:
-            print(f"[AI Engine] Erro no query LLM: {e}")
-            return None
+        return self.llm.query(prompt, context_data=context_data, conversation=conversation)
 
 class AIEngine:
     _llm_instance = None
