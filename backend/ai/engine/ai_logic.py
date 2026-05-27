@@ -248,11 +248,16 @@ class OllamaLLM:
             print(f"[Ollama] Erro na consulta: {e}")
             return None
 
+import threading
+
 class LlamaLLM:
     """Gerenciador de modelo local via llama-cpp-python (modelo GGUF)."""
+    _lock = threading.Lock()
+
     def __init__(self, model_path, n_ctx=2048, n_threads=4):
         from llama_cpp import Llama
-        self.model = Llama(model_path=model_path, n_ctx=n_ctx, n_threads=n_threads, verbose=False)
+        with LlamaLLM._lock:
+            self.model = Llama(model_path=model_path, n_ctx=n_ctx, n_threads=n_threads, verbose=False)
         self.enabled = True
 
     def query(self, prompt, context_data=None, conversation=None):
@@ -281,16 +286,17 @@ class LlamaLLM:
                 messages.append({"role": role, "content": msg["content"]})
         messages.append({"role": "user", "content": prompt})
 
-        try:
-            response = self.model.create_chat_completion(
-                messages=messages,
-                max_tokens=512,
-                temperature=0.7
-            )
-            return response["choices"][0]["message"]["content"].strip()
-        except Exception as e:
-            print(f"[Llama] Erro na consulta: {e}")
-            return None
+        with LlamaLLM._lock:
+            try:
+                response = self.model.create_chat_completion(
+                    messages=messages,
+                    max_tokens=512,
+                    temperature=0.7
+                )
+                return response["choices"][0]["message"]["content"].strip()
+            except Exception as e:
+                print(f"[Llama] Erro na consulta: {e}")
+                return None
 
     def reload_if_needed(self):
         return self.enabled
