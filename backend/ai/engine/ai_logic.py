@@ -739,8 +739,8 @@ Deseja aplicar a correcao recomendada?
             report_md = self.generate_technical_report(analysis)
             if report_md is None:
                 return {
-                    "text": "Ainda não tenho dados acústicos para gerar um relatório. Primeiro ative o analisador e faça uma medição de ruído rosa ou aguarde o microfone captar o som ambiente. Depois peça o relatório novamente! 😊",
-                    "command": None
+                    "text": "Não encontrei dados acústicos armazenados no momento. Sem problemas! Estou ativando o analisador de som ambiente para captar o áudio da sala e gerar seu relatório em instantes. Por favor, aguarde alguns segundos... 🎙️",
+                    "command": self.command("start_live_analysis", "Iniciar análise do som ambiente", channel=channel)
                 }
             return {
                 "text": "Claro! Vou preparar um resumo do som da sua sala pra você. Só um instante...",

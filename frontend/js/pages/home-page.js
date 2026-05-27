@@ -361,6 +361,71 @@
         return { '125': value, '500': value, '1000': value, '4000': value };
     }
 
+    async function _autoRunLiveAnalysisAndReport(channel) {
+        var analyzer = _getAnalyzer();
+        if (!analyzer) {
+            _saveMessageToHistory('O analisador de áudio não está disponível.', false, null, 'msg-err-' + Date.now());
+            return;
+        }
+
+        const loadingId = 'ai-auto-analysis-loading-' + Date.now();
+        _saveMessageToHistory('Capturando som ambiente... Por favor, faça silêncio ou mantenha o som ambiente normal da sala por 4 segundos. 🎙️', false, null, loadingId);
+
+        try {
+            if (!analyzer.isAnalyzing()) {
+                await analyzer.start();
+            }
+            await new Promise(resolve => setTimeout(resolve, 4000));
+
+            const analysis = _getCurrentAnalysis();
+            if (!analysis) {
+                throw new Error('Não foi possível obter dados de áudio do analisador. Verifique o microfone.');
+            }
+
+            const lastRt60 = analyzer.getLastRt60 ? analyzer.getLastRt60() : null;
+            const rt60Multiband = _buildRt60Multiband(lastRt60);
+            const payload = {
+                schema_version: '1.1',
+                summary: analysis.text,
+                spectrum_db: analysis.details && analysis.details.spectrum_v11 ? analysis.details.spectrum_v11 : {},
+                rt60_multiband: rt60Multiband,
+                peakHz: analysis.details ? analysis.details.peakHz : null,
+                peakDb: analysis.details ? analysis.details.peakDb : null,
+                rms: analysis.details ? analysis.details.rmsDb : null,
+            };
+
+            // Atualiza loader
+            const currentHistory = AppStore.getState().aiChatHistory || [];
+            const filtered = currentHistory.map(msg => {
+                if (msg.id === loadingId) {
+                    return Object.assign({}, msg, { text: 'Gerando relatório técnico final... 📈' });
+                }
+                return msg;
+            });
+            AppStore.setState({ aiChatHistory: filtered });
+
+            const result = await AIService.ask('Gerar relatório técnico completo com base no áudio capturado', channel, payload);
+            
+            // Remove o loader anterior
+            const currentHistory2 = AppStore.getState().aiChatHistory || [];
+            const filtered2 = currentHistory2.filter(msg => msg.id !== loadingId);
+            AppStore.setState({ aiChatHistory: filtered2 });
+
+            const aiMsgId = 'msg-' + Math.random().toString(36).substr(2, 9);
+            _saveMessageToHistory(result.text, false, result.command, aiMsgId);
+            if (result.report) {
+                const reportMsgId = 'msg-' + Math.random().toString(36).substr(2, 9);
+                _saveMessageToHistory(result.report, false, null, reportMsgId);
+            }
+            _persistHistory();
+        } catch (err) {
+            const currentHistory = AppStore.getState().aiChatHistory || [];
+            const filtered = currentHistory.filter(msg => msg.id !== loadingId);
+            AppStore.setState({ aiChatHistory: filtered });
+            _saveMessageToHistory('Erro ao executar análise automática: ' + err.message, false, null, 'msg-err-' + Date.now());
+        }
+    }
+
     async function _sendAcousticAnalysis() {
         const els = _getEls();
         const channel = Number(els.targetChannel ? els.targetChannel.value : 1);
@@ -500,6 +565,10 @@
                 _saveMessageToHistory(result.report, false, null, reportMsgId);
             }
             _persistHistory();
+
+            if (result.command && result.command.action === 'start_live_analysis') {
+                _autoRunLiveAnalysisAndReport(channel);
+            }
         } catch (err) {
             const currentHistory = AppStore.getState().aiChatHistory || [];
             const filtered = currentHistory.filter(msg => msg.id !== loadingId);

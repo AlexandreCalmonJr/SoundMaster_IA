@@ -93,8 +93,8 @@ class AudioClassifier:
                 backend_name = 'tflite-runtime'
             except ImportError:
                 import importlib
-                tf = importlib.import_module("tensorflow")
-                tflite = tf.lite
+                # Importa explicitamente tensorflow.lite para registrar o Interpreter
+                tflite = importlib.import_module("tensorflow.lite")
                 backend_name = 'tensorflow.lite'
                 
             interp = tflite.Interpreter(model_path=tflite_path)
@@ -188,27 +188,31 @@ class AudioClassifier:
     def classify(self, audio_data, sample_rate=16000):
         if not self.enabled:
             return []
-        audio = np.array(audio_data, dtype=np.float64)
-        if audio.ndim > 1:
-            audio = audio.mean(axis=1)
-        audio = self._resample(audio, sample_rate)
-        if len(audio) == 0:
+        try:
+            audio = np.array(audio_data, dtype=np.float64)
+            if audio.ndim > 1:
+                audio = audio.mean(axis=1)
+            audio = self._resample(audio, sample_rate)
+            if len(audio) == 0:
+                return []
+            peak = np.max(np.abs(audio))
+            if peak > 0:
+                audio = audio / peak
+
+            if self._backend == 'tflite':
+                avg_scores = self._classify_tflite(audio)
+            else:
+                avg_scores = self._classify_tfhub(audio)
+
+            indices = np.argsort(avg_scores)[::-1]
+            results = []
+            for idx in indices:
+                name = self.class_names[idx] if idx < len(self.class_names) else f"Class_{idx}"
+                results.append({'index': int(idx), 'name': name, 'score': float(avg_scores[idx])})
+            return results
+        except Exception as e:
+            print(f"[Classifier] Erro durante a classificação de áudio: {e}")
             return []
-        peak = np.max(np.abs(audio))
-        if peak > 0:
-            audio = audio / peak
-
-        if self._backend == 'tflite':
-            avg_scores = self._classify_tflite(audio)
-        else:
-            avg_scores = self._classify_tfhub(audio)
-
-        indices = np.argsort(avg_scores)[::-1]
-        results = []
-        for idx in indices:
-            name = self.class_names[idx] if idx < len(self.class_names) else f"Class_{idx}"
-            results.append({'index': int(idx), 'name': name, 'score': float(avg_scores[idx])})
-        return results
 
 
     def get_top_classes(self, audio_data, sample_rate=16000, k=5, threshold=0.1):

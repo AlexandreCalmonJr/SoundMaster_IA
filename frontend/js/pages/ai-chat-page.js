@@ -240,6 +240,60 @@
         };
     }
 
+    async function _autoRunLiveAnalysisAndReport(channel) {
+        if (!window.SoundMasterAnalyzer) {
+            _appendBubble('O analisador de áudio não está disponível.', false, null);
+            return;
+        }
+
+        const loadingId = 'ai-auto-analysis-loading-' + Date.now();
+        _appendBubble('Capturando som ambiente... Por favor, faça silêncio ou mantenha o som ambiente normal da sala por 4 segundos. 🎙️', false, null, loadingId, false);
+
+        try {
+            if (!window.SoundMasterAnalyzer.isAnalyzing()) {
+                await window.SoundMasterAnalyzer.start();
+            }
+            // Aguarda 4 segundos para coletar dados estáveis
+            await new Promise(resolve => setTimeout(resolve, 4000));
+
+            const analysis = window.SoundMasterAnalyzer.getLastAnalysis();
+            if (!analysis) {
+                throw new Error('Não foi possível obter dados de áudio do analisador. Verifique o microfone.');
+            }
+
+            const lastRt60 = window.SoundMasterAnalyzer.getLastRt60();
+            const rt60Multiband = _buildRt60Multiband(lastRt60);
+            const payload = {
+                schema_version: '1.1',
+                summary: analysis.text,
+                spectrum_db: analysis.details?.spectrum_v11 || {},
+                rt60_multiband: rt60Multiband,
+                peakHz: analysis.details?.peakHz,
+                peakDb: analysis.details?.peakDb,
+                rms: analysis.details?.rmsDb,
+            };
+
+            const loadingBubble = pm._el(loadingId);
+            if (loadingBubble) {
+                loadingBubble.innerText = 'Gerando relatório técnico final... 📈';
+            }
+
+            // Envia o prompt de relatório enriquecido com a análise capturada
+            const result = await AIService.ask('Gerar relatório técnico completo com base no áudio capturado', channel, payload);
+            
+            if (loadingBubble) loadingBubble.remove();
+
+            _appendBubble(result.text, false, result.command);
+            if (result.report) {
+                _appendBubble(result.report, false, null);
+            }
+        } catch (err) {
+            const loadingBubble = pm._el(loadingId);
+            if (loadingBubble) loadingBubble.remove();
+            _appendBubble('Erro ao executar análise automática: ' + err.message, false, null);
+        }
+    }
+
     async function _sendAcousticAnalysis(usePinkReport) {
         const channel = _getTargetChannel();
         if (!channel) return;
@@ -312,6 +366,10 @@
             _appendBubble(result.text, false, result.command);
             if (result.report) {
                 _appendBubble(result.report, false, null);
+            }
+
+            if (result.command && result.command.action === 'start_live_analysis') {
+                _autoRunLiveAnalysisAndReport(channel);
             }
         } catch (err) {
             const loadingBubble = pm._el(loadingId);
