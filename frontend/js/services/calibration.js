@@ -442,7 +442,7 @@
      */
     async function createPinkNoiseNode(ctx, amplitude = 0.25) {
         try {
-            await ctx.audioWorklet.addModule('js/core/pink-noise-processor.js');
+            await ctx.audioWorklet.addModule('js/core/min/pink-noise-processor.js');
             const node = new AudioWorkletNode(ctx, 'pink-noise-processor', {
                 numberOfInputs:  0,
                 numberOfOutputs: 1,

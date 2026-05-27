@@ -1,5 +1,6 @@
 const { ConnectionStatus } = require('soundcraft-ui-connection');
 const { createMixer, isSimulatedIp } = require('../mixers/mixer-factory');
+const { encodeVuData, encodeMasterLevel, encodeMasterLevelDb, encodeChannelLevel } = require('../codecs/binary');
 
 const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
 const connectSchema = require('zod').string().regex(ipRegex).or(require('zod').enum(['offline', 'simulado', '127.0.0.1']));
@@ -85,11 +86,11 @@ function registerMixerConnectionHandlers(io, socket, deps) {
 
                 newMixer.master.faderLevel$.subscribe(level => {
                     mixerSingleton.updateMasterState({ level });
-                    io.emit('master_level', level);
+                    io.emit('master_level', encodeMasterLevel(level));
                 });
                 newMixer.master.faderLevelDB$.subscribe(levelDb => {
                     mixerSingleton.updateMasterState({ levelDb });
-                    io.emit('master_level_db', levelDb);
+                    io.emit('master_level_db', encodeMasterLevelDb(levelDb));
                 });
 
                 newMixer.vuProcessor.vuData$.subscribe(vuData => {
@@ -98,7 +99,7 @@ function registerMixerConnectionHandlers(io, socket, deps) {
                     for (let i = 1; i <= 24; i++) {
                         if (vuData[`i.${i-1}`]) mapped.channels[i] = vuData[`i.${i-1}`];
                     }
-                    io.emit('vu_data', mapped);
+                    io.emit('vu_data', encodeVuData(mapped));
                 });
 
                 newMixer.deviceInfo.firmware$.subscribe(fw => io.emit('device_info', { firmware: fw }));
@@ -128,7 +129,7 @@ function registerMixerConnectionHandlers(io, socket, deps) {
                     input.name$.subscribe(name => io.emit('channel_name_update', { channel: i, name }));
                     input.faderLevel$.subscribe(level => {
                         mixerSingleton.updateChannelState(i, { level });
-                        io.emit('channel_level', { channel: i, level });
+                        io.emit('channel_level', encodeChannelLevel(i, level));
                     });
                     input.mute$.subscribe(mute => {
                         mixerSingleton.updateChannelState(i, { mute });

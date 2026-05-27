@@ -5,6 +5,8 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
+    "build:worklets": "node scripts/build-worklets.js",
+    "build": "npm run build:worklets && npm run build:css",
     "build:css": "tailwindcss -i frontend/css/input.css -o frontend/css/styles.css --watch",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
@@ -33,17 +35,24 @@
       {
         "from": "docs/",
         "to": "docs/",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "scripts/",
         "to": "scripts/",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "backend/ai/",
         "to": "backend/ai/",
-        "filter": ["**/*", "!.git"]
+        "filter": [
+          "**/*",
+          "!.git"
+        ]
       }
     ]
   },
@@ -73,6 +82,7 @@
     "@tailwindcss/cli": "^4.2.4",
     "electron": "^41.5.0",
     "electron-builder": "^26.8.1",
+    "esbuild": "^0.28.0",
     "tailwindcss": "^4.2.4",
     "vitest": "^4.1.5"
   }

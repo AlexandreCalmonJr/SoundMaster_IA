@@ -27,7 +27,7 @@
     // ═══════════════════════════════════════════════════════════════════════
     async function _loadConvolverWorklet(ctx) {
         try {
-            await ctx.audioWorklet.addModule('js/core/fir-convolver-processor.js');
+            await ctx.audioWorklet.addModule('js/core/min/fir-convolver-processor.js');
             console.log('[FIR-Convolution] Worklet loaded');
             return true;
         } catch (e) {

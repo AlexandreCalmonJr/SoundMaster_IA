@@ -146,12 +146,19 @@
             if (data.msg) AppStore.addLog(data.msg);
         });
 
-        _socket.on('master_level', (level) => {
+        _socket.on('master_level', (data) => {
+            var level = data instanceof ArrayBuffer ? BinaryCodec.decodeMasterLevel(data) : data;
             if (!isFaderLocked('master')) AppStore.setState({ masterLevel: level });
         });
 
-        _socket.on('master_level_db',  (db)   => AppStore.setState({ masterDb: db }));
-        _socket.on('vu_data',          (data) => AppStore.setState({ vuData: data }));
+        _socket.on('master_level_db',  (data) => {
+            var db = data instanceof ArrayBuffer ? BinaryCodec.decodeMasterLevelDb(data) : data;
+            AppStore.setState({ masterDb: db });
+        });
+        _socket.on('vu_data',          (data) => {
+            var vuData = data instanceof ArrayBuffer ? BinaryCodec.decodeVuData(data) : data;
+            AppStore.setState({ vuData: vuData });
+        });
         _socket.on('recorder_status',  (data) => AppStore.setState({ recording: !!data.recording, mtkRecording: !!data.mtkRecording }));
         _socket.on('device_info',      (info) => AppStore.setState({ deviceInfo: info }));
         _socket.on('player_status',    (data) => AppStore.setState({ playerState: data.state }));
@@ -186,8 +193,9 @@
         });
 
         _socket.on('channel_level', (data) => {
-            if (!isFaderLocked(`ch_${data.channel}`)) {
-                AppStore.setState({ [`ch_${data.channel}_level`]: data.level });
+            var decoded = data instanceof ArrayBuffer ? BinaryCodec.decodeChannelLevel(data) : data;
+            if (!isFaderLocked(`ch_${decoded.channel}`)) {
+                AppStore.setState({ [`ch_${decoded.channel}_level`]: decoded.level });
             }
         });
 

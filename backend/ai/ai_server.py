@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -44,6 +45,16 @@ async def _rate_limit(ip: str):
         raise HTTPException(status_code=429, detail="Muitas requisições. Aguarde e tente novamente.")
     _ratelimit_store[ip].append(now)
 
+async def _cleanup_ratelimit_store():
+    """Remove IPs inativos do rate limit store a cada 5 minutos."""
+    while True:
+        await asyncio.sleep(300)
+        now = time.time()
+        stale_ips = [ip for ip, timestamps in _ratelimit_store.items()
+                     if not timestamps or (now - timestamps[-1]) > _RATELIMIT_WINDOW * 2]
+        for ip in stale_ips:
+            del _ratelimit_store[ip]
+
 # ─── Validações de upload ─────────────────────────────────────────────────────
 _MAX_UPLOAD_MB = 50
 _MAX_UPLOAD_BYTES = _MAX_UPLOAD_MB * 1024 * 1024
@@ -63,10 +74,10 @@ async def _validate_upload(file: UploadFile):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Inicia limpeza de sessões
+    # Startup: Inicia limpeza de sessões e rate-limit store
     asyncio.create_task(cleanup_sessions_task())
+    asyncio.create_task(_cleanup_ratelimit_store())
     yield
-    # Shutdown logic here if needed
 
 app = FastAPI(title="SoundMaster Pro AI Engine", lifespan=lifespan)
 
@@ -114,9 +125,10 @@ async def verify_api_key(api_key: str = Depends(api_key_header)):
         if os.getenv("NODE_ENV") == "production":
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Servidor não configurado (AI_API_KEY faltando)"
+                detail="AI_API_KEY nao configurada. Defina a variavel de ambiente AI_API_KEY."
             )
-        print("[WARN] Servidor rodando SEM API Key. Defina AI_API_KEY em produção.")
+        print("[WARN] AI_API_KEY nao definida. Servidor aceitando todas requisicoes em modo dev.")
+        print("[WARN] Para seguranca em producao, defina AI_API_KEY no .env ou ambiente.")
         return True
 
     if not api_key:

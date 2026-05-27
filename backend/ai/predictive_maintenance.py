@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 SoundMaster Pro — Hardware Predictive Maintenance Engine
 =========================================================

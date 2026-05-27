@@ -892,8 +892,8 @@
             }
             
             try {
-                await audioCtx.audioWorklet.addModule(`js/core/audio-processor.js?t=${Date.now()}`);
-                await audioCtx.audioWorklet.addModule(`js/core/transfer-function-processor.js?t=${Date.now()}`);
+                await audioCtx.audioWorklet.addModule(`js/core/min/audio-processor.js?t=${Date.now()}`);
+                await audioCtx.audioWorklet.addModule(`js/core/min/transfer-function-processor.js?t=${Date.now()}`);
                 
                 audioWorkletNode = new AudioWorkletNode(audioCtx, 'soundmaster-processor');
                 
@@ -1056,7 +1056,7 @@
 
     async function _setupReferenceSource(ctx, targetNode) {
         try {
-            await ctx.audioWorklet.addModule(`js/core/reference-source-processor.js?t=${Date.now()}`);
+            await ctx.audioWorklet.addModule(`js/core/min/reference-source-processor.js?t=${Date.now()}`);
             refSource = new AudioWorkletNode(ctx, 'reference-source-processor', {
                 numberOfInputs: 0,
                 numberOfOutputs: 1,
@@ -1743,7 +1743,7 @@
         if (summaryEl) summaryEl.innerText = 'Iniciando Log-Sine Sweep...';
 
         try {
-            await audioCtx.audioWorklet.addModule(`js/core/log-sweep-processor.js?t=${Date.now()}`);
+            await audioCtx.audioWorklet.addModule(`js/core/min/log-sweep-processor.js?t=${Date.now()}`);
         } catch (e) {
             console.warn('[Sweep] Worklet indisponível, usando fallback.', e);
             await startSweepMeasurementFallback();
@@ -1818,7 +1818,7 @@
             data[i] = Math.sin(phase) * 0.8;
         }
 
-        await audioCtx.audioWorklet.addModule(`js/core/capture-processor.js?t=${Date.now()}`);
+        await audioCtx.audioWorklet.addModule(`js/core/min/capture-processor.js?t=${Date.now()}`);
         const captureNode = new AudioWorkletNode(audioCtx, 'capture-processor', {
             numberOfInputs: 1,
             numberOfOutputs: 1,

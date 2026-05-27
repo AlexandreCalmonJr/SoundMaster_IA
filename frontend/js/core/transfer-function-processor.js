@@ -112,17 +112,37 @@ class TransferFunctionProcessor extends AudioWorkletProcessor {
         this._magnitude = new Float32Array(h);
         this._coherence = new Float32Array(h);
         this._phaseUnwrapped = new Float32Array(h);
+
+        // Zero GC: pool de wrappedPhase para Transferable
+        this._wrappedPhasePool = [new Float32Array(h), new Float32Array(h), new Float32Array(h)];
+        this._wrappedPhaseIdx = 0;
     }
 
     _allocAveraging() {
         const h = this._fftSize >>> 1;
         const frameSec = this._hopSize / this._sr;
         this._avgFrameTarget = Math.max(1, Math.round(this._avgSeconds / frameSec));
+
+        // Zero GC: pré-aloca todos os frames de média no constructor
         this._avgFrames = [];
+        for (let i = 0; i < this._avgFrameTarget; i++) {
+            this._avgFrames.push({
+                magnitude: new Float32Array(h),
+                phase: new Float32Array(h),
+                coherence: new Float32Array(h),
+            });
+        }
         this._avgPtr = 0;
+        this._avgFillCount = 0;
         this._avgMagSum = new Float64Array(h);
         this._avgPhsSum = new Float64Array(h);
         this._avgCohSum = new Float64Array(h);
+
+        // Zero GC: pool de buffers de saída para Transferable
+        this._outMagPool = [new Float32Array(h), new Float32Array(h), new Float32Array(h)];
+        this._outPhsPool = [new Float32Array(h), new Float32Array(h), new Float32Array(h)];
+        this._outCohPool = [new Float32Array(h), new Float32Array(h), new Float32Array(h)];
+        this._outPoolIdx = 0;
     }
 
     _allocDelayFinder() {
@@ -301,7 +321,11 @@ class TransferFunctionProcessor extends AudioWorkletProcessor {
 
         // ── 2. Magnitude, Phase, Coherence ────────────────────────────────────
         const magnitude    = this._magnitude;
-        const wrappedPhase = new Float32Array(h); // Allocated per frame for postMessage transfer
+        const wrappedPhase = this._wrappedPhasePool[this._wrappedPhaseIdx];
+        this._wrappedPhaseIdx = (this._wrappedPhaseIdx + 1) % this._wrappedPhasePool.length;
+        if (this._wrappedPhasePool[this._wrappedPhaseIdx].byteLength === 0) {
+            this._wrappedPhasePool[this._wrappedPhaseIdx] = new Float32Array(h);
+        }
         const coherence    = this._coherence;
 
         for (let k = 0; k < h; k++) {
@@ -357,7 +381,7 @@ class TransferFunctionProcessor extends AudioWorkletProcessor {
             confidence:    delayResult.confidence,
             sampleRate:    this._sr,
             avgSeconds:    this._avgSeconds,
-            avgFrames:     this._avgFrames.length
+            avgFrames:     this._avgFillCount
         }, [outMag.buffer, outPhs.buffer, outCoh.buffer, wrappedPhase.buffer]);
     }
 
@@ -479,27 +503,22 @@ class TransferFunctionProcessor extends AudioWorkletProcessor {
 
     _pushMovingAverage(magnitude, phase, coherence) {
         const h = this._fftSize >>> 1;
-        let frame;
 
-        if (this._avgFrames.length < this._avgFrameTarget) {
-            frame = {
-                magnitude: new Float32Array(magnitude),
-                phase: new Float32Array(phase),
-                coherence: new Float32Array(coherence),
-            };
-            this._avgFrames.push(frame);
-        } else {
-            frame = this._avgFrames[this._avgPtr];
+        const frame = this._avgFrames[this._avgPtr];
+
+        // Subtract old values only when buffer is fully warm
+        if (this._avgFillCount >= this._avgFrameTarget) {
             for (let k = 0; k < h; k++) {
                 this._avgMagSum[k] -= frame.magnitude[k];
                 this._avgPhsSum[k] -= frame.phase[k];
                 this._avgCohSum[k] -= frame.coherence[k];
             }
-            // Copy new values into the existing arrays (reuse them!)
-            frame.magnitude.set(magnitude);
-            frame.phase.set(phase);
-            frame.coherence.set(coherence);
         }
+
+        // Copy new values into the existing arrays (reuse — zero GC!)
+        frame.magnitude.set(magnitude);
+        frame.phase.set(phase);
+        frame.coherence.set(coherence);
 
         for (let k = 0; k < h; k++) {
             this._avgMagSum[k] += frame.magnitude[k];
@@ -508,11 +527,22 @@ class TransferFunctionProcessor extends AudioWorkletProcessor {
         }
 
         this._avgPtr = (this._avgPtr + 1) % this._avgFrameTarget;
+        if (this._avgFillCount < this._avgFrameTarget) {
+            this._avgFillCount++;
+        }
 
-        const count = Math.max(1, this._avgFrames.length);
-        const outMag = new Float32Array(h);
-        const outPhs = new Float32Array(h);
-        const outCoh = new Float32Array(h);
+        const count = Math.max(1, this._avgFillCount);
+        const outMag = this._outMagPool[this._outPoolIdx];
+        const outPhs = this._outPhsPool[this._outPoolIdx];
+        const outCoh = this._outCohPool[this._outPoolIdx];
+        this._outPoolIdx = (this._outPoolIdx + 1) % this._outMagPool.length;
+        // Re-create detached buffers if needed (cycling via Transferable)
+        if (this._outMagPool[this._outPoolIdx].byteLength === 0) {
+            this._outMagPool[this._outPoolIdx] = new Float32Array(h);
+            this._outPhsPool[this._outPoolIdx] = new Float32Array(h);
+            this._outCohPool[this._outPoolIdx] = new Float32Array(h);
+        }
+
         for (let k = 0; k < h; k++) {
             outMag[k] = this._avgMagSum[k] / count;
             outPhs[k] = this._avgPhsSum[k] / count;

@@ -117,6 +117,49 @@
     };
 
     // -------------------------------------------------------------------------
+    // Computed State Registry (auto-derived properties)
+    // -------------------------------------------------------------------------
+    const _computed = {}; // { key: { deps: string[], fn: Function, cache: any } }
+
+    function _recomputeDependents(changedKeys) {
+        const recomputed = {};
+        const entries = Object.entries(_computed);
+        for (let ei = 0; ei < entries.length; ei++) {
+            const [key, comp] = entries[ei];
+            const dependsOnChanged = comp.deps.some(function (d) { return changedKeys.includes(d); });
+            if (!dependsOnChanged) continue;
+            const depValues = comp.deps.map(function (d) { return _state[d]; });
+            const newVal = comp.fn.apply(null, depValues);
+            if (newVal !== comp.cache) {
+                comp.cache = newVal;
+                _state[key] = newVal;
+                recomputed[key] = newVal;
+            }
+        }
+        const keys = Object.keys(recomputed);
+        for (let ki = 0; ki < keys.length; ki++) {
+            _notify(keys[ki], recomputed);
+        }
+    }
+
+    /**
+     * Define uma propriedade computada que é recalculada automaticamente
+     * quando suas dependências mudam.
+     * @param {string} key     - Nome da propriedade computada
+     * @param {string[]} deps  - Lista de chaves das quais depende
+     * @param {Function} fn    - Função que recebe os valores das deps e retorna o valor computado
+     */
+    function defineComputed(key, deps, fn) {
+        if (_computed[key]) {
+            console.warn('[AppStore] Computed "' + key + '" já definido — sobrescrevendo');
+        }
+        const depValues = deps.map(function (d) { return _state[d]; });
+        const initial = fn.apply(null, depValues);
+        _computed[key] = { deps: deps, fn: fn, cache: initial };
+        _state[key] = initial;
+    }
+
+    // -------------------------------------------------------------------------
     // Listeners por chave
     // -------------------------------------------------------------------------
     const _listeners = {};
@@ -165,13 +208,19 @@
         const keys = Object.keys(patch);
         keys.forEach(function (key) { _notify(key, patch); });
 
+        // Recomputar propriedades derivadas cujas dependências mudaram
+        _recomputeDependents(keys);
+
         // Cross-frame: notificar iframe ativo sobre a mudança
         const iframe = document.getElementById('agent-workspace-iframe');
         if (iframe && iframe.contentWindow) {
             try {
+                const allKeys = keys.concat(Object.keys(_computed).filter(function (k) {
+                    return _computed[k].deps.some(function (d) { return keys.includes(d); });
+                }));
                 iframe.contentWindow.postMessage({
                     type: 'APPSTORE_UPDATE',
-                    keys: keys,
+                    keys: allKeys,
                     patch: patch,
                 }, '*');
             } catch (e) {
@@ -222,5 +271,18 @@
         }
     });
 
-    window.AppStore = { subscribe, setState, getState, addLog, addAISuggestion };
+    window.AppStore = { subscribe, setState, getState, addLog, addAISuggestion, defineComputed };
+
+    // ─── Computed properties padrão ─────────────────────────────────────────
+    defineComputed('mixerOnline', ['mixerConnected', 'mixerStatusMsg'], function (connected, statusMsg) {
+        return !!(connected && statusMsg && statusMsg !== 'Offline' && statusMsg !== 'Disconnected');
+    });
+
+    defineComputed('hasFeedbackRisk', ['feedbackHz', 'micActive'], function (hz, micActive) {
+        return !!(hz && hz > 0 && micActive);
+    });
+
+    defineComputed('masterLevelPercent', ['masterLevel'], function (level) {
+        return Math.round((level || 0) * 100);
+    });
 })();

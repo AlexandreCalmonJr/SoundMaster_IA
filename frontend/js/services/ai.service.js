@@ -73,6 +73,35 @@
     }
 
     // -------------------------------------------------------------------------
+    // Circuit Breaker — proteção contra falhas em cascata da IA
+    // -------------------------------------------------------------------------
+
+    function _fetchWithTimeout(url, options, timeoutMs) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(function () { controller.abort(); }, timeoutMs);
+        options.signal = controller.signal;
+        return fetch(url, options).finally(function () { clearTimeout(timeoutId); });
+    }
+
+    async function _doAskFetch(message, channel, analysis, sessionId) {
+        const response = await _fetchWithTimeout(AI_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message, channel, analysis, mixer_context: _getMixerSnapshot(channel), session_id: sessionId })
+        }, TIMEOUT_MS);
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        let data;
+        try { data = await response.json(); } catch (_) { throw new Error('Resposta inválida do servidor IA (HTTP ' + response.status + ')'); }
+        return data;
+    }
+
+    var _askCB = new window.CircuitBreaker(_doAskFetch, {
+        maxFailures: 3,
+        cooldownMs: 10000,
+        name: 'ask'
+    });
+
+    // -------------------------------------------------------------------------
     // API principal
     // -------------------------------------------------------------------------
 
@@ -84,7 +113,7 @@
      * @returns {Promise<{ text: string, command: Object|null }>}
      */
     async function ask(text, channel, analysis) {
-        const message = _buildMessage(text.trim(), channel);
+        const message = _buildMessage((text || '').trim(), channel);
 
         const enrichedAnalysis = analysis || {};
         const liveData = _getLiveAnalysis();
@@ -94,31 +123,10 @@
 
         AppStore.setState({ aiStatus: 'loading' });
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(function () { controller.abort(); }, TIMEOUT_MS);
-
         var sessionId = AppStore.getState().aiSessionId || 'default';
 
         try {
-            const response = await fetch(AI_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message, channel, analysis: enrichedAnalysis, mixer_context: _getMixerSnapshot(channel), session_id: sessionId }),
-                signal: controller.signal
-            });
-
-            clearTimeout(timeoutId);
-
-            if (!response.ok) {
-                throw new Error('HTTP ' + response.status);
-            }
-
-            let data;
-            try {
-                data = await response.json();
-            } catch (jsonErr) {
-                throw new Error('Resposta inválida do servidor IA (HTTP ' + response.status + ')');
-            }
+            const data = await _askCB.call(message, channel, enrichedAnalysis, sessionId);
             AppStore.setState({ aiStatus: 'online' });
 
             // Registrar sugestão no store se houver comando
@@ -134,8 +142,6 @@
             };
 
         } catch (err) {
-            clearTimeout(timeoutId);
-
             if (err.name === 'AbortError') {
                 AppStore.addLog('⚠️ IA: timeout — usando IA simulada.');
             } else {
@@ -185,23 +191,46 @@
         }
     }
 
+    async function _doAcousticsFetch(volume, surfaceArea, alpha) {
+        const response = await _fetchWithTimeout('/api/acoustic_analysis', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ volume, surface_area: surfaceArea, alpha })
+        }, 10000);
+        if (!response.ok) throw new Error('Falha no cálculo');
+        return await response.json();
+    }
+
+    var _acousticsCB = new window.CircuitBreaker(_doAcousticsFetch, {
+        maxFailures: 3,
+        cooldownMs: 5000,
+        name: 'acoustics',
+        fallback: async function () { return null; }
+    });
+
     /**
      * Envia dimensões para cálculo acústico avançado no Python (Eyring RT60).
      */
     async function calculateAcoustics(volume, surfaceArea, alpha) {
-        try {
-            const response = await fetch('/api/acoustic_analysis', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ volume, surface_area: surfaceArea, alpha })
-            });
-            if (!response.ok) throw new Error('Falha no cálculo');
-            return await response.json();
-        } catch (err) {
-            console.error('[AIService] Erro no cálculo acústico:', err);
-            return null;
-        }
+        return _acousticsCB.call(volume, surfaceArea, alpha);
     }
+
+    async function _doClassifyFetch(samples, sampleRate, k, threshold) {
+        const response = await _fetchWithTimeout('/api/ai/classify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ audio: Array.from(samples), sampleRate, k, threshold })
+        }, 8000);
+        if (!response.ok) return { classes: [], topClass: null, topScore: null };
+        return await response.json();
+    }
+
+    var _classifyCB = new window.CircuitBreaker(_doClassifyFetch, {
+        maxFailures: 3,
+        cooldownMs: 5000,
+        name: 'classify',
+        fallback: async function () { return { classes: [], topClass: null, topScore: null }; }
+    });
 
     /**
      * Classifica áudio em tempo real via YAMNet (Python).
@@ -213,27 +242,7 @@
      * @returns {Promise<{classes:Array, topClass:string, topScore:number}>}
      */
     async function classifyAudio(samples, sampleRate = 48000, k = 5, threshold = 0.1) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
-        try {
-            const response = await fetch('/api/ai/classify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    audio: Array.from(samples),
-                    sampleRate,
-                    k,
-                    threshold
-                }),
-                signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-            if (!response.ok) return { classes: [], topClass: null, topScore: null };
-            return await response.json();
-        } catch (err) {
-            clearTimeout(timeoutId);
-            return { classes: [], topClass: null, topScore: null };
-        }
+        return _classifyCB.call(samples, sampleRate, k, threshold);
     }
 
     /**
@@ -265,7 +274,7 @@
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
         try {
-            const response = await fetch('/hardware_diagnosis', {
+            const response = await fetch('/api/hardware_diagnosis', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ channel, snapshots, months: 6 }),
@@ -291,7 +300,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ freq, db, prevDb, gain, isFeedback })
             });
-        } catch (_) {}
+        } catch (e) { console.warn('[AIService] Training event failed:', e); }
     }
 
     async function listenAndAnalyze(channel) {

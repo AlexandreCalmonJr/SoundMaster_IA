@@ -61,7 +61,7 @@
 
     async function startPinkNoise(amplitude = 0.3) {
         try {
-            await _addModule('js/core/pink-noise-processor.js');
+            await _addModule('js/core/min/pink-noise-processor.js');
             const ctx = _ensureCtx();
             _pinkNoiseNode = new AudioWorkletNode(ctx, 'pink-noise-processor');
             _pinkNoiseNode.parameters.get('amplitude').value = amplitude;
@@ -87,7 +87,7 @@
 
     async function startSine(freq = 1000, amplitude = 0.3) {
         try {
-            await _addModule('js/core/signal-generators.js');
+            await _addModule('js/core/min/signal-generators.js');
             const ctx = _ensureCtx();
             _sineNode = new AudioWorkletNode(ctx, 'sine-processor');
             _sineNode.parameters.get('frequency').value = freq;
@@ -114,7 +114,7 @@
 
     async function startWhiteNoise(amplitude = 0.3) {
         try {
-            await _addModule('js/core/signal-generators.js');
+            await _addModule('js/core/min/signal-generators.js');
             const ctx = _ensureCtx();
             _whiteNoiseNode = new AudioWorkletNode(ctx, 'white-noise-processor');
             _whiteNoiseNode.parameters.get('amplitude').value = amplitude;
@@ -140,7 +140,7 @@
 
     async function startMLS(order = 13, amplitude = 0.5) {
         try {
-            await _addModule('js/core/signal-generators.js');
+            await _addModule('js/core/min/signal-generators.js');
             const ctx = _ensureCtx();
             _mlsNode = new AudioWorkletNode(ctx, 'mls-processor');
             _mlsNode.parameters.get('order').value = order;
@@ -167,7 +167,7 @@
 
     async function startChirp(startFreq = 20, endFreq = 20000, duration = 2.0, amplitude = 0.5) {
         try {
-            await _addModule('js/core/signal-generators.js');
+            await _addModule('js/core/min/signal-generators.js');
             const ctx = _ensureCtx();
             _chirpNode = new AudioWorkletNode(ctx, 'chirp-processor');
             _chirpNode.parameters.get('startFreq').value = startFreq;
@@ -196,7 +196,7 @@
 
     async function startDualTone(freq1 = 1000, freq2 = 1500, amplitude = 0.3) {
         try {
-            await _addModule('js/core/signal-generators.js');
+            await _addModule('js/core/min/signal-generators.js');
             const ctx = _ensureCtx();
             _dualToneNode = new AudioWorkletNode(ctx, 'dual-tone-processor');
             _dualToneNode.parameters.get('freq1').value = freq1;

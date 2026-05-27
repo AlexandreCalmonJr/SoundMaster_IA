@@ -72,7 +72,7 @@
         _ctx = audioCtx;
 
         try {
-            await audioCtx.audioWorklet.addModule('js/core/mtw-processor.js');
+            await audioCtx.audioWorklet.addModule('js/core/min/mtw-processor.js');
         } catch (e) {
             console.error('[MtwManager] Falha ao carregar mtw-processor.js:', e);
             return;

@@ -4,7 +4,8 @@ const fs = require('fs');
 const crypto = require('crypto');
 const Logger = require('./logger');
 const http = require('http');
-const { app } = require('electron');
+let app = null;
+try { app = require('electron').app; } catch (_) { app = null; }
 
 // ✅ T10: Porta do Python configurável via .env
 function getPythonPort() {

@@ -259,6 +259,8 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
                 channel: targetCh ? mixerSingleton.getChannelState(targetCh) : null,
                 aux: targetAux ? mixerSingleton.getAuxState(targetAux) : null,
                 full_state: mixerSingleton.getStateTree(),
+                all_vus: mixerSingleton.getState().vuData || null,
+                classification: payload.analysis?.live_mic?.classification || null,
                 timestamp: Date.now()
             };
 
@@ -287,7 +289,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
         try {
             const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}/`);
             const data = await aiRes.json();
-            res.json(data);
+            res.status(aiRes.status).json(data);
         } catch (error) {
             res.status(500).json({ error: 'IA offline' });
         }
@@ -300,6 +302,23 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
             res.json(data);
         } catch (error) {
             res.status(500).json({ error: 'IA offline' });
+        }
+    });
+
+    expressApp.post('/api/ai/classify', async (req, res) => {
+        try {
+            const headers = { 'Content-Type': 'application/json' };
+            if (AI_API_KEY) headers['X-API-Key'] = AI_API_KEY;
+            const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}/api/ai/classify`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(req.body),
+                signal: AbortSignal.timeout(10000)
+            });
+            const data = await aiRes.json();
+            res.status(aiRes.status).json(data);
+        } catch (error) {
+            res.status(500).json({ error: 'Classify offline' });
         }
     });
 

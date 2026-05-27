@@ -1,6 +1,7 @@
 /**
  * SoundMaster Pro - AudioWorkletProcessor
  * Processamento de alta performance em thread dedicada.
+ * Zero GC allocation no hot path — todos os buffers pré-alocados no constructor.
  */
 class SoundMasterProcessor extends AudioWorkletProcessor {
     constructor() {
@@ -19,6 +20,11 @@ class SoundMasterProcessor extends AudioWorkletProcessor {
         this._accBufferSize = 4096;
         this._accBuffer = new Float32Array(this._accBufferSize);
         this._accIdx = 0;
+
+        // Zero GC: buffers de trabalho pré-alocados no constructor
+        this._monoBuffer = new Float32Array(128);  // max block size para mixdown estéreo
+        this._accSendBuffer = new Float32Array(this._accBufferSize);  // buffer para envio raw-data
+        this._windowedBuffer = new Float32Array(this._bufferSize);  // buffer para análise janelada
     }
 
     process(inputs, outputs, parameters) {
@@ -27,40 +33,42 @@ class SoundMasterProcessor extends AudioWorkletProcessor {
             const ch0 = input[0];
             const ch1 = input[1]; // 2nd channel (stereo USB class-compliant)
 
-            // Mix down stereo to mono for measurement
-            const mono = ch1 ? new Float32Array(ch0.length) : ch0;
+            // Mix down stereo to mono for measurement — sem alocação
+            const mono = ch1 ? this._monoBuffer : ch0;
             if (ch1) {
-                for (let i = 0; i < ch0.length; i++) {
-                    mono[i] = (ch0[i] + ch1[i]) / 2;
+                const len = ch0.length;
+                for (let i = 0; i < len; i++) {
+                    this._monoBuffer[i] = (ch0[i] + ch1[i]) / 2;
                 }
             }
 
-            for (let i = 0; i < mono.length; i++) {
+            const monoLen = ch1 ? this._monoBuffer.length : ch0.length;
+            for (let i = 0; i < monoLen; i++) {
                 this._accBuffer[this._accIdx++] = mono[i];
                 if (this._accIdx >= this._accBufferSize) {
+                    this._accSendBuffer.set(this._accBuffer);
                     this.port.postMessage({
                         type: 'raw-data',
-                        buffer: this._accBuffer.slice()
+                        buffer: this._accSendBuffer
                     });
                     this._accIdx = 0;
                 }
             }
 
-            for (let i = 0; i < mono.length; i++) {
+            for (let i = 0; i < monoLen; i++) {
                 this._buffer[this._writeIndex] = mono[i];
                 this._writeIndex++;
 
                 if (this._writeIndex >= this._bufferSize) {
                     this._writeIndex = 0;
 
-                    const windowedBuffer = new Float32Array(this._bufferSize);
                     for (let j = 0; j < this._bufferSize; j++) {
-                        windowedBuffer[j] = this._buffer[j] * this._hannWindow[j];
+                        this._windowedBuffer[j] = this._buffer[j] * this._hannWindow[j];
                     }
 
                     this.port.postMessage({
                         type: 'analysis-data',
-                        buffer: windowedBuffer
+                        buffer: this._windowedBuffer
                     });
                 }
             }

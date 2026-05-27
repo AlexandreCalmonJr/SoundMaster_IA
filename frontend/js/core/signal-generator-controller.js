@@ -73,7 +73,7 @@
     async function startWhiteNoise(amplitude = 0.3) {
         const audioCtx = _getAudioCtx();
         try {
-            await audioCtx.audioWorklet.addModule('js/core/signal-generators.js');
+            await audioCtx.audioWorklet.addModule('js/core/min/signal-generators.js');
             whiteNoiseNode = new AudioWorkletNode(audioCtx, 'white-noise-processor');
             whiteNoiseNode.parameters.get('amplitude').value = amplitude;
             whiteNoiseNode.connect(audioCtx.destination);
@@ -98,7 +98,7 @@
     async function startMLS(order = 13, amplitude = 0.5) {
         const audioCtx = _getAudioCtx();
         try {
-            await audioCtx.audioWorklet.addModule('js/core/signal-generators.js');
+            await audioCtx.audioWorklet.addModule('js/core/min/signal-generators.js');
             mlsNode = new AudioWorkletNode(audioCtx, 'mls-processor');
             mlsNode.parameters.get('order').value = order;
             mlsNode.parameters.get('amplitude').value = amplitude;
@@ -124,7 +124,7 @@
     async function startChirp(startFreq = 20, endFreq = 20000, duration = 2.0, amplitude = 0.5) {
         const audioCtx = _getAudioCtx();
         try {
-            await audioCtx.audioWorklet.addModule('js/core/signal-generators.js');
+            await audioCtx.audioWorklet.addModule('js/core/min/signal-generators.js');
             chirpNode = new AudioWorkletNode(audioCtx, 'chirp-processor');
             chirpNode.parameters.get('startFreq').value = startFreq;
             chirpNode.parameters.get('endFreq').value = endFreq;
@@ -152,7 +152,7 @@
     async function startDualTone(freq1 = 1000, freq2 = 1500, amplitude = 0.3) {
         const audioCtx = _getAudioCtx();
         try {
-            await audioCtx.audioWorklet.addModule('js/core/signal-generators.js');
+            await audioCtx.audioWorklet.addModule('js/core/min/signal-generators.js');
             dualToneNode = new AudioWorkletNode(audioCtx, 'dual-tone-processor');
             dualToneNode.parameters.get('freq1').value = freq1;
             dualToneNode.parameters.get('freq2').value = freq2;
@@ -224,7 +224,7 @@
                     throw new Error('AcousticCalibration not available for pink noise');
                 }
             } else {
-                await audioCtx.audioWorklet.addModule('js/core/signal-generators.js');
+                await audioCtx.audioWorklet.addModule('js/core/min/signal-generators.js');
                 bandLimitedNoiseNode = new AudioWorkletNode(audioCtx, 'white-noise-processor');
                 bandLimitedNoiseNode.parameters.get('amplitude').value = amplitude || 0.3;
             }
