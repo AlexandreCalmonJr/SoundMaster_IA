@@ -43,6 +43,24 @@
         els.chatStatus.style.color = s.color;
     }
 
+    // Config DOMPurify — usada em _renderMarkdown.
+    // Allowlist explícita: apenas tags e atributos gerados pelo próprio renderizador.
+    const _PURIFY_CONFIG = {
+        ALLOWED_TAGS: ['h1', 'h2', 'h3', 'strong', 'em', 'code', 'li', 'br'],
+        ALLOWED_ATTR: ['class'],
+        ALLOW_DATA_ATTR: false,
+        FORBID_ATTR: ['style', 'onerror', 'onload', 'onclick'],
+        FORCE_BODY: false,
+    };
+
+    function _sanitize(html) {
+        if (window.DOMPurify && typeof DOMPurify.sanitize === 'function') {
+            return DOMPurify.sanitize(html, _PURIFY_CONFIG);
+        }
+        // Fallback seguro: remove qualquer tag restante se DOMPurify não estiver disponível
+        return html.replace(/<(?!\/?(h[123]|strong|em|code|li|br)\b)[^>]+>/gi, '');
+    }
+
     function _renderMarkdown(text) {
         if (!text) return '';
         let html = text
@@ -70,7 +88,7 @@
         // New lines
         html = html.replace(/\n/g, '<br>');
 
-        return html;
+        return _sanitize(html);
     }
 
     function _saveMessageToHistory(text, isUser, command, id, executed = false) {

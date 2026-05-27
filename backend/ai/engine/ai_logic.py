@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
+import unicodedata
 import time
 import os
 
@@ -53,7 +54,8 @@ class SessionContext:
 class LocalLLM:
     """Gerenciador de Modelo Leve Local (TinyLlama/Gemma via Llama-cpp)"""
     _instance = None
-    
+    _LLM_TIMEOUT = 120  # segundos máximo para inferência
+
     def __init__(self, model_path=None):
         # Caminho configurável via env var MODEL_PATH, fallback hardcoded
         if not model_path:
@@ -71,8 +73,8 @@ class LocalLLM:
         self.enabled = False
         import threading
         self._lock = threading.Lock()
-        
-        if os.path.exists(model_path):
+
+        if os.path.exists(model_path) and self._test_llama_crash():
             try:
                 # pyrefly: ignore [missing-import]
                 from llama_cpp import Llama
@@ -86,11 +88,52 @@ class LocalLLM:
                 print("[AI Engine] Nota: no Windows, instale primeiro: https://github.com/abetlen/llama-cpp-python#installation")
             except Exception as e:
                 print(f"[AI Engine] Falha ao carregar modelo: {e}")
+                self.llm = None
+                import gc
+                gc.collect()
+        elif os.path.exists(model_path):
+            print("[AI Engine] llama-cpp-python incompatível com esta CPU. Modelo local desabilitado.")
+            print("[AI Engine] O chat continuará funcionando em modo simulação via navegador.")
+
+    @staticmethod
+    def _test_llama_crash():
+        """Testa se llama_cpp pode ser carregado sem crashar (0xc000001d).
+        Roda em subprocesso separado para não derrubar o app principal."""
+        import subprocess
+        import sys
+        test_code = (
+            "import sys, os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); "
+            "try: from llama_cpp import Llama; print('OK')\n"
+            "except Exception as e: print('ERR:' + str(e))"
+        )
+        try:
+            script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            result = subprocess.run(
+                [sys.executable, '-c', test_code],
+                capture_output=True, text=True, timeout=15, cwd=script_dir
+            )
+            if result.returncode != 0:
+                print(f"[AI Engine] llama_cpp incompatível com esta CPU (código {result.returncode}).")
+                print(f"[AI Engine] O app continuará funcionando sem o modelo local.")
+                return False
+            output = result.stdout.strip()
+            if output.startswith('ERR:'):
+                print(f"[AI Engine] Teste llama_cpp: {output}")
+                return False
+            if output == 'OK':
+                return True
+            print(f"[AI Engine] Teste llama_cpp retorno inesperado: {output}")
+            return False
+        except subprocess.TimeoutExpired:
+            print("[AI Engine] Teste llama_cpp: timeout")
+            return False
 
     def reload_if_needed(self):
         if self.enabled:
             return True
         if not os.path.exists(self.model_path):
+            return False
+        if not self._test_llama_crash():
             return False
         try:
             from llama_cpp import Llama
@@ -133,8 +176,14 @@ class LocalLLM:
         full_prompt = f"<|system|>\n{system_prompt}</s>\n{history_text}<|user|>\n{prompt}</s>\n<|assistant|>\n"
         try:
             with self._lock:
-                output = self.llm(full_prompt, max_tokens=512, stop=["</s>"], echo=False)
+                from concurrent.futures import ThreadPoolExecutor, TimeoutError
+                with ThreadPoolExecutor(max_workers=1) as pool:
+                    future = pool.submit(self.llm, full_prompt, max_tokens=512, stop=["</s>"], echo=False)
+                    output = future.result(timeout=self._LLM_TIMEOUT)
             return output['choices'][0]['text'].strip()
+        except TimeoutError:
+            print(f"[AI Engine] Timeout na inferência LLM ({self._LLM_TIMEOUT}s)")
+            return None
         except Exception as e:
             print(f"[AI Engine] Erro no query LLM: {e}")
             return None
@@ -307,7 +356,7 @@ class AIEngine:
         return report
 
     def process(self, text, analysis=None, mixer_state=None):
-        text = text.lower().strip()
+        text = unicodedata.normalize('NFC', text.strip()).lower()
         analysis = analysis or (self.session.analyses_history[-1] if self.session.analyses_history else {})
         if analysis and isinstance(analysis, dict):
             self.session.add_analysis(analysis)
@@ -618,7 +667,7 @@ Deseja aplicar a correcao recomendada?
                         "command": self.command("eq_cut", "Melhorar Inteligibilidade", target="master", hz=800, gain=-3, q=1.2)
                     }
 
-        if 'rt60_response' in locals() and rt60_response: return rt60_response
+        if rt60_response is not None: return rt60_response
         if fft_response: return fft_response
 
         # 2. Respostas por Texto
@@ -734,7 +783,7 @@ Deseja aplicar a correcao recomendada?
         # 2.5. Presets e Cenas
         if re.search(r'(salvar preset|salvar cena|guardar config|salvar config)', text):
             name_match = re.search(r'(?:como|nome|chamar)\s*["\']?([^"\'.,!?]+)', text)
-            preset_name = name_match.group(1).strip() if name_match else f"Preset {time.strftime('%d/%m %H:%M')}"
+            preset_name = re.sub(r'[^\w\s\-]', '', name_match.group(1).strip())[:50] if name_match else f"Preset {time.strftime('%d/%m %H:%M', time.gmtime())}"
             return {
                 "text": f"Beleza! Vou salvar o estado atual da mesa como '{preset_name}' pra você. 😊",
                 "command": self.command("save_preset", f"Salvar preset: {preset_name}", name=preset_name)
@@ -746,7 +795,7 @@ Deseja aplicar a correcao recomendada?
             }
         if re.search(r'(criar cena|nova cena|capture scene)', text):
             scene_name_match = re.search(r'(?:como|nome|chamar)\s*["\']?([^"\'.,!?]+)', text)
-            scene_name = scene_name_match.group(1).strip() if scene_name_match else f"Cena {time.strftime('%d/%m %H:%M')}"
+            scene_name = re.sub(r'[^\w\s\-]', '', scene_name_match.group(1).strip())[:50] if scene_name_match else f"Cena {time.strftime('%d/%m %H:%M', time.gmtime())}"
             return {
                 "text": f"Vou criar uma nova cena '{scene_name}' com o estado atual da mesa! 🎯",
                 "command": self.command("save_scene", f"Criar cena: {scene_name}", name=scene_name)

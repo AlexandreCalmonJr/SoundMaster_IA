@@ -16,3 +16,4 @@ backend/ai/python-portable.zip
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
+backend/ai/data/

@@ -15,7 +15,9 @@ class AudioClassifier:
         self.class_names = []
         self.model = None
         self.enabled = False
+        self._backend = None  # 'tflite' ou 'tfhub' após _setup()
         self._setup()
+
 
     def _download(self, url, dest):
         try:
@@ -52,20 +54,60 @@ class AudioClassifier:
                 if len(row) >= 3:
                     self.class_names.append(row[2].strip())
 
+    # URL do modelo TFLite do YAMNet (Google)
+    _YAMNET_TFLITE_URL = (
+        "https://storage.googleapis.com/download.tensorflow.org"
+        "/models/tflite/task_library/audio_classification"
+        "/android/lite-model_yamnet_classification_tflite_1.tflite"
+    )
+
     def _setup(self):
         self._ensure_class_map()
         self._load_class_map()
+        # Tenta tflite-runtime primeiro (leve, ~20MB, sem internet no runtime)
+        if self._setup_tflite():
+            return
+        # Fallback: tensorflow_hub completo (online no 1º start, ~500MB)
+        self._setup_tfhub()
+
+    def _setup_tflite(self):
+        """Carrega YAMNet via tflite-runtime (opção leve e offline)."""
+        tflite_path = os.path.join(self.models_dir, 'yamnet.tflite')
+        # Baixa o modelo TFLite se não existir
+        if not os.path.exists(tflite_path):
+            print("[Classifier] Baixando YAMNet TFLite (~3MB)...")
+            if not self._download(self._YAMNET_TFLITE_URL, tflite_path):
+                return False
+        try:
+            import tflite_runtime.interpreter as tflite
+            interp = tflite.Interpreter(model_path=tflite_path)
+            interp.allocate_tensors()
+            self.model = interp
+            self._backend = 'tflite'
+            self.enabled = True
+            print(f"[Classifier] YAMNet TFLite carregado ({len(self.class_names)} classes). Backend: tflite-runtime")
+            return True
+        except ImportError:
+            print("[Classifier] tflite-runtime não instalado. Tentando tensorflow_hub...")
+            return False
+        except Exception as e:
+            print(f"[Classifier] Falha ao carregar YAMNet TFLite: {e}")
+            return False
+
+    def _setup_tfhub(self):
+        """Fallback: carrega YAMNet via tensorflow_hub (online no 1º start)."""
         try:
             import tensorflow_hub as hub
-            import tensorflow as tf
-            print("[Classifier] Carregando YAMNet do TF Hub...")
+            print("[Classifier] Carregando YAMNet do TF Hub (requer internet)...")
             self.model = hub.load('https://tfhub.dev/google/yamnet/1')
+            self._backend = 'tfhub'
             self.enabled = True
-            print(f"[Classifier] YAMNet carregado ({len(self.class_names)} classes).")
+            print(f"[Classifier] YAMNet TF Hub carregado ({len(self.class_names)} classes).")
         except ImportError:
-            print("[Classifier] tensorflow-hub ou tensorflow não instalados.")
+            print("[Classifier] Nenhum backend disponível (tflite-runtime nem tensorflow-hub).")
+            print("[Classifier] Execute: pip install tflite-runtime")
         except Exception as e:
-            print(f"[Classifier] Erro ao carregar YAMNet: {e}")
+            print(f"[Classifier] Erro ao carregar YAMNet via TF Hub: {e}")
 
     def _resample(self, audio, orig_sr, target_sr=16000):
         if orig_sr == target_sr:
@@ -81,17 +123,22 @@ class AudioClassifier:
         )
         return resampled.astype(np.float32)
 
-    def classify(self, audio_data, sample_rate=16000):
-        if not self.enabled:
-            return []
+    def _classify_tflite(self, audio):
+        """Executa inferência via tflite-runtime."""
+        input_details = self.model.get_input_details()
+        output_details = self.model.get_output_details()
+        # YAMNet TFLite espera [1, N] float32
+        wav_input = audio.reshape(1, -1)
+        self.model.resize_input_tensor(input_details[0]['index'], wav_input.shape)
+        self.model.allocate_tensors()
+        self.model.set_tensor(input_details[0]['index'], wav_input)
+        self.model.invoke()
+        scores = self.model.get_tensor(output_details[0]['index'])  # shape [frames, 521]
+        return np.mean(scores, axis=0)
+
+    def _classify_tfhub(self, audio):
+        """Executa inferência via tensorflow_hub."""
         import tensorflow as tf
-        audio = np.array(audio_data, dtype=np.float64)
-        if audio.ndim > 1:
-            audio = audio.mean(axis=1)
-        audio = self._resample(audio, sample_rate)
-        peak = np.max(np.abs(audio))
-        if peak > 0:
-            audio = audio / peak
         result = self.model(audio)
         if isinstance(result, (list, tuple)):
             scores = result[0]
@@ -99,13 +146,31 @@ class AudioClassifier:
             scores = result.get('scores', list(result.values())[0])
         else:
             scores = result
-        avg_scores = tf.reduce_mean(scores, axis=0).numpy()
+        return tf.reduce_mean(scores, axis=0).numpy()
+
+    def classify(self, audio_data, sample_rate=16000):
+        if not self.enabled:
+            return []
+        audio = np.array(audio_data, dtype=np.float64)
+        if audio.ndim > 1:
+            audio = audio.mean(axis=1)
+        audio = self._resample(audio, sample_rate)
+        peak = np.max(np.abs(audio))
+        if peak > 0:
+            audio = audio / peak
+
+        if self._backend == 'tflite':
+            avg_scores = self._classify_tflite(audio)
+        else:
+            avg_scores = self._classify_tfhub(audio)
+
         indices = np.argsort(avg_scores)[::-1]
         results = []
         for idx in indices:
             name = self.class_names[idx] if idx < len(self.class_names) else f"Class_{idx}"
             results.append({'index': int(idx), 'name': name, 'score': float(avg_scores[idx])})
         return results
+
 
     def get_top_classes(self, audio_data, sample_rate=16000, k=5, threshold=0.1):
         results = self.classify(audio_data, sample_rate)

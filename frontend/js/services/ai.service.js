@@ -123,7 +123,11 @@
 
         AppStore.setState({ aiStatus: 'loading' });
 
-        var sessionId = AppStore.getState().aiSessionId || 'default';
+        var sessionId = AppStore.getState().aiSessionId;
+        if (!sessionId) {
+            sessionId = 'ais-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+            AppStore.setState({ aiSessionId: sessionId });
+        }
 
         try {
             const data = await _askCB.call(message, channel, enrichedAnalysis, sessionId);
@@ -291,11 +295,11 @@
 
     /**
      * Envia um evento de treinamento para o Python (feedback do usuário).
-     * Isso alimenta o modelo de ML para melhorar predições futuras.
+     * Roteado via proxy Node.js (/api/ai/train) que injeta o X-API-Key.
      */
     async function sendTrainingEvent(freq, db, prevDb, gain, isFeedback) {
         try {
-            await fetch('/train', {
+            await fetch('/api/ai/train', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ freq, db, prevDb, gain, isFeedback })

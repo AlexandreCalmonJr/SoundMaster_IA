@@ -287,7 +287,9 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
 
     expressApp.get('/api/ai/health', async (req, res) => {
         try {
-            const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}/`);
+            const hdrs = {};
+            if (AI_API_KEY) hdrs['X-API-Key'] = AI_API_KEY;
+            const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}/`, { headers: hdrs });
             const data = await aiRes.json();
             res.status(aiRes.status).json(data);
         } catch (error) {
@@ -297,7 +299,9 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
 
     expressApp.get('/api/ai/diagnose', async (req, res) => {
         try {
-            const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}/diagnose`);
+            const hdrs = {};
+            if (AI_API_KEY) hdrs['X-API-Key'] = AI_API_KEY;
+            const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}/diagnose`, { headers: hdrs });
             const data = await aiRes.json();
             res.json(data);
         } catch (error) {
@@ -540,6 +544,26 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
                .json({ error: error.name === 'AbortError' ? 'Timeout no diagnóstico' : 'Motor Python offline' });
         }
     });
+
+    // Proxy para /train e /api/ai/train (feedback do usuário → Python AI Engine)
+    // Ambas as rotas injetam X-API-Key automaticamente antes de chamar o Python.
+    async function _proxyTrain(req, res) {
+        try {
+            const hdrs = { 'Content-Type': 'application/json' };
+            if (AI_API_KEY) hdrs['X-API-Key'] = AI_API_KEY;
+            const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}/train`, {
+                method: 'POST',
+                headers: hdrs,
+                body: JSON.stringify(req.body),
+                signal: AbortSignal.timeout(10000)
+            });
+            res.status(aiRes.status).json(await aiRes.json());
+        } catch (error) {
+            res.status(500).json({ error: 'Treinamento offline' });
+        }
+    }
+    expressApp.post('/train', _proxyTrain);
+    expressApp.post('/api/ai/train', _proxyTrain); // Alias autenticado (padrão /api/ai/*)
 
     // Mapeamento de nomes de canais e auxiliares
     expressApp.get('/api/mixer/names', async (req, res) => {

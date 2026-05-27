@@ -19,6 +19,7 @@ import asyncio
 from dataclasses import asdict
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
+from fastapi.concurrency import run_in_threadpool
 
 # Importações Modulares
 from engine.ai_logic import AIEngine, SessionContext
@@ -122,7 +123,8 @@ async def verify_api_key(api_key: str = Depends(api_key_header)):
     valid_key = os.getenv("AI_API_KEY")
 
     if not valid_key:
-        if os.getenv("NODE_ENV") == "production":
+        node_env = os.getenv("NODE_ENV", "")
+        if node_env != "development":
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="AI_API_KEY nao configurada. Defina a variavel de ambiente AI_API_KEY."
@@ -239,7 +241,6 @@ async def chat_endpoint(
     authenticated: bool = Depends(verify_api_key)
 ):
     try:
-        from fastapi.concurrency import run_in_threadpool
         session = get_session(request.session_id)
         ai_engine = AIEngine(session)
         result = await run_in_threadpool(

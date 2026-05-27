@@ -3,8 +3,13 @@ uvicorn>=0.30.0
 pydantic>=2.0.0
 python-dotenv>=1.0.0
 numpy>=1.26.0
-tensorflow>=2.12.0
-tensorflow-hub>=0.16.0  # YAMNet AudioSet classifier via TF Hub
+# --- Classificação de Áudio (YAMNet) ---
+# Opção primária: tflite-runtime (~20MB). Instala com: pip install tflite-runtime
+# Opção fallback: tensorflow completo (~500MB) + tensorflow-hub (requer internet no 1º start).
+# O classifier.py detecta automaticamente qual está disponível.
+tflite-runtime>=2.14.0; python_version < '3.13'  # YAMNet via TFLite local (leve)
+# tensorflow>=2.12.0          # Descomente se precisar do stack completo
+# tensorflow-hub>=0.16.0      # Necessário apenas com tensorflow completo
 scipy>=1.12.0
 python-multipart>=0.0.9
 llama-cpp-python>=0.2.0,<0.3.0  # Chat LLM local com TinyLlama (API estável 0.2.x). Windows: pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu

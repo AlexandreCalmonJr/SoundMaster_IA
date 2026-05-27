@@ -71,12 +71,19 @@
     // AI Chat Renderers and Utilities
     // -------------------------------------------------------------------------
 
+    function _sanitizeHtml(dirty) {
+        var div = document.createElement('div');
+        div.textContent = dirty;
+        return div.innerHTML;
+    }
+
+    function _stripDangerousUrls(text) {
+        return text.replace(/(href|src)=["']\s*(javascript|data|vbscript):/gi, '$1="#"');
+    }
+
     function _renderMarkdown(text) {
         if (!text) return '';
-        let html = text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
+        var html = _sanitizeHtml(text);
 
         // Headers
         html = html.replace(/^### (.*?)$/gm, '<h3 class="text-base font-bold text-cyan-400 mt-2 mb-1">$1</h3>');
@@ -90,7 +97,7 @@
         html = html.replace(/\*(.*?)\*/g, '<em class="italic text-slate-300">$1</em>');
 
         // Inline Code
-        html = html.replace(/`/g, '`').replace(/`(.*?)`/g, '<code class="bg-black/60 font-mono px-1 rounded text-cyan-300 text-xs">$1</code>');
+        html = html.replace(/`(.*?)`/g, '<code class="bg-black/60 font-mono px-1 rounded text-cyan-300 text-xs">$1</code>');
 
         // List items
         html = html.replace(/^[-\*] (.*?)$/gm, '<li class="ml-4 list-disc text-sm text-slate-300">$1</li>');
@@ -98,7 +105,7 @@
         // New lines
         html = html.replace(/\n/g, '<br>');
 
-        return html;
+        return _stripDangerousUrls(html);
     }
 
     function _saveMessageToHistory(text, isUser, command, id, executed = false) {
