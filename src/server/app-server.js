@@ -327,6 +327,49 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
         }
     });
 
+    // ── AI Model Management Proxy ──────────────────────────────────────────────
+    const _proxyAIModel = async (method, pythonPath, body) => {
+        const headers = { 'Content-Type': 'application/json' };
+        if (AI_API_KEY) headers['X-API-Key'] = AI_API_KEY;
+        const opts = { method, headers, signal: AbortSignal.timeout(30000) };
+        if (body) opts.body = JSON.stringify(body);
+        const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}${pythonPath}`, opts);
+        return aiRes.json();
+    };
+
+    expressApp.get('/api/models', async (req, res) => {
+        try { res.json(await _proxyAIModel('GET', '/api/models')); }
+        catch (e) { res.status(500).json({ error: 'IA offline' }); }
+    });
+
+    expressApp.post('/api/models/select', async (req, res) => {
+        try {
+            const result = await _proxyAIModel('POST', '/api/models/select', req.body);
+            // Reinicia o servidor Python para aplicar o novo modelo
+            if (result.success) {
+                const pythonAi = require('./python-ai');
+                // Não mata o processo — o Python detecta a mudança no próximo request
+                console.log('[AppServer] Modelo alterado para:', req.body.model);
+            }
+            res.json(result);
+        } catch (e) { res.status(500).json({ error: 'IA offline' }); }
+    });
+
+    expressApp.post('/api/models/download', async (req, res) => {
+        try { res.json(await _proxyAIModel('POST', '/api/models/download', req.body)); }
+        catch (e) { res.status(500).json({ error: 'IA offline' }); }
+    });
+
+    expressApp.get('/api/models/download/status', async (req, res) => {
+        try { res.json(await _proxyAIModel('GET', '/api/models/download/status')); }
+        catch (e) { res.json({ active: false, completed: false, error: 'IA offline' }); }
+    });
+
+    expressApp.post('/api/ollama/config', async (req, res) => {
+        try { res.json(await _proxyAIModel('POST', '/api/ollama/config', req.body)); }
+        catch (e) { res.status(500).json({ error: 'IA offline' }); }
+    });
+
     // Chat History Persistence (NeDB)
     expressApp.post('/api/chat/save/:session_id', (req, res) => {
         try {

@@ -5,7 +5,7 @@
     </div>
 
     <!-- Progress Bar -->
-    <div class="card bg-slate-900/60 backdrop-blur-md p-5 rounded-xl border border-white/10 mb-6">
+    <div class="card bg-slate-900/80 p-5 rounded-xl border border-white/10 mb-6">
         <div class="flex items-center justify-between mb-2">
             <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Progresso Geral</span>
             <span id="tut-progress-pct" class="text-xs font-mono text-cyan-400">0%</span>
@@ -18,7 +18,7 @@
     <div class="grid grid-cols-1 gap-5">
 
         <!-- 1. Autenticação -->
-        <div class="tut-card card bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden" data-flow="auth" data-doc="/docs/flows/autenticacao/autenticacao-flow.md">
+        <div class="tut-card card bg-slate-800/70 rounded-xl border border-white/10 overflow-hidden" data-flow="auth" data-doc="/docs/flows/autenticacao/autenticacao-flow.md">
             <div class="tut-header flex items-center justify-between p-5 cursor-pointer hover:bg-slate-700/50 transition-colors" role="button" tabindex="0" aria-label="Expandir tutorial de Autenticacao">
                 <div class="flex items-center gap-4">
                     <span class="tut-icon flex-shrink-0 w-10 h-10 rounded-lg bg-cyan-900/50 border border-cyan-500/30 flex items-center justify-center text-lg">🔐</span>
@@ -54,7 +54,7 @@
                                 <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 3 como concluído"></button>
                                 <div>
                                     <span class="text-sm font-semibold text-slate-200">3. Credenciais Validadas</span>
-                                    <p class="text-xs text-slate-500 mt-0.5">Servidor Node valida as credenciais e armazena em SQLite. Token JWT é salvo como <code class="text-cyan-400 bg-black/40 px-1 rounded text-[10px]">sm_auth_token</code>.</p>
+                                    <p class="text-xs text-slate-500 mt-0.5">Servidor Node valida as credenciais e armazena em SQLite. Token JWT é salvo como <code class="text-cyan-400 bg-black/70 px-1 rounded text-[10px]">sm_auth_token</code>.</p>
                                 </div>
                             </li>
                             <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="3">
@@ -67,7 +67,7 @@
                         </ol>
                         <button class="tut-doc-btn mt-4 w-full py-2 bg-slate-700 hover:bg-slate-600 text-cyan-400 hover:text-cyan-300 text-xs font-bold rounded-lg border border-white/10 transition-all" aria-label="Ver documentação completa">📄 Ver Documentação Completa</button>
                     </div>
-                    <div class="bg-slate-900/60 rounded-xl p-4 border border-white/5 flex flex-col gap-3">
+                    <div class="bg-slate-900/80 rounded-xl p-4 border border-white/5 flex flex-col gap-3">
                         <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Páginas relacionadas</span>
                         <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors" data-target="home">Dashboard</button>
                         <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mt-2">IA disponível</span>
@@ -79,7 +79,7 @@
         </div>
 
         <!-- 2. Mixer -->
-        <div class="tut-card card bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden" data-flow="mixer" data-doc="/docs/flows/mixer/mixer-flow.md">
+        <div class="tut-card card bg-slate-800/70 rounded-xl border border-white/10 overflow-hidden" data-flow="mixer" data-doc="/docs/flows/mixer/mixer-flow.md">
             <div class="tut-header flex items-center justify-between p-5 cursor-pointer hover:bg-slate-700/50 transition-colors" role="button" tabindex="0" aria-label="Expandir tutorial do Mixer">
                 <div class="flex items-center gap-4">
                     <span class="tut-icon flex-shrink-0 w-10 h-10 rounded-lg bg-purple-900/50 border border-purple-500/30 flex items-center justify-center text-lg">🎚️</span>
@@ -128,7 +128,7 @@
                         </ol>
                         <button class="tut-doc-btn mt-4 w-full py-2 bg-slate-700 hover:bg-slate-600 text-cyan-400 hover:text-cyan-300 text-xs font-bold rounded-lg border border-white/10 transition-all">📄 Ver Documentação Completa</button>
                     </div>
-                    <div class="bg-slate-900/60 rounded-xl p-4 border border-white/5 flex flex-col gap-3">
+                    <div class="bg-slate-900/80 rounded-xl p-4 border border-white/5 flex flex-col gap-3">
                         <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Páginas relacionadas</span>
                         <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors" data-target="systems">Conexão Ui24R</button>
                         <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-target="mixer-input">Canais de Entrada</button>
@@ -141,7 +141,7 @@
         </div>
 
         <!-- 3. Medir -->
-        <div class="tut-card card bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden" data-flow="measure" data-doc="/docs/flows/medir/medir-flow.md">
+        <div class="tut-card card bg-slate-800/70 rounded-xl border border-white/10 overflow-hidden" data-flow="measure" data-doc="/docs/flows/medir/medir-flow.md">
             <div class="tut-header flex items-center justify-between p-5 cursor-pointer hover:bg-slate-700/50 transition-colors" role="button" tabindex="0" aria-label="Expandir tutorial de Medir">
                 <div class="flex items-center gap-4">
                     <span class="tut-icon flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-900/50 border border-emerald-500/30 flex items-center justify-center text-lg">📊</span>
@@ -170,7 +170,7 @@
                                 <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 2 como concluído"></button>
                                 <div>
                                     <span class="text-sm font-semibold text-slate-200">2. Calibrar Microfone</span>
-                                    <p class="text-xs text-slate-500 mt-0.5">Faça upload de um arquivo <code class="text-cyan-400 bg-black/40 px-1 rounded text-[10px]">.cal</code> do fabricante ou inicie o ruído rosa. Ajuste ganho e ponderação (dBA/dBC).</p>
+                                    <p class="text-xs text-slate-500 mt-0.5">Faça upload de um arquivo <code class="text-cyan-400 bg-black/70 px-1 rounded text-[10px]">.cal</code> do fabricante ou inicie o ruído rosa. Ajuste ganho e ponderação (dBA/dBC).</p>
                                 </div>
                             </li>
                             <li class="tut-step flex items-start gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 transition-all" data-step="2">
@@ -197,7 +197,7 @@
                         </ol>
                         <button class="tut-doc-btn mt-4 w-full py-2 bg-slate-700 hover:bg-slate-600 text-cyan-400 hover:text-cyan-300 text-xs font-bold rounded-lg border border-white/10 transition-all">📄 Ver Documentação Completa</button>
                     </div>
-                    <div class="bg-slate-900/60 rounded-xl p-4 border border-white/5 flex flex-col gap-3">
+                    <div class="bg-slate-900/80 rounded-xl p-4 border border-white/5 flex flex-col gap-3">
                         <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Páginas relacionadas</span>
                         <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors" data-target="analyzer">FFT & Waterfall</button>
                         <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-target="analyzer-calibration">Calibração</button>
@@ -211,7 +211,7 @@
         </div>
 
         <!-- 4. Analisar -->
-        <div class="tut-card card bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden" data-flow="analyze" data-doc="/docs/flows/analisar/analisar-flow.md">
+        <div class="tut-card card bg-slate-800/70 rounded-xl border border-white/10 overflow-hidden" data-flow="analyze" data-doc="/docs/flows/analisar/analisar-flow.md">
             <div class="tut-header flex items-center justify-between p-5 cursor-pointer hover:bg-slate-700/50 transition-colors" role="button" tabindex="0" aria-label="Expandir tutorial de Analisar">
                 <div class="flex items-center gap-4">
                     <span class="tut-icon flex-shrink-0 w-10 h-10 rounded-lg bg-amber-900/50 border border-amber-500/30 flex items-center justify-center text-lg">🔬</span>
@@ -260,7 +260,7 @@
                         </ol>
                         <button class="tut-doc-btn mt-4 w-full py-2 bg-slate-700 hover:bg-slate-600 text-cyan-400 hover:text-cyan-300 text-xs font-bold rounded-lg border border-white/10 transition-all">📄 Ver Documentação Completa</button>
                     </div>
-                    <div class="bg-slate-900/60 rounded-xl p-4 border border-white/5 flex flex-col gap-3">
+                    <div class="bg-slate-900/80 rounded-xl p-4 border border-white/5 flex flex-col gap-3">
                         <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Páginas relacionadas</span>
                         <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors" data-target="acustica">Acústica</button>
                         <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-target="rt60">RT60</button>
@@ -275,7 +275,7 @@
         </div>
 
         <!-- 5. Diagnóstico -->
-        <div class="tut-card card bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden" data-flow="diagnostics" data-doc="/docs/flows/diagnostico/diagnostico-flow.md">
+        <div class="tut-card card bg-slate-800/70 rounded-xl border border-white/10 overflow-hidden" data-flow="diagnostics" data-doc="/docs/flows/diagnostico/diagnostico-flow.md">
             <div class="tut-header flex items-center justify-between p-5 cursor-pointer hover:bg-slate-700/50 transition-colors" role="button" tabindex="0" aria-label="Expandir tutorial de Diagnóstico">
                 <div class="flex items-center gap-4">
                     <span class="tut-icon flex-shrink-0 w-10 h-10 rounded-lg bg-red-900/50 border border-red-500/30 flex items-center justify-center text-lg">🩺</span>
@@ -318,13 +318,13 @@
                                 <button class="step-check w-5 h-5 mt-0.5 rounded border-2 border-slate-600 flex-shrink-0 transition-colors hover:border-cyan-500" aria-label="Marcar passo 4 como concluído"></button>
                                 <div>
                                     <span class="text-sm font-semibold text-slate-200">4. Diagnóstico Preditivo</span>
-                                    <p class="text-xs text-slate-500 mt-0.5">O backend Python oferece diagnóstico preditivo de hardware via <code class="text-cyan-400 bg-black/40 px-1 rounded text-[10px]">predictive_maintenance.py</code>. Verifique o endpoint <code class="text-cyan-400 bg-black/40 px-1 rounded text-[10px]">/hardware_diagnosis</code>.</p>
+                                    <p class="text-xs text-slate-500 mt-0.5">O backend Python oferece diagnóstico preditivo de hardware via <code class="text-cyan-400 bg-black/70 px-1 rounded text-[10px]">predictive_maintenance.py</code>. Verifique o endpoint <code class="text-cyan-400 bg-black/70 px-1 rounded text-[10px]">/hardware_diagnosis</code>.</p>
                                 </div>
                             </li>
                         </ol>
                         <button class="tut-doc-btn mt-4 w-full py-2 bg-slate-700 hover:bg-slate-600 text-cyan-400 hover:text-cyan-300 text-xs font-bold rounded-lg border border-white/10 transition-all">📄 Ver Documentação Completa</button>
                     </div>
-                    <div class="bg-slate-900/60 rounded-xl p-4 border border-white/5 flex flex-col gap-3">
+                    <div class="bg-slate-900/80 rounded-xl p-4 border border-white/5 flex flex-col gap-3">
                         <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Páginas relacionadas</span>
                         <button class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors" data-target="debug">Console de Depuração</button>
                         <button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors" data-target="systems">Conexão Ui24R</button>
@@ -340,8 +340,8 @@
 
     <!-- Doc Viewer Modal -->
     <div id="tut-doc-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden" role="dialog" aria-modal="true" aria-label="Visualizador de documentação">
-        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" id="tut-doc-overlay"></div>
-        <div class="relative bg-slate-900 border border-white/10 rounded-2xl max-w-4xl w-full mx-4 max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+        <div class="absolute inset-0 bg-black/80" id="tut-doc-overlay"></div>
+        <div class="relative bg-slate-900 border border-white/10 rounded-2xl max-w-4xl w-full mx-4 max-h-[85vh] flex flex-col overflow-hidden">
             <div class="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
                 <h3 id="tut-doc-title" class="text-lg font-bold text-cyan-400">Documentação</h3>
                 <button id="tut-doc-close" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors text-lg" aria-label="Fechar documentação">✕</button>

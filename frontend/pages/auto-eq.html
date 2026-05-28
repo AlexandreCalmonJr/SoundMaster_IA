@@ -9,7 +9,7 @@
         </div>
     </header>
 
-    <div class="toolbar flex flex-wrap gap-3 items-center bg-slate-800/50 border border-white/10 rounded-xl p-4 mb-6">
+    <div class="toolbar flex flex-wrap gap-3 items-center bg-slate-800/70 border border-white/10 rounded-xl p-4 mb-6">
         <label for="aeq-target-select" class="text-xs text-slate-400 font-bold">Curva Alvo</label>
         <select id="aeq-target-select" class="bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-cyan-500">
             <option value="flat">Flat (0dB)</option>
@@ -37,13 +37,13 @@
         <button id="aeq-export-peq-btn" disabled class="px-5 py-2 bg-slate-700 text-slate-400 rounded-lg text-sm font-bold cursor-not-allowed transition-colors">↓ PEQ Genérico</button>
     </div>
 
-    <div id="aeq-custom-area" class="hidden flex flex-col gap-3 bg-slate-900/50 border border-white/10 rounded-xl p-4 mb-6">
+    <div id="aeq-custom-area" class="hidden flex flex-col gap-3 bg-slate-900/80 border border-white/10 rounded-xl p-4 mb-6">
         <p class="text-xs text-slate-500">Insira pontos no formato JSON: [[Hz, dB], [Hz, dB], …]</p>
         <textarea id="aeq-custom-json" aria-label="JSON customizado para curva alvo" class="bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white font-mono resize-none" rows="2" placeholder='[[20,0],[100,2],[1000,0],[10000,-3],[20000,-6]]'></textarea>
         <button id="aeq-apply-custom-btn" class="self-start px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold transition-colors">Aplicar Curva</button>
     </div>
 
-    <div class="canvas-wrap bg-slate-800/50 border border-white/10 rounded-xl p-4 mb-6">
+    <div class="canvas-wrap bg-slate-800/70 border border-white/10 rounded-xl p-4 mb-6">
         <canvas id="aeq-canvas" class="w-full h-72" aria-label="Gráfico comparativo de Auto-EQ e curva alvo"></canvas>
         <div class="legend flex gap-4 mt-3 text-xs text-slate-400">
             <span class="flex items-center gap-2"><span class="inline-block w-4 h-0.5 bg-cyan-400"></span>Espectro Medido</span>
@@ -53,26 +53,26 @@
     </div>
 
     <div class="stats-bar grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div class="stat-card bg-slate-800/50 border border-white/10 rounded-xl p-4 text-center">
+        <div class="stat-card bg-slate-800/70 border border-white/10 rounded-xl p-4 text-center">
             <div class="text-xl font-black text-white" id="aeq-stat-rms">—</div>
             <div class="text-xs text-slate-500 mt-1">RMS Desvio (dB)</div>
         </div>
-        <div class="stat-card bg-slate-800/50 border border-white/10 rounded-xl p-4 text-center">
+        <div class="stat-card bg-slate-800/70 border border-white/10 rounded-xl p-4 text-center">
             <div class="text-xl font-black text-white" id="aeq-stat-max">—</div>
             <div class="text-xs text-slate-500 mt-1">Desvio Máx (dB)</div>
         </div>
-        <div class="stat-card bg-slate-800/50 border border-white/10 rounded-xl p-4 text-center">
+        <div class="stat-card bg-slate-800/70 border border-white/10 rounded-xl p-4 text-center">
             <div class="text-xl font-black text-white" id="aeq-stat-bands">—</div>
             <div class="text-xs text-slate-500 mt-1">Bandas &gt;1dB</div>
         </div>
-        <div class="stat-card bg-slate-800/50 border border-white/10 rounded-xl p-4 text-center">
+        <div class="stat-card bg-slate-800/70 border border-white/10 rounded-xl p-4 text-center">
             <div class="text-xl font-black text-white" id="aeq-stat-target">—</div>
             <div class="text-xs text-slate-500 mt-1">Curva Alvo</div>
         </div>
     </div>
 
     <div class="results-grid grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="card bg-slate-800/50 border border-white/10 rounded-xl p-5">
+        <div class="card bg-slate-800/70 border border-white/10 rounded-xl p-5">
             <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">Filtros PEQ <span id="aeq-peq-badge" class="text-xs bg-cyan-600 text-white rounded-full px-2 py-0.5">0</span></h3>
             <div id="aeq-peq-content">
                 <div class="text-center text-slate-500 text-xs py-8">Clique em "Analisar" para calcular os filtros.</div>
@@ -89,8 +89,8 @@
                 <button id="aeq-undo-btn" class="hidden px-5 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-sm font-bold transition-colors">↩ Desfazer</button>
             </div>
             <div id="aeq-status" class="text-xs text-slate-500 mt-2 min-h-[18px]"></div>
-            <div id="aeq-confirm-overlay" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60" style="position:fixed;top:0;left:0;width:100%;height:100%">
-                <div class="bg-slate-800 border border-white/10 rounded-2xl p-6 max-w-md mx-4 shadow-2xl">
+            <div id="aeq-confirm-overlay" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70" style="position:fixed;top:0;left:0;width:100%;height:100%">
+                <div class="bg-slate-800 border border-white/10 rounded-2xl p-6 max-w-md mx-4">
                     <h4 class="text-lg font-bold text-white mb-3">Confirmar Aplicação de EQ</h4>
                     <div id="aeq-confirm-summary" class="text-sm text-slate-300 mb-4 space-y-1"></div>
                     <div class="flex gap-3 justify-end">
@@ -101,7 +101,7 @@
             </div>
         </div>
 
-        <div class="card bg-slate-800/50 border border-white/10 rounded-xl p-5">
+        <div class="card bg-slate-800/70 border border-white/10 rounded-xl p-5">
             <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">GEQ — 31 Bandas <span id="aeq-geq-badge" class="text-xs bg-cyan-600 text-white rounded-full px-2 py-0.5">0</span></h3>
             <div id="aeq-geq-content">
                 <div class="text-center text-slate-500 text-xs py-8">Aguardando análise…</div>

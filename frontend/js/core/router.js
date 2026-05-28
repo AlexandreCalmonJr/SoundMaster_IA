@@ -172,11 +172,11 @@ class Router {
             }
 
             let scriptTags = `
-                <script src="js/core/page-bridge.js"></script>
-                <script src="js/core/page-utils.js"></script>
+                <script src="js/core/page-bridge.js?v=2"></script>
+                <script src="js/core/page-utils.js?v=2"></script>
             `;
             if (scriptPath) {
-                scriptTags += `<script src="${scriptPath}"></script>`;
+                scriptTags += `<script src="${scriptPath}?v=2"></script>`;
             }
 
             const pageDepsMap = {

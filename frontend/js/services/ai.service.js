@@ -335,5 +335,59 @@
         return result;
     }
 
-    window.AIService = { ask, ping, calculateAcoustics, listenAndAnalyze, classifyAudio, autoEqFromAI, hardwareDiagnosis, sendTrainingEvent };
+    // -------------------------------------------------------------------------
+    // Model Management
+    // -------------------------------------------------------------------------
+
+    async function getModels() {
+        try {
+            const response = await _fetchWithTimeout('/api/models', { method: 'GET' }, 5000);
+            if (!response.ok) return null;
+            return await response.json();
+        } catch (_) {
+            return null;
+        }
+    }
+
+    async function selectModel(modelKey) {
+        try {
+            const response = await _fetchWithTimeout('/api/models/select', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ model: modelKey })
+            }, 10000);
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            return await response.json();
+        } catch (err) {
+            console.warn('[AIService] selectModel failed:', err.message);
+            return null;
+        }
+    }
+
+    async function downloadModel(modelKey) {
+        try {
+            const response = await _fetchWithTimeout('/api/models/download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ model: modelKey })
+            }, 10000);
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            return await response.json();
+        } catch (err) {
+            console.warn('[AIService] downloadModel failed:', err.message);
+            return null;
+        }
+    }
+
+    async function getDownloadStatus() {
+        try {
+            const response = await _fetchWithTimeout('/api/models/download/status', { method: 'GET' }, 5000);
+            if (!response.ok) return null;
+            return await response.json();
+        } catch (_) {
+            return null;
+        }
+    }
+
+    window.AIService = { ask, ping, calculateAcoustics, listenAndAnalyze, classifyAudio, autoEqFromAI, hardwareDiagnosis, sendTrainingEvent, getModels, selectModel, downloadModel, getDownloadStatus };
 })();

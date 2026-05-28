@@ -18,14 +18,14 @@
 
     <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
         <div class="xl:col-span-1 space-y-4">
-            <div class="bg-slate-800/40 border border-white/10 rounded-2xl p-5">
+            <div class="bg-slate-800/60 border border-white/10 rounded-2xl p-5">
                 <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Cenas Salvas</h3>
                 <div id="sb-scene-list" class="space-y-2 max-h-[500px] overflow-y-auto">
                     <div class="text-center text-slate-600 text-xs py-8">Nenhuma cena salva</div>
                 </div>
             </div>
 
-            <div class="bg-slate-800/40 border border-white/10 rounded-2xl p-5">
+            <div class="bg-slate-800/60 border border-white/10 rounded-2xl p-5">
                 <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Quick Presets</h3>
                 <div class="grid grid-cols-2 gap-2">
                     <button class="sb-quick-preset p-2 rounded-xl bg-cyan-900/20 border border-cyan-500/20 text-xs font-bold text-cyan-400 hover:bg-cyan-900/40 transition-all" data-preset="louvor">Louvor</button>
@@ -37,7 +37,7 @@
         </div>
 
         <div class="xl:col-span-3">
-            <div id="sb-scene-preview" class="bg-slate-900/50 border border-white/10 rounded-2xl overflow-hidden min-h-[400px] flex flex-col">
+            <div id="sb-scene-preview" class="bg-slate-900/80 border border-white/10 rounded-2xl overflow-hidden min-h-[400px] flex flex-col">
                 <div class="px-6 py-4 bg-slate-800/60 border-b border-white/10 flex items-center justify-between">
                     <div>
                         <span class="text-xs text-slate-500 uppercase tracking-widest">Preview</span>
@@ -58,7 +58,7 @@
                 </div>
             </div>
 
-            <div id="sb-thumbnail-grid" class="mt-6 bg-slate-800/40 border border-white/10 rounded-2xl p-5">
+            <div id="sb-thumbnail-grid" class="mt-6 bg-slate-800/60 border border-white/10 rounded-2xl p-5">
                 <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Miniaturas</h3>
                 <div id="sb-thumbnails" class="grid grid-cols-4 xl:grid-cols-6 gap-3">
                 </div>
@@ -67,17 +67,17 @@
     </div>
 
     <!-- Modal: Nova Cena -->
-    <div id="sb-new-scene-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm">
-        <div class="bg-slate-800 border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+    <div id="sb-new-scene-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70">
+        <div class="bg-slate-800 border border-white/10 rounded-2xl w-full max-w-md p-6">
             <h3 class="text-lg font-bold text-white mb-5">Nova Cena</h3>
             <div class="space-y-4">
                 <div>
                     <label for="sb-new-name" class="text-xs text-slate-400 mb-2 block">Nome da Cena</label>
-                    <input type="text" id="sb-new-name" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500 outline-none" placeholder="Ex: Louvor Manhã">
+                    <input type="text" id="sb-new-name" class="w-full bg-black/70 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500 outline-none" placeholder="Ex: Louvor Manhã">
                 </div>
                 <div>
                     <label for="sb-new-genre" class="text-xs text-slate-400 mb-2 block">Gênero / Estilo</label>
-                    <select id="sb-new-genre" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500 outline-none appearance-none">
+                    <select id="sb-new-genre" class="w-full bg-black/70 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500 outline-none appearance-none">
                         <option value="louvor">Louvor</option>
                         <option value="pregacao">Pregação</option>
                         <option value="musica">Música ao Vivo</option>
@@ -88,7 +88,7 @@
                 </div>
                 <div>
                     <label for="sb-new-desc" class="text-xs text-slate-400 mb-2 block">Descrição (opcional)</label>
-                    <textarea id="sb-new-desc" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500 outline-none resize-none" rows="2" placeholder="Ex: Mix completo com reverb e delay"></textarea>
+                    <textarea id="sb-new-desc" class="w-full bg-black/70 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500 outline-none resize-none" rows="2" placeholder="Ex: Mix completo com reverb e delay"></textarea>
                 </div>
             </div>
             <div class="flex gap-3 mt-6">
@@ -99,13 +99,13 @@
     </div>
 
     <!-- Modal: Gerar com IA -->
-    <div id="sb-ai-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm">
-        <div class="bg-slate-800 border border-white/10 rounded-2xl w-full max-w-lg p-6 shadow-2xl">
+    <div id="sb-ai-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70">
+        <div class="bg-slate-800 border border-white/10 rounded-2xl w-full max-w-lg p-6">
             <h3 class="text-lg font-bold text-white mb-5">Gerar Cena com IA</h3>
             <div class="space-y-4">
                 <div>
                     <label for="sb-ai-prompt" class="text-xs text-slate-400 mb-2 block">Descreva o momento do culto</label>
-                    <textarea id="sb-ai-prompt" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500 outline-none resize-none" rows="3" placeholder="Ex: Louvor de abertura com banda completa, preciso de um som energico e aberto…"></textarea>
+                    <textarea id="sb-ai-prompt" class="w-full bg-black/70 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500 outline-none resize-none" rows="3" placeholder="Ex: Louvor de abertura com banda completa, preciso de um som energico e aberto…"></textarea>
                 </div>
                 <div>
                     <span class="text-xs text-slate-400 mb-2 block font-medium">Instrumentos Presentes</span>
@@ -119,7 +119,7 @@
                     </div>
                 </div>
             </div>
-            <div id="sb-ai-result" class="mt-4 hidden bg-slate-900/60 rounded-xl p-3 text-xs text-slate-300 max-h-40 overflow-y-auto"></div>
+            <div id="sb-ai-result" class="mt-4 hidden bg-slate-900/80 rounded-xl p-3 text-xs text-slate-300 max-h-40 overflow-y-auto"></div>
             <div class="flex gap-3 mt-6">
                 <button id="sb-cancel-ai" class="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold text-sm transition-all">Cancelar</button>
                 <button id="sb-generate-ai" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm transition-all">Gerar</button>

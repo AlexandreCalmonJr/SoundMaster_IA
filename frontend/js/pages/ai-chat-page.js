@@ -1,6 +1,6 @@
 /**
  * SoundMaster — AI Chat Page Module
- * Bridges the AI command center logic to the dynamic page module system.
+ * Chat 100% autônomo com ações automáticas de análise.
  */
 
 'use strict';
@@ -18,12 +18,9 @@
             btnListen:         pm._el('btn-ai-listen'),
             chatStatus:        pm._el('chat-status'),
             aiTargetChannel:   pm._el('ai-target-channel'),
-            btnSendAnalysis:   pm._el('btn-ai-send-analysis'),
-            btnSendPinkReport: pm._el('btn-ai-send-pink-report'),
             btnCleanChannel:   pm._el('btn-ai-clean-channel'),
             btnHpf:            pm._el('btn-ai-hpf'),
             btnGate:           pm._el('btn-ai-gate'),
-            btnCompressor:     pm._el('btn-ai-compressor'),
             btnEqMud:          pm._el('btn-ai-eq-mud'),
             btnEqHarsh:        pm._el('btn-ai-eq-harsh'),
             btnAfsOn:          pm._el('btn-ai-afs-on'),
@@ -37,17 +34,25 @@
             online:  { text: 'Online',        color: 'var(--success)' },
             offline: { text: 'Offline',        color: 'var(--danger)'  },
             loading: { text: 'Processando...', color: 'var(--warning)' },
+            listening: { text: 'Ouvindo...',   color: '#06b6d4' },
         };
         const s = map[status] || map.offline;
         els.chatStatus.innerText = s.text;
         els.chatStatus.style.color = s.color;
     }
 
-    // Config DOMPurify — usada em _renderMarkdown.
-    // Allowlist explícita: apenas tags e atributos gerados pelo próprio renderizador.
+    // ─── Timestamp helpers ─────────────────────────────────────────────────────
+
+    function _formatTime(ts) {
+        const d = new Date(ts);
+        return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // ─── Markdown Renderer melhorado ───────────────────────────────────────────
+
     const _PURIFY_CONFIG = {
-        ALLOWED_TAGS: ['h1', 'h2', 'h3', 'strong', 'em', 'code', 'li', 'br'],
-        ALLOWED_ATTR: ['class'],
+        ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'strong', 'em', 'code', 'pre', 'li', 'br', 'ul', 'ol', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span', 'div', 'p'],
+        ALLOWED_ATTR: ['class', 'colspan'],
         ALLOW_DATA_ATTR: false,
         FORBID_ATTR: ['style', 'onerror', 'onload', 'onclick'],
         FORCE_BODY: false,
@@ -57,8 +62,7 @@
         if (window.DOMPurify && typeof DOMPurify.sanitize === 'function') {
             return DOMPurify.sanitize(html, _PURIFY_CONFIG);
         }
-        // Fallback seguro: remove qualquer tag restante se DOMPurify não estiver disponível
-        return html.replace(/<(?!\/?(h[123]|strong|em|code|li|br)\b)[^>]+>/gi, '');
+        return html.replace(/<(?!\/?(h[1-4]|strong|em|code|pre|li|br|ul|ol|table|thead|tbody|tr|th|td|span|div|p)\b)[^>]+>/gi, '');
     }
 
     function _renderMarkdown(text) {
@@ -68,7 +72,11 @@
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;');
 
+        // Code blocks (```...```)
+        html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="bg-black/60 font-mono px-3 py-2 rounded-lg text-cyan-300 text-xs overflow-x-auto my-2"><code>$2</code></pre>');
+
         // Headers
+        html = html.replace(/^#### (.*?)$/gm, '<h4 class="text-sm font-bold text-cyan-400 mt-2 mb-1">$1</h4>');
         html = html.replace(/^### (.*?)$/gm, '<h3 class="text-base font-bold text-cyan-400 mt-2 mb-1">$1</h3>');
         html = html.replace(/^## (.*?)$/gm, '<h2 class="text-lg font-bold text-cyan-400 mt-3 mb-2">$1</h2>');
         html = html.replace(/^# (.*?)$/gm, '<h1 class="text-xl font-bold text-cyan-400 mt-4 mb-2">$1</h1>');
@@ -91,10 +99,11 @@
         return _sanitize(html);
     }
 
+    // ─── History persistence ───────────────────────────────────────────────────
+
     function _saveMessageToHistory(text, isUser, command, id, executed = false) {
         try {
             const currentHistory = AppStore.getState().aiChatHistory || [];
-            // Remove duplicates of same message ID if existing
             const filtered = currentHistory.filter(msg => msg.id !== id);
             const updatedHistory = filtered.concat({
                 text, isUser, command, id, executed, ts: Date.now()
@@ -108,92 +117,59 @@
     function _markCommandExecutedInHistory(id) {
         try {
             const currentHistory = AppStore.getState().aiChatHistory || [];
-            const updatedHistory = currentHistory.map(msg => {
-                if (msg.id === id) {
-                    return Object.assign({}, msg, { executed: true });
-                }
-                return msg;
+            AppStore.setState({
+                aiChatHistory: currentHistory.map(msg =>
+                    msg.id === id ? Object.assign({}, msg, { executed: true }) : msg
+                )
             });
-            AppStore.setState({ aiChatHistory: updatedHistory });
         } catch (e) {
             console.error('[AiChatPage] Error marking command executed:', e);
         }
     }
 
+    // ─── Bubble rendering ──────────────────────────────────────────────────────
+
     function _appendBubble(text, isUser, command, id, saveToHistory = true, executed = false) {
         if (!els.chatMessages) return;
 
-        if (!id) {
-            id = 'msg-' + Math.random().toString(36).substr(2, 9);
-        }
+        if (!id) id = 'msg-' + Math.random().toString(36).substr(2, 9);
+
+        const wrapper = document.createElement('div');
+        wrapper.id = id;
+        wrapper.className = `flex ${isUser ? 'justify-end' : 'justify-start'} mb-3`;
 
         const bubble = document.createElement('div');
-        bubble.id = id;
-        bubble.className = 'chat-bubble ' + (isUser ? 'chat-user' : 'chat-assistant');
-        
-        // Render raw dots or loading states as plain text, others as markdown
-        if (text === '...' || text === 'Analisando dados acústicos...' || text === 'Analisando áudio ao vivo...') {
-            bubble.innerText = text;
+        bubble.className = `max-w-[85%] rounded-2xl px-4 py-3 ${
+            isUser
+                ? 'bg-cyan-600/20 border border-cyan-500/30 text-white'
+                : 'bg-slate-800/80 border border-white/10 text-slate-200'
+        }`;
+
+        // Timestamp
+        const ts = document.createElement('div');
+        ts.className = `text-[10px] mb-1 ${isUser ? 'text-cyan-400/60 text-right' : 'text-slate-500'}`;
+        ts.textContent = _formatTime(Date.now());
+        bubble.appendChild(ts);
+
+        // Content
+        const content = document.createElement('div');
+        content.className = 'text-sm leading-relaxed';
+        if (text === '...' || text.startsWith('Analisando') || text.startsWith('Capturando')) {
+            content.className += ' typing-dots';
+            content.innerHTML = `<span class="text-slate-400">${text}</span>`;
         } else {
-            bubble.innerHTML = _renderMarkdown(text);
+            content.innerHTML = _renderMarkdown(text);
         }
+        bubble.appendChild(content);
 
+        // Command card (Human-in-the-Loop)
         if (command && !isUser) {
-            const card = document.createElement('div');
-            card.className = 'mt-3 bg-slate-950/80 border border-cyan-500/30 rounded-xl p-4 shadow-lg transition-all hover:border-cyan-500/50 text-left';
-            
-            card.innerHTML = `
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-[10px] uppercase font-bold tracking-wider text-cyan-400">Recomendação da IA</span>
-                    <span class="text-[9px] font-mono bg-cyan-950 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500/20">Human-In-The-Loop</span>
-                </div>
-                <p class="text-xs text-white font-semibold mb-2">${(command.desc || 'Ajuste de Mixer').replace(/[&<>]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]; })}</p>
-                <div class="grid grid-cols-3 gap-2 bg-slate-900/60 p-2 rounded-lg mb-3 border border-white/5 font-mono text-[10px] text-slate-400">
-                    <div>Canal: <span class="text-cyan-300">${command.channel !== undefined ? command.channel : '-'}</span></div>
-                    <div>Ação: <span class="text-cyan-300">${command.action || '-'}</span></div>
-                    <div>Valor: <span class="text-cyan-300">${command.value !== undefined ? command.value : '-'}</span></div>
-                </div>
-                <div class="flex gap-2 justify-end">
-                    <button class="ignore-btn px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10px] font-semibold text-slate-400 hover:text-white transition-all">Ignorar</button>
-                    <button class="exec-btn px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-[10px] font-bold text-white transition-all shadow-md shadow-cyan-950/50 flex items-center gap-1">
-                        <span>⚡</span> Aplicar Ajuste
-                    </button>
-                </div>
-            `;
-
-            const btnExec = card.querySelector('.exec-btn');
-            const btnIgnore = card.querySelector('.ignore-btn');
-
-            if (executed) {
-                btnExec.innerText = 'Executado ✓';
-                btnExec.disabled = true;
-                btnExec.style.background = 'var(--success)';
-                btnIgnore.style.display = 'none';
-            } else {
-                pm._on(btnExec, 'click', function () {
-                    const ok = MixerService.executeAICommand(command);
-                    if (ok) {
-                        btnExec.innerText = 'Executado ✓';
-                        btnExec.disabled = true;
-                        btnExec.style.background = 'var(--success)';
-                        btnIgnore.style.display = 'none';
-                        _markCommandExecutedInHistory(id);
-                    } else {
-                        btnExec.innerText = '⚠️ Conecte-se à mesa primeiro';
-                    }
-                });
-
-                pm._on(btnIgnore, 'click', function () {
-                    card.style.opacity = '0.5';
-                    btnExec.disabled = true;
-                    btnIgnore.disabled = true;
-                });
-            }
-
+            const card = _createCommandCard(command, id, executed);
             bubble.appendChild(card);
         }
 
-        els.chatMessages.appendChild(bubble);
+        wrapper.appendChild(bubble);
+        els.chatMessages.appendChild(wrapper);
         els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
 
         if (saveToHistory) {
@@ -201,12 +177,118 @@
         }
     }
 
+    function _createCommandCard(command, msgId, executed) {
+        const card = document.createElement('div');
+        card.className = 'mt-2 bg-slate-900 border border-cyan-500/20 rounded-lg p-3 text-left';
+
+        const desc = (command.desc || 'Ajuste de Mixer').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+
+        card.innerHTML = `
+            <div class="flex items-center gap-2 mb-1.5">
+                <span class="text-cyan-400 text-xs">⚡</span>
+                <span class="text-xs text-white font-semibold">${desc}</span>
+            </div>
+            <div class="flex items-center gap-3 text-[10px] text-slate-500 mb-2">
+                <span>CH ${command.channel ?? '-'}</span>
+                <span>•</span>
+                <span>${command.action || '-'}</span>
+                ${command.value != null ? `<span>•</span><span>${command.value}</span>` : ''}
+            </div>
+            <div class="flex gap-2 justify-end">
+                <button class="ignore-btn px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-400 hover:text-white transition-all">Ignorar</button>
+                <button class="exec-btn px-3 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-[10px] font-bold text-white transition-all flex items-center gap-1">
+                    Aplicar
+                </button>
+            </div>
+        `;
+
+        const btnExec = card.querySelector('.exec-btn');
+        const btnIgnore = card.querySelector('.ignore-btn');
+
+        if (executed) {
+            btnExec.innerHTML = '✓ Aplicado';
+            btnExec.disabled = true;
+            btnExec.className = 'exec-btn px-3 py-1 rounded bg-emerald-600 text-[10px] font-bold text-white flex items-center gap-1';
+            btnIgnore.style.display = 'none';
+        } else {
+            pm._on(btnExec, 'click', function () {
+                const ok = MixerService.executeAICommand(command);
+                if (ok) {
+                    btnExec.innerHTML = '✓ Aplicado';
+                    btnExec.disabled = true;
+                    btnExec.className = 'exec-btn px-3 py-1 rounded bg-emerald-600 text-[10px] font-bold text-white flex items-center gap-1';
+                    btnIgnore.style.display = 'none';
+                    _markCommandExecutedInHistory(msgId);
+                } else {
+                    btnExec.innerText = '⚠️ Sem conexão';
+                }
+            });
+            pm._on(btnIgnore, 'click', function () {
+                card.style.opacity = '0.5';
+                btnExec.disabled = true;
+                btnIgnore.disabled = true;
+            });
+        }
+
+        return card;
+    }
+
+    // ─── Typing indicator ──────────────────────────────────────────────────────
+
+    function _showTyping() {
+        if (!els.chatMessages) return null;
+        const id = 'typing-' + Date.now();
+        const wrapper = document.createElement('div');
+        wrapper.id = id;
+        wrapper.className = 'flex justify-start mb-3';
+        wrapper.innerHTML = `
+            <div class="flex items-center gap-1.5 px-4 py-3 bg-slate-800/60 border border-white/5 rounded-2xl">
+                <span class="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+                <span class="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+                <span class="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+            </div>
+        `;
+        els.chatMessages.appendChild(wrapper);
+        els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+        return id;
+    }
+
+    function _removeTyping(id) {
+        const el = pm._el(id);
+        if (el) el.remove();
+    }
+
+    // ─── Status step indicator ─────────────────────────────────────────────────
+
+    function _appendStep(text, icon) {
+        const id = 'step-' + Date.now();
+        if (!els.chatMessages) return id;
+        const el = document.createElement('div');
+        el.id = id;
+        el.className = 'flex items-center gap-2 text-xs text-slate-400 pl-2 py-1';
+        el.innerHTML = `<span class="text-cyan-500">${icon || '▸'}</span> <span>${text}</span>`;
+        els.chatMessages.appendChild(el);
+        els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+        return id;
+    }
+
+    function _updateStep(id, text, icon) {
+        const el = pm._el(id);
+        if (el) {
+            el.innerHTML = `<span class="text-cyan-500">${icon || '✓'}</span> <span class="text-slate-300">${text}</span>`;
+        }
+    }
+
+    // ─── Clear ─────────────────────────────────────────────────────────────────
+
     function _clearChat() {
         if (!els.chatMessages) return;
         els.chatMessages.innerHTML = '';
         AppStore.setState({ aiChatHistory: [] });
-        _appendBubble('Pronto para novas instruções. Explique o problema de som.', false, null, null, true, false);
+        _appendBubble('Pronto! Me conte o que está sentindo no som — posso analisar, medir e ajustar tudo automaticamente.', false, null, null, true, false);
     }
+
+    // ─── Channel & Analysis helpers ────────────────────────────────────────────
 
     function _getTargetChannel() {
         let val = Number(els.aiTargetChannel && els.aiTargetChannel.value);
@@ -217,14 +299,6 @@
         return val;
     }
 
-    function _getCurrentAnalysis() {
-        if (!window.SoundMasterAnalyzer || !window.SoundMasterAnalyzer.hasAnalysis()) {
-            alert('Ative o analisador e aguarde alguns segundos antes de enviar a análise.');
-            return null;
-        }
-        return window.SoundMasterAnalyzer.getLastAnalysis();
-    }
-
     function _buildRt60Multiband(lastRt60) {
         if (!lastRt60) return null;
         if (lastRt60.multiband && typeof lastRt60.multiband === 'object' && Object.keys(lastRt60.multiband).length) {
@@ -232,37 +306,89 @@
         }
         const value = Number(lastRt60.rt60);
         if (!Number.isFinite(value)) return null;
-        return {
-            '125': value,
-            '500': value,
-            '1000': value,
-            '4000': value
-        };
+        return { '125': value, '500': value, '1000': value, '4000': value };
     }
 
-    async function _autoRunLiveAnalysisAndReport(channel) {
-        if (!window.SoundMasterAnalyzer) {
-            _appendBubble('O analisador de áudio não está disponível.', false, null);
-            return;
+    // ─── Autonomous actions ────────────────────────────────────────────────────
+
+    /**
+     * Detecta intenção do usuário e executa ação autônoma.
+     * Retorna true se uma ação autônoma foi disparada.
+     */
+    function _checkAutonomousAction(text, channel) {
+        const t = text.toLowerCase();
+
+        // Análise / medição de som
+        if (/(?:anali[sz]|medir|med[iç]|mensura|como.?est[aá].*som|est[aá].*bom|est[aá].*ruim|avaliar|verificar som|check.*sound)/.test(t)) {
+            return { type: 'live_analysis', prompt: text };
         }
 
-        const loadingId = 'ai-auto-analysis-loading-' + Date.now();
-        _appendBubble('Capturando som ambiente... Por favor, faça silêncio ou mantenha o som ambiente normal da sala por 4 segundos. 🎙️', false, null, loadingId, false);
+        // RT60 / reverberação
+        if (/(?:rt60|reverbera|tempo.*decai|eco|vivo|morto|dura[cç][aã]o)/.test(t)) {
+            return { type: 'rt60_measurement', prompt: text };
+        }
+
+        // Feedback / microfonia
+        if (/(?:apito|microfonia|feedback|realimenta|chiado|guincho)/.test(t)) {
+            return { type: 'live_analysis', prompt: text };
+        }
+
+        // Relatório
+        if (/(?:relat[oó]rio|resumo|estat[ií]stica|laudo|documento)/.test(t)) {
+            return { type: 'live_analysis', prompt: text };
+        }
+
+        // Classificação de áudio
+        if (/(?:classificar|identificar.*som|o que.*soa|que som|instrumento|voz.*fala|musica)/.test(t)) {
+            return { type: 'classify_audio', prompt: text };
+        }
+
+        return null;
+    }
+
+    /**
+     * Ação autônoma: captura áudio ao vivo e analisa
+     */
+    async function _autoLiveAnalysis(channel, userPrompt) {
+        const stepCapture = _appendStep('Iniciando microfone...', '🎙️');
 
         try {
+            if (!window.SoundMasterAnalyzer) {
+                _updateStep(stepCapture, 'Analisador não disponível', '❌');
+                _appendBubble('O analisador de áudio não está disponível neste navegador.', false, null);
+                return false;
+            }
+
             if (!window.SoundMasterAnalyzer.isAnalyzing()) {
+                _updateStep(stepCapture, 'Abrindo microfone...', '🎙️');
                 await window.SoundMasterAnalyzer.start();
+                // Espera o AudioContext estar pronto e ter dados
+                await new Promise(r => setTimeout(r, 1500));
             }
-            // Aguarda 4 segundos para coletar dados estáveis
-            await new Promise(resolve => setTimeout(resolve, 4000));
 
-            const analysis = window.SoundMasterAnalyzer.getLastAnalysis();
+            // Garante que temos dados antes de prosseguir
+            let attempts = 0;
+            let analysis = null;
+            while (attempts < 6) {
+                _updateStep(stepCapture, `Capturando som ambiente (${attempts + 1}/6s)...`, '⏳');
+                await new Promise(r => setTimeout(r, 1000));
+                analysis = window.SoundMasterAnalyzer.getLastAnalysis();
+                if (analysis && analysis.details && analysis.details.peakHz > 0) break;
+                attempts++;
+            }
+
             if (!analysis) {
-                throw new Error('Não foi possível obter dados de áudio do analisador. Verifique o microfone.');
+                _updateStep(stepCapture, 'Não foi possível capturar áudio', '❌');
+                _appendBubble('Não consegui capturar dados de áudio. Verifique se o microfone está funcionando e tente novamente.', false, null);
+                return false;
             }
 
+            _updateStep(stepCapture, `Áudio capturado — pico ${analysis.details?.peakHz || '?'}Hz`, '✓');
+
+            const stepAnalyze = _appendStep('Analisando dados acústicos...', '📊');
             const lastRt60 = window.SoundMasterAnalyzer.getLastRt60();
             const rt60Multiband = _buildRt60Multiband(lastRt60);
+
             const payload = {
                 schema_version: '1.1',
                 summary: analysis.text,
@@ -273,81 +399,134 @@
                 rms: analysis.details?.rmsDb,
             };
 
-            const loadingBubble = pm._el(loadingId);
-            if (loadingBubble) {
-                loadingBubble.innerText = 'Gerando relatório técnico final... 📈';
-            }
+            _updateStep(stepAnalyze, 'Dados analisados com sucesso', '✓');
 
-            // Envia o prompt de relatório enriquecido com a análise capturada
-            const result = await AIService.ask('Gerar relatório técnico completo com base no áudio capturado', channel, payload);
-            
-            if (loadingBubble) loadingBubble.remove();
+            const stepAI = _appendStep('Gerando resposta...', '🧠');
+            const result = await AIService.ask(userPrompt, channel, payload);
+            _updateStep(stepAI, 'Resposta pronta', '✓');
 
             _appendBubble(result.text, false, result.command);
             if (result.report) {
                 _appendBubble(result.report, false, null);
             }
+            return true;
+
         } catch (err) {
-            const loadingBubble = pm._el(loadingId);
-            if (loadingBubble) loadingBubble.remove();
-            _appendBubble('Erro ao executar análise automática: ' + err.message, false, null);
+            _appendBubble('Erro na análise automática: ' + err.message, false, null);
+            return false;
         }
     }
 
-    async function _sendAcousticAnalysis(usePinkReport) {
-        const channel = _getTargetChannel();
-        if (!channel) return;
-
-        const analysis = _getCurrentAnalysis();
-        if (!analysis) return;
-        if (usePinkReport && !analysis.pinkReport) {
-            alert('Não há relatório de ruído rosa. Faça a medição rosa antes de enviar.');
-            return;
-        }
-
-        const message = usePinkReport ? 'Relatório de ruído rosa do salão' : 'Análise acústica do salão';
-        _appendBubble(message, true, null);
-
-        const lastRt60 = window.SoundMasterAnalyzer?.getLastRt60();
-        const rt60Multiband = _buildRt60Multiband(lastRt60);
-        const payload = {
-            schema_version: '1.1',
-            summary: analysis.text,
-            spectrum_db: analysis.details?.spectrum_v11 || {},
-            rt60_multiband: rt60Multiband,
-            peakHz: analysis.details?.peakHz,
-            peakDb: analysis.details?.peakDb,
-            rms: analysis.details?.rmsDb,
-        };
-
-        if (analysis.pinkReport) {
-            payload.pinkReport = analysis.pinkReport;
-        }
-
-        const loadingId = 'ai-loading-' + Date.now();
-        _appendBubble('Analisando dados acústicos...', false, null, loadingId, false);
+    /**
+     * Ação autônoma: medir RT60 via impulse/sweep
+     */
+    async function _autoRT60(channel, userPrompt) {
+        const step = _appendStep('Iniciando medição RT60...', '📐');
 
         try {
-            const result = await AIService.ask(message, channel, payload);
-            const loadingBubble = pm._el(loadingId);
-            if (loadingBubble) loadingBubble.remove();
-            
-            _appendBubble(result.text, false, result.command);
-            if (result.report) {
-                _appendBubble(result.report, false, null);
+            if (!window.SoundMasterAnalyzer) {
+                _updateStep(step, 'Analisador não disponível', '❌');
+                return false;
             }
+
+            if (!window.SoundMasterAnalyzer.isAnalyzing()) {
+                _updateStep(step, 'Abrindo microfone...', '🎙️');
+                await window.SoundMasterAnalyzer.start();
+            }
+
+            _updateStep(step, 'Gerando sweep de sinal (5s)...', '🔊');
+            await window.SoundMasterAnalyzer.triggerImpulse();
+            await new Promise(r => setTimeout(r, 6000));
+
+            const lastRt60 = window.SoundMasterAnalyzer.getLastRt60();
+            if (!lastRt60 || !lastRt60.rt60) {
+                _updateStep(step, 'Medição RT60 indisponível. Tentando estimativa...', '⚠️');
+                return await _autoLiveAnalysis(channel, userPrompt);
+            }
+
+            _updateStep(step, `RT60 medido: ${lastRt60.rt60.toFixed(2)}s`, '✓');
+
+            const analysis = window.SoundMasterAnalyzer.getLastAnalysis();
+            const rt60Multiband = _buildRt60Multiband(lastRt60);
+
+            const payload = {
+                schema_version: '1.1',
+                summary: analysis?.text || '',
+                spectrum_db: analysis?.details?.spectrum_v11 || {},
+                rt60_multiband: rt60Multiband,
+                peakHz: analysis?.details?.peakHz,
+                rms: analysis?.details?.rmsDb,
+                rt60_measured: lastRt60.rt60,
+            };
+
+            const result = await AIService.ask(userPrompt + ' (RT60 medido: ' + lastRt60.rt60.toFixed(2) + 's)', channel, payload);
+
+            _appendBubble(result.text, false, result.command);
+            if (result.report) _appendBubble(result.report, false, null);
+            return true;
+
         } catch (err) {
-            const loadingBubble = pm._el(loadingId);
-            if (loadingBubble) loadingBubble.remove();
-            _appendBubble('Erro ao processar análise: ' + err.message, false, null);
+            _appendBubble('Erro na medição RT60: ' + err.message, false, null);
+            return false;
         }
     }
+
+    /**
+     * Ação autônoma: classificar tipo de som
+     */
+    async function _autoClassify(channel, userPrompt) {
+        const step = _appendStep('Capturando áudio para classificação...', '🎤');
+
+        try {
+            if (!window.SoundMasterAnalyzer) {
+                _updateStep(step, 'Analisador não disponível', '❌');
+                return false;
+            }
+
+            if (!window.SoundMasterAnalyzer.isAnalyzing()) {
+                await window.SoundMasterAnalyzer.start();
+            }
+
+            _updateStep(step, 'Capturando 2s de áudio...', '⏳');
+            await new Promise(r => setTimeout(r, 2000));
+
+            const freqData = window.SoundMasterAnalyzer.getFreqData();
+            if (!freqData || !freqData.data) {
+                _updateStep(step, 'Dados de áudio indisponíveis', '❌');
+                return false;
+            }
+
+            _updateStep(step, 'Classificando sons com YAMNet...', '🧠');
+            const classifyResult = await AIService.classifyAudio(Array.from(freqData.data.slice(0, 48000)), freqData.sampleRate || 48000, 5, 0.1);
+
+            _updateStep(step, 'Classificação concluída', '✓');
+
+            let classInfo = '';
+            if (classifyResult && classifyResult.classes && classifyResult.classes.length > 0) {
+                classInfo = '\n\n**Sons detectados:**\n';
+                classifyResult.classes.forEach((c, i) => {
+                    const pct = Math.round(c.score * 100);
+                    classInfo += `- ${c.name}: ${pct}%\n`;
+                });
+            }
+
+            const result = await AIService.ask(userPrompt, channel, { classification: classifyResult });
+            _appendBubble(result.text + classInfo, false, result.command);
+            if (result.report) _appendBubble(result.report, false, null);
+            return true;
+
+        } catch (err) {
+            _appendBubble('Erro na classificação: ' + err.message, false, null);
+            return false;
+        }
+    }
+
+    // ─── Main send message ─────────────────────────────────────────────────────
 
     async function _sendMessage(text) {
         if (!text || !text.trim()) return;
 
         const channel = _getTargetChannel();
-        if (!channel) return;
 
         if (els.chatInput) els.chatInput.disabled = true;
         if (els.btnSend) els.btnSend.disabled = true;
@@ -355,40 +534,53 @@
         _appendBubble(text.trim(), true, null);
         if (els.chatInput) els.chatInput.value = '';
 
-        const loadingId = 'msg-loading-' + Date.now();
-        _appendBubble('...', false, null, loadingId, false);
+        // Verificar ação autônoma
+        const action = _checkAutonomousAction(text, channel);
+        if (action) {
+            let handled = false;
+            if (action.type === 'live_analysis') {
+                handled = await _autoLiveAnalysis(channel, action.prompt);
+            } else if (action.type === 'rt60_measurement') {
+                handled = await _autoRT60(channel, action.prompt);
+            } else if (action.type === 'classify_audio') {
+                handled = await _autoClassify(channel, action.prompt);
+            }
+            if (handled) {
+                if (els.chatInput) { els.chatInput.disabled = false; els.chatInput.focus(); }
+                if (els.btnSend) els.btnSend.disabled = false;
+                return;
+            }
+        }
 
+        // Fallback: envia para a IA normalmente
+        const loadingId = _showTyping();
         try {
             const result = await AIService.ask(text.trim(), channel);
-            const loadingBubble = pm._el(loadingId);
-            if (loadingBubble) loadingBubble.remove();
-            
-            _appendBubble(result.text, false, result.command);
-            if (result.report) {
-                _appendBubble(result.report, false, null);
-            }
+            _removeTyping(loadingId);
 
+            // Se a IA respondeu com start_live_analysis, executar automaticamente
             if (result.command && result.command.action === 'start_live_analysis') {
-                _autoRunLiveAnalysisAndReport(channel);
+                await _autoLiveAnalysis(channel, text.trim());
+            } else {
+                _appendBubble(result.text, false, result.command);
+                if (result.report) _appendBubble(result.report, false, null);
             }
         } catch (err) {
-            const loadingBubble = pm._el(loadingId);
-            if (loadingBubble) loadingBubble.innerText = 'Erro na conexão com IA. Verifique o servidor local.';
+            _removeTyping(loadingId);
+            _appendBubble('Erro na conexão com IA. Verifique o servidor local.', false, null);
         } finally {
-            if (els.chatInput) {
-                els.chatInput.disabled = false;
-                els.chatInput.focus();
-            }
+            if (els.chatInput) { els.chatInput.disabled = false; els.chatInput.focus(); }
             if (els.btnSend) els.btnSend.disabled = false;
         }
     }
+
+    // ─── Event binding ─────────────────────────────────────────────────────────
 
     function _initEvents() {
         if (els.btnSend) {
             pm._on(els.btnSend, 'click', function() {
                 const text = els.chatInput && els.chatInput.value.trim();
                 if (text) _sendMessage(text);
-                else alert('O campo de texto está vazio!');
             });
         }
 
@@ -400,38 +592,20 @@
             });
         }
 
-        if (els.btnClear) {
-            pm._on(els.btnClear, 'click', _clearChat);
-        }
+        if (els.btnClear) pm._on(els.btnClear, 'click', _clearChat);
 
         if (els.btnListen) {
             pm._on(els.btnListen, 'click', async function () {
-                var channel = _getTargetChannel();
-                _appendBubble('IA ouvindo o microfone...', true, null);
-
-                var loadingId = 'ai-listen-loading-' + Date.now();
-                _appendBubble('Analisando áudio ao vivo...', false, null, loadingId, false);
-
-                try {
-                    var result = await AIService.listenAndAnalyze(channel);
-                    var loadingBubble = pm._el(loadingId);
-                    if (loadingBubble) loadingBubble.remove();
-                    _appendBubble(result.text, false, result.command);
-                    if (result.report) {
-                        _appendBubble(result.report, false, null);
-                    }
-                } catch (err) {
-                    var loadingBubble = pm._el(loadingId);
-                    if (loadingBubble) loadingBubble.remove();
-                    _appendBubble('Erro ao ouvir microfone: ' + err.message, false, null);
-                }
+                const channel = _getTargetChannel();
+                _appendBubble('Ouvindo o microfone...', true, null);
+                await _autoLiveAnalysis(channel, 'Analise o áudio capturado pelo microfone e sugira melhorias');
             });
         }
 
-        // Fast prompts delegation via parent container or global selector inside iframe
-        const promptButtons = pm._el('ai-chat')?.querySelectorAll('.sound-ai-prompt') || document.querySelectorAll('.sound-ai-prompt');
+        // Quick prompts
+        const promptButtons = (pm._el('ai-chat')?.querySelectorAll('.sound-ai-prompt')) || document.querySelectorAll('.sound-ai-prompt');
         if (promptButtons) {
-            promptButtons.forEach(function (btn) {
+            promptButtons.forEach(btn => {
                 pm._on(btn, 'click', function () {
                     const text = btn.dataset.prompt || btn.innerText;
                     if (els.chatInput) els.chatInput.value = text;
@@ -440,111 +614,54 @@
             });
         }
 
-        if (els.btnSendAnalysis) {
-            pm._on(els.btnSendAnalysis, 'click', function () {
-                _sendAcousticAnalysis(false);
-            });
-        }
-        if (els.btnSendPinkReport) {
-            pm._on(els.btnSendPinkReport, 'click', function () {
-                _sendAcousticAnalysis(true);
-            });
-        }
-
+        // Quick actions
         function _quickAction(btn, fn) {
-            if (btn) {
-                pm._on(btn, 'click', function () {
-                    const ch = _getTargetChannel();
-                    if (ch !== null) {
-                        const ok = fn(ch);
-                        if (ok === false) {
-                            _appendBubble('⚠️ Conecte-se à mesa antes de realizar ações rápidas.', false, null);
-                        }
-                    }
-                });
-            }
+            if (btn) pm._on(btn, 'click', () => { const ch = _getTargetChannel(); fn(ch); });
         }
+        _quickAction(els.btnCleanChannel, ch => MixerService.runCleanSoundPreset(ch));
+        _quickAction(els.btnHpf,          ch => MixerService.applyHpf(ch, 100));
+        _quickAction(els.btnGate,         ch => MixerService.applyGate(ch));
+        _quickAction(els.btnEqMud,        ch => MixerService.applyEqCut('channel', ch, 250, -3, 1.1, 2));
+        _quickAction(els.btnEqHarsh,      ch => MixerService.applyEqCut('channel', ch, 3200, -2.5, 1.5, 3));
 
         function _quickGlobal(btn, fn) {
-            if (btn) {
-                pm._on(btn, 'click', function() {
-                    const ok = fn();
-                    if (ok === false) {
-                        _appendBubble('⚠️ Mixer não conectado.', false, null);
-                    }
-                });
-            }
+            if (btn) pm._on(btn, 'click', () => fn());
         }
-
-        _quickAction(els.btnCleanChannel, function (ch) { return MixerService.runCleanSoundPreset(ch); });
-        _quickAction(els.btnHpf,          function (ch) { return MixerService.applyHpf(ch, 100);       });
-        _quickAction(els.btnGate,         function (ch) { return MixerService.applyGate(ch);            });
-        _quickAction(els.btnCompressor,   function (ch) { return MixerService.applyCompressor(ch);      });
-        _quickAction(els.btnEqMud,        function (ch) { return MixerService.applyEqCut('channel', ch, 250, -3, 1.1, 2); });
-        _quickAction(els.btnEqHarsh,      function (ch) { return MixerService.applyEqCut('channel', ch, 3200, -2.5, 1.5, 3); });
-
-        _quickGlobal(els.btnAfsOn,  function () { 
-            const ok = MixerService.setAfs(true);
-            if (ok) {
-                els.btnAfsOn.classList.add('bg-cyan-500', 'text-white');
-                els.btnAfsOff.classList.remove('bg-red-500', 'text-white');
-            }
-            return ok;
-        });
-        _quickGlobal(els.btnAfsOff, function () { 
-            const ok = MixerService.setAfs(false);
-            if (ok) {
-                els.btnAfsOff.classList.add('bg-red-500', 'text-white');
-                els.btnAfsOn.classList.remove('bg-cyan-500', 'text-white');
-            }
-            return ok;
-        });
+        _quickGlobal(els.btnAfsOn,  () => MixerService.setAfs(true));
+        _quickGlobal(els.btnAfsOff, () => MixerService.setAfs(false));
     }
 
+    // ─── Init ──────────────────────────────────────────────────────────────────
+
     function init() {
-        console.log('[AiChatPage] Inicializando...');
         els = _getEls();
         _initEvents();
-
-        if (els.chatInput) {
-            pm._setTimeout(function () { els.chatInput.focus(); }, 100);
-        }
+        if (els.chatInput) pm._setTimeout(() => els.chatInput.focus(), 100);
 
         pm._subscribe('AppStore', 'aiStatus', _renderAIStatus);
-
-        // Set initial AI status
         const initialStatus = AppStore.getState?.().aiStatus || 'online';
         _renderAIStatus(initialStatus);
 
-        // Carregar histórico ou mensagem inicial
         const history = AppStore.getState?.().aiChatHistory || [];
         if (history.length > 0) {
             if (els.chatMessages) els.chatMessages.innerHTML = '';
-            history.forEach(msg => {
-                _appendBubble(msg.text, msg.isUser, msg.command, msg.id, false, msg.executed);
-            });
+            history.forEach(msg => _appendBubble(msg.text, msg.isUser, msg.command, msg.id, false, msg.executed));
         } else {
             if (els.chatMessages) els.chatMessages.innerHTML = '';
             _appendBubble(
-                'Bem-vindo ao Centro de Comando IA. Estou monitorando o sistema em tempo real. Como posso otimizar seu som agora?',
-                false,
-                null,
-                'welcome-msg',
-                true,
-                false
+                'Olá! Sou o SoundMaster IA. Posso analisar seu som automaticamente — basta pedir!\n\n' +
+                'Diga algo como:\n' +
+                '- "Analise o som da sala"\n' +
+                '- "Meça o RT60"\n' +
+                "- 'O que está soando aqui?'\n" +
+                '- "Como está o som?"',
+                false, null, 'welcome-msg', true, false
             );
         }
-
         AIService.ping();
     }
 
-    function destroy() {
-        pm.destroy();
-    }
+    function destroy() { pm.destroy(); }
 
-    window.AiChatPage = {
-        init: init,
-        destroy: destroy,
-        sendAnalysis: _sendAcousticAnalysis
-    };
+    window.AiChatPage = { init, destroy, sendAnalysis: () => _autoLiveAnalysis(_getTargetChannel(), 'Análise acústica completa') };
 })();

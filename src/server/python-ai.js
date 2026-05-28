@@ -136,16 +136,28 @@ function _findPython() {
 }
 
 function _ensureAIModelAsync(rootDir) {
-    const modelsDir = path.join(rootDir, 'models');
-    const modelName = 'tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf';
+    const modelsDir = path.join(rootDir, 'backend', 'ai', 'models');
+    
+    // Lê a configuração do modelo (AI_MODEL do .env ou fallback)
+    const modelKey = process.env.AI_MODEL || 'phi3.5-mini';
+    
+    // Mapeamento de chaves para arquivos GGUF
+    const modelFiles = {
+        'phi3.5-mini': 'Phi-3.5-Mini-Instruct.Q4_K_M.gguf',
+        'llama3.2-3b': 'llama-3.2-3b-instruct.Q4_K_M.gguf',
+        'gemma2-2b': 'gemma-2-2b-it.Q4_K_M.gguf',
+        'tinyllama-1.1b': 'tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf',
+    };
+
+    const modelName = modelFiles[modelKey] || modelFiles['phi3.5-mini'];
     const modelPath = path.join(modelsDir, modelName);
 
     if (fs.existsSync(modelPath)) {
-        console.log('[Python AI] Modelo de IA já existe em:', modelPath);
+        console.log(`[Python AI] Modelo '${modelKey}' já existe em: ${modelPath}`);
         return;
     }
 
-    const downloadScript = path.join(rootDir, 'scripts', 'download_model.py');
+    const downloadScript = path.join(rootDir, 'backend', 'ai', 'scripts', 'download_model.py');
     if (!fs.existsSync(downloadScript)) {
         console.warn('[Python AI] Script de download não encontrado em:', downloadScript);
         return;
@@ -157,10 +169,10 @@ function _ensureAIModelAsync(rootDir) {
         return;
     }
 
-    console.log('[Python AI] Modelo de IA não encontrado. Iniciando download (~670MB) em background...');
+    console.log(`[Python AI] Modelo '${modelKey}' não encontrado. Iniciando download em background...`);
     console.log('[Python AI] O servidor de IA iniciará sem o modelo; ele será ativado automaticamente após o download.');
 
-    const proc = spawn(pythonCmd, [downloadScript], { stdio: 'inherit', cwd: rootDir });
+    const proc = spawn(pythonCmd, [downloadScript, modelKey], { stdio: 'inherit', cwd: rootDir });
 
     proc.on('close', (code) => {
         if (code === 0) {

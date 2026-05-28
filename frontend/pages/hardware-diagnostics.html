@@ -9,7 +9,7 @@
         </div>
     </header>
 
-    <div class="toolbar flex flex-wrap gap-3 items-center bg-slate-800/50 border border-white/10 rounded-xl p-4 mb-6">
+    <div class="toolbar flex flex-wrap gap-3 items-center bg-slate-800/70 border border-white/10 rounded-xl p-4 mb-6">
         <label for="hd-channel-select" class="text-xs text-slate-400 font-bold">Canal</label>
         <select id="hd-channel-select" class="bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-cyan-500">
             <option value="1">Canal 1</option>
@@ -29,7 +29,7 @@
     <div id="hd-status" class="text-xs text-slate-500 mb-4 min-h-[18px]"></div>
 
     <div id="hd-result" class="hidden mb-6">
-        <div class="bg-slate-800/50 border border-white/10 rounded-xl p-6">
+        <div class="bg-slate-800/70 border border-white/10 rounded-xl p-6">
             <div class="flex items-center gap-3 mb-4">
                 <span id="hd-diagnosis-icon" class="text-3xl">✅</span>
                 <div>
@@ -41,18 +41,18 @@
                     <span id="hd-confidence" class="text-sm font-black text-cyan-400">0%</span>
                 </div>
             </div>
-            <div id="hd-recommendations" class="bg-black/30 border border-white/10 rounded-xl p-3 mb-4 text-xs text-slate-300 space-y-1"></div>
+            <div id="hd-recommendations" class="bg-black/50 border border-white/10 rounded-xl p-3 mb-4 text-xs text-slate-300 space-y-1"></div>
             <div id="hd-bands-container" class="grid grid-cols-2 md:grid-cols-5 gap-2 text-center"></div>
         </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="card bg-slate-800/50 border border-white/10 rounded-xl p-5">
+        <div class="card bg-slate-800/70 border border-white/10 rounded-xl p-5">
             <h3 class="text-sm font-bold text-white mb-3">Tendência por Banda</h3>
             <canvas id="hd-trend-canvas" class="w-full h-48 rounded-lg"></canvas>
             <p class="text-[10px] text-slate-600 mt-2">Drift da resposta por banda de oitava ao longo do tempo</p>
         </div>
-        <div class="card bg-slate-800/50 border border-white/10 rounded-xl p-5">
+        <div class="card bg-slate-800/70 border border-white/10 rounded-xl p-5">
             <h3 class="text-sm font-bold text-white mb-3">Snapshots Salvos</h3>
             <div id="hd-snapshots-list" class="text-xs text-slate-500 space-y-1 max-h-48 overflow-y-auto">
                 <div class="text-center py-4">Nenhum snapshot salvo. Clique em "Salvar Snapshot" para começar.</div>

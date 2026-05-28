@@ -3,6 +3,8 @@ import re
 import unicodedata
 import time
 import os
+import hashlib
+from collections import deque
 
 CHURCH_PROFILES = {
     'janelas_vidro': {
@@ -24,12 +26,61 @@ RT60_STANDARDS = {
     'live_music': {'ideal': (1.2, 1.6), 'acceptable': (1.6, 2.0)}
 }
 
+PROFILE_NAMES = {
+    'janelas_vidro': 'Janelas/Vidro',
+    'teto_alto': 'Teto Alto',
+    'paredes_paralelas': 'Paredes Paralelas'
+}
+
+# ─── Catálogo de modelos suportados ──────────────────────────────────────────
+SUPPORTED_MODELS = {
+    'phi3.5-mini': {
+        'name': 'Phi-3.5 Mini 3.8B',
+        'ollama': 'phi3.5:3.8b',
+        'gguf': 'Phi-3.5-Mini-Instruct.Q4_K_M.gguf',
+        'download_url': 'https://huggingface.co/bartowski/Phi-3.5-Mini-Instruct-GGUF/resolve/main/Phi-3.5-Mini-Instruct.Q4_K_M.gguf',
+        'size_mb': 2300,
+        'n_ctx': 4096,
+        'description': 'Melhor qualidade geral. Bom PT-BR. Recomendado para PCs com 8GB+ RAM.',
+    },
+    'llama3.2-3b': {
+        'name': 'Llama 3.2 3B',
+        'ollama': 'llama3.2:3b',
+        'gguf': 'llama-3.2-3b-instruct.Q4_K_M.gguf',
+        'download_url': 'https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/llama-3.2-3b-instruct.Q4_K_M.gguf',
+        'size_mb': 2000,
+        'n_ctx': 4096,
+        'description': 'Upgrade natural do 1B. Ótimo equilíbrio entre velocidade e qualidade.',
+    },
+    'gemma2-2b': {
+        'name': 'Gemma 2 2B',
+        'ollama': 'gemma2:2b',
+        'gguf': 'gemma-2-2b-it.Q4_K_M.gguf',
+        'download_url': 'https://huggingface.co/bartowski/gemma-2-2b-it-GGUF/resolve/main/gemma-2-2b-it.Q4_K_M.gguf',
+        'size_mb': 1600,
+        'n_ctx': 4096,
+        'description': 'Leve e rápido. Bom para PT-BR. Ideal para PCs com 4-8GB RAM.',
+    },
+    'tinyllama-1.1b': {
+        'name': 'TinyLlama 1.1B',
+        'ollama': 'llama3.2:1b',
+        'gguf': 'tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf',
+        'download_url': 'https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf',
+        'size_mb': 670,
+        'n_ctx': 2048,
+        'description': 'Mais leve. Respostas básicas. Para PCs muito limitados.',
+    },
+}
+
+# Modelo padrão (Phi-3.5 Mini é o melhor custo-benefício)
+DEFAULT_MODEL_KEY = os.getenv("AI_MODEL", "phi3.5-mini")
+
 class SessionContext:
     def __init__(self):
         self.history = []
-        self.conversation = []
+        self.conversation = deque(maxlen=50)
         self.room_profile = 'janelas_vidro'
-        self.analyses_history = []
+        self.analyses_history = deque(maxlen=50)
         self.last_activity = time.time()
     
     def touch(self):
@@ -38,8 +89,6 @@ class SessionContext:
     def add_analysis(self, analysis):
         self.touch()
         self.analyses_history.append(analysis)
-        if len(self.analyses_history) > 50:
-            self.analyses_history.pop(0)
 
     def add_message(self, role, content):
         self.touch()
@@ -48,16 +97,39 @@ class SessionContext:
             "content": content,
             "ts": time.time()
         })
-        if len(self.conversation) > 20:
-            self.conversation.pop(0)
+
+def build_system_prompt(context_data=None):
+    """Constrói o system prompt unificado para todos os backends LLM."""
+    profile_label = PROFILE_NAMES.get(
+        context_data.get('room_profile', ''),
+        context_data.get('room_profile', 'desconhecido') if context_data else 'desconhecido'
+    )
+    system = (
+        "Você é o SoundMaster IA — assistente amigável de som para igrejas. "
+        "Fale de forma simples, calorosa e acolhedora, como um colega ajudando outro. "
+        "EVITE jargão técnico. Use palavras do dia a dia. "
+        "Exemplos: 'som abafado' ao invés de 'excesso de energia subsônica'; "
+        "'chiado' ao invés de 'sibilância'; 'o som está estranho' ao invés de 'anomalia espectral'. "
+        "Cumprimente com 'Bom dia!', 'Olá!', 'Tudo bem?'. "
+        "Seja paciente e encorajador. Seu objetivo é ajudar voluntários de igreja a terem um som melhor. "
+        f"Perfil ativo da sala: {profile_label}. "
+        "Sugira ações práticas de forma simples."
+    )
+    if context_data:
+        master_eq_info = context_data.get('master_eq', 'nenhum corte ativo')
+        system += (
+            f" Contexto Atual: RT60={context_data.get('rt60')}s, "
+            f"Pico={context_data.get('peakHz')}Hz, RMS={context_data.get('rms')}dB. "
+            f"EQ Master atual: {master_eq_info}."
+        )
+    return system
+
 
 class OllamaLLM:
     """Gerenciador de modelo via Ollama (download automático + API REST)."""
     _instance = None
     _instance_lock = None
     _OLLAMA_HOST = "http://127.0.0.1:11434"
-    _DEFAULT_MODEL = "llama3.2:1b"
-    _TIMEOUT = 120
     _OLLAMA_URL = "https://ollama.com/download/OllamaSetup.exe"
 
     def __new__(cls, *args, **kwargs):
@@ -78,7 +150,8 @@ class OllamaLLM:
         self._initialized = True
         import threading
         self._lock = threading.Lock()
-        self.model_name = model_name or os.getenv("OLLAMA_MODEL", self._DEFAULT_MODEL)
+        self.model_name = model_name or os.getenv("OLLAMA_MODEL", self._resolve_model_ollama())
+        self._timeout = int(os.getenv("OLLAMA_TIMEOUT", "45"))
         self.enabled = False
         self._proc = None
 
@@ -87,6 +160,14 @@ class OllamaLLM:
             print(f"[Ollama] Modelo pronto: {self.model_name}")
         else:
             print("[Ollama] Não disponível. Usando fallback.")
+
+    @staticmethod
+    def _resolve_model_ollama():
+        """Resolve o nome do modelo Ollama com base na configuração AI_MODEL."""
+        model_key = DEFAULT_MODEL_KEY
+        if model_key in SUPPORTED_MODELS:
+            return SUPPORTED_MODELS[model_key]['ollama']
+        return "llama3.2:1b"
 
     def _find_ollama(self):
         import shutil, os
@@ -212,33 +293,29 @@ class OllamaLLM:
     def query(self, prompt, context_data=None, conversation=None):
         if not self.enabled:
             return None
-        profile_names = {'janelas_vidro': 'Janelas/Vidro', 'teto_alto': 'Teto Alto', 'paredes_paralelas': 'Paredes Paralelas'}
-        system = (
-            "Você é o SoundMaster IA — assistente amigável de som para igrejas. "
-            "Fale de forma simples, calorosa e acolhedora, como um colega ajudando outro. "
-            "EVITE jargão técnico. Use palavras do dia a dia. "
-            "Exemplos: 'som abafado' ao invés de 'excesso de energia subsônica'; "
-            "'chiado' ao invés de 'sibilância'; 'o som está estranho' ao invés de 'anomalia espectral'. "
-            "Cumprimente com 'Bom dia!', 'Olá!', 'Tudo bem?'. "
-            "Seja paciente e encorajador. Seu objetivo é ajudar voluntários de igreja a terem um som melhor. "
-            f"Perfil ativo da sala: {profile_names.get(context_data.get('room_profile'), context_data.get('room_profile', 'desconhecido')) if context_data else 'desconhecido'}. "
-            "Sugira ações práticas de forma simples."
-        )
-        if context_data:
-            master_eq_info = context_data.get('master_eq', 'nenhum corte ativo')
-            system += f" Contexto Atual: RT60={context_data.get('rt60')}s, Pico={context_data.get('peakHz')}Hz, RMS={context_data.get('rms')}dB. EQ Master atual: {master_eq_info}."
+        system = build_system_prompt(context_data)
         messages = [{"role": "system", "content": system}]
         if conversation:
-            for msg in conversation[-10:]:
+            for msg in list(conversation)[-10:]:
                 role = "user" if msg["role"] == "user" else "assistant"
                 messages.append({"role": role, "content": msg["content"]})
         messages.append({"role": "user", "content": prompt})
         import json, urllib.request
-        payload = json.dumps({"model": self.model_name, "messages": messages, "stream": False, "options": {"num_predict": 512}}).encode()
+        payload = json.dumps({
+            "model": self.model_name,
+            "messages": messages,
+            "stream": False,
+            "options": {"num_predict": 512}
+        }).encode()
         try:
             with self._lock:
-                req = urllib.request.Request(f"{self._OLLAMA_HOST}/api/chat", data=payload, headers={"Content-Type": "application/json"}, method="POST")
-                resp = urllib.request.urlopen(req, timeout=self._TIMEOUT)
+                req = urllib.request.Request(
+                    f"{self._OLLAMA_HOST}/api/chat",
+                    data=payload,
+                    headers={"Content-Type": "application/json"},
+                    method="POST"
+                )
+                resp = urllib.request.urlopen(req, timeout=self._timeout)
                 data = json.loads(resp.read())
             return data.get("message", {}).get("content", "").strip()
         except urllib.request.HTTPError as e:
@@ -263,25 +340,10 @@ class LlamaLLM:
     def query(self, prompt, context_data=None, conversation=None):
         if not self.enabled:
             return None
-        profile_names = {'janelas_vidro': 'Janelas/Vidro', 'teto_alto': 'Teto Alto', 'paredes_paralelas': 'Paredes Paralelas'}
-        system = (
-            "Você é o SoundMaster IA — assistente amigável de som para igrejas. "
-            "Fale de forma simples, calorosa e acolhedora, como um colega ajudando outro. "
-            "EVITE jargão técnico. Use palavras do dia a dia. "
-            "Exemplos: 'som abafado' ao invés de 'excesso de energia subsônica'; "
-            "'chiado' ao invés de 'sibilância'; 'o som está estranho' ao invés de 'anomalia espectral'. "
-            "Cumprimente com 'Bom dia!', 'Olá!', 'Tudo bem?'. "
-            "Seja paciente e encorajador. Seu objetivo é ajudar voluntários de igreja a terem um som melhor. "
-            f"Perfil ativo da sala: {profile_names.get(context_data.get('room_profile'), context_data.get('room_profile', 'desconhecido')) if context_data else 'desconhecido'}. "
-            "Sugira ações práticas de forma simples."
-        )
-        if context_data:
-            master_eq_info = context_data.get('master_eq', 'nenhum corte ativo')
-            system += f" Contexto Atual: RT60={context_data.get('rt60')}s, Pico={context_data.get('peakHz')}Hz, RMS={context_data.get('rms')}dB. EQ Master atual: {master_eq_info}."
-        
+        system = build_system_prompt(context_data)
         messages = [{"role": "system", "content": system}]
         if conversation:
-            for msg in conversation[-10:]:
+            for msg in list(conversation)[-10:]:
                 role = "user" if msg["role"] == "user" else "assistant"
                 messages.append({"role": role, "content": msg["content"]})
         messages.append({"role": "user", "content": prompt})
@@ -304,7 +366,7 @@ class LlamaLLM:
 class LocalLLM:
     """Gerenciador de Modelo Local — tenta Ollama primeiro, depois llama-cpp."""
     _instance = None
-    _LLM_TIMEOUT = 120
+    _llama_crash_cache = None
 
     def __init__(self, model_path=None):
         self.llm = None
@@ -321,9 +383,9 @@ class LocalLLM:
             print("[AI Engine] Usando Ollama como backend LLM.")
             return
 
-        # Fallback: llama-cpp-python
+        # Fallback: llama-cpp-python com modelo configurável
         if not model_path:
-            model_path = os.getenv("MODEL_PATH", "models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf")
+            model_path = self._resolve_model_path()
         if not os.path.isabs(model_path):
             script_dir = os.path.dirname(os.path.abspath(__file__))
             potential_path = os.path.join(os.path.dirname(script_dir), model_path)
@@ -331,9 +393,11 @@ class LocalLLM:
                 model_path = potential_path
         self.model_path = model_path
 
-        if os.path.exists(model_path) and self._test_llama_crash():
+        if os.path.exists(model_path) and self._test_llama_crash_cached():
+            model_info = self._get_model_info(model_path)
+            n_ctx = model_info.get('n_ctx', 2048) if model_info else 2048
             try:
-                self.llm = LlamaLLM(model_path=model_path, n_ctx=2048, n_threads=4)
+                self.llm = LlamaLLM(model_path=model_path, n_ctx=n_ctx, n_threads=4)
                 self.enabled = True
                 print(f"[AI Engine] Modelo llama-cpp carregado: {model_path}")
                 return
@@ -346,6 +410,34 @@ class LocalLLM:
 
         if not self.enabled:
             print("[AI Engine] Nenhum LLM local disponível. Usando regras + simulação.")
+
+    @staticmethod
+    def _resolve_model_path():
+        """Resolve o caminho do modelo GGUF com base na configuração AI_MODEL."""
+        model_key = DEFAULT_MODEL_KEY
+        env_path = os.getenv("MODEL_PATH")
+        if env_path:
+            return env_path
+        if model_key in SUPPORTED_MODELS:
+            return f"models/{SUPPORTED_MODELS[model_key]['gguf']}"
+        return "models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
+
+    @staticmethod
+    def _get_model_info(model_path):
+        """Retorna informações do modelo baseado no nome do arquivo."""
+        filename = os.path.basename(model_path).lower()
+        for key, info in SUPPORTED_MODELS.items():
+            if info['gguf'].lower() in filename:
+                return info
+        return None
+
+    @classmethod
+    def _test_llama_crash_cached(cls):
+        """Testa compatibilidade do llama_cpp com cache (executa 1x por processo)."""
+        if cls._llama_crash_cache is not None:
+            return cls._llama_crash_cache
+        cls._llama_crash_cache = cls._test_llama_crash()
+        return cls._llama_crash_cache
 
     @staticmethod
     def _test_llama_crash():
@@ -385,6 +477,25 @@ class LocalLLM:
         if not self.enabled or not self.llm:
             return None
         return self.llm.query(prompt, context_data=context_data, conversation=conversation)
+
+    @staticmethod
+    def list_models():
+        """Retorna lista de modelos suportados com status de disponibilidade."""
+        result = []
+        for key, info in SUPPORTED_MODELS.items():
+            model_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                'models', info['gguf']
+            )
+            result.append({
+                'key': key,
+                'name': info['name'],
+                'size_mb': info['size_mb'],
+                'description': info['description'],
+                'downloaded': os.path.exists(model_path),
+                'ollama_name': info['ollama'],
+            })
+        return result
 
 class AIEngine:
     _llm_instance = None
@@ -495,30 +606,121 @@ class AIEngine:
     def extract_channel(self, text):
         channel_match = re.search(r'(?:canal|ch)\s*(\d{1,2})', text)
         if not channel_match:
-            return 1
+            return None
         channel_num = int(channel_match.group(1))
         if channel_num < 1 or channel_num > 24:
             print(f"[AI Engine] Canal {channel_num} fora do range 1-24, ajustando.")
             channel_num = max(1, min(24, channel_num))
         return channel_num
 
+    def _smart_fallback(self, text, analysis, mixer_state):
+        """Fallback inteligente quando nenhum LLM está disponível. Fornece respostas úteis."""
+        palavras = [p for p in text.split() if len(p) > 3]
+        encontradas = [p for p in palavras if re.search(
+            r'(voz|som|canal|microfone|palco|sala|abafad|estranh|baixo|alto|grave|agudo|'
+            r'apito|eco|retorno|monitor|auditoria|ajud[oa]|problema|volume|fader|mute|'
+            r'compressor|equalizador|hpf|gate|delay|reverb|preset|cena|feedback|igreja|'
+            r'som|audio|mix|mixer|mesa|caixa|alto-falante|parlante)', p
+        )]
+
+        # Respostas contextuais por categoria de problema
+        categorias = {
+            'grave': {
+                'keywords': r'(grave|pesad[oa]|gross[oa]|embolad[oa]|bumbo|sub|tremend[oa])',
+                'text': 'Parece que tem muito grave acumulado! Isso pode deixar o som "embolado". '
+                        'Sugestão: tente um HPF em 80-100Hz no canal de voz e um corte suave em 125Hz no Master.',
+                'command': self.command("eq_cut", "Limpeza de Graves", target="master", hz=125, gain=-3, q=1.0),
+            },
+            'agudo': {
+                'keywords': r'(agud[oa]|fin[oa]|sibil[âa]ncia|brilho|chiado)',
+                'text': 'Os agudos podem estar incomodando! Sugestão: suavize em 6kHz com Q de 1.5 no Master.',
+                'command': self.command("eq_cut", "Suavizar Agudos", target="master", hz=6000, gain=-2, q=1.5),
+            },
+            'apito': {
+                'keywords': r'(apito|apitando|microfonia|zumbido|realimenta)',
+                'text': 'Microfonia detectada! Vou aplicar um notch na frequência problemática.',
+                'command': self.command("eq_cut", "Corte de Apito", target="master", hz=1000, gain=-8, q=3.0),
+            },
+            'eco': {
+                'keywords': r'(eco|reverberando|espaco|vazio|acustica)',
+                'text': 'A sala parece ter muito eco. Uma opção é cortar um pouco em 800Hz no Master para melhorar a inteligibilidade.',
+                'command': self.command("eq_cut", "Melhorar Inteligibilidade", target="master", hz=800, gain=-2, q=1.0),
+            },
+            'voz': {
+                'keywords': r'(voz|pregador|pastor|prega[cç][aã]o|fala|microfone)',
+                'text': 'Vou ajudar com a voz! Sugestão: ative o HPF em 100Hz e aplique um corte suave em 250Hz para limpar.',
+                'command': self.command("run_clean_sound_preset", "Voz Clara", channel=1),
+            },
+            'alto': {
+                'keywords': r'(alto demais|estourando|muito alto|ta doendo|forte)',
+                'text': 'O volume está alto demais! Vou abaixar o Master em 3dB para proteger as caixas.',
+                'command': self.command("volume_down", "Abaixar volume geral", target="master", val=3),
+            },
+            'baixo': {
+                'keywords': r'(baixo|fraco|pouco som|quase nao ouve|fraco)',
+                'text': 'O som está baixo? Verifique se algum canal está mutado ou com o fader no mínimo.',
+                'command': None,
+            },
+            'mute': {
+                'keywords': r'(mutado|mute|sem som|silencio)',
+                'text': 'Parece que tem canal mutado! Verifique os mutes na mesa.',
+                'command': None,
+            },
+        }
+
+        # Verificar cada categoria
+        for cat_key, cat in categorias.items():
+            if re.search(cat['keywords'], text):
+                return {"text": cat['text'], "command": cat['command']}
+
+        # Se tem palavras-chave mas nenhuma categoria específica
+        if encontradas:
+            dica = f"Entendi! Você falou sobre: {', '.join(encontradas[:3])}. "
+            dica += "Infelizmente o modelo de IA local não está disponível para analisar isso em detalhes. "
+            dica += "Tente descrever o problema (ex: 'som abafado', 'apito chato', 'eco muito forte')."
+            return {"text": dica, "command": None, "context": {"keywords": encontradas}}
+
+        # Mensagem genérica amigável
+        return {
+            "text": "Olá! 😊 Me diga o que você está sentindo no som: "
+                    "está abafado, estranho, com apito, muito alto, muito baixo? "
+                    "Quanto mais detalhes, melhor posso ajudar!",
+            "command": None
+        }
+
     def generate_technical_report(self, analysis=None):
         from acoustics.processor import AcousticProcessor
         
+        # Pega dados mais recentes: parâmetro > sessão > vazio
         analysis = analysis or (self.session.analyses_history[-1] if self.session.analyses_history else {})
         
-        # Se não há dados reais de análise, pede medição primeiro
-        has_data = bool(analysis.get('rt60') or analysis.get('rt60_multiband') or analysis.get('rms'))
-        if not has_data and not self.session.analyses_history:
+        # Se não tem dados reais, retorna None para pedir medição
+        has_real_data = bool(
+            analysis.get('rt60') or 
+            analysis.get('rt60_multiband') or 
+            analysis.get('rt60_measured') or
+            analysis.get('rms') or
+            analysis.get('peakHz')
+        )
+        if not has_real_data:
             return None
         
-        rt60_avg = self._safe_float(analysis.get('rt60', 1.2), 1.2)
+        # Usar RT60 medido se disponível, senão estimar do multiband
+        rt60_avg = self._safe_float(analysis.get('rt60_measured'), 0)
+        if rt60_avg <= 0:
+            rt60_mb = analysis.get('rt60_multiband', {})
+            if rt60_mb and isinstance(rt60_mb, dict):
+                vals = [self._safe_float(v, 0) for v in rt60_mb.values() if self._safe_float(v, 0) > 0]
+                rt60_avg = sum(vals) / len(vals) if vals else 0
+        if rt60_avg <= 0:
+            rt60_avg = self._safe_float(analysis.get('rt60', 0), 0)
+        if rt60_avg <= 0:
+            return None
+        
         rt60_info = AcousticProcessor.classify_room(rt60_avg)
         
-        # Calibração de SNR baseada em RMS (se disponível)
-        # Assumimos nível de fala alvo de -18dBFS
-        rms_noise = self._safe_float(analysis.get('rms', -45), -45) # Nível médio de ruído de fundo
-        snr_calc = max(5, -18 - rms_noise) # SNR = Sinal - Ruído
+        rms_noise = self._safe_float(analysis.get('rms', -45), -45)
+        snr_calc = max(5, -18 - rms_noise)
         sti = AcousticProcessor.estimate_sti(rt60_avg, snr=snr_calc)
         
         room_vol = self._safe_float(analysis.get('room_vol', analysis.get('volume', 900)), 900)
@@ -526,39 +728,49 @@ class AIEngine:
         
         patterns = AcousticProcessor.diagnose_patterns(self.session.analyses_history)
         
+        peak_hz = analysis.get('peakHz', '--')
+        peak_db = analysis.get('peakDb', '--')
+        
         report = f"""
 # 📊 RELATÓRIO TÉCNICO: AUDITORIA ACÚSTICA AI
 
 ## 1. Análise de Reverberação (RT60)
-- **Tempo Médio (RT60):** {rt60_avg}s
+- **Tempo Médio (RT60):** {rt60_avg:.2f}s
 - **Status:** {rt60_info['status']}
 - **Diagnóstico:** {rt60_info['desc']}
-- **Pontuação de Inteligibilidade:** {rt60_info['rating']}/5
+- **Pontuação:** {rt60_info['rating']}/5
 
 ## 2. Qualidade de Transmissão (STI)
-- **STI Estimado:** {sti}
+- **STI Estimado:** {sti:.2f}
 - **Avaliação:** {"Excelente" if sti > 0.75 else "Bom" if sti > 0.6 else "Razoável" if sti > 0.45 else "Pobre"}
-- **Impacto:** O índice STI de {sti} indica que a mensagem falada é {"clara e fácil de entender" if sti > 0.6 else "difícil de compreender em longas distâncias"}.
 
 ## 3. Cobertura e Distância Crítica
-- **Distância Crítica (Dc):** {dc} metros
-- **Recomendação:** Ouvintes além de {dc}m do PA ouvirão mais som reverberado (eco) do que som direto. Considere caixas de reforço (delay) se o ambiente for maior.
+- **Distância Crítica (Dc):** {dc:.1f} metros
 
-## 4. Ressonâncias e Feedback
-{chr(10).join([f"- **{p['hz']}Hz:** {p['suggestion']} (Confiança: {int(p['confidence']*100)}%)" for p in patterns]) if patterns else "Nenhuma ressonância crítica recorrente detectada até o momento."}
+## 4. Espectro Detectado
+- **Frequência Pico:** {peak_hz}Hz
+- **Nível do Pico:** {peak_db}dB
+- **RMS:** {rms_noise:.1f}dB
 
-## 5. Sugestão de Configuração Master
-- **Perfil Ativo:** {self.session.room_profile}
-- **Ação Recomendada:** Aplicar curva de equalização corretiva baseada no RT60 multibanda detectado.
+## 5. Ressonâncias e Feedback
+{chr(10).join([f"- **{p['hz']}Hz:** {p['suggestion']} (Confiança: {int(p['confidence']*100)}%)" for p in patterns]) if patterns else "Nenhuma ressonância crítica recorrente detectada."}
+
+## 6. Perfil da Sala
+- **Perfil Ativo:** {PROFILE_NAMES.get(self.session.room_profile, self.session.room_profile)}
 """
         return report
 
     def process(self, text, analysis=None, mixer_state=None):
         text = unicodedata.normalize('NFC', text.strip()).lower()
-        analysis = analysis or (self.session.analyses_history[-1] if self.session.analyses_history else {})
-        if analysis and isinstance(analysis, dict):
+        
+        # Se veio analysis do frontend (com dados reais de áudio), usa ela
+        if analysis and isinstance(analysis, dict) and analysis.get('schema_version') == '1.1':
             self.session.add_analysis(analysis)
-
+        
+        # Fallback para histórico se não veio dados novos
+        if not analysis or not isinstance(analysis, dict):
+            analysis = self.session.analyses_history[-1] if self.session.analyses_history else {}
+        
         self.session.add_message("user", text)
 
         classification = None
@@ -710,8 +922,7 @@ Deseja aplicar a correcao recomendada?
             rt60 = analysis.get('rt60', '--')
             peak = analysis.get('peakHz', '--')
             rms = analysis.get('rms', '--')
-            profile_names = {'janelas_vidro': 'Janelas/Vidro', 'teto_alto': 'Teto Alto', 'paredes_paralelas': 'Paredes Paralelas'}
-            profile_label = profile_names.get(self.session.room_profile, self.session.room_profile)
+            profile_label = PROFILE_NAMES.get(self.session.room_profile, self.session.room_profile)
             
             status_msg = f"Olá! SoundMaster operacional. {hw_note}"
             if rt60 != '--':
@@ -813,10 +1024,9 @@ Deseja aplicar a correcao recomendada?
                     detected_profile = 'janelas_vidro'
 
                 if detected_profile and detected_profile != self.session.room_profile:
-                    profile_names = {'teto_alto': 'Teto Alto', 'paredes_paralelas': 'Paredes Paralelas', 'janelas_vidro': 'Janelas/Vidro'}
                     self.session.room_profile = detected_profile
                     return {
-                        "text": f"Ah, percebi! Pela forma como o som se comporta, sua sala parece ser do tipo 'perfil de {profile_names[detected_profile]}'. Já ajustei minhas sugestões pra esse tipo de ambiente.",
+                        "text": f"Ah, percebi! Pela forma como o som se comporta, sua sala parece ser do tipo 'perfil de {PROFILE_NAMES[detected_profile]}'. Já ajustei minhas sugestões pra esse tipo de ambiente.",
                         "command": self.command("set_room_profile", f"Perfil: {detected_profile}", profile=detected_profile)
                     }
 
@@ -844,9 +1054,8 @@ Deseja aplicar a correcao recomendada?
                 detected_profile = 'janelas_vidro'
 
             if detected_profile and detected_profile != self.session.room_profile:
-                profile_names = {'teto_alto': 'Teto Alto', 'paredes_paralelas': 'Paredes Paralelas', 'janelas_vidro': 'Janelas/Vidro'}
                 rt60_response = {
-                    "text": f"Pelo som, acho que sua sala se parece com um ambiente do tipo '{profile_names[detected_profile]}'. Já ajustei minhas dicas pra isso!",
+                    "text": f"Pelo som, acho que sua sala se parece com um ambiente do tipo '{PROFILE_NAMES[detected_profile]}'. Já ajustei minhas dicas pra isso!",
                     "command": self.command("set_room_profile", f"Mudar perfil para {detected_profile}", profile=detected_profile)
                 }
                 self.session.room_profile = detected_profile
@@ -1004,7 +1213,6 @@ Deseja aplicar a correcao recomendada?
             self.llm.reload_if_needed()
         if self.llm and self.llm.enabled:
             print(f"[AI Engine] Usando modelo local para: {text}")
-            # Passamos o contexto atual para o modelo
             ctx = {
                 "rt60": self._safe_float(analysis.get('rt60', 1.2), 1.2),
                 "peakHz": self._safe_float(analysis.get('peakHz', 0), 0),
@@ -1014,15 +1222,9 @@ Deseja aplicar a correcao recomendada?
             }
             if classification:
                 ctx["classification"] = classification
-            llm_response = self.llm.query(text, context_data=ctx, conversation=self.session.conversation)
+            llm_response = self.llm.query(text, context_data=ctx, conversation=list(self.session.conversation))
             if llm_response:
                 return {"text": llm_response, "command": None, "source": "local_llm"}
 
-        # Fallback: mostra as palavras-chave detectadas para dar feedback ao usuário
-        palavras = [p for p in text.split() if len(p) > 3]
-        encontradas = [p for p in palavras if re.search(r'(voz|som|canal|microfone|palco|sala|abafad|estranh|baixo|alto|grave|agudo|apito|eco|retorno|monitor|auditoria|ajud[oa]|problema|volume|fader|mute|compressor|equalizador|hpf|gate|delay|reverb|preset|cena|feedback)', p)]
-        if encontradas:
-            dica = f"Entendi! Você falou sobre: {', '.join(encontradas[:5])}. "
-            dica += "Vou analisar e sugerir ajustes. Pode me dar mais detalhes?"
-            return {"text": dica, "command": None, "context": {"keywords": encontradas}}
-        return {"text": "Olá! 😊 Me diga o que você está sentindo no som: está baixo, estranho, abafado, apitando? Pode falar do seu jeito que eu entendo e ajudo!", "command": None}
+        # 4. Fallback inteligente sem LLM — respostas úteis baseadas em contexto
+        return self._smart_fallback(text, analysis, mixer_state)

@@ -1,16 +1,17 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-surface-0: #09090b;
-  --color-surface-1: #0c0c0e;
-  --color-surface-2: #111318;
-  --color-surface-3: #1a1c23;
+  --color-surface-0: #0a0a0c;
+  --color-surface-1: #111114;
+  --color-surface-18: #18181c;
+  --color-surface-2: #1a1a1f;
+  --color-surface-3: #222228;
   --color-accent: #22d3ee;
-  --color-accent-glow: rgba(34, 211, 238, 0.15);
+  --color-accent-glow: rgba(34, 211, 238, 0.1);
   --color-text-primary: #e2e8f0;
   --color-text-secondary: #94a3b8;
   --color-text-muted: #64748b;
-  --color-border-subtle: rgba(255, 255, 255, 0.05);
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
   --color-border-hover: rgba(255, 255, 255, 0.1);
 }
 
@@ -20,12 +21,12 @@
     --panel-width: 220px;
     --header-height: 64px;
     --mixer-width: 400px;
-    --surface-0: #09090b;
-    --surface-1: #0c0c0e;
-    --surface-2: #111318;
-    --surface-3: #1a1c23;
+    --surface-0: #0a0a0c;
+    --surface-1: #111114;
+    --surface-2: #1a1a1f;
+    --surface-3: #222228;
     --accent: #22d3ee;
-    --accent-glow: rgba(34, 211, 238, 0.15);
+    --accent-glow: rgba(34, 211, 238, 0.1);
     --text-primary: #e2e8f0;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
@@ -62,26 +63,24 @@
   align-items: center;
   padding: 20px 0;
   justify-content: space-between;
-  border-radius: 0 24px 24px 0;
   z-index: 30;
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
   flex-shrink: 0;
   position: relative;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 @utility rail-logo {
   width: 42px;
   height: 42px;
-  background: linear-gradient(135deg, #06b6d4, #0891b2);
-  border-radius: 14px;
+  background: var(--accent);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-weight: 400;
-  font-size: 18px;
+  color: #000;
+  font-weight: 700;
+  font-size: 14px;
   margin-bottom: 24px;
-  box-shadow: 0 4px 20px rgba(6, 182, 212, 0.3);
   letter-spacing: -0.05em;
 }
 
@@ -92,9 +91,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 14px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.2s var(--transition-smooth);
+  transition: all 0.15s ease;
   background: transparent;
   border: none;
   color: var(--text-muted);
@@ -102,31 +101,30 @@
 
   &:hover {
     color: #fff;
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.05);
   }
 
   &.active {
     color: #fff;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
 
     &::before {
       content: '';
       position: absolute;
-      left: -2px;
+      left: 0;
       top: 50%;
       transform: translateY(-50%);
-      width: 4px;
-      height: 28px;
+      width: 3px;
+      height: 24px;
       background: var(--accent);
-      border-radius: 0 4px 4px 0;
-      box-shadow: 0 0 12px var(--accent-glow);
+      border-radius: 0 2px 2px 0;
     }
   }
 
   & svg {
-    width: 22px;
-    height: 22px;
-    stroke-width: 1.8;
+    width: 20px;
+    height: 20px;
+    stroke-width: 1.5;
   }
 
   & .rail-tooltip {
@@ -137,14 +135,13 @@
     background: var(--surface-3);
     color: #fff;
     padding: 6px 12px;
-    border-radius: 8px;
+    border-radius: 6px;
     font-size: 11px;
     font-weight: 400;
     white-space: nowrap;
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.15s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     letter-spacing: 0.02em;
     z-index: 50;
   }
@@ -162,11 +159,11 @@
 @utility category-panel {
   width: 0;
   overflow: hidden;
-  background: var(--surface-2);
+  background: var(--surface-1);
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
-  transition: width 0.3s var(--transition-smooth);
+  transition: width 0.25s ease;
   flex-shrink: 0;
   z-index: 20;
 
@@ -227,7 +224,7 @@
   gap: 10px;
   width: 100%;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s ease;
   background: transparent;
@@ -292,9 +289,7 @@
   justify-content: space-between;
   padding: 0 24px;
   border-bottom: 1px solid var(--border-subtle);
-  background: rgba(9, 9, 11, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: var(--surface-1);
   flex-shrink: 0;
   z-index: 20;
 }
@@ -522,9 +517,9 @@
 }
 
 @utility rail-divider {
-  width: 32px;
+  width: 24px;
   height: 1px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--border-subtle);
   margin: 8px 0;
 }
 
@@ -1033,8 +1028,7 @@
   display: none;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.7);
 
   &.flex {
     display: flex;
@@ -1042,13 +1036,12 @@
 }
 
 @utility modal-content {
-  background: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
   width: 100%;
   max-width: 480px;
   padding: 24px;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
 }
 
 @utility sb-thumbnail {
@@ -1428,4 +1421,37 @@
 .subtitle {
   color: #94a3b8;
   font-weight: 500;
+}
+
+/* ─── Chat typing animation ─────────────────────────────────────────────────── */
+.typing-dots::after {
+  content: '';
+  display: inline-block;
+  width: 1.5em;
+  text-align: left;
+  animation: typing-dots 1.4s steps(4, end) infinite;
+}
+
+@keyframes typing-dots {
+  0%   { content: ''; }
+  25%  { content: '.'; }
+  50%  { content: '..'; }
+  75%  { content: '...'; }
+  100% { content: ''; }
+}
+
+/* ─── Chat bubble transitions ───────────────────────────────────────────────── */
+#chat-messages > div {
+  animation: bubble-in 0.2s ease-out;
+}
+
+@keyframes bubble-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Step indicators */
+#chat-messages > div[class*="flex items-center gap-2"] {
+  animation: none;
+  opacity: 1;
 }

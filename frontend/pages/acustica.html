@@ -33,27 +33,27 @@
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div class="space-y-2">
                             <label for="rt-length" class="text-[10px] uppercase font-black text-slate-400 tracking-wider block">Comprimento (m)</label>
-                            <input type="number" id="rt-length" value="20" min="0.1" max="999" required class="w-full bg-black/40 border border-white/10 focus:border-cyan-500/50 rounded-lg px-3 py-2.5 text-white outline-none transition-all text-sm font-bold">
+                            <input type="number" id="rt-length" value="20" min="0.1" max="999" required class="w-full bg-black/70 border border-white/10 focus:border-cyan-500/50 rounded-lg px-3 py-2.5 text-white outline-none transition-all text-sm font-bold">
                         </div>
                         <div class="space-y-2">
                             <label for="rt-width" class="text-[10px] uppercase font-black text-slate-400 tracking-wider block">Largura (m)</label>
-                            <input type="number" id="rt-width" value="10" min="0.1" max="999" required class="w-full bg-black/40 border border-white/10 focus:border-cyan-500/50 rounded-lg px-3 py-2.5 text-white outline-none transition-all text-sm font-bold">
+                            <input type="number" id="rt-width" value="10" min="0.1" max="999" required class="w-full bg-black/70 border border-white/10 focus:border-cyan-500/50 rounded-lg px-3 py-2.5 text-white outline-none transition-all text-sm font-bold">
                         </div>
                         <div class="space-y-2">
                             <label for="rt-height" class="text-[10px] uppercase font-black text-slate-400 tracking-wider block">Altura (m)</label>
-                            <input type="number" id="rt-height" value="5" min="0.1" max="999" required class="w-full bg-black/40 border border-white/10 focus:border-cyan-500/50 rounded-lg px-3 py-2.5 text-white outline-none transition-all text-sm font-bold">
+                            <input type="number" id="rt-height" value="5" min="0.1" max="999" required class="w-full bg-black/70 border border-white/10 focus:border-cyan-500/50 rounded-lg px-3 py-2.5 text-white outline-none transition-all text-sm font-bold">
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-2">
                             <label for="rt-delay-dist" class="text-[10px] uppercase font-black text-slate-400 tracking-wider block">Distância PA a Auxiliares (m)</label>
-                            <input type="number" id="rt-delay-dist" value="10" min="0" max="999" class="w-full bg-black/40 border border-white/10 focus:border-cyan-500/50 rounded-lg px-3 py-2.5 text-white outline-none transition-all text-sm font-bold">
+                            <input type="number" id="rt-delay-dist" value="10" min="0" max="999" class="w-full bg-black/70 border border-white/10 focus:border-cyan-500/50 rounded-lg px-3 py-2.5 text-white outline-none transition-all text-sm font-bold">
                         </div>
                         <div class="space-y-2">
                             <label for="rt-absorption" class="text-[10px] uppercase font-black text-slate-400 tracking-wider block">Absorção Estimada (α)</label>
                             <div class="relative">
-                                <select id="rt-absorption" class="w-full bg-black/40 border border-white/10 focus:border-cyan-500/50 rounded-lg px-3 py-2.5 pr-10 text-white outline-none transition-all text-sm font-medium appearance-none">
+                                <select id="rt-absorption" class="w-full bg-black/70 border border-white/10 focus:border-cyan-500/50 rounded-lg px-3 py-2.5 pr-10 text-white outline-none transition-all text-sm font-medium appearance-none">
                                     <option value="0.05">Baixa (Piso liso, muito vidro, paredes nuas)</option>
                                     <option value="0.15" selected>Média (Cadeiras estofadas, pessoas, algumas cortinas)</option>
                                     <option value="0.30">Alta (Carpete, forro acústico, cortinas grossas)</option>
@@ -116,7 +116,7 @@
                     </div>
                     <div class="relative">
                         <canvas id="etc-canvas" class="w-full h-48 md:h-64 rounded-lg" aria-label="Energy Time Curve - curva de decaimento acústico"></canvas>
-                        <div id="etc-cursor-readout" class="absolute top-2 left-2 text-[10px] font-mono text-white/80 bg-black/60 px-2 py-1 rounded pointer-events-none">
+                        <div id="etc-cursor-readout" class="absolute top-2 left-2 text-[10px] font-mono text-white/80 bg-black/70 px-2 py-1 rounded pointer-events-none">
                             t: -- ms | dB: --
                         </div>
                     </div>
@@ -182,7 +182,7 @@
                 <div id="mapping-container" class="bg-slate-900/40 border border-white/5 rounded-2xl p-6 shadow-xl space-y-4 animate-in fade-in slide-in-from-bottom-4">
                     <h4 class="text-sm font-black text-white tracking-tight">Mapa Visual de Cobertura</h4>
                     <p class="text-xs text-slate-500">Clique no mapa para registrar uma análise acústica neste ponto espacial.</p>
-                    <div class="relative bg-black/60 rounded-xl border border-white/10 overflow-hidden">
+                    <div class="relative bg-black/70 rounded-xl border border-white/10 overflow-hidden">
                         <canvas id="mapping-canvas" class="w-full h-auto" aria-label="Planta baixa e mapa de calor de decaimento acústico" style="height:250px"></canvas>
                     </div>
                     <div id="mapping-legend" class="flex flex-wrap justify-center gap-4 text-[10px] uppercase font-black text-slate-500 tracking-wider">

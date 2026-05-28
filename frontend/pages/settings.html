@@ -11,7 +11,7 @@
 
     <div class="max-w-4xl space-y-8">
         <!-- Geral -->
-        <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-8 shadow-2xl">
+        <div class="bg-slate-900/80 border border-white/10 rounded-2xl p-8">
             <h3 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-8">Preferências de Interface</h3>
             
             <div class="space-y-6">
@@ -52,8 +52,87 @@
             </div>
         </div>
 
+        <!-- Modelo de IA -->
+        <div class="bg-slate-900/80 border border-white/10 rounded-2xl p-8">
+            <h3 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-8">Modelo de Inteligência Artificial</h3>
+            
+            <div class="space-y-6">
+                <!-- Status do modelo atual -->
+                <div class="flex items-center justify-between py-4 border-b border-white/5">
+                    <div>
+                        <span class="text-sm font-bold text-white block">Modelo Ativo</span>
+                        <p class="text-xs text-slate-400" id="ai-model-status">Verificando modelo disponível...</p>
+                    </div>
+                    <span id="ai-model-badge" class="px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-slate-700 text-slate-300">Carregando</span>
+                </div>
+
+                <!-- Seleção de modelo -->
+                <div class="py-4 border-b border-white/5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <label class="text-sm font-bold text-white block">Selecionar Modelo</label>
+                            <p class="text-xs text-slate-400">Escolha o modelo de IA ideal para seu computador.</p>
+                        </div>
+                    </div>
+                    <div id="ai-model-list" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <!-- Preenchido via JS -->
+                        <div class="text-xs text-slate-500 py-4 text-center">Carregando modelos...</div>
+                    </div>
+                </div>
+
+                <!-- Download do modelo -->
+                <div id="ai-model-download-section" class="py-4 border-b border-white/5" style="display: none;">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <span class="text-sm font-bold text-white block">Download do Modelo</span>
+                            <p id="ai-model-download-info" class="text-xs text-slate-400"></p>
+                        </div>
+                        <button id="btn-ai-model-download" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-bold transition-all">
+                            Baixar
+                        </button>
+                    </div>
+                    <div id="ai-model-progress" class="hidden">
+                        <div class="w-full bg-slate-800 rounded-full h-2 mb-2">
+                            <div id="ai-model-progress-bar" class="bg-cyan-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                        <p id="ai-model-progress-text" class="text-[10px] text-slate-400 text-right">0%</p>
+                    </div>
+                </div>
+
+                <!-- Configurações avançadas -->
+                <div class="py-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="text-sm font-bold text-white block">Ollama (Avançado)</span>
+                            <p class="text-xs text-slate-400">Usar Ollama para rodar modelos localmente (requer instalação separada).</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="settings-ollama-enabled" class="sr-only peer">
+                            <div class="w-12 h-6 bg-cyan-600 peer-unchecked:bg-slate-600 rounded-full transition-colors peer-focus:ring-2 peer-focus:ring-cyan-500/50"></div>
+                            <span class="sr-only">Ativar Ollama</span>
+                        </label>
+                    </div>
+                    <div id="ollama-config" class="hidden mt-4 pl-4 border-l-2 border-cyan-500/30">
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1">Nome do modelo Ollama</label>
+                                <input type="text" id="ollama-model-name" placeholder="phi3.5:3.8b" class="w-full bg-black/70 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1">Timeout (segundos)</label>
+                                <input type="number" id="ollama-timeout" value="45" min="10" max="120" class="w-24 bg-black/70 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-cyan-500">
+                            </div>
+                            <button id="btn-save-ollama-config" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold transition-all">
+                                Salvar Configurações
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Sobre -->
-        <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-8 shadow-2xl flex items-center justify-between">
+        <div class="bg-slate-900/80 border border-white/10 rounded-2xl p-8 flex items-center justify-between">
             <div class="flex items-center gap-6">
                 <div class="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-700 rounded-2xl flex items-center justify-center shadow-xl shadow-cyan-900/40">
                     <span class="text-3xl font-black text-white">S</span>

@@ -235,6 +235,160 @@ class HardwareDiagnosisRequest(BaseModel):
 async def root():
     return {"status": "online", "engine": "SoundMaster Pro AI", "active_sessions": len(sessions)}
 
+
+@app.get("/api/models")
+async def list_models_endpoint(
+    authenticated: bool = Depends(verify_api_key)
+):
+    """Lista modelos de IA suportados com status de disponibilidade."""
+    from engine.ai_logic import SUPPORTED_MODELS, DEFAULT_MODEL_KEY
+    models_dir = os.path.join(os.path.dirname(__file__), 'models')
+    result = []
+    for key, info in SUPPORTED_MODELS.items():
+        model_path = os.path.join(models_dir, info['gguf'])
+        result.append({
+            'key': key,
+            'name': info['name'],
+            'size_mb': info['size_mb'],
+            'description': info['description'],
+            'downloaded': os.path.exists(model_path),
+            'ollama_name': info['ollama'],
+            'is_default': key == DEFAULT_MODEL_KEY,
+        })
+    return {"models": result, "active_model": DEFAULT_MODEL_KEY}
+
+
+class ModelSelectRequest(BaseModel):
+    model: str = Field(..., pattern="^(phi3.5-mini|llama3.2-3b|gemma2-2b|tinyllama-1.1b)$")
+
+class ModelDownloadRequest(BaseModel):
+    model: str = Field(..., pattern="^(phi3.5-mini|llama3.2-3b|gemma2-2b|tinyllama-1.1b)$")
+
+
+# ─── Estado do download ──────────────────────────────────────────────────────
+_download_state = {"active": False, "model": None, "progress": 0, "completed": False, "error": None}
+
+
+@app.post("/api/models/select")
+async def select_model_endpoint(
+    request: ModelSelectRequest,
+    authenticated: bool = Depends(verify_api_key)
+):
+    """Seleciona o modelo de IA ativo. Reinicia o engine se necessário."""
+    from engine.ai_logic import SUPPORTED_MODELS, AIEngine, LocalLLM
+    model_key = request.model
+    if model_key not in SUPPORTED_MODELS:
+        raise HTTPException(status_code=400, detail=f"Modelo '{model_key}' não suportado")
+
+    info = SUPPORTED_MODELS[model_key]
+    models_dir = os.path.join(os.path.dirname(__file__), 'models')
+    model_path = os.path.join(models_dir, info['gguf'])
+
+    # Salva a seleção no ambiente
+    os.environ["AI_MODEL"] = model_key
+    os.environ["MODEL_PATH"] = model_path
+
+    # Reinicia o singleton do LLM para usar o novo modelo
+    AIEngine._llm_instance = None
+    LocalLLM._instance = None
+
+    print(f"[AI Server] Modelo alterado para: {model_key} ({info['name']})")
+    return {"success": True, "model": model_key, "name": info['name']}
+
+
+@app.post("/api/models/download")
+async def download_model_endpoint(
+    request: ModelDownloadRequest,
+    authenticated: bool = Depends(verify_api_key)
+):
+    """Inicia o download de um modelo em background."""
+    from engine.ai_logic import SUPPORTED_MODELS
+    import threading
+
+    model_key = request.model
+    if model_key not in SUPPORTED_MODELS:
+        raise HTTPException(status_code=400, detail=f"Modelo '{model_key}' não suportado")
+
+    if _download_state["active"]:
+        raise HTTPException(status_code=409, detail="Download já em andamento")
+
+    info = SUPPORTED_MODELS[model_key]
+    models_dir = os.path.join(os.path.dirname(__file__), 'models')
+    model_path = os.path.join(models_dir, info['gguf'])
+
+    if os.path.exists(model_path):
+        return {"success": True, "message": "Modelo já baixado"}
+
+    # Reset state
+    _download_state.update({"active": True, "model": model_key, "progress": 0, "completed": False, "error": None})
+
+    def _do_download():
+        try:
+            import requests as req
+            from tqdm import tqdm
+
+            os.makedirs(models_dir, exist_ok=True)
+            url = info['download_url']
+            print(f"[AI Server] Baixando {info['name']} de {url}...")
+
+            response = req.get(url, stream=True, timeout=(10, 300))
+            response.raise_for_status()
+            total = int(response.headers.get("content-length", 0))
+
+            with open(model_path, "wb") as f:
+                downloaded = 0
+                for chunk in response.iter_content(chunk_size=1048576):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        if total > 0:
+                            _download_state["progress"] = (downloaded / total) * 100
+
+            _download_state["completed"] = True
+            _download_state["progress"] = 100
+            print(f"[AI Server] ✅ Download concluído: {model_path}")
+
+        except Exception as e:
+            _download_state["error"] = str(e)
+            print(f"[AI Server] ❌ Download falhou: {e}")
+            if os.path.exists(model_path):
+                os.remove(model_path)
+        finally:
+            _download_state["active"] = False
+
+    thread = threading.Thread(target=_do_download, daemon=True)
+    thread.start()
+
+    return {"success": True, "message": f"Download de {info['name']} iniciado"}
+
+
+@app.get("/api/models/download/status")
+async def download_status_endpoint(
+    authenticated: bool = Depends(verify_api_key)
+):
+    """Retorna o status do download em andamento."""
+    return _download_state
+
+
+@app.post("/api/ollama/config")
+async def ollama_config_endpoint(
+    request: Request,
+    authenticated: bool = Depends(verify_api_key)
+):
+    """Salva configuração do Ollama (model name e timeout)."""
+    try:
+        body = await request.json()
+        model = body.get("model", "phi3.5:3.8b")
+        timeout = body.get("timeout", 45)
+
+        os.environ["OLLAMA_MODEL"] = model
+        os.environ["OLLAMA_TIMEOUT"] = str(timeout)
+
+        print(f"[AI Server] Ollama configurado: model={model}, timeout={timeout}")
+        return {"success": True, "model": model, "timeout": timeout}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/chat")
 async def chat_endpoint(
     request: ChatRequest,
