@@ -64,10 +64,10 @@ function registerDiagnosticHandlers(io, socket, deps) {
         const int16Data = new Int16Array(samples.map(v => Math.max(-32768, Math.min(32767, Math.round(v * 32768)))));
         const header = Buffer.alloc(44);
         const dv = new DataView(header.buffer);
-        dv.setUint32(0,  0x52494646, true);
+        dv.setUint32(0,  0x52494646, false); // 'RIFF' (Big Endian)
         dv.setUint32(4,  36 + int16Data.byteLength, true);
-        dv.setUint32(8,  0x57415645, true);
-        dv.setUint32(12, 0x666D7420, true);
+        dv.setUint32(8,  0x57415645, false); // 'WAVE' (Big Endian)
+        dv.setUint32(12, 0x666D7420, false); // 'fmt ' (Big Endian)
         dv.setUint32(16, 16,         true);
         dv.setUint16(20, 1,          true);
         dv.setUint16(22, 1,          true);
@@ -75,7 +75,7 @@ function registerDiagnosticHandlers(io, socket, deps) {
         dv.setUint32(28, sampleRate * 2, true);
         dv.setUint16(32, 2,          true);
         dv.setUint16(34, 16,         true);
-        dv.setUint32(36, 0x64617461, true);
+        dv.setUint32(36, 0x64617461, false); // 'data' (Big Endian)
         dv.setUint32(40, int16Data.byteLength, true);
         writeFileSync(filePath, Buffer.concat([header, Buffer.from(int16Data.buffer)]));
     }
@@ -114,6 +114,8 @@ function registerDiagnosticHandlers(io, socket, deps) {
                 pyArgs.push('--sweep-params', JSON.stringify(sweepParams));
             }
 
+            logger.info(socket.id, 'SWEEP_ANALYSIS_START', { recLen: recording.length, refLen: reference?.length || 0, cmd: getPythonCommand(), args: pyArgs });
+
             const result = await new Promise((resolve, reject) => {
                 const py = spawn(getPythonCommand(), pyArgs, {
                     cwd:   path.dirname(analyzerPy),
@@ -126,14 +128,23 @@ function registerDiagnosticHandlers(io, socket, deps) {
                 py.stderr.on('data', (d) => { stderr += d.toString(); });
 
                 py.on('close', (code) => {
+                    logger.info(socket.id, 'SWEEP_ANALYSIS_PY_CLOSE', { code, stdoutLen: stdout.length, stderrLen: stderr.length });
+                    if (stderr) {
+                        logger.warn(socket.id, 'SWEEP_ANALYSIS_PY_STDERR', { stderr: stderr.trim() });
+                    }
                     try { require('fs').unlinkSync(recWav); } catch (_) {}
                     try { require('fs').unlinkSync(refWav); } catch (_) {}
                     if (code !== 0) {
                         reject(new Error(stderr || `Python exited with code ${code}`));
                     } else {
                         try {
-                            resolve(JSON.parse(stdout));
+                            const result = JSON.parse(stdout);
+                            if (result && result.error) {
+                                logger.error(socket.id, 'SWEEP_ANALYSIS_PY_ERROR_JSON', { error: result.error, stdout });
+                            }
+                            resolve(result);
                         } catch (e) {
+                            logger.error(socket.id, 'SWEEP_ANALYSIS_JSON_PARSE_ERROR', { error: e.message, stdout });
                             reject(new Error(`JSON parse error: ${stdout}`));
                         }
                     }

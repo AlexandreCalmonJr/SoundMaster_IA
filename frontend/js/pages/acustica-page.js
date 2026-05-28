@@ -209,6 +209,10 @@
     function _onRt60Result(e) {
         if (!e || !e.detail) return;
         var detail = e.detail;
+        if (detail.error) {
+            console.warn('[AcusticaPage] Omitindo desenho devido a erro:', detail.error);
+            return;
+        }
         etcData = detail.curve || [];
         _redrawEtc();
 
@@ -415,13 +419,16 @@
             // Check for multiband data
             var key = f.toString();
             if (multiband && multiband[key] !== undefined) {
-                var val = parseFloat(multiband[key]);
-                if (Number.isFinite(val)) {
-                    rt60 = val;
-                    t20 = val * 0.92;
-                    t30 = val;
-                    edt = val * 0.85;
-                }
+                var bandData = multiband[key];
+                var mRt60 = typeof bandData === 'object' ? parseFloat(bandData.rt60) : parseFloat(bandData);
+                var mT20 = typeof bandData === 'object' ? parseFloat(bandData.t20) : NaN;
+                var mT30 = typeof bandData === 'object' ? parseFloat(bandData.t30) : NaN;
+                var mEdt = typeof bandData === 'object' ? parseFloat(bandData.edt) : NaN;
+
+                if (Number.isFinite(mRt60)) rt60 = mRt60;
+                if (Number.isFinite(mT20)) t20 = mT20;
+                if (Number.isFinite(mT30)) t30 = mT30;
+                if (Number.isFinite(mEdt)) edt = mEdt;
             }
 
             // Realistic freq-dependent variation if no multiband data

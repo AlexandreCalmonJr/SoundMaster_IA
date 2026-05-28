@@ -1917,9 +1917,14 @@
     }
 
     function _handleSweepAnalysisResult(result) {
+        console.log('[Analyzer] _handleSweepAnalysisResult recebido no client:', result);
         if (result.error) {
+            console.error('[Analyzer] Erro retornado na análise de sweep:', result.error);
             const summaryEl = _el('pink-measure-summary');
             if (summaryEl) summaryEl.innerHTML = `<span class="text-red-400">Erro: ${result.error}</span>`;
+            document.dispatchEvent(new CustomEvent('rt60-result', {
+                detail: { error: result.error }
+            }));
             return;
         }
 
@@ -2069,9 +2074,17 @@
 
     // Auto-init
     (function autoInit() {
-        // Inicializa o iframe de referência e os listeners globais imediatamente
+        // Inicializa o iframe de referência imediatamente
         _analyzerIframe = document.getElementById('agent-workspace-iframe');
-        initGlobalAnalyzer();
+
+        // Defer global init to ensure SocketService is initialized first
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(initGlobalAnalyzer, 100);
+            });
+        } else {
+            setTimeout(initGlobalAnalyzer, 100);
+        }
 
         function tryInit() {
             _analyzerIframe = document.getElementById('agent-workspace-iframe') || _analyzerIframe;

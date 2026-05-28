@@ -92,6 +92,8 @@
 
     function unlockFader(channelKey) { _faderLocks.delete(channelKey); }
 
+    const _pendingListeners = [];
+
     // ─── Inicialização ────────────────────────────────────────────────────────
     function init() {
         if (_initialized) return;
@@ -109,6 +111,11 @@
             reconnectionDelayMax: 10000,
             randomizationFactor:  0.4,
         });
+
+        _pendingListeners.forEach(item => {
+            _socket.on(item.event, item.cb);
+        });
+        _pendingListeners.length = 0;
 
         _socket.on('connect', () => {
             _isOnline = true;
@@ -234,12 +241,22 @@
     function isConnected() { return _socket !== null && _socket.connected; }
     function raw()         { return _socket; }
     function on(event, cb) {
-        if (!_socket) { console.warn('[SocketService] Socket não inicializado para .on()'); return; }
+        if (!_socket) {
+            _pendingListeners.push({ event, cb });
+            return;
+        }
         _socket.on(event, cb);
     }
 
     function off(event, cb) {
-        if (!_socket) { return; }
+        if (!_socket) {
+            for (let i = _pendingListeners.length - 1; i >= 0; i--) {
+                if (_pendingListeners[i].event === event && _pendingListeners[i].cb === cb) {
+                    _pendingListeners.splice(i, 1);
+                }
+            }
+            return;
+        }
         _socket.off(event, cb);
     }
 

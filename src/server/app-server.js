@@ -662,7 +662,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
             methods: ['GET', 'POST'],
             credentials: true
         },
-        maxHttpBufferSize: 1e6,
+        maxHttpBufferSize: 1e8,
         pingTimeout: 60000,
         pingInterval: 25000
     });

@@ -60,8 +60,11 @@
     }
 
     function handleRt60Result(e) {
+        console.log('[Rt60Page] handleRt60Result recebido:', e.detail);
         var detail = e.detail || {};
         if (detail.error) {
+            var panel = pm._el('schroeder-chart-panel');
+            if (panel) panel.classList.remove('hidden');
             _appendResultMessage('Erro na medição: ' + detail.error, 'text-red-400');
             return;
         }
@@ -128,15 +131,32 @@
         });
 
         pm._on(pm._el('btn-calculate-rt60'), 'click', function () {
-            var lastRt60 = pm._call('SoundMasterAnalyzer', 'getLastRt60');
-            if (lastRt60 && window.SchroederRenderer) {
+            var rawRt60 = pm._call('SoundMasterAnalyzer', 'getLastRt60');
+            console.log('[Rt60Page] Calcular RT60 clicado, rawRt60:', rawRt60);
+            if (rawRt60 && window.SchroederRenderer) {
                 var canvas = pm._el('schroeder-canvas');
                 var panel = pm._el('schroeder-chart-panel');
                 if (panel) panel.classList.remove('hidden');
-                if (canvas && lastRt60.curve && lastRt60.curve.length > 0) {
-                    window.SchroederRenderer.draw(canvas, lastRt60.curve, lastRt60);
+                
+                var curve = rawRt60.curve || rawRt60.schroeder_curve || [];
+                var rt60Val = rawRt60.rt60 || rawRt60.t30 || rawRt60.t20 || rawRt60.rt60_est || 0;
+                
+                var params = {
+                    rt60: rt60Val,
+                    t20: rawRt60.t20,
+                    t30: rawRt60.t30,
+                    edt: rawRt60.edt,
+                    c50: rawRt60.c50,
+                    c80: rawRt60.c80,
+                    d50: rawRt60.d50,
+                    sti: rawRt60.sti,
+                    sti_category: rawRt60.sti_category
+                };
+
+                if (canvas && curve.length > 0) {
+                    window.SchroederRenderer.draw(canvas, curve, params);
                 }
-                window.SchroederRenderer.updateMetricCards(lastRt60);
+                window.SchroederRenderer.updateMetricCards(params);
             }
         });
 
@@ -194,10 +214,13 @@
 
         // Listen for new RT60 results dispatched on parent document
         rt60Listener = handleRt60Result;
+        console.log('[Rt60Page] Vinculando ouvintes do evento rt60-result. SchroederRenderer disponível:', typeof window.SchroederRenderer !== 'undefined');
         if (window.parent && window.parent.document) {
             window.parent.document.removeEventListener('rt60-result', rt60Listener);
             window.parent.document.addEventListener('rt60-result', rt60Listener);
         }
+        document.removeEventListener('rt60-result', rt60Listener);
+        document.addEventListener('rt60-result', rt60Listener);
     }
 
     function destroy() {
@@ -208,6 +231,7 @@
         if (window.parent && window.parent.document && rt60Listener) {
             window.parent.document.removeEventListener('rt60-result', rt60Listener);
         }
+        document.removeEventListener('rt60-result', rt60Listener);
         pm.destroy();
     }
 
