@@ -36,12 +36,16 @@
         }
 
         var html = '';
-        var sorted = history.slice().sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
+        var sorted = history.slice().sort(function (a, b) {
+            var timeA = a.timestamp ? new Date(a.timestamp).getTime() : (a.ts || 0);
+            var timeB = b.timestamp ? new Date(b.timestamp).getTime() : (b.ts || 0);
+            return timeB - timeA;
+        });
         var items = sorted.slice(0, 10);
 
         for (var i = 0; i < items.length; i++) {
             var item = items[i];
-            var date = item.ts ? new Date(item.ts) : new Date();
+            var date = item.timestamp ? new Date(item.timestamp) : (item.ts ? new Date(item.ts) : new Date());
             var dateStr = date.toLocaleDateString('pt-BR') + ' • ' + date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
             var rt60 = item.rt60 || 0;
             var name = item.name || item.label || 'Medição ' + (items.length - i);

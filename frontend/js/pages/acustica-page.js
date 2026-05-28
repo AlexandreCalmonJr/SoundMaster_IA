@@ -141,6 +141,30 @@
             }
         });
 
+        // Pull last RT60 if present
+        var rawRt60 = pm._call('SoundMasterAnalyzer', 'getLastRt60');
+        if (rawRt60) {
+            console.log('[AcusticaPage] Carregando último resultado RT60 na inicialização:', rawRt60);
+            var detail = {
+                curve: rawRt60.curve || rawRt60.schroeder_curve || [],
+                rt60: rawRt60.rt60 || rawRt60.t30 || rawRt60.t20 || rawRt60.rt60_est || 0,
+                t20: rawRt60.t20 || 0,
+                t30: rawRt60.t30 || 0,
+                edt: rawRt60.edt || 0,
+                snr: rawRt60.snr || rawRt60.snr_db || 0,
+                c50: rawRt60.c50 || 0,
+                c80: rawRt60.c80 || 0,
+                d50: rawRt60.d50 || 0,
+                sti: rawRt60.sti || 0,
+                sti_category: rawRt60.sti_category || 'N/A',
+                multiband: rawRt60.multiband || {},
+                fullResult: rawRt60
+            };
+            setTimeout(function () {
+                _onRt60Result({ detail: detail });
+            }, 100);
+        }
+
         // RT60Mapping auto-inits via page-loaded event in rt60-mapping.js
         // and handles btn-import-floorplan, btn-clear-mapping, btn-export-mapping
     }
@@ -418,8 +442,19 @@
 
             // Check for multiband data
             var key = f.toString();
-            if (multiband && multiband[key] !== undefined) {
-                var bandData = multiband[key];
+            var bandData = null;
+            if (multiband) {
+                if (multiband[key] !== undefined) {
+                    bandData = multiband[key];
+                } else if (f >= 1000) {
+                    var shortKey = (f / 1000) + 'k';
+                    if (multiband[shortKey] !== undefined) {
+                        bandData = multiband[shortKey];
+                    }
+                }
+            }
+
+            if (bandData) {
                 var mRt60 = typeof bandData === 'object' ? parseFloat(bandData.rt60) : parseFloat(bandData);
                 var mT20 = typeof bandData === 'object' ? parseFloat(bandData.t20) : NaN;
                 var mT30 = typeof bandData === 'object' ? parseFloat(bandData.t30) : NaN;
@@ -429,10 +464,8 @@
                 if (Number.isFinite(mT20)) t20 = mT20;
                 if (Number.isFinite(mT30)) t30 = mT30;
                 if (Number.isFinite(mEdt)) edt = mEdt;
-            }
-
-            // Realistic freq-dependent variation if no multiband data
-            if (!multiband || multiband[key] === undefined) {
+            } else {
+                // Realistic freq-dependent variation if no multiband data
                 var factor = f < 125 ? 1.2 : f < 500 ? 1.05 : f < 2000 ? 0.95 : f < 8000 ? 0.85 : 0.7;
                 rt60 = rt60Overall * factor;
                 t20 = t20Overall * factor;

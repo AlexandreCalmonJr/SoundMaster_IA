@@ -1931,6 +1931,37 @@
         lastRt60Result = result;
         lastRt60 = result.t30 || result.t20 || 0;
 
+        // Auto-save sweep measurement to history for benchmarking
+        try {
+            const rt60Payload = buildRt60Payload(result);
+            const acousticSnapshot = {
+                schema_version: '1.1',
+                name: `Medição Acústica (Sweep)`,
+                type: 'acoustic_measurement',
+                summary: `EDT: ${result.edt}s | T20: ${result.t20}s | T30: ${result.t30}s | STI: ${result.sti_category}`,
+                measurementType: 'sweep',
+                peakHz: result.peak_index_ms ? Math.round(result.peak_index_ms) : null,
+                peakDb: null,
+                rms: null,
+                spl: null,
+                rt60: lastRt60 > 0 ? Number(lastRt60) : null,
+                rt60_multiband: rt60Payload,
+                spectrum_db: {},
+                bands: null,
+                position: getCurrentMeasurementPosition(),
+                crowdStatus: _el('crowd-status')?.value || 'empty',
+                timestamp: new Date().toISOString()
+            };
+
+            const _ss = window.SocketService;
+            if (_ss) {
+                console.log('[Analyzer] Salvando medição de sweep no histórico:', acousticSnapshot);
+                _ss.emit('save_acoustic_snapshot', acousticSnapshot);
+            }
+        } catch (saveErr) {
+            console.error('[Analyzer] Erro ao salvar snapshot de sweep:', saveErr);
+        }
+
         const summaryEl = _el('pink-measure-summary');
         if (summaryEl) {
             summaryEl.innerHTML = `

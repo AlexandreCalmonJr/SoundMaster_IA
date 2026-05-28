@@ -73,7 +73,7 @@ class HistoryService {
 
     async getComparison(limit = 10) {
         return new Promise((resolve, reject) => {
-            this.db.find({}).sort({ timestamp: -1 }).limit(limit).exec((err, docs) => {
+            this.db.find({ type: 'acoustic_measurement' }).sort({ timestamp: -1 }).limit(limit).exec((err, docs) => {
                 if (err) reject(err);
                 else resolve(docs);
             });
@@ -85,7 +85,7 @@ class HistoryService {
         // ✅ T7: Limita a 90 dias e máximo 500 documentos para evitar memory leak (P25)
         const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
         return new Promise((resolve, reject) => {
-            this.db.find({ timestamp: { $gt: cutoff } }).limit(500).exec((err, docs) => {
+            this.db.find({ type: 'acoustic_measurement', timestamp: { $gt: cutoff } }).limit(500).exec((err, docs) => {
                 if (err) return reject(err);
                 
                 const stats = {

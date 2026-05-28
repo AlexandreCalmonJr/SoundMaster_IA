@@ -92,9 +92,8 @@ class AudioClassifier:
                 tflite = importlib.import_module("tflite_runtime.interpreter")
                 backend_name = 'tflite-runtime'
             except ImportError:
-                import importlib
-                # Importa explicitamente tensorflow.lite para registrar o Interpreter
-                tflite = importlib.import_module("tensorflow.lite")
+                import tensorflow as tf
+                tflite = tf.lite
                 backend_name = 'tensorflow.lite'
                 
             interp = tflite.Interpreter(model_path=tflite_path)
