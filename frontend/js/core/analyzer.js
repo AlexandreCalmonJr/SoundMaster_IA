@@ -59,6 +59,8 @@
     let _classifyFrameCount = 0;
     let _lastClassification = null;
     let _classifyCooldown = 0;
+    let _feedbackCooldown = 0;
+    let _autoInitDone = false;
 
     // Throttle: salta rendering pesado a cada N frames (melhor em mobile)
     let _frameCount = 0;
@@ -699,6 +701,7 @@
                 btnMeasurePink = null;
                 pinkMeasureSummary = null;
                 micSelect = null;
+                _autoInitDone = false;
             }
         });
     }
@@ -1624,12 +1627,18 @@
                 FeedbackDetectorModule.update(currentFastPeakHz, peakDb, peakHz, neighborAvg, audioCtx.sampleRate);
             }
 
-            if (_ss && isAnalyzing && peakDb > -15) {
-                _ss.emit('analyze_feedback_risk', {
-                    hz: Math.round(currentFastPeakHz),
-                    db: peakDb,
-                    prevDb: lastAnalysis?.details?.peakDb || -100
-                });
+            if (_ss && isAnalyzing && !isSweepActive && peakDb > -15) {
+                if (_feedbackCooldown <= 0) {
+                    _ss.emit('analyze_feedback_risk', {
+                        hz: Math.round(currentFastPeakHz),
+                        db: peakDb,
+                        prevDb: lastAnalysis?.details?.peakDb || -100
+                    });
+                    _feedbackCooldown = 15; // Cerca de 250ms a 60fps (15 frames * 16.7ms = 250ms)
+                }
+            }
+            if (_feedbackCooldown > 0) {
+                _feedbackCooldown--;
             }
 
             // YAMNet live classification (every ~2 seconds)
@@ -2060,12 +2069,13 @@
 
     // Auto-init
     (function autoInit() {
-        var _autoInitDone = false;
+        // Inicializa o iframe de referência e os listeners globais imediatamente
+        _analyzerIframe = document.getElementById('agent-workspace-iframe');
+        initGlobalAnalyzer();
 
         function tryInit() {
-            _analyzerIframe = document.getElementById('agent-workspace-iframe');
+            _analyzerIframe = document.getElementById('agent-workspace-iframe') || _analyzerIframe;
             if (_el('fft-canvas')) {
-                initGlobalAnalyzer();
                 initAnalyzer();
                 _autoInitDone = true;
                 return true;
