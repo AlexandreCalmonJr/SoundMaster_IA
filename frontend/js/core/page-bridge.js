@@ -37,7 +37,7 @@
             'SchroederRenderer',
             'SchroederRendererService',
             'HeatmapRenderer',
-            'HeatmapRendererService',
+            'HeatmapRenderer',
             'AutoEqRenderer',
             'AutoEqRendererService',
             'AutoEQ',

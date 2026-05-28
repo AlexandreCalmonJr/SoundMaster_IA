@@ -93,6 +93,11 @@
         }
         if(btnClear) btnClear.onclick = clearHeatmap;
         
+        if (container) {
+            var _resizeObs = new ResizeObserver(function () { renderHeatmap(); renderPins(); });
+            _resizeObs.observe(container);
+        }
+        
         loadSettings();
         
         const savedImg = localStorage.getItem('heatmap_bg');
@@ -150,7 +155,7 @@
             btnIsolines = document.createElement('button');
             btnIsolines.id = 'btn-toggle-isolines';
             btnIsolines.className = 'px-2 py-1 bg-slate-800/80 hover:bg-slate-700 rounded text-[10px] font-bold text-white';
-            btnIsolines.innerHTML = showIsolines ? '🔳 Isolinhas' : '🔳 Isolinhas';
+            btnIsolines.innerHTML = showIsolines ? '🔲 Isolinhas ON' : '🔳 Isolinhas OFF';
             btnIsolines.onclick = () => {
                 showIsolines = !showIsolines;
                 localStorage.setItem('heatmap_isolines', showIsolines);
@@ -221,7 +226,6 @@
             y: (e.clientY - rect.top) / rect.height
         };
         renderHeatmap();
-        renderRulerLine();
     }
     
     function handleRulerEnd(e) {
@@ -374,7 +378,9 @@
     function clearHeatmap() {
         if(confirm('Tem certeza que deseja apagar todos os pontos de medição?')) {
             points = [];
+            persistedHeatmapId = null;
             localStorage.removeItem('heatmap_points');
+            localStorage.removeItem('heatmap_snapshot_id');
             _persistHeatmap();
             renderHeatmap();
             renderPins();

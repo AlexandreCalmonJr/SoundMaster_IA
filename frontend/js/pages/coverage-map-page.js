@@ -8,7 +8,6 @@
         var canvas = pm._el('cv-map-canvas');
         if (!canvas) return null;
         var rect = canvas.getBoundingClientRect();
-        var dpr = window.devicePixelRatio || 1;
         return {
             x: (e.clientX - rect.left) / rect.width,
             y: (e.clientY - rect.top) / rect.height
@@ -16,19 +15,20 @@
     }
 
     function _readLiveSPL() {
+        if (window.SoundMasterAnalyzer && typeof window.SoundMasterAnalyzer.getLastAnalysis === 'function') {
+            var analysis = window.SoundMasterAnalyzer.getLastAnalysis();
+            if (analysis && analysis.details && analysis.details.rmsDb != null) {
+                return Math.round(analysis.details.rmsDb * 10) / 10;
+            }
+        }
         if (window.SpatialAverager && typeof window.SpatialAverager.getResult === 'function') {
             var res = window.SpatialAverager.getResult();
             if (res && res.avg && res.avg.length > 0) {
-                var avgEnergy = res.avg.reduce(function (a, b) { return a + Math.pow(10, b / 10); }, 0) / res.avg.length;
-                return 10 * Math.log10(avgEnergy + 1e-10);
-            }
-        }
-        if (window.SoundMasterAnalyzer && typeof window.SoundMasterAnalyzer.getFreqData === 'function') {
-            var snap = window.SoundMasterAnalyzer.getFreqData();
-            if (snap && snap.data) {
-                var avg = 0;
-                for (var i = 0; i < snap.data.length; i++) avg += snap.data[i];
-                return avg / snap.data.length;
+                var maxDb = -Infinity;
+                for (var i = 0; i < res.avg.length; i++) {
+                    if (res.avg[i] > maxDb) maxDb = res.avg[i];
+                }
+                if (maxDb > -Infinity) return Math.round(maxDb * 10) / 10;
             }
         }
         return Math.round(70 + Math.random() * 15);
@@ -47,6 +47,8 @@
         var delay = _readLiveDelay();
         var point = { id: _nextId++, x: x, y: y, spl: spl, delay: delay, ts: Date.now() };
         _points.push(point);
+        var hint = pm._el('cv-floorplan-hint');
+        if (hint) hint.style.display = 'none';
         _renderMap();
         _renderList();
         _renderStats();
@@ -193,10 +195,12 @@
             lines.push(p.id + ',' + p.x.toFixed(3) + ',' + p.y.toFixed(3) + ',' + p.spl.toFixed(1) + ',' + p.delay.toFixed(2) + ',' + p.ts);
         });
         var blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+        var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
+        a.href = url;
         a.download = 'coverage-map.csv';
         a.click();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 100);
     }
 
     function _modeChanged() {
@@ -252,6 +256,6 @@
         }, 100);
     }
 
-    function destroy() { pm.destroy(); _points = []; }
+    function destroy() { pm.destroy(); _points = []; _nextId = 0; }
     window.CoverageMapPage = { init: init, destroy: destroy };
 })();

@@ -73,7 +73,7 @@
                 var surfaceArea = 2 * (length * width + length * height + width * height);
 
                 var rt60 = 0;
-                var formula = 'Sabine (Local Fallback)';
+                var formula = 'Eyring (Local Fallback)';
                 var classification = '';
 
                 if (window.AIService && typeof window.AIService.calculateAcoustics === 'function') {
@@ -82,7 +82,7 @@
                         if (aiResult) {
                             rt60 = aiResult.rt60;
                             formula = 'Eyring (AI Engine)';
-                            classification = aiResult.classification;
+                            classification = aiResult.classification || '';
                         }
                     } catch (err) {
                         console.warn('[AcusticaPage] Failed to calculate RT60 via AIService, falling back to local formulas:', err);
@@ -92,7 +92,6 @@
                 if (rt60 === 0) {
                     var alpha = Math.min(0.99, absorption);
                     rt60 = (-0.161 * volume) / (surfaceArea * Math.log(1 - alpha));
-                    formula = 'Eyring (Local Fallback)';
                 }
 
                 var delayMs = dist > 0 ? (dist / 343) * 1000 : 0;
@@ -111,6 +110,7 @@
                     '</div>' +
                     '</div>' +
                     '<p class="text-[10px] text-slate-400 mt-4">Fórmula: ' + formula + '</p>' +
+                    (classification ? '<p class="text-[10px] text-cyan-400 mt-1">' + classification + '</p>' : '') +
                     '</div>';
 
                 pm._setHTML('rt60-result', resultHtml);
@@ -131,7 +131,7 @@
                 }
 
                 var smm = window.SoundMasterMapping;
-                if (smm && typeof smm.updateDimensions === 'function') {
+                if (smm && typeof smm.updateDimensions === 'function' && !window.RT60Mapping) {
                     smm.updateDimensions(width, length);
                 }
             } finally {
@@ -141,19 +141,8 @@
             }
         });
 
-        pm._on(pm._el('btn-import-floorplan'), 'click', function () {
-            var input = pm._el('input-floorplan');
-            if (input) input.click();
-        });
-
-        var rtm = window.RT60Mapping;
-        if (rtm && typeof rtm.init === 'function') {
-            var canvas = pm._el('mapping-canvas');
-            var container = pm._el('mapping-container');
-            if (canvas) {
-                rtm.init(canvas, container);
-            }
-        }
+        // RT60Mapping auto-inits via page-loaded event in rt60-mapping.js
+        // and handles btn-import-floorplan, btn-clear-mapping, btn-export-mapping
     }
 
     function _resizeEtcCanvas() {
@@ -241,7 +230,6 @@
 
     function _drawSchroederMarkers(ctx, plotL, plotT, plotW, plotH, timeMs) {
         if (!etcData || etcData.length < 2) return;
-        var dbRange = ETC_MAX_DB - ETC_MIN_DB;
         var peakDb = -Infinity;
         var peakIdx = 0;
         for (var i = 0; i < etcData.length; i++) {

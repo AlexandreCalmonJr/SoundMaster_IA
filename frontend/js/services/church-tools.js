@@ -282,13 +282,13 @@
         };
 
         btnRec.onclick = () => {
-            MixerService.setRecording(true, 'mtk');
+            MixerService.mtkControl('start');
             updateStatusUI(true);
             AppStore.addLog('MTK: Gravação de Multitrack iniciada para Soundcheck Virtual.');
         };
 
         btnStop.onclick = () => {
-            MixerService.setRecording(false, 'mtk');
+            MixerService.mtkControl('stop');
             updateStatusUI(false);
             AppStore.addLog('MTK: Gravação de Multitrack finalizada.');
         };

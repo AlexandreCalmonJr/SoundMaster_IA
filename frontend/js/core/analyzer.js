@@ -190,7 +190,7 @@
         peakPerOctave.forEach(function (band) {
             const el = document.createElement('div');
             el.className = 'flex flex-col items-center bg-black/30 rounded px-1.5 py-1 min-w-[36px]';
-            el.innerHTML = '<span class="text-[7px] text-slate-600">' + (band.fc >= 1000 ? (band.fc/1000).toFixed(band.fc >= 10000 ? 0 : 1) + 'k' : band.fc) + '</span>'
+            el.innerHTML = '<span class="text-[7px] text-slate-600">' + (band.fc >= 1000 ? (band.fc / 1000).toFixed(band.fc >= 10000 ? 0 : 1) + 'k' : band.fc) + '</span>'
                 + '<span class="text-[9px] font-bold text-cyan-300 leading-tight">' + (band.peakDb > -120 ? Math.round(band.peakDb) : '--') + '</span>'
                 + '<span class="text-[6px] text-slate-700">dB</span>';
             container.appendChild(el);
@@ -299,7 +299,7 @@
         const bands = [63, 125, 250, 500, 1000, 2000, 4000, 8000];
         const refBin = Math.round(1000 * analyser.fftSize / sampleRate);
         const referenceDb = avgSpectrum[refBin] || -60;
-        
+
         const report = [];
         const deviations = {};
         let lowSum = 0, midSum = 0, highSum = 0;
@@ -367,7 +367,7 @@
         const notes = [];
         if (lowAvg > midAvg + 6) notes.push('grave muito presente');
         else if (lowAvg < midAvg - 6) notes.push('grave fraco');
-        
+
         if (highMidAvg > midAvg + 5) notes.push('médio-agudos proeminentes (atenção a sibilância)');
         if (highAvg < highMidAvg - 6) notes.push('falta de brilho nos agudos superiores');
         else if (highAvg > highMidAvg + 6) notes.push('agudos muito vivos');
@@ -474,7 +474,7 @@
             averageSpectrum[i] = pinkMeasurementSum[i] / Math.max(1, pinkMeasurementCount);
         }
         pinkReport = buildPinkNoiseReport(averageSpectrum, audioCtx.sampleRate);
-        
+
         const lowCheck = getBandAverage(averageSpectrum, audioCtx.sampleRate, 200, 300, analyser.fftSize);
         const highCheck = getBandAverage(averageSpectrum, audioCtx.sampleRate, 3500, 4500, analyser.fftSize);
         const slope = lowCheck - highCheck;
@@ -637,7 +637,7 @@
             const nf = (Math.log10(f) - logMin) / (logMax - logMin);
             const y = plotH - nf * plotH;
             if (y >= 0 && y <= plotH) {
-                specCtx.fillText(f >= 1000 ? `${f/1000}k` : String(f), axisL - 2, y);
+                specCtx.fillText(f >= 1000 ? `${f / 1000}k` : String(f), axisL - 2, y);
             }
         });
 
@@ -711,7 +711,7 @@
             { el: specCanvas }
         ];
         const tfCanvases = ['tf-magnitude-canvas', 'tf-phase-canvas'];
-        
+
         canvases.forEach(({ el }) => {
             if (!el) return;
             const rect = el.getBoundingClientRect();
@@ -782,7 +782,7 @@
         window.removeEventListener('resize', _resizeCanvases);
         canvas.removeEventListener('mousemove', _onRtaMouseMove);
         canvas.removeEventListener('mouseleave', _onRtaMouseLeave);
-        
+
         function _onRtaMouseMove(e) {
             const rect = canvas.getBoundingClientRect();
             rtaCrosshairX = (e.clientX - rect.left) * (canvas.width / rect.width);
@@ -812,7 +812,7 @@
 
         // Inicializa Visualizador de Transfer Function
         if (window.SoundMasterVisualizer) window.SoundMasterVisualizer.init();
-        
+
         rmsBar = _el('rms-bar');
         feedbackAlert = _el('feedback-alert');
         analysisSummaryText = _el('acoustic-summary');
@@ -882,25 +882,25 @@
             stream = await navigator.mediaDevices.getUserMedia(constraints);
             silentFrameCount = 0;
             await _populateDeviceList();
-            
+
             audioCtx = new (window.AudioContext || window.webkitAudioContext)({
                 latencyHint: 'interactive',
                 sampleRate: 48000
             });
-            
+
             if (audioCtx.state === 'suspended') {
                 await audioCtx.resume();
             }
             if (audioCtx.state !== 'running') {
                 throw new Error('AudioContext não pôde ser iniciado.');
             }
-            
+
             try {
                 await audioCtx.audioWorklet.addModule(`js/core/min/audio-processor.js?t=${Date.now()}`);
                 await audioCtx.audioWorklet.addModule(`js/core/min/transfer-function-processor.js?t=${Date.now()}`);
-                
+
                 audioWorkletNode = new AudioWorkletNode(audioCtx, 'soundmaster-processor');
-                
+
                 transferFunctionNode = new AudioWorkletNode(audioCtx, 'transfer-function-processor', {
                     numberOfInputs: 2,
                     numberOfOutputs: 1
@@ -925,11 +925,11 @@
             }
 
             analyser = audioCtx.createAnalyser();
-            analyser.fftSize = 32768; 
+            analyser.fftSize = 32768;
             analyser.smoothingTimeConstant = 0.8;
             analyser.minDecibels = -100;
             analyser.maxDecibels = -10;
-            
+
             source = audioCtx.createMediaStreamSource(stream);
             try {
                 source.channelCountMode = 'explicit';
@@ -961,7 +961,7 @@
             if (transferFunctionNode) {
                 source.connect(transferFunctionNode, 0, 1);
                 _setupReferenceSource(audioCtx, transferFunctionNode);
-                
+
                 const tfSilentGain = audioCtx.createGain();
                 tfSilentGain.gain.value = 0;
                 transferFunctionNode.connect(tfSilentGain);
@@ -993,12 +993,12 @@
             }
 
             isAnalyzing = true;
-            
+
             const dot = _el('mic-status-dot');
             const text = _el('mic-status-text');
             if (dot) dot.classList.add('online');
             if (text) text.innerText = 'Mic Online';
-            
+
             _resizeCanvases();
             analyze();
         } catch (err) {
@@ -1032,7 +1032,7 @@
         }
 
         if (monitorGain) {
-            try { monitorGain.disconnect(); } catch (_) {}
+            try { monitorGain.disconnect(); } catch (_) { }
             monitorGain = null;
         }
 
@@ -1051,7 +1051,7 @@
 
         if (canvasCtx && canvas) canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
         if (specCtx && specCanvas) specCtx.clearRect(0, 0, specCanvas.width, specCanvas.height);
-        
+
         const dot = _el('mic-status-dot');
         const text = _el('mic-status-text');
         if (dot) dot.classList.remove('online');
@@ -1131,7 +1131,7 @@
     function _handleTransferFunctionData(data) {
         latestTFData = data;
         const { magnitude, phase, coherence, wrappedPhase, delayMs, sampleRate } = data;
-        
+
         const delayEl = _el('delay-finder-value');
         if (delayEl) {
             delayEl.innerText = `${delayMs.toFixed(2)} ms`;
@@ -1193,8 +1193,8 @@
         const isSilence = mapped.label === 'Silêncio';
         badge.className = 'rounded-xl p-3 flex items-center gap-3 animate-in fade-in duration-500 ' +
             (isFeedback ? 'bg-gradient-to-r from-red-900/60 to-orange-900/40 border border-red-500/30' :
-             isSilence ? 'bg-gradient-to-r from-slate-900/60 to-slate-800/40 border border-slate-500/30' :
-             'bg-gradient-to-r from-indigo-900/60 to-purple-900/40 border border-indigo-500/30');
+                isSilence ? 'bg-gradient-to-r from-slate-900/60 to-slate-800/40 border border-slate-500/30' :
+                    'bg-gradient-to-r from-indigo-900/60 to-purple-900/40 border border-indigo-500/30');
     }
 
     async function _runClassification(samples, sampleRate) {
@@ -1204,22 +1204,22 @@
             if (result && result.topClass) {
                 _renderClassification(result);
             }
-        } catch (_) {}
+        } catch (_) { }
     }
 
     function analyze() {
         if (!isAnalyzing) return;
-        
+
         try {
             animationId = requestAnimationFrame(analyze);
             var _ss = window.SocketService;
-            
+
             if (!freqData || freqData.length !== analyser.frequencyBinCount) {
                 bufferLength = analyser.frequencyBinCount;
                 freqData = new Float32Array(bufferLength);
                 timeData = new Float32Array(analyser.fftSize);
             }
-            
+
             analyser.getFloatFrequencyData(freqData);
 
             // RAW RMS (antes da calibração) para uso exclusivo da página de calibração SPL
@@ -1237,7 +1237,7 @@
             } else {
                 silentFrameCount = 0;
             }
-            
+
             const fastBufferLength = analyserFast.frequencyBinCount;
             if (!window._fastFreqDataCache || window._fastFreqDataCache.length !== fastBufferLength) {
                 window._fastFreqDataCache = new Float32Array(fastBufferLength);
@@ -1248,7 +1248,7 @@
             if (window.AcousticCalibration) {
                 window.AcousticCalibration.applyCalibration(freqData, audioCtx.sampleRate, analyser.fftSize);
             }
-            
+
             analyser.getFloatTimeDomainData(timeData);
 
             if (window.SplLogger) {
@@ -1313,8 +1313,8 @@
 
             if (canvas && canvasCtx && _shouldRender) {
                 const iecCenters = [
-                    20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 
-                    500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 
+                    20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400,
+                    500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000,
                     6300, 8000, 10000, 12500, 16000, 20000
                 ];
                 const w = canvas.width;
@@ -1322,7 +1322,7 @@
                 const minDb = analyser.minDecibels;
                 const maxDb = analyser.maxDecibels;
                 const dbRange = maxDb - minDb;
-                const halfStep = Math.pow(2, 1/6);
+                const halfStep = Math.pow(2, 1 / 6);
                 const axisL = 32;
                 const axisB = 14;
                 const plotW = w - axisL;
@@ -1381,7 +1381,7 @@
                 gridFreqs.forEach(f => {
                     const lf = Math.log10(f);
                     const x = axisL + ((lf - logMin) / (logMax - logMin)) * plotW;
-                    canvasCtx.fillText(f >= 1000 ? `${(f/1000).toFixed(f>=10000?0:1)}k` : String(f), x, plotH + 1);
+                    canvasCtx.fillText(f >= 1000 ? `${(f / 1000).toFixed(f >= 10000 ? 0 : 1)}k` : String(f), x, plotH + 1);
                 });
                 canvasCtx.restore();
 
@@ -1389,7 +1389,7 @@
                 const numBands = iecCenters.length;
                 const spacing = 1;
                 const barWidth = (plotW - (spacing * (numBands - 1))) / numBands;
-                
+
                 canvasCtx.save();
                 canvasCtx.beginPath();
                 canvasCtx.rect(axisL, 0, plotW, plotH);
@@ -1401,7 +1401,7 @@
                     const freqEnd = fc * halfStep;
                     const binStart = Math.max(0, Math.floor(freqStart * analyser.fftSize / audioCtx.sampleRate));
                     const binEnd = Math.min(bufferLength, Math.ceil(freqEnd * analyser.fftSize / audioCtx.sampleRate));
-                    
+
                     let maxDbInBin = -120;
                     if (binStart >= binEnd) {
                         const bin = Math.max(0, Math.round(fc * analyser.fftSize / audioCtx.sampleRate));
@@ -1520,13 +1520,13 @@
                     const rowHeight = Math.max(1, h / WATERFALL_DEPTH);
                     const axisWidth = 34;
                     const plotW = Math.max(1, w - axisWidth);
-                    
+
                     waterfallCtx.drawImage(waterfallCanvasEl, 0, 0, plotW, h - rowHeight, 0, rowHeight, plotW, h - rowHeight);
                     waterfallCtx.clearRect(0, 0, plotW, rowHeight);
-                    
+
                     const wfTotalBars = Math.floor(plotW);
                     const wfBinsPerBar = Math.max(1, Math.floor(bufferLength / wfTotalBars));
-                    
+
                     for (let i = 0; i < wfTotalBars; i++) {
                         const binStart = i * wfBinsPerBar;
                         const binEnd = Math.min(binStart + wfBinsPerBar, bufferLength);
@@ -1536,17 +1536,17 @@
                         }
                         const db = maxDbInBin;
                         const normalized = Math.max(0, Math.min(1, (db - analyser.minDecibels) / (analyser.maxDecibels - analyser.minDecibels)));
-                        
+
                         let color;
                         if (normalized < 0.2) color = `rgb(0, 0, ${Math.floor(normalized * 255)})`;
-                        else if (normalized < 0.5) color = `rgb(0, ${Math.floor((normalized-0.2)*255)}, 255)`;
-                        else if (normalized < 0.8) color = `rgb(${Math.floor((normalized-0.5)*255)}, 255, 0)`;
-                        else color = `rgb(255, ${Math.floor((1-normalized)*255)}, 0)`;
-                        
+                        else if (normalized < 0.5) color = `rgb(0, ${Math.floor((normalized - 0.2) * 255)}, 255)`;
+                        else if (normalized < 0.8) color = `rgb(${Math.floor((normalized - 0.5) * 255)}, 255, 0)`;
+                        else color = `rgb(255, ${Math.floor((1 - normalized) * 255)}, 0)`;
+
                         waterfallCtx.fillStyle = color;
                         waterfallCtx.fillRect(i, 0, 1, rowHeight);
                     }
-                    
+
                     _drawWaterfallTimeAxis(waterfallCtx, plotW, 0, axisWidth, h);
 
                     if (!window._lastWfSec) window._lastWfSec = 0;
@@ -1557,13 +1557,13 @@
                         waterfallCtx.fillRect(0, 0, plotW, 1);
                     }
                 }
-                }
+            }
 
-                if (specCtx && specCanvas) {
-                    _drawSpectrograph(freqData, audioCtx.sampleRate);
-                }
+            if (specCtx && specCanvas) {
+                _drawSpectrograph(freqData, audioCtx.sampleRate);
+            }
 
-                if (window.SpatialAverager) {
+            if (window.SpatialAverager) {
                 if (!SpatialAverager._primaryRegistered) {
                     SpatialAverager.addSource('primary', 'Mic Principal', '#ffffff');
                     SpatialAverager._primaryRegistered = true;
@@ -1578,12 +1578,12 @@
             const neighborLeft = freqData[Math.max(0, peakIndex - 1)] || analyser.minDecibels;
             const neighborRight = freqData[Math.min(bufferLength - 1, peakIndex + 1)] || analyser.minDecibels;
             const neighborAvg = (neighborLeft + neighborRight) / 2;
-            
+
             const metrics = calculateAcousticMetrics(timeData, freqData, audioCtx.sampleRate);
             const rmsDb = metrics.rmsDb;
             const crestFactor = metrics.crestFactor;
-            
-            window.currentGlobalRMS = Math.pow(10, rmsDb / 20); 
+
+            window.currentGlobalRMS = Math.pow(10, rmsDb / 20);
 
             // SPL Display and Leq logger delegation
             if (window.SplDisplayModule) {
@@ -1618,17 +1618,17 @@
                 analysisSummaryText.innerText = text;
             }
             renderAnalysisDetails(summary, pinkReport);
-            
+
             // Feedback detector delegation
             if (window.FeedbackDetectorModule) {
                 FeedbackDetectorModule.update(currentFastPeakHz, peakDb, peakHz, neighborAvg, audioCtx.sampleRate);
             }
 
             if (_ss && isAnalyzing && peakDb > -15) {
-                _ss.emit('analyze_feedback_risk', { 
-                    hz: Math.round(currentFastPeakHz), 
-                    db: peakDb, 
-                    prevDb: lastAnalysis?.details?.peakDb || -100 
+                _ss.emit('analyze_feedback_risk', {
+                    hz: Math.round(currentFastPeakHz),
+                    db: peakDb,
+                    prevDb: lastAnalysis?.details?.peakDb || -100
                 });
             }
 
@@ -1642,7 +1642,7 @@
                     const samples = _classifyBuffer.slice(0, Math.min(_classifyBuffer.length, audioCtx.sampleRate * 2));
                     _classifyBuffer = [];
                     _classifyFrameCount = 0;
-                    _classifyCooldown = 120;
+                    _classifyCooldown = 300;
                     _runClassification(samples, audioCtx.sampleRate);
                 }
             }
@@ -1662,10 +1662,10 @@
 
         const channelInput = _el('analyzer-ai-channel');
         const channel = channelInput ? Number(channelInput.value) : 1;
-        
+
         const aiBox = _el('analyzer-ai-suggestions');
         const aiText = _el('analyzer-ai-suggestions-text');
-        
+
         if (aiBox) aiBox.classList.remove('hidden');
         if (aiText) aiText.innerText = 'Processando dados com IA...';
 
@@ -1680,7 +1680,7 @@
             peakDb: Number(lastAnalysis.details.peakDb),
             rms: Number(lastAnalysis.details.rmsDb),
             spl: Number(lastAnalysis.details.peakDb),
-            rt60: Number(lastRt60) || 0,
+            rt60: lastRt60 > 0 ? Number(lastRt60) : null,
             rt60_multiband: rt60Payload,
             spectrum_db: lastAnalysis.details.spectrum_v11 || {},
             bands: lastAnalysis.details.bands,
@@ -1707,7 +1707,7 @@
         try {
             const result = await AIService.ask('Análise acústica do ambiente', channel, payload);
             if (aiText) aiText.innerText = result.text || result.answer;
-            
+
             const actionsArea = _el('analyzer-ai-actions');
             if (actionsArea && result.command) {
                 actionsArea.innerHTML = '';
@@ -1869,21 +1869,33 @@
         sweepCaptureActive = false;
 
         if (sweepNode) {
-            try { sweepNode.disconnect(); } catch (_) {}
+            try { sweepNode.disconnect(); } catch (_) { }
             sweepNode = null;
         }
 
         const summaryEl = _el('pink-measure-summary');
         if (summaryEl) summaryEl.innerText = '⚙️ Deconvoluindo IR...';
 
-
         var _ss = window.SocketService;
-        if (_ss) _ss.emit('analyze_sweep_ir', {
+        var payload = {
             recording: Array.from(recording),
             reference: Array.from(reference),
             sampleRate,
             sweepParams: { f0: 20, f1: 20000, duration: 10, amplitude: 0.85, silencePre: 0.5 }
-        });
+        };
+
+        function _trySend(retries) {
+            if (_ss && _ss.isConnected && _ss.isConnected()) {
+                _ss.emit('analyze_sweep_ir', payload);
+                return;
+            }
+            if (retries > 0) {
+                setTimeout(function () { _trySend(retries - 1); }, 2000);
+            } else {
+                if (summaryEl) summaryEl.innerHTML = '<span class="text-red-400">Falha ao enviar dados. Socket offline.</span>';
+            }
+        }
+        _trySend(5);
     }
 
     async function finishSweepMeasurement() {
@@ -1891,7 +1903,7 @@
         isSweepActive = false;
         sweepCaptureActive = false;
         if (sweepNode) {
-            try { sweepNode.port.postMessage({ type: 'stop' }); } catch (_) {}
+            try { sweepNode.port.postMessage({ type: 'stop' }); } catch (_) { }
         }
     }
 
@@ -1942,15 +1954,15 @@
         document.dispatchEvent(new CustomEvent('rt60-result', {
             detail: {
                 curve: result.schroeder_curve || [],
-                rt60:  result.t30 || result.t20 || result.rt60_est,
-                t20:   result.t20,
-                t30:   result.t30,
-                edt:   result.edt,
-                snr:   result.snr_db,
-                c50:   result.c50,
-                c80:   result.c80,
-                d50:   result.d50,
-                sti:   result.sti,
+                rt60: result.t30 || result.t20 || result.rt60_est,
+                t20: result.t20,
+                t30: result.t30,
+                edt: result.edt,
+                snr: result.snr_db,
+                c50: result.c50,
+                c80: result.c80,
+                d50: result.d50,
+                sti: result.sti,
                 sti_category: result.sti_category,
                 multiband: result.multiband || {},
                 fullResult: result,
@@ -1983,15 +1995,15 @@
         document.dispatchEvent(new CustomEvent('rt60-result', {
             detail: {
                 curve: result.curve || [],
-                rt60:  result.rt60,
-                t20:   result.t20,
-                t30:   result.t30,
-                edt:   result.edt,
-                snr:   result.snr,
-                c50:   result.c50,
-                c80:   result.c80,
-                d50:   result.d50,
-                sti:   result.sti,
+                rt60: result.rt60,
+                t20: result.t20,
+                t30: result.t30,
+                edt: result.edt,
+                snr: result.snr,
+                c50: result.c50,
+                c80: result.c80,
+                d50: result.d50,
+                sti: result.sti,
                 sti_category: result.sti_category,
                 multiband: result.multiband || {},
                 fullResult: result,

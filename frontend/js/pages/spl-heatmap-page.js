@@ -6,8 +6,6 @@
 'use strict';
 
 (function () {
-    const pm = createPageModule();
-
     function init() {
         if (window.SoundMasterHeatmap && typeof window.SoundMasterHeatmap.init === 'function') {
             window.SoundMasterHeatmap.init();
@@ -20,7 +18,6 @@
         if (window.SoundMasterHeatmap && typeof window.SoundMasterHeatmap.destroy === 'function') {
             window.SoundMasterHeatmap.destroy();
         }
-        pm.destroy();
     }
 
     window.SplHeatmapPage = {
