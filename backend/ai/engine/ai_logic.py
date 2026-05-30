@@ -37,8 +37,8 @@ SUPPORTED_MODELS = {
     'phi3.5-mini': {
         'name': 'Phi-3.5 Mini 3.8B',
         'ollama': 'phi3.5:3.8b',
-        'gguf': 'Phi-3.5-Mini-Instruct.Q4_K_M.gguf',
-        'download_url': 'https://huggingface.co/bartowski/Phi-3.5-Mini-Instruct-GGUF/resolve/main/Phi-3.5-Mini-Instruct.Q4_K_M.gguf',
+        'gguf': 'Phi-3.5-mini-instruct-Q4_K_M.gguf',
+        'download_url': 'https://huggingface.co/bartowski/Phi-3.5-mini-instruct-GGUF/resolve/main/Phi-3.5-mini-instruct-Q4_K_M.gguf',
         'size_mb': 2300,
         'n_ctx': 4096,
         'description': 'Melhor qualidade geral. Bom PT-BR. Recomendado para PCs com 8GB+ RAM.',

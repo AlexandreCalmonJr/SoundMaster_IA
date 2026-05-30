@@ -21,6 +21,7 @@ function getPythonCommand() {
 
 const REQS_PATH = installUtils.REQS_PATH;
 const DEPS_STATE_PATH = path.join(__dirname, '..', '..', 'backend', 'ai', '.deps_state.json');
+const CORE_IMPORT_CHECK = 'import fastapi, multipart';
 
 function _getVenvPython(rootDir) {
     const isWin = process.platform === 'win32';
@@ -45,6 +46,45 @@ function _getFileHash(filePath) {
     }
 }
 
+function _pythonRuns(command, args) {
+    try {
+        return spawnSync(command, args, { stdio: 'ignore' }).status === 0;
+    } catch (_) {
+        return false;
+    }
+}
+
+function _hasCoreDeps(command) {
+    return _pythonRuns(command, ['-c', CORE_IMPORT_CHECK]);
+}
+
+function _isYamnetCapablePython(command) {
+    return _pythonRuns(command, ['-c', 'import sys; raise SystemExit(0 if sys.version_info < (3, 13) else 1)']);
+}
+
+function _choosePython(candidates, requireCore = false) {
+    const existing = candidates.filter(c => _pythonRuns(c, ['--version']));
+    const usable = requireCore ? existing.filter(_hasCoreDeps) : existing;
+    return usable.find(_isYamnetCapablePython) || usable[0] || null;
+}
+
+function _resolveProjectRoot(rootDir) {
+    if (fs.existsSync(path.join(rootDir, 'backend', 'ai', 'ai_server.py'))) {
+        return rootDir;
+    }
+    if (fs.existsSync(path.join(rootDir, 'ai_server.py'))) {
+        return path.resolve(rootDir, '..', '..');
+    }
+    return rootDir;
+}
+
+function _resolveAiDir(rootDir) {
+    if (fs.existsSync(path.join(rootDir, 'ai_server.py'))) {
+        return rootDir;
+    }
+    return path.join(rootDir, 'backend', 'ai');
+}
+
 function _ensurePythonDeps() {
     if (!fs.existsSync(REQS_PATH)) {
         console.warn('[Python AI] requirements.txt não encontrado em:', REQS_PATH);
@@ -54,51 +94,40 @@ function _ensurePythonDeps() {
     const currentHash = _getFileHash(REQS_PATH);
     const statePath = DEPS_STATE_PATH;
 
-    // Cache: se já validamos este hash com sucesso, não repete
-    let savedState = null;
-    if (fs.existsSync(statePath)) {
-        try { savedState = JSON.parse(fs.readFileSync(statePath, 'utf8')); } catch (_) {}
-    }
-    if (savedState && savedState.hash === currentHash && savedState.success === true) {
-        console.log('[Python AI] Dependências Python já validadas.');
-        return;
-    }
-
-    // Se o estado salvo mostra falha mas fastapi roda, ignora reinstalação
-    if (savedState && savedState.hash === currentHash && savedState.success === false) {
-        for (const candidate of ['python', 'python3', ...(process.platform === 'win32' ? ['py'] : [])]) {
-            try {
-                const r = spawnSync(candidate, ['-c', 'import fastapi, multipart'], { stdio: 'ignore' });
-                if (r.status === 0) {
-                    console.log('[Python AI] Instalação anterior falhou mas core está funcional. Modo Lite.');
-                    return;
-                }
-            } catch (_) {}
-        }
-    }
-
-    // Encontra Python
     const venvPython = _getVenvPython(path.join(__dirname, '..', '..'));
     const candidates = [];
     if (venvPython) candidates.push(venvPython);
     candidates.push('python', 'python3');
     if (process.platform === 'win32') candidates.push('py');
 
-    const pythonCmd = candidates.find(c => {
-        try { return spawnSync(c, ['--version'], { stdio: 'ignore' }).status === 0; } catch (_) { return false; }
-    });
+    const pythonCmd = _choosePython(candidates);
 
     if (!pythonCmd) {
-        console.warn('[Python AI] Python não encontrado.');
+        console.warn('[Python AI] Python nao encontrado.');
         return;
     }
 
-    // Instala core (obrigatório)
+    // Cache: se já validamos este hash com sucesso, não repete
+    let savedState = null;
+    if (fs.existsSync(statePath)) {
+        try { savedState = JSON.parse(fs.readFileSync(statePath, 'utf8')); } catch (_) {}
+    }
+    if (savedState && savedState.hash === currentHash && savedState.success === true && _hasCoreDeps(pythonCmd) && _isYamnetCapablePython(pythonCmd)) {
+        console.log('[Python AI] Dependências Python já validadas.');
+        return;
+    }
+
+    // Se o estado salvo mostra falha mas fastapi roda no Python atual, ignora reinstalação.
+    if (savedState && savedState.hash === currentHash && savedState.success === false && _hasCoreDeps(pythonCmd) && _isYamnetCapablePython(pythonCmd)) {
+        console.log('[Python AI] Instalação anterior falhou mas core está funcional. Modo Lite.');
+        return;
+    }
+
     console.log('[Python AI] Instalando dependências essenciais...');
     const coreOk = installUtils.installCoreReqs(pythonCmd);
-    if (!coreOk) {
+    if (!coreOk || !_hasCoreDeps(pythonCmd)) {
         console.error('[Python AI] Falha ao instalar dependências essenciais. Execute manualmente:');
-        console.error('[Python AI]   pip install -r backend/ai/requirements.txt');
+        console.error(`[Python AI]   ${pythonCmd} -m pip install -r backend/ai/requirements.txt`);
         return;
     }
     console.log('[Python AI] Dependências essenciais OK.');
@@ -136,14 +165,16 @@ function _findPython() {
 }
 
 function _ensureAIModelAsync(rootDir) {
-    const modelsDir = path.join(rootDir, 'backend', 'ai', 'models');
+    const projectRoot = _resolveProjectRoot(rootDir);
+    const aiDir = _resolveAiDir(rootDir);
+    const modelsDir = path.join(aiDir, 'models');
     
     // Lê a configuração do modelo (AI_MODEL do .env ou fallback)
     const modelKey = process.env.AI_MODEL || 'phi3.5-mini';
     
     // Mapeamento de chaves para arquivos GGUF
     const modelFiles = {
-        'phi3.5-mini': 'Phi-3.5-Mini-Instruct.Q4_K_M.gguf',
+        'phi3.5-mini': 'Phi-3.5-mini-instruct-Q4_K_M.gguf',
         'llama3.2-3b': 'llama-3.2-3b-instruct.Q4_K_M.gguf',
         'gemma2-2b': 'gemma-2-2b-it.Q4_K_M.gguf',
         'tinyllama-1.1b': 'tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf',
@@ -157,7 +188,7 @@ function _ensureAIModelAsync(rootDir) {
         return;
     }
 
-    const downloadScript = path.join(rootDir, 'backend', 'ai', 'scripts', 'download_model.py');
+    const downloadScript = path.join(aiDir, 'scripts', 'download_model.py');
     if (!fs.existsSync(downloadScript)) {
         console.warn('[Python AI] Script de download não encontrado em:', downloadScript);
         return;
@@ -172,7 +203,15 @@ function _ensureAIModelAsync(rootDir) {
     console.log(`[Python AI] Modelo '${modelKey}' não encontrado. Iniciando download em background...`);
     console.log('[Python AI] O servidor de IA iniciará sem o modelo; ele será ativado automaticamente após o download.');
 
-    const proc = spawn(pythonCmd, [downloadScript, modelKey], { stdio: 'inherit', cwd: rootDir });
+    const proc = spawn(pythonCmd, [downloadScript, modelKey], {
+        stdio: 'inherit',
+        cwd: projectRoot,
+        env: {
+            ...process.env,
+            PYTHONUTF8: '1',
+            PYTHONIOENCODING: 'utf-8',
+        },
+    });
 
     proc.on('close', (code) => {
         if (code === 0) {
@@ -190,10 +229,12 @@ function startPythonAI(rootDir, onExitCallback) {
     _ensurePythonDeps();
     _ensureAIModelAsync(rootDir);
 
-    let pythonScript = path.join(rootDir, 'ai_server.py');
+    const projectRoot = _resolveProjectRoot(rootDir);
+    const aiDir = _resolveAiDir(rootDir);
+    let pythonScript = path.join(aiDir, 'ai_server.py');
     if (!fs.existsSync(pythonScript)) {
         // Fallback: se o rootDir for o diretório raiz do projeto e não do backend/ai
-        pythonScript = path.join(rootDir, 'backend', 'ai', 'ai_server.py');
+        pythonScript = path.join(aiDir, 'ai_server.py');
     }
 
     if (!fs.existsSync(pythonScript)) {
@@ -204,14 +245,14 @@ function startPythonAI(rootDir, onExitCallback) {
     // Detector de Ambiente Virtual (venv)
     const isWin = process.platform === 'win32';
     let venvPython = isWin 
-        ? path.join(rootDir, 'venv', 'Scripts', 'python.exe')
-        : path.join(rootDir, 'venv', 'bin', 'python');
+        ? path.join(projectRoot, 'venv', 'Scripts', 'python.exe')
+        : path.join(projectRoot, 'venv', 'bin', 'python');
 
     if (!fs.existsSync(venvPython)) {
         // Fallback para venv em backend/ai
         venvPython = isWin
-            ? path.join(rootDir, 'backend', 'ai', 'venv', 'Scripts', 'python.exe')
-            : path.join(rootDir, 'backend', 'ai', 'venv', 'bin', 'python');
+            ? path.join(aiDir, 'venv', 'Scripts', 'python.exe')
+            : path.join(aiDir, 'venv', 'bin', 'python');
     }
 
     if (!fs.existsSync(venvPython)) {
@@ -221,9 +262,9 @@ function startPythonAI(rootDir, onExitCallback) {
 
     if (!fs.existsSync(venvPython)) {
         // Fallback para Python portátil local (desenvolvimento)
-        venvPython = path.join(rootDir, 'python-portable', 'python.exe');
+        venvPython = path.join(projectRoot, 'python-portable', 'python.exe');
         if (!fs.existsSync(venvPython)) {
-            venvPython = path.join(rootDir, 'backend', 'ai', 'python-portable', 'python.exe');
+            venvPython = path.join(aiDir, 'python-portable', 'python.exe');
         }
     }
 
@@ -242,14 +283,18 @@ function startPythonAI(rootDir, onExitCallback) {
 
     console.log(`[Python AI] Tentando iniciar servidor em: ${pythonScript}`);
 
+    const validCommands = commands.filter(_checkPython);
+    const sortedCommands = [
+        ...validCommands.filter(_isYamnetCapablePython),
+        ...validCommands.filter(c => !_isYamnetCapablePython(c)),
+    ];
+
     let pythonProcess = null;
-    for (const cmd of commands) {
-        if (_checkPython(cmd)) {
-            pythonProcess = _trySpawn(cmd, pythonScript, path.dirname(pythonScript), onExitCallback);
-            if (pythonProcess) {
-                resolvedPythonCommand = cmd;
-                break;
-            }
+    for (const cmd of sortedCommands) {
+        pythonProcess = _trySpawn(cmd, pythonScript, path.dirname(pythonScript), onExitCallback);
+        if (pythonProcess) {
+            resolvedPythonCommand = cmd;
+            break;
         }
     }
 
@@ -315,13 +360,7 @@ function _waitForHealth(proc, timeoutMs = 15000, intervalMs = 1000) {
 }
 
 function _checkPython(command) {
-    try {
-        const { spawnSync } = require('child_process');
-        const result = spawnSync(command, ['--version'], { encoding: 'utf8' });
-        return result.status === 0;
-    } catch (e) {
-        return false;
-    }
+    return _pythonRuns(command, ['--version']) && _hasCoreDeps(command);
 }
 
 function _trySpawn(command, scriptPath, rootDir, onExitCallback) {

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import sys
 # Silencia logs redundantes do TensorFlow/oneDNN antes de qualquer import
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
@@ -24,6 +25,7 @@ class AudioClassifier:
         self.model = None
         self.enabled = False
         self._backend = None  # 'tflite' ou 'tfhub' após _setup()
+        self._missing_backend_reason = None
         self._setup()
 
 
@@ -104,7 +106,7 @@ class AudioClassifier:
             print(f"[Classifier] YAMNet TFLite carregado ({len(self.class_names)} classes). Backend: {backend_name}")
             return True
         except ImportError:
-            print("[Classifier] tflite-runtime e tensorflow nao instalados. Tentando tensorflow_hub...")
+            self._missing_backend_reason = "tflite-runtime/tensorflow.lite indisponivel"
             return False
         except Exception as e:
             print(f"[Classifier] Falha ao carregar YAMNet TFLite: {e}")
@@ -122,11 +124,16 @@ class AudioClassifier:
             print(f"[Classifier] YAMNet TF Hub carregado ({len(self.class_names)} classes).")
         except ImportError:
             import platform
-            print("[Classifier] Nenhum backend disponivel (tflite-runtime nem tensorflow).")
-            if platform.system() == 'Windows' or platform.system() == 'Darwin':
-                print("[Classifier] Execute: pip install tensorflow")
+            py_version = f"{sys.version_info.major}.{sys.version_info.minor}"
+            if sys.version_info >= (3, 13) and platform.system() in ('Windows', 'Darwin'):
+                print(
+                    f"[Classifier] YAMNet opcional desativado: TensorFlow/tflite-runtime "
+                    f"nao esta disponivel para Python {py_version} neste ambiente."
+                )
+            elif platform.system() == 'Windows' or platform.system() == 'Darwin':
+                print("[Classifier] YAMNet opcional desativado. Para habilitar, use Python 3.10-3.12 com tensorflow instalado.")
             else:
-                print("[Classifier] Execute: pip install tflite-runtime")
+                print("[Classifier] YAMNet opcional desativado. Para habilitar, instale tflite-runtime.")
         except Exception as e:
             print(f"[Classifier] Erro ao carregar YAMNet via TF Hub: {e}")
 

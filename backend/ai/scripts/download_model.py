@@ -17,8 +17,8 @@ except ImportError:
 SUPPORTED_MODELS = {
     'phi3.5-mini': {
         'name': 'Phi-3.5 Mini 3.8B',
-        'gguf': 'Phi-3.5-Mini-Instruct.Q4_K_M.gguf',
-        'url': 'https://huggingface.co/bartowski/Phi-3.5-Mini-Instruct-GGUF/resolve/main/Phi-3.5-Mini-Instruct.Q4_K_M.gguf',
+        'gguf': 'Phi-3.5-mini-instruct-Q4_K_M.gguf',
+        'url': 'https://huggingface.co/bartowski/Phi-3.5-mini-instruct-GGUF/resolve/main/Phi-3.5-mini-instruct-Q4_K_M.gguf',
         'size_mb': 2300,
         'description': 'Melhor qualidade geral. Bom PT-BR. Recomendado para PCs com 8GB+ RAM.',
     },
@@ -67,7 +67,7 @@ def _verify_or_save_hash(model_path):
         if actual == cached:
             print("SHA256 OK (cache sidecar).")
             return True
-        print(f"⚠️ SHA256 mismatch vs sidecar (cached={cached}, actual={actual})")
+        print(f"[WARN] SHA256 mismatch vs sidecar (cached={cached}, actual={actual})")
         return False
 
     # Primeira vez: salva o hash no sidecar
@@ -82,7 +82,7 @@ def download_model(model_key=None):
         model_key = DEFAULT_MODEL
 
     if model_key not in SUPPORTED_MODELS:
-        print(f"❌ Modelo '{model_key}' não suportado.")
+        print(f"[ERRO] Modelo '{model_key}' não suportado.")
         print(f"   Modelos disponíveis: {', '.join(SUPPORTED_MODELS.keys())}")
         return False
 
@@ -93,11 +93,11 @@ def download_model(model_key=None):
     os.makedirs(target_dir, exist_ok=True)
 
     if os.path.exists(target_path):
-        print(f"✅ Modelo já existe: {target_path}")
+        print(f"[OK] Modelo já existe: {target_path}")
         _verify_or_save_hash(target_path)
         return True
 
-    print(f"📥 Baixando {info['name']} (~{info['size_mb']}MB)...")
+    print(f"[DOWNLOAD] Baixando {info['name']} (~{info['size_mb']}MB)...")
     print(f"   {info['description']}")
     print(f"   URL: {info['url']}")
 
@@ -118,12 +118,12 @@ def download_model(model_key=None):
                     f.write(data)
                     bar.update(len(data))
 
-        print(f"\n✅ Sucesso! Modelo salvo em: {target_path}")
+        print(f"\n[OK] Sucesso! Modelo salvo em: {target_path}")
         _verify_or_save_hash(target_path)
         return True
 
     except Exception as e:
-        print(f"\n❌ Falha no download: {e}")
+        print(f"\n[ERRO] Falha no download: {e}")
         if os.path.exists(target_path):
             os.remove(target_path)
         return False
@@ -131,13 +131,13 @@ def download_model(model_key=None):
 def list_models():
     """Lista todos os modelos suportados com status."""
     target_dir = os.path.join(os.path.dirname(__file__), "..", "models")
-    print("\n📋 Modelos suportados:")
+    print("\nModelos suportados:")
     print("-" * 60)
     for key, info in SUPPORTED_MODELS.items():
         model_path = os.path.join(target_dir, info['gguf'])
-        status = "✅ Baixado" if os.path.exists(model_path) else "❌ Não baixado"
+        status = "[OK] Baixado" if os.path.exists(model_path) else "[--] Não baixado"
         marker = " (padrão)" if key == DEFAULT_MODEL else ""
-        print(f"  {key}{marker}: {info['name']} — {info['size_mb']}MB — {status}")
+        print(f"  {key}{marker}: {info['name']} - {info['size_mb']}MB - {status}")
         print(f"    {info['description']}")
     print("-" * 60)
     print(f"  Modelo padrão: {DEFAULT_MODEL}")
@@ -149,10 +149,11 @@ if __name__ == "__main__":
         if cmd == "list":
             list_models()
         elif cmd in SUPPORTED_MODELS:
-            download_model(cmd)
+            sys.exit(0 if download_model(cmd) else 1)
         else:
             print(f"Comando desconhecido: {cmd}")
             print("Uso: python download_model.py [list|modelo]")
             print(f"Modelos: {', '.join(SUPPORTED_MODELS.keys())}")
+            sys.exit(2)
     else:
-        download_model()
+        sys.exit(0 if download_model() else 1)

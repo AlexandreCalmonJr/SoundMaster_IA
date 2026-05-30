@@ -6,7 +6,7 @@ const AdmZip = require('adm-zip');
 const { spawn, execSync, spawnSync } = require('child_process');
 
 const PYTHON_ZIP_URL = 'https://www.python.org/ftp/python/3.10.11/python-3.10.11-embed-amd64.zip';
-const EXPECTED_PYTHON_SHA256 = 'd1be42e7bb1c6dc45139ec0f0d153fcdd9ca4adc27f2a0aafbbd4c7f72a3ef19';
+const EXPECTED_PYTHON_SHA256 = '608619f8619075629c9c69f361352a0da6ed7e62f83a0e19c63e0ea32eb7629d';
 const GET_PIP_URL = 'https://bootstrap.pypa.io/get-pip.py';
 const EXPECTED_GETPIP_SHA256 = ''; // Preencher com o hash conhecido do get-pip.py se disponível
 
@@ -31,6 +31,14 @@ async function _verifyChecksum(filePath, expectedHash, label) {
     return true;
 }
 
+function _checkPython(command, importCheck = 'import fastapi, multipart') {
+    const result = spawnSync(command, [
+        '-c',
+        `import sys; ${importCheck}; sys.exit(0 if sys.version_info < (3, 13) else 2)`,
+    ], { stdio: 'ignore' });
+    return result.status;
+}
+
 function setupPythonInstaller(mainWindow, onCompleteCallback) {
     const userDataPath = app.getPath('userData');
     const portableDir = path.join(userDataPath, 'python-portable');
@@ -53,11 +61,11 @@ function setupPythonInstaller(mainWindow, onCompleteCallback) {
         if (fs.existsSync(pythonExePath)) {
             try {
                 // Testa se o python portátil e o fastapi/multipart estão funcionando
-                const checkResult = spawnSync(pythonExePath, ['-c', 'import fastapi, multipart'], { stdio: 'ignore' });
-                if (checkResult.status === 0) {
+                const checkStatus = _checkPython(pythonExePath);
+                if (checkStatus === 0) {
                     return { installed: true, path: pythonExePath };
                 } else {
-                    return { installed: false, needsRequirements: true, path: pythonExePath };
+                    return { installed: false, needsRequirements: true, incompatiblePython: checkStatus === 2, path: pythonExePath };
                 }
             } catch (_) {
                 console.warn('[Python Installer] Falha ao verificar dependências do Python portátil:', _.message);
@@ -72,8 +80,8 @@ function setupPythonInstaller(mainWindow, onCompleteCallback) {
 
         for (const cmd of globalCandidates) {
             try {
-                const checkResult = spawnSync(cmd, ['-c', 'import fastapi, multipart'], { stdio: 'ignore' });
-                if (checkResult.status === 0) {
+                const checkStatus = _checkPython(cmd);
+                if (checkStatus === 0) {
                     return { installed: true, path: cmd };
                 }
             } catch (_) { console.warn('[Python Installer] Falha ao verificar Python global:', _.message); }

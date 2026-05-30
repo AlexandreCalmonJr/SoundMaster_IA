@@ -73,7 +73,7 @@
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.1.1",
     "multicast-dns": "^7.2.5",
-    "osc": "^2.4.5",
+    "osc": "^2.4.2",
     "socket.io": "^4.8.3",
     "soundcraft-ui-connection": "^6.0.3",
     "zod": "^4.4.3"
