@@ -299,11 +299,15 @@
      */
     async function sendTrainingEvent(freq, db, prevDb, gain, isFeedback) {
         try {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 10000);
             await fetch('/api/ai/train', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ freq, db, prevDb, gain, isFeedback })
+                body: JSON.stringify({ freq, db, prevDb, gain, isFeedback }),
+                signal: controller.signal
             });
+            clearTimeout(timer);
         } catch (e) { console.warn('[AIService] Training event failed:', e); }
     }
 

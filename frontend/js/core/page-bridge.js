@@ -62,7 +62,8 @@
             'SignalGeneratorController',
             'SplDisplayModule',
             'AutomixController',
-            'currentGlobalRMS'
+            'currentGlobalRMS',
+            'FIRConvolution'
         ];
 
         servicesToBridge.forEach(serviceName => {

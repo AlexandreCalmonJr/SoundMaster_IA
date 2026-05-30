@@ -347,6 +347,10 @@
      * @param {number} currentRawDb - valor lido em dBFS pelo analyser
      */
     function calibrateSPL(currentRawDb) {
+        if (!Number.isFinite(currentRawDb)) {
+            console.error('[Calibration] calibrateSPL: valor inválido recebido:', currentRawDb);
+            return;
+        }
         const REF_DB = 94; // dBSPL — padrão IEC 60942 para calibradores de campo
         _splOffset   = REF_DB - currentRawDb;
         _cache.clear();
@@ -416,9 +420,17 @@
             const data = await res.json();
 
             if (data.calibrationData?.length > 0) {
-                _points = data.calibrationData.sort((a, b) => a.hz - b.hz);
-                _name   = data.name || 'Recuperado';
-                _active = true;
+                const validPoints = data.calibrationData.filter(p =>
+                    p && typeof p.hz === 'number' && Number.isFinite(p.hz) &&
+                    typeof p.offsetDb === 'number' && Number.isFinite(p.offsetDb)
+                );
+                if (validPoints.length > 0) {
+                    _points = validPoints.sort((a, b) => a.hz - b.hz);
+                    _name   = data.name || 'Recuperado';
+                    _active = true;
+                } else {
+                    console.warn('[Calibration] Dados restaurados contêm apenas pontos inválidos.');
+                }
             }
             if (data.splOffset != null && isFinite(data.splOffset)) {
                 _splOffset = data.splOffset;

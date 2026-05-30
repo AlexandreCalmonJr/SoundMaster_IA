@@ -15,7 +15,9 @@
     let stream;
     let monitorGain = null;
     let isAnalyzing = false;
+    let _isStarting = false;
     let animationId;
+    let _audioResumeHandler = null;
     let lastAnalysis = null;
     let silentFrameCount = 0;
     let pinkMeasurementActive = false;
@@ -53,6 +55,7 @@
     let sweepRecordingIdx = 0;
     let sweepCaptureActive = false;
     let isSweepActive = false;
+    let _sweepSafetyTimer = null;
 
     // YAMNet live classification
     let _classifyBuffer = [];
@@ -65,6 +68,7 @@
     // Throttle: salta rendering pesado a cada N frames (melhor em mobile)
     let _frameCount = 0;
     let _frameSkip = 2;
+    let _lastWfSec = 0;
 
     const _CLASS_ICON_MAP = [
         { match: /speech|voice|conversation|narration/i, icon: '🎤', label: 'Fala', detail: 'Voz/fala detectada' },
@@ -79,6 +83,10 @@
         { match: /vehicle|car|engine|traffic/i, icon: '🚗', label: 'Trânsito', detail: 'Ruído de veículo' },
         { match: /footstep|step|walk/i, icon: '👣', label: 'Passos', detail: 'Passos no palco' },
     ];
+
+    const _CLASS_DEFAULT_ICON = '🔊';
+    const _CLASS_DEFAULT_LABEL = 'Áudio';
+    const _CLASS_DEFAULT_DETAIL = 'Som detectado';
 
     function handleTfButtonClick(e) {
         const btn = e.target.closest('button');
@@ -683,10 +691,22 @@
             _analyzerIframe.contentDocument.addEventListener('change', handleTfChange);
         }
 
-        // Evento de page-unload para limpar referências locais de DOM
+        // Evento de page-unload para limpar recursos de áudio e referências DOM
         window.addEventListener('page-unload', (e) => {
             if (e.detail && e.detail.pageId === 'analyzer') {
-                console.log('[Analyzer] Desvinculando elementos do DOM (page-unload)...');
+                console.log('[Analyzer] Limpando recursos no page-unload...');
+                stopAnalyzer();
+                _isStarting = false;
+                _lastWfSec = 0;
+                _delayHistory = [];
+                _delayStableCount = 0;
+                refAudioQueue = [];
+                peakPerOctave = [];
+                peakHold = { hz: 0, db: -100, timer: 0 };
+                if (_audioResumeHandler) {
+                    document.removeEventListener('click', _audioResumeHandler);
+                    _audioResumeHandler = null;
+                }
                 canvas = null;
                 canvasCtx = null;
                 waterfallCanvasEl = null;
@@ -855,13 +875,18 @@
             btnMic.addEventListener('click', toggleAnalyzer);
         }
 
-
-        document.addEventListener('click', () => {
+        if (_audioResumeHandler) {
+            document.removeEventListener('click', _audioResumeHandler);
+        }
+        _audioResumeHandler = () => {
             if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-        }, { once: false });
+        };
+        document.addEventListener('click', _audioResumeHandler);
     }
 
     async function startAnalyzer() {
+        if (_isStarting || isAnalyzing) return;
+        _isStarting = true;
         try {
             console.log('[Analyzer] startAnalyzer()');
             const deviceId = micSelect?.value || 'default';
@@ -996,6 +1021,7 @@
             }
 
             isAnalyzing = true;
+            _isStarting = false;
 
             const dot = _el('mic-status-dot');
             const text = _el('mic-status-text');
@@ -1005,6 +1031,7 @@
             _resizeCanvases();
             analyze();
         } catch (err) {
+            _isStarting = false;
             console.error("Erro ao acessar microfone:", err);
             alert(`Erro ao acessar o microfone: ${err.message}`);
         }
@@ -1013,6 +1040,7 @@
     async function stopAnalyzer() {
         console.log('[Analyzer] Parando analisador...');
         isAnalyzing = false;
+        _lastWfSec = 0;
         if (animationId) {
             cancelAnimationFrame(animationId);
             animationId = null;
@@ -1042,12 +1070,26 @@
         analyser = null;
         analyserFast = null;
         source = null;
-        audioWorkletNode = null;
+
+        if (audioWorkletNode) {
+            try { audioWorkletNode.disconnect(); } catch (_) { }
+            audioWorkletNode = null;
+        }
+        if (transferFunctionNode) {
+            try { transferFunctionNode.disconnect(); } catch (_) { }
+            transferFunctionNode = null;
+        }
+        if (refSource) {
+            try { refSource.disconnect(); } catch (_) { }
+            refSource = null;
+        }
 
         if (window._refSourceFeedTimer) {
             clearInterval(window._refSourceFeedTimer);
             window._refSourceFeedTimer = null;
         }
+
+        refAudioQueue = [];
 
         if (window.SplLogger) SplLogger.stop();
         if (window.MtwManager) MtwManager.stop();
@@ -1211,7 +1253,7 @@
     }
 
     function analyze() {
-        if (!isAnalyzing) return;
+        if (!isAnalyzing || !analyser || !audioCtx) return;
 
         try {
             animationId = requestAnimationFrame(analyze);
@@ -1552,10 +1594,9 @@
 
                     _drawWaterfallTimeAxis(waterfallCtx, plotW, 0, axisWidth, h);
 
-                    if (!window._lastWfSec) window._lastWfSec = 0;
                     const nowSec = Math.floor(Date.now() / 1000);
-                    if (nowSec !== window._lastWfSec) {
-                        window._lastWfSec = nowSec;
+                    if (nowSec !== _lastWfSec) {
+                        _lastWfSec = nowSec;
                         waterfallCtx.fillStyle = 'rgba(255, 255, 255, 0.15)';
                         waterfallCtx.fillRect(0, 0, plotW, 1);
                     }
@@ -1715,7 +1756,7 @@
 
         try {
             const result = await AIService.ask('Análise acústica do ambiente', channel, payload);
-            if (aiText) aiText.innerText = result.text || result.answer;
+            if (aiText) aiText.innerText = result.text;
 
             const actionsArea = _el('analyzer-ai-actions');
             if (actionsArea && result.command) {
@@ -1723,7 +1764,13 @@
                 const button = document.createElement('button');
                 button.className = 'px-3 py-1.5 bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 rounded-lg text-[10px] font-bold uppercase hover:bg-cyan-500 hover:text-white transition-all';
                 button.innerText = 'Executar Correção Sugerida';
-                button.addEventListener('click', () => MixerService.executeAICommand(result.command));
+                button.addEventListener('click', () => {
+                    if (window.MixerService && typeof MixerService.executeAICommand === 'function') {
+                        MixerService.executeAICommand(result.command);
+                    } else {
+                        alert('Comando da IA recebido, mas o Mixer não está conectado.');
+                    }
+                });
                 actionsArea.appendChild(button);
             }
         } catch (err) {
@@ -1803,8 +1850,10 @@
 
         sweepNode.port.postMessage({ type: 'start', params: sweepParams });
 
+        if (_sweepSafetyTimer) clearTimeout(_sweepSafetyTimer);
         const safetyMs = (sweepParams.silencePre + sweepParams.duration + sweepParams.silencePost + 5) * 1000;
-        setTimeout(() => {
+        _sweepSafetyTimer = setTimeout(() => {
+            _sweepSafetyTimer = null;
             if (isSweepActive && sweepNode) {
                 sweepNode.port.postMessage({ type: 'stop' });
             }
@@ -1877,6 +1926,11 @@
         isSweepActive = false;
         sweepCaptureActive = false;
 
+        if (_sweepSafetyTimer) {
+            clearTimeout(_sweepSafetyTimer);
+            _sweepSafetyTimer = null;
+        }
+
         if (sweepNode) {
             try { sweepNode.disconnect(); } catch (_) { }
             sweepNode = null;
@@ -1911,6 +1965,10 @@
         if (!isSweepActive) return;
         isSweepActive = false;
         sweepCaptureActive = false;
+        if (_sweepSafetyTimer) {
+            clearTimeout(_sweepSafetyTimer);
+            _sweepSafetyTimer = null;
+        }
         if (sweepNode) {
             try { sweepNode.port.postMessage({ type: 'stop' }); } catch (_) { }
         }
@@ -2144,7 +2202,7 @@
 
     return {
         isAnalyzing: () => isAnalyzing,
-        getFrequencyData: () => lastAnalysis ? [...lastAnalysis.fftData] : [],
+        getFrequencyData: () => { const snap = getFreqDataSnapshot(); return snap ? snap.data : []; },
         getRt60: () => lastRt60Result,
         startSweep: triggerImpulseMeasure,
         getTransferFunctionData: () => latestTFData,

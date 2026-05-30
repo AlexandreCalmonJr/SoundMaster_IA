@@ -27,7 +27,7 @@
         pm._on(pm._el('btn-start-audio'), 'click', function () { pm._safeCall('SoundMasterAnalyzer', 'toggle'); });
         pm._on(pm._el('btn-stop-audio'), 'click', function () { pm._safeCall('SoundMasterAnalyzer', 'toggle'); });
         pm._on(pm._el('btn-send-analysis'), 'click', function () { if (window.SoundMasterAnalyzer) { var analysis = SoundMasterAnalyzer.getLastAnalysis(); if (!analysis) { alert('Nenhuma an\u00E1lise dispon\u00EDvel. Ative o microfone e aguarde.'); return; } if (typeof window._sendAnalysisToAI === 'function') window._sendAnalysisToAI(); } });
-        pm._on(pm._el('btn-measure-pink'), 'click', function () { pm._safeCall('SoundMasterAnalyzer', 'toggle'); });
+        pm._on(pm._el('btn-measure-pink'), 'click', function () { pm._safeCall('SoundMasterAnalyzer', 'startPinkNoiseMeasurement'); });
         pm._on(pm._el('btn-log-sweep'), 'click', function () { pm._safeCall('SoundMasterAnalyzer', 'triggerImpulse'); });
         pm._on(pm._el('btn-toggle-auto-cut'), 'change', function () { console.log('[AnalyzerPage] Auto-Cut: ' + (this.checked ? 'ON' : 'OFF')); });
         pm._on(pm._el('btn-manual-diagnostic'), 'click', function () { if (window.SoundMasterAnalyzer && SoundMasterAnalyzer.hasAnalysis()) { var summaryEl = pm._el('acoustic-summary'), analysis = SoundMasterAnalyzer.getLastAnalysis(); if (summaryEl && analysis) { summaryEl.innerHTML = '<strong>Diagn\u00F3stico:</strong> ' + analysis.text.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]}); summaryEl.classList.add('text-cyan-400'); } } });

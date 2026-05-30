@@ -49,6 +49,10 @@
                 feedbackAlert.innerHTML = `⚠️ <strong>Microfonia DETECTADA</strong> em <strong>${freqInt} Hz</strong> sustentados. Diferença local: ${(peakDb - neighborAvg).toFixed(1)} dB.`;
             }
 
+            if (window.AppStore && typeof AppStore.setState === 'function') {
+                AppStore.setState({ feedbackHz: freqInt });
+            }
+
             if (isAutoCutEnabled && autoCutCooldown === 0) {
                 const exactFreq = Math.round(peakHz);
                 const bandId = Math.round(exactFreq / 10) * 10;
@@ -109,6 +113,10 @@
             if (btnAutoCut && !isAutoCutEnabled) {
                 btnAutoCut.style.display = 'none';
                 btnAutoCut.innerText = '🪄 Cortar Frequência na Mesa';
+            }
+
+            if (window.AppStore && typeof AppStore.setState === 'function') {
+                AppStore.setState({ feedbackHz: null });
             }
         }
     }

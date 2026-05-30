@@ -2,11 +2,13 @@
     'use strict';
 
     function _el(id) {
-        const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
-        if (iframe && iframe.contentDocument) {
-            const el = iframe.contentDocument.getElementById(id);
-            if (el) return el;
-        }
+        try {
+            const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
+            if (iframe && iframe.contentDocument) {
+                const el = iframe.contentDocument.getElementById(id);
+                if (el) return el;
+            }
+        } catch (_) { }
         return document.getElementById(id);
     }
 
@@ -808,13 +810,15 @@
         const dpr = window.devicePixelRatio || 1;
         [magCanvas, phaseCanvas, lirCanvas].forEach(c => {
             if (!c) return;
-            const w = Math.floor(c.clientWidth * dpr);
-            const h = Math.floor(c.clientHeight * dpr);
+            const cssW = c.clientWidth;
+            const cssH = c.clientHeight;
+            const w = Math.floor(cssW * dpr);
+            const h = Math.floor(cssH * dpr);
             if (c.width !== w || c.height !== h) {
                 c.width = w;
                 c.height = h;
-                c.style.width = c.clientWidth + 'px';
-                c.style.height = c.clientHeight + 'px';
+                c.style.width = cssW + 'px';
+                c.style.height = cssH + 'px';
             }
         });
     }
@@ -1628,6 +1632,10 @@
         drawCrosshair(magCtx, crosshairYMag, 'mag', '#22d3ee', zoomMag, w, h, offX);
         drawCrosshair(phaseCtx, crosshairYPhase, showGroupDelay ? 'groupdelay' : 'phase', '#a855f7', zoomPhase, pw, ph, offX);
 
+        if (lirVisible) {
+            lirCanvas = _el('lir-canvas');
+            if (lirCanvas) lirCtx = lirCanvas.getContext('2d');
+        }
         if (lirVisible && lirCtx && lirCanvas) {
             const lirDpr = window.devicePixelRatio || 1;
             if (lirCanvas.clientWidth > 0 && lirCanvas.clientHeight > 0) {
@@ -1878,6 +1886,7 @@
         },
         setShowCoherence: (v) => { showCoherence = !!v; },
         getTargetCurve: () => targetCurve,
-        setTargetCurve: (tc) => { targetCurve = tc; }
+        setTargetCurve: (tc) => { targetCurve = tc; },
+        getLirData: () => lirData
     };
 })();

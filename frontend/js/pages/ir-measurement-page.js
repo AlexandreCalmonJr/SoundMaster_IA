@@ -111,16 +111,16 @@
     }
 
     function _captureIR() {
-        var tfData = null;
-        if (window.SoundMasterAnalyzer && typeof window.SoundMasterAnalyzer.getTransferFunctionData === 'function') {
-            tfData = window.SoundMasterAnalyzer.getTransferFunctionData();
+        var lirData = null;
+        if (window.SoundMasterVisualizer && typeof window.SoundMasterVisualizer.getLirData === 'function') {
+            lirData = window.SoundMasterVisualizer.getLirData();
         }
-        if (!tfData || !tfData.lir) {
+        if (!lirData || !lirData.ir || lirData.ir.length < 4) {
             var status = pm._el('ir-status');
-            if (status) { status.textContent = '❌ Ative o TF no Analyzer'; status.style.color = '#ef4444'; }
+            if (status) { status.textContent = '❌ Ative o TF no Analyzer e ative o LIR (botão L)'; status.style.color = '#ef4444'; }
             return;
         }
-        _capturedIR = new Float32Array(tfData.lir);
+        _capturedIR = new Float32Array(lirData.ir);
         var status = pm._el('ir-status');
         if (status) { status.textContent = _capturedIR.length + ' samples ✓'; status.style.color = '#22c55e'; }
 

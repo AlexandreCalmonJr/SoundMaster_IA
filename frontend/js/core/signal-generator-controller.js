@@ -65,12 +65,14 @@
     function stopPinkNoise() {
         if (pinkNoiseNode) {
             try { pinkNoiseNode.disconnect(); } catch (_) { console.warn('[SignalGenerator] Error disconnecting pink noise'); }
+            pinkNoiseNode = null;
         }
         isPinkNoisePlaying = false;
         console.log('[SignalGenerator] Pink noise stopped');
     }
 
     async function startWhiteNoise(amplitude = 0.3) {
+        stopWhiteNoise();
         const audioCtx = _getAudioCtx();
         try {
             await audioCtx.audioWorklet.addModule('js/core/min/signal-generators.js');
@@ -96,6 +98,7 @@
     }
 
     async function startMLS(order = 13, amplitude = 0.5) {
+        stopMLS();
         const audioCtx = _getAudioCtx();
         try {
             await audioCtx.audioWorklet.addModule('js/core/min/signal-generators.js');
@@ -122,6 +125,7 @@
     }
 
     async function startChirp(startFreq = 20, endFreq = 20000, duration = 2.0, amplitude = 0.5) {
+        stopChirp();
         const audioCtx = _getAudioCtx();
         try {
             await audioCtx.audioWorklet.addModule('js/core/min/signal-generators.js');
@@ -150,6 +154,7 @@
     }
 
     async function startDualTone(freq1 = 1000, freq2 = 1500, amplitude = 0.3) {
+        stopDualTone();
         const audioCtx = _getAudioCtx();
         try {
             await audioCtx.audioWorklet.addModule('js/core/min/signal-generators.js');
