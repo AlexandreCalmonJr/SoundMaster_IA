@@ -14,8 +14,8 @@ const { isAiAvailable, isLiteMode, setAiAvailable } = require('./python-ai');
 
 const PYTHON_PORT = parseInt(process.env.PYTHON_PORT || '3002', 10);
 
-// H5: Prefixos permitidos para send_raw_message — apenas comandos de leitura não destrutivos
-const RAW_MESSAGE_PREFIX_WHITELIST = ['NODE^']; // Apenas consultas de estado
+// H5: Prefixos permitidos para send_raw_message
+const RAW_MESSAGE_PREFIX_WHITELIST = ['NODE^', 'SETD|']; // Consultas de estado + comandos de mixer
 
 function registerSocketHandlers(io, appDataDir = './logs') {
     const logger = Logger.getInstance(appDataDir);

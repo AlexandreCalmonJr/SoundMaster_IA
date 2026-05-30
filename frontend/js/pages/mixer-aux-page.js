@@ -105,6 +105,9 @@
                     const ms = e.target.value;
                     const valDisplay = pm._el(`aux-delay-val-${i}`);
                     if (valDisplay) valDisplay.innerText = `${ms}ms`;
+                });
+                pm._on(delayInput, 'change', (e) => {
+                    const ms = e.target.value;
                     MixerService.setDelay(i, ms);
                 });
             }
@@ -160,6 +163,8 @@
     function init() {
         loadNames().then(() => {
             renderAuxiliaries();
+        }).catch(err => {
+            console.error('[MixerAuxPage] init error:', err);
         });
     }
 

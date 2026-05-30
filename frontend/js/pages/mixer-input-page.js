@@ -153,6 +153,8 @@
 
         loadNames().then(() => {
             renderConsole();
+        }).catch(err => {
+            console.error('[MixerInputPage] init error:', err);
         });
 
         // VU meter update

@@ -344,7 +344,7 @@
     }
 
     function listPresets() {
-        SocketService.emit('list_presets');
+        return _emit('list_presets', {}, 'Listando presets...');
     }
 
     function loadPreset(id) {
@@ -396,6 +396,7 @@
         const fx = _clamp(fxChannel, 1, 4);
         const clamped = _clamp(level, 0, 1);
         
+        if (window.AppStore) AppStore.setState({ [`fx_${fx}_level`]: clamped });
         return _emit('set_fx_level', { channel: ch, fx: fx, level: clamped },
             'Ajustando envio do canal ' + ch + ' para o FX ' + fx + ' em ' + Math.round(clamped * 100) + '%.');
     }
@@ -465,7 +466,10 @@
     }
 
     function setFxBpm(fx, bpm) {
-        return _emit('set_fx_bpm', { fx: fx, val: bpm }, 'FX ' + fx + ' BPM: ' + bpm);
+        const fxNum = _clamp(Number(fx) || 1, 1, 4);
+        const bpmNum = _clamp(Number(bpm) || 120, 40, 300);
+        if (window.AppStore) AppStore.setState({ [`fx_${fxNum}_bpm`]: bpmNum });
+        return _emit('set_fx_bpm', { fx: fxNum, val: bpmNum }, 'FX ' + fxNum + ' BPM: ' + bpmNum);
     }
 
     function showControl(action, show, target) {

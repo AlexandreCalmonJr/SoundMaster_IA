@@ -27,8 +27,8 @@
         pm._on(el, 'pointermove', function (e) { if (!dragActor || dragActor.id !== a.id) return; var wr = wrap.getBoundingClientRect(); el.style.left = (e.clientX - wr.left - dragOffX) + 'px'; el.style.top = (e.clientY - wr.top - dragOffY) + 'px'; });
         pm._on(el, 'pointerup', function (e) { if (!dragActor || dragActor.id !== a.id) return; var wr = wrap.getBoundingClientRect(); a.pct = _posToPct(e.clientX - wr.left - dragOffX, e.clientY - wr.top - dragOffY); dragActor = null; el.classList.remove('selected'); el.style.zIndex = ''; });
         var csx, csy;
-        pm._on(el, 'pointerdown', function (e) { csx = e.clientX; csy = e.clientY; }, { passive: true });
-        pm._on(el, 'click', function (e) { if (e.target.classList.contains('sp-a-remove')) { _removeActor(a.id); return; } if (Math.abs(e.clientX - csx) < 5 && Math.abs(e.clientY - csy) < 5) _openPopup(a, e.clientX, e.clientY); });
+        el.addEventListener('pointerdown', function (e) { csx = e.clientX; csy = e.clientY; }, { passive: true });
+        pm._on(el, 'click', function (e) { if (e.target.classList.contains('sp-a-remove')) { _removeActor(a.id); return; } if (csx !== undefined && Math.abs(e.clientX - csx) < 5 && Math.abs(e.clientY - csy) < 5) _openPopup(a, e.clientX, e.clientY); });
         wrap.appendChild(el);
     }
 
@@ -81,7 +81,11 @@
     function init() {
         var wrap = pm._el('sp-canvas-wrap'), popup = pm._el('sp-ch-popup');
         _drawGrid(); _renderAll();
-        _resizeObserver = new ResizeObserver(function () { _drawGrid(); _renderAll(); });
+        var _resizeTimer = null;
+        _resizeObserver = new ResizeObserver(function () { 
+            if (_resizeTimer) clearTimeout(_resizeTimer);
+            _resizeTimer = setTimeout(function () { _drawGrid(); _renderAll(); }, 50);
+        });
         if (wrap) _resizeObserver.observe(wrap);
 
         document.querySelectorAll('.sp-palette-item').forEach(function (item) { pm._on(item, 'dragstart', function (e) { e.dataTransfer.setData('application/json', JSON.stringify({ type: item.dataset.type, icon: item.dataset.icon, label: item.dataset.label })); e.dataTransfer.effectAllowed = 'copy'; }); });
@@ -97,7 +101,29 @@
         pm._on(pm._el('sp-btn-load'), 'click', function () { try { var raw = localStorage.getItem(STORAGE_KEY); if (!raw) { alert('Nenhum layout salvo.'); return; } actors = JSON.parse(raw); nextId = actors.reduce(function (m, a) { var n = parseInt((a.id || '').split('_')[1]); return n > m ? n + 1 : m; }, 1); _renderAll(); } catch (e) { alert('Erro ao carregar layout: ' + e.message); } });
         pm._on(pm._el('sp-btn-clear'), 'click', function () { if (!confirm('Limpar o palco?')) return; actors = []; if (wrap) wrap.querySelectorAll('.sp-actor').forEach(function (el) { el.remove(); }); pm._setText('sp-actor-count', '0 instrumentos'); });
         pm._on(pm._el('sp-btn-export'), 'click', function () { window.print(); });
-        pm._on(pm._el('sp-btn-spatial'), 'click', async function () { if (!window.SpatialAverager) { alert('SpatialAverager n\u00E3o dispon\u00EDvel.'); return; } var btn = pm._el('sp-btn-spatial'), badge = pm._el('sp-spatial-badge'); if (spatialActive) { await SpatialAverager.stop(); spatialActive = false; if (badge) badge.style.display = 'none'; if (btn) btn.textContent = '\uD83C\uDF99\uFE0F Ativar M\u00E9dia Espacial'; } else { var mics = await SpatialAverager.startMultiDevice(Math.min(actors.filter(function (a) { return a.channel; }).length || 2, 8)); spatialActive = mics.length > 0; if (badge) badge.style.display = spatialActive ? 'block' : 'none'; if (btn) btn.textContent = spatialActive ? '\u23F9 Parar Spatial Avg' : '\uD83C\uDF99\uFE0F Ativar M\u00E9dia Espacial'; _syncSpatialSources(); } });
+        pm._on(pm._el('sp-btn-spatial'), 'click', async function () { 
+            if (!window.SpatialAverager) { alert('SpatialAverager n\u00E3o dispon\u00EDvel.'); return; } 
+            var btn = pm._el('sp-btn-spatial'), badge = pm._el('sp-spatial-badge'); 
+            try {
+                if (spatialActive) { 
+                    await SpatialAverager.stop(); 
+                    spatialActive = false; 
+                    if (badge) badge.style.display = 'none'; 
+                    if (btn) btn.textContent = '\uD83C\uDF99\uFE0F Ativar M\u00E9dia Espacial'; 
+                } else { 
+                    var mics = await SpatialAverager.startMultiDevice(Math.min(actors.filter(function (a) { return a.channel; }).length || 2, 8)); 
+                    spatialActive = mics.length > 0; 
+                    if (badge) badge.style.display = spatialActive ? 'block' : 'none'; 
+                    if (btn) btn.textContent = spatialActive ? '\u23F9 Parar Spatial Avg' : '\uD83C\uDF99\uFE0F Ativar M\u00E9dia Espacial'; 
+                    _syncSpatialSources(); 
+                }
+            } catch (err) {
+                console.error('[StagePlotPage] Spatial error:', err);
+                spatialActive = false;
+                if (badge) badge.style.display = 'none';
+                if (btn) btn.textContent = '\uD83C\uDF99\uFE0F Ativar M\u00E9dia Espacial';
+            }
+        });
 
         try { var raw = localStorage.getItem(STORAGE_KEY); if (raw) { actors = JSON.parse(raw); _renderAll(); } } catch (_) {}
     }
@@ -107,6 +133,10 @@
         if (spatialActive && window.SpatialAverager) {
             try { window.SpatialAverager.stop(); } catch (e) { console.error('[StagePlotPage] Error stopping SpatialAverager:', e); }
         }
+        var wrap = pm._el('sp-canvas-wrap');
+        if (wrap) wrap.querySelectorAll('.sp-actor').forEach(function (el) { el.remove(); });
+        var popup = pm._el('sp-ch-popup');
+        if (popup) popup.style.display = 'none';
         actors = []; dragActor = null; popupActor = null; spatialActive = false; pm.destroy();
     }
 

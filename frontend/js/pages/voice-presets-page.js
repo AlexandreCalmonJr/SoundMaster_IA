@@ -22,12 +22,12 @@
             select.appendChild(opt);
         }
 
-        // Configure buttons
-        const btnApply = document.querySelectorAll('.bg-rose-600, .bg-cyan-600, .bg-emerald-600');
+        // Configure buttons - select ALL buttons inside preset cards
+        const btnApply = document.querySelectorAll('[id^="voice-presets"] .grid button[class*="font-black"]');
         btnApply.forEach(btn => {
             pm._on(btn, 'click', () => {
                 const ch = select.value;
-                const card = btn.closest('.bg-slate-900\\/60, .bg-cyan-900\\/20, .bg-emerald-900\\/20');
+                const card = btn.closest('[class*="rounded-2xl"][class*="p-6"]');
                 if (!card) return;
                 
                 const typeEl = card.querySelector('h3');
