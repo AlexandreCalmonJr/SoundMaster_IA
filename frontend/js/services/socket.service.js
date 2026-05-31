@@ -218,6 +218,7 @@
         _socket.on('master_dim', (data) => AppStore.setState({ master_dim: !!data?.dim }));
         _socket.on('master_delay_l', (data) => AppStore.setState({ master_delay_l: Number(data?.delayL ?? 0) }));
         _socket.on('master_delay_r', (data) => AppStore.setState({ master_delay_r: Number(data?.delayR ?? 0) }));
+        _socket.on('master_name', (data) => AppStore.setState({ master_name: data.name }));
         
         _socket.on('channel_solo', (data) => AppStore.setState({ [`ch_${data.channel}_solo`]: !!data.solo }));
         _socket.on('channel_delay_feedback', (data) => AppStore.setState({ [`ch_${data.channel}_delay`]: Number(data.delay ?? 0) }));
@@ -309,6 +310,7 @@
                 patch.master_dim = !!data.master.dim;
                 patch.master_delay_l = data.master.delayL ?? 0;
                 patch.master_delay_r = data.master.delayR ?? 0;
+                patch.master_name = data.master.name ?? 'MASTER';
             }
             if (Array.isArray(data.inputs)) {
                 data.inputs.forEach((input, idx) => {

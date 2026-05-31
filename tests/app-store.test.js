@@ -52,6 +52,7 @@ describe('AppStore', () => {
         expect(state.muteGroups).toEqual({});
         expect(state.aux_1_delay).toBe(0);
         expect(state.mute_fx_1).toBe(false);
+        expect(state.master_name).toBe('MASTER');
     });
 
     it('should return a deep clone from getState() to prevent accidental mutations', () => {

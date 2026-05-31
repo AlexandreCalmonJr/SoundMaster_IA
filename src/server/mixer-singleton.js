@@ -27,7 +27,7 @@ let _io   = null;   // referência ao Socket.IO server (injectada via setIo)
 
 const stateTree = {
     meta:   { connectedAt: null, model: 'Soundcraft Ui24R', fw: 'unknown' },
-    master: { level: 0, levelDb: -100, mute: 0 },
+    master: { level: 0, levelDb: -100, mute: 0, pan: 0.5, dim: 0, delayL: 0, delayR: 0, name: 'MASTER' },
     inputs: Array.from({ length: 24 }, () => ({
         level: 0, levelDb: -100, mute: 0, phantom: 0,
         hpf: 100, gate: 0, comp: 0, eq: {}, name: '', delay: 0
