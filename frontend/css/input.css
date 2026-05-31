@@ -599,35 +599,83 @@
     height: 16px;
     width: 12px;
   }
-}
 
-@media (max-width: 1024px) and (min-width: 769px) {
   #app-mixer {
-    width: 320px;
+    position: fixed;
+    right: 0;
+    top: var(--header-height);
+    bottom: 0;
+    width: 320px !important;
+    max-width: 85vw;
+    z-index: 40;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.6);
+    background: var(--surface-1);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease !important;
+    transform: translateX(0);
+    opacity: 1 !important;
+    border-left: 1px solid var(--border-subtle);
   }
-  #app-main {
-    padding: 24px;
+
+  .mixer-collapsed #app-mixer {
+    transform: translateX(100%);
+    width: 320px !important;
+    opacity: 0 !important;
+    pointer-events: none;
+    border-left: none;
   }
+
+  .category-panel {
+    position: fixed;
+    left: var(--rail-width);
+    top: var(--header-height);
+    bottom: 0;
+    z-index: 35;
+    background: var(--surface-1);
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.6);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+    transform: translateX(-100%);
+    opacity: 0;
+    width: var(--panel-width) !important;
+    height: calc(100vh - var(--header-height));
+    border-right: 1px solid var(--border-subtle);
+  }
+
+  .sidebar-collapsed .category-panel {
+    left: 0;
+  }
+
   .category-panel.open {
-    width: 180px;
+    transform: translateX(0);
+    opacity: 1;
+    width: var(--panel-width) !important;
+  }
+
+  #app-main {
+    padding: 16px !important;
   }
 }
 
 @media (max-width: 768px) {
   #app-mixer {
-    width: 280px;
+    width: 280px !important;
   }
-  #app-main {
-    padding: 16px;
+  .mixer-collapsed #app-mixer {
+    width: 280px !important;
+  }
+  .category-panel {
+    left: var(--rail-width) !important;
+    width: calc(100vw - var(--rail-width)) !important;
+    max-width: none !important;
+  }
+  .sidebar-collapsed .category-panel {
+    left: 0 !important;
+    width: 100vw !important;
   }
   .category-panel.open {
-    width: 100%;
-    position: fixed;
-    inset: 0;
-    z-index: 40;
+    width: calc(100vw - var(--rail-width)) !important;
   }
-  .category-panel.open .panel-header {
-    padding-top: 20px;
+  .sidebar-collapsed .category-panel.open {
+    width: 100vw !important;
   }
 }
 

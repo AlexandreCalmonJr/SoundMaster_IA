@@ -169,12 +169,21 @@
         }
 
         /* Configuração de tamanho do container de chat com altura máxima responsiva matemática */
-                #home-chat-container {
-                    flex: 1 1 auto;
-                    min-height: 280px;
-                    max-height: calc(100vh - 250px);
-                    height: 680px;
-                }
+        #home-chat-container {
+            flex: 1 1 auto;
+            min-height: 280px;
+            max-height: calc(100vh - 220px);
+            height: 680px;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        #home-input-wrapper {
+            width: 100%;
+            max-width: 800px;
+            margin: 16px auto 0;
+        }
 
                 /* Suggestion Cards */
                 .suggestion-card {
