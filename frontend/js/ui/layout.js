@@ -281,14 +281,14 @@
             initPageSpecifics();
         }, { signal: _layoutController.signal });
 
-        AppStore.subscribe(state => {
+        AppStore.subscribe('liteMode', function (liteMode) {
             const badge = _el('lite-badge');
             if (badge) {
-                badge.style.display = state.liteMode ? 'inline' : 'none';
+                badge.style.display = liteMode ? 'inline' : 'none';
             }
             const aiBtn = document.querySelector('.rail-btn[data-target="ai-chat"]');
             if (aiBtn) {
-                aiBtn.style.display = state.liteMode ? 'none' : '';
+                aiBtn.style.display = liteMode ? 'none' : '';
             }
         });
     }

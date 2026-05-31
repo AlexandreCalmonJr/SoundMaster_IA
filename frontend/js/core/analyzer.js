@@ -605,11 +605,11 @@
 
         _specBufferCtx.clearRect(axisL + plotW - speedPx, 0, speedPx, plotH);
 
-        _specBufferCtx.beginPath();
-        _specBufferCtx.rect(axisL, 0, plotW, plotH);
-        _specBufferCtx.clip();
+        // Use ImageData for pixel-level rendering (much faster than fillRect per pixel)
+        const imageData = _specBufferCtx.getImageData(axisL + plotW - speedPx, 0, speedPx, plotH);
+        const data = imageData.data;
 
-        for (let px = plotW - speedPx; px < plotW; px++) {
+        for (let px = 0; px < speedPx; px++) {
             for (let py = 0; py < plotH; py++) {
                 const normY = 1 - py / plotH;
                 const logFreq = logMin + normY * (logMax - logMin);
@@ -628,10 +628,15 @@
                 } else {
                     r = 255; g = Math.floor((1 - (val - 0.75) * 4) * 255); b = 0;
                 }
-                _specBufferCtx.fillStyle = `rgb(${r},${g},${b})`;
-                _specBufferCtx.fillRect(axisL + px, py, 1, 1);
+                const idx = (py * speedPx + px) * 4;
+                data[idx] = r;
+                data[idx + 1] = g;
+                data[idx + 2] = b;
+                data[idx + 3] = 255;
             }
         }
+
+        _specBufferCtx.putImageData(imageData, axisL + plotW - speedPx, 0);
 
         _specBufferCtx.restore();
 

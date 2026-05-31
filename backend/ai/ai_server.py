@@ -123,15 +123,10 @@ async def verify_api_key(api_key: str = Depends(api_key_header)):
     valid_key = os.getenv("AI_API_KEY")
 
     if not valid_key:
-        node_env = os.getenv("NODE_ENV", "")
-        if node_env != "development":
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="AI_API_KEY nao configurada. Defina a variavel de ambiente AI_API_KEY."
-            )
-        print("[WARN] AI_API_KEY nao definida. Servidor aceitando todas requisicoes em modo dev.")
-        print("[WARN] Para seguranca em producao, defina AI_API_KEY no .env ou ambiente.")
-        return True
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="AI_API_KEY nao configurada. Defina a variavel de ambiente AI_API_KEY."
+        )
 
     if not api_key:
         raise HTTPException(
@@ -204,24 +199,24 @@ class TrainRequest(BaseModel):
     isFeedback: bool
 
 class ClassifyRequest(BaseModel):
-    audio: list[float]
+    audio: list[float] = Field(..., max_length=480000)  # Max 30s at 16kHz
     sampleRate: int = 16000
     k: int = 5
     threshold: float = 0.1
 
 class AutoEqRequest(BaseModel):
-    freqData: list[float]
+    freqData: list[float] = Field(..., max_length=65536)  # Max FFT size 32768
     sampleRate: int = 48000
     fftSize: int = 8192
     targetCurve: str = "flat"
 
 class Rt60Request(BaseModel):
-    impulseResponse: list[float]
+    impulseResponse: list[float] = Field(..., max_length=480000)  # Max 10s at 48kHz
     sampleRate: int = 48000
 
 class SplRequest(BaseModel):
-    freqData: list[float]
-    timeData: Optional[list[float]] = None
+    freqData: list[float] = Field(..., max_length=65536)  # Max FFT size 32768
+    timeData: Optional[list[float]] = Field(None, max_length=65536)
     sampleRate: int = 48000
     weighting: str = "A"
 
@@ -819,9 +814,10 @@ async def hardware_diagnosis_endpoint(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def dsp_denoise(data, rate, intensity=1.0):
+def dsp_smooth(data, rate, intensity=1.0):
+    """Filtro de suavização (média móvel) para atenuar ruído de alta frequência.
+    NOTA: Isso é um filtro passa-baixas simples, NÃO um denoiser avançado."""
     try:
-        # Filtro de média móvel simples (passa-baixa) para atenuar ruído de alta frequência
         window_size = max(1, int(3 * intensity))
         if window_size <= 1:
             return data
@@ -833,14 +829,16 @@ def dsp_denoise(data, rate, intensity=1.0):
                 out[:, ch] = np.convolve(data[:, ch], np.ones(window_size)/window_size, mode='same').astype(data.dtype)
             return out
     except Exception as e:
-        print(f"[DSP Denoise Error] Fallback to original: {e}")
+        print(f"[DSP Smooth Error] Fallback to original: {e}")
         return data
 
-def dsp_vocal_sep(data, rate):
+def dsp_bandpass(data, rate, low_hz=100, high_hz=4000):
+    """Filtro passa-banda para isolar frequências de voz (100-4000Hz).
+    NOTA: Isso NÃO separa vozes de instrumentos - é apenas um filtro de banda."""
     try:
         nyq = 0.5 * rate
-        low = 100 / nyq
-        high = min(4000 / nyq, 0.99)  # Evita exceder o limite de Nyquist
+        low = low_hz / nyq
+        high = min(high_hz / nyq, 0.99)  # Evita exceder o limite de Nyquist
         b, a = signal.butter(4, [low, high], btype='band')
         if data.ndim == 1:
             return signal.filtfilt(b, a, data).astype(data.dtype)
@@ -884,9 +882,9 @@ def process_wav_bytes(file_bytes: bytes, effect: str, intensity: float = 1.0) ->
         data = data.copy()
         
         if effect == 'denoise':
-            data = dsp_denoise(data, rate, intensity)
+            data = dsp_smooth(data, rate, intensity)
         elif effect == 'vocal_sep':
-            data = dsp_vocal_sep(data, rate)
+            data = dsp_bandpass(data, rate)
         elif effect == 'mastering':
             data = dsp_mastering(data, rate)
         else:

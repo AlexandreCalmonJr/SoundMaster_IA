@@ -93,6 +93,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     expressApp.use(express.urlencoded({ limit: '50mb', extended: true }));
 
     // Middleware de autenticação JWT para rotas REST protegidas
+    const { JWT_SECRET } = require('./jwt-config');
     function authenticateToken(req, res, next) {
         const authHeader = req.headers['authorization'];
         const token = authHeader && authHeader.split(' ')[1];
@@ -100,8 +101,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
             return res.status(401).json({ error: 'Token não fornecido' });
         }
         try {
-            const secret = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
-            req.user = jwt.verify(token, secret);
+            req.user = jwt.verify(token, JWT_SECRET);
             next();
         } catch (err) {
             return res.status(403).json({ error: 'Token inválido ou expirado' });
@@ -112,7 +112,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     db.initDatabase(dbDir);
     authDb.initDatabase(dbDir);
     mixerGit.init(dbDir);
-    registerMappingsRoutes(expressApp, db.mappings);
+    registerMappingsRoutes(expressApp, db.mappings, authenticateToken);
     registerAuthRoutes(expressApp);
     expressApp.use('/api/calculate', calculationRoutes);
 
@@ -226,14 +226,14 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     });
 
     // Rotas de Calibração (NeDB)
-    expressApp.get('/api/calibration', (req, res) => {
+    expressApp.get('/api/calibration', authenticateToken, (req, res) => {
         db.settings.findOne({ type: 'calibration' }, (err, doc) => {
             if (err) return res.status(500).json({ error: err.message });
             res.json(doc || { calibrationData: [], splOffset: 0 });
         });
     });
 
-    expressApp.post('/api/calibration', (req, res) => {
+    expressApp.post('/api/calibration', authenticateToken, (req, res) => {
         const { calibrationData, splOffset, name } = req.body;
         db.settings.update(
             { type: 'calibration' },
@@ -610,7 +610,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     expressApp.post('/api/ai/train', _proxyTrain); // Alias autenticado (padrão /api/ai/*)
 
     // Mapeamento de nomes de canais e auxiliares
-    expressApp.get('/api/mixer/names', async (req, res) => {
+    expressApp.get('/api/mixer/names', authenticateToken, async (req, res) => {
         try {
             db.settings.findOne({ type: 'mixer_names' }, (err, doc) => {
                 if (err) return res.status(500).json({ error: err.message });
@@ -621,7 +621,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
         }
     });
 
-    expressApp.post('/api/mixer/names', async (req, res) => {
+    expressApp.post('/api/mixer/names', authenticateToken, async (req, res) => {
         try {
             const names = req.body; // { channels: {...}, aux: {...} }
             db.settings.update({ type: 'mixer_names' }, { $set: { names: names } }, { upsert: true }, (err) => {
@@ -707,6 +707,23 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
             logger.warn('socketio', 'CONNECTION_REJECTED', { ip: clientIp });
             return next(new Error('IP não autorizado. Contate o administrador.'));
         }
+
+        // JWT authentication (optional - allows unauthenticated for backward compatibility)
+        const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+        if (token) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                socket.user = decoded;
+                logger.info('socketio', 'CLIENT_AUTHENTICATED', { ip: clientIp, user: decoded.username });
+            } catch (err) {
+                logger.warn('socketio', 'INVALID_TOKEN', { ip: clientIp });
+                // Allow connection but mark as unauthenticated
+                socket.user = null;
+            }
+        } else {
+            socket.user = null;
+        }
+
         logger.info('socketio', 'CLIENT_AUTHORIZED', { ip: clientIp });
         next();
     });

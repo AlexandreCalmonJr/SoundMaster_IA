@@ -112,7 +112,8 @@
         });
 
         // Solicita estado inicial ao parent (após registrar listener para evitar race)
-        window.parent.postMessage({ type: 'APPSTORE_SYNC_REQUEST' }, window.parent.origin || '*');
+        var _targetOrigin = window.parent.origin || window.location.origin;
+        window.parent.postMessage({ type: 'APPSTORE_SYNC_REQUEST' }, _targetOrigin);
 
         // Proxy para AppStore: cross-frame sync via postMessage sem reter referências de callbacks
         Object.defineProperty(window, 'AppStore', {
@@ -129,8 +130,9 @@
                         };
                     },
                     setState: function (patch) {
-                        // Envia para o parent aplicar e disparar APPSTORE_UPDATE de volta
-                        window.parent.postMessage({ type: 'APPSTORE_PATCH', patch: patch }, window.parent.origin || '*');
+                    // Envia para o parent aplicar e disparar APPSTORE_UPDATE de volta
+                    var _targetOrigin = window.parent.origin || window.location.origin;
+                    window.parent.postMessage({ type: 'APPSTORE_PATCH', patch: patch }, _targetOrigin);
                     },
                     getState: function () {
                         return _localState;

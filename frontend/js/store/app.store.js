@@ -222,7 +222,7 @@
                     type: 'APPSTORE_UPDATE',
                     keys: allKeys,
                     patch: patch,
-                }, '*');
+                }, window.location.origin);
             } catch (e) {
                 console.warn('[AppStore] Falha ao notificar iframe:', e);
             }
@@ -235,6 +235,20 @@
      */
     function getState() {
         return _deepClone(_state);
+    }
+
+    /**
+     * Retorna o valor de uma chave específica sem clonar todo o estado.
+     * Mais eficiente que getState() para acessos frequentes.
+     * @param {string} key - Chave do estado
+     * @returns {*} Valor da chave (cópia rasa se for objeto)
+     */
+    function get(key) {
+        const val = _state[key];
+        if (val && typeof val === 'object' && !Array.isArray(val)) {
+            return Object.assign({}, val);
+        }
+        return val;
     }
 
     /**
@@ -271,7 +285,7 @@
         }
     });
 
-    window.AppStore = { subscribe, setState, getState, addLog, addAISuggestion, defineComputed };
+    window.AppStore = { subscribe, setState, getState, get, addLog, addAISuggestion, defineComputed };
 
     // ─── Computed properties padrão ─────────────────────────────────────────
     defineComputed('mixerOnline', ['mixerConnected', 'mixerStatusMsg'], function (connected, statusMsg) {

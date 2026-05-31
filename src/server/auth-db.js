@@ -51,11 +51,12 @@ function initDatabase(dbDir) {
             const insertStmt = db.prepare(
                 "INSERT INTO users (username, email, password_hash, role, must_change_password) VALUES (?, ?, ?, ?, ?)"
             );
-            insertStmt.run('admin', 'admin@soundmaster.local', passwordHash, 'admin', 0);
+            insertStmt.run('admin', 'admin@soundmaster.local', passwordHash, 'admin', 1);
             console.log('[AuthDB] Usuário admin padrão criado:');
             console.log(' - Usuário: admin');
-            console.log(' - Senha: admin');
+            console.log(' - Senha: admin (ALTERE IMEDIATAMENTE!)');
             console.log(' - Email: admin@soundmaster.local');
+            console.log(' - ⚠️ Você será obrigado a alterar a senha no primeiro login.');
         }
     } catch (e) {
         console.error('[AuthDB] Erro ao criar usuário admin padrão:', e.message);

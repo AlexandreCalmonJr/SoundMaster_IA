@@ -1,17 +1,11 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
 const authDb = require('./auth-db');
 const Logger = require('./logger');
+const { JWT_SECRET, JWT_EXPIRES_IN } = require('./jwt-config');
 
 function registerAuthRoutes(app) {
     const logger = Logger.getInstance();
-    const SECRET_ENV = process.env.JWT_SECRET;
-    if (!SECRET_ENV) {
-        logger.warn('auth', 'JWT_SECRET_MISSING', { msg: 'JWT_SECRET não definido. Tokens serão inválidos após reinício do servidor.' });
-    }
-    const JWT_SECRET = SECRET_ENV || crypto.randomBytes(32).toString('hex');
-    const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
     app.post('/api/auth/register', (req, res) => {
         try {
             const { username, email, password } = req.body;
