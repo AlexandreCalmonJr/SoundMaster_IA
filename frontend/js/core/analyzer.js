@@ -667,6 +667,22 @@
         specCtx.restore();
     }
 
+    function _bindTfEventListeners() {
+        document.removeEventListener('click', handleTfButtonClick);
+        document.addEventListener('click', handleTfButtonClick);
+
+        document.removeEventListener('change', handleTfChange);
+        document.addEventListener('change', handleTfChange);
+
+        if (_analyzerIframe && _analyzerIframe.contentDocument) {
+            _analyzerIframe.contentDocument.removeEventListener('click', handleTfButtonClick);
+            _analyzerIframe.contentDocument.addEventListener('click', handleTfButtonClick);
+
+            _analyzerIframe.contentDocument.removeEventListener('change', handleTfChange);
+            _analyzerIframe.contentDocument.addEventListener('change', handleTfChange);
+        }
+    }
+
     function _initGlobalListeners() {
         var _ss = window.SocketService;
         if (!_ss) return;
@@ -686,20 +702,7 @@
             _handleSweepAnalysisResult(result);
         });
 
-        // Delegação de Eventos Global para Botões da Transfer Function
-        document.removeEventListener('click', handleTfButtonClick);
-        document.addEventListener('click', handleTfButtonClick);
-
-        document.removeEventListener('change', handleTfChange);
-        document.addEventListener('change', handleTfChange);
-
-        if (_analyzerIframe && _analyzerIframe.contentDocument) {
-            _analyzerIframe.contentDocument.removeEventListener('click', handleTfButtonClick);
-            _analyzerIframe.contentDocument.addEventListener('click', handleTfButtonClick);
-
-            _analyzerIframe.contentDocument.removeEventListener('change', handleTfChange);
-            _analyzerIframe.contentDocument.addEventListener('change', handleTfChange);
-        }
+        _bindTfEventListeners();
 
         // Evento de page-unload para limpar recursos de áudio e referências DOM
         window.addEventListener('page-unload', (e) => {
@@ -872,6 +875,9 @@
 
         // Popula lista de microfones
         _populateDeviceList();
+
+        // Vincula listeners da Transfer Function para garantir funcionamento no iframe
+        _bindTfEventListeners();
     }
 
     function initGlobalAnalyzer() {
