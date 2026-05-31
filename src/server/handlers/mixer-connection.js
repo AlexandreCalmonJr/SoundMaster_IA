@@ -178,9 +178,28 @@ function registerMixerConnectionHandlers(io, socket, deps) {
                 safeSubscribe(newMixer.automix.groups.a.state$, state => io.emit('automix_state', { group: 'a', enabled: !!state }), 'automix.groups.a.state$');
                 safeSubscribe(newMixer.automix.groups.b.state$, state => io.emit('automix_state', { group: 'b', enabled: !!state }), 'automix.groups.b.state$');
                 safeSubscribe(newMixer.automix.responseTimeMs$, ms => io.emit('automix_response_time', { ms }), 'automix.responseTimeMs$');
+                safeSubscribe(newMixer.automix.responseTime$, val => io.emit('automix_response_time_linear', { val }), 'automix.responseTime$');
 
                 safeSubscribe(newMixer.recorderDualTrack.recording$, isRec => io.emit('recorder_status', { recording: !!isRec, mtkRecording: false }), 'recorderDualTrack.recording$');
+                safeSubscribe(newMixer.recorderDualTrack.busy$, busy => io.emit('recorder_busy', { mtk: false, busy: !!busy }), 'recorderDualTrack.busy$');
                 safeSubscribe(newMixer.recorderMultiTrack.recording$, isMtkRec => io.emit('recorder_status', { recording: false, mtkRecording: !!isMtkRec }), 'recorderMultiTrack.recording$');
+                safeSubscribe(newMixer.recorderMultiTrack.busy$, busy => io.emit('recorder_busy', { mtk: true, busy: !!busy }), 'recorderMultiTrack.busy$');
+                safeSubscribe(newMixer.recorderMultiTrack.state$, state => io.emit('mtk_state', { state }), 'recorderMultiTrack.state$');
+                safeSubscribe(newMixer.recorderMultiTrack.session$, session => io.emit('mtk_session', { session }), 'recorderMultiTrack.session$');
+                safeSubscribe(newMixer.recorderMultiTrack.soundcheck$, sc => io.emit('mtk_soundcheck', { soundcheck: !!sc }), 'recorderMultiTrack.soundcheck$');
+
+                if (newMixer.volume) {
+                    if (newMixer.volume.solo) {
+                        safeSubscribe(newMixer.volume.solo.faderLevel$, lvl => io.emit('solo_volume', { level: lvl }), 'volume.solo.faderLevel$');
+                    }
+                    if (newMixer.volume.headphone) {
+                        [1, 2].forEach(hpId => {
+                            try {
+                                safeSubscribe(newMixer.volume.headphone(hpId).faderLevel$, lvl => io.emit('headphone_volume', { hp: hpId, level: lvl }), `volume.headphone(${hpId}).faderLevel$`);
+                            } catch (e) {}
+                        });
+                    }
+                }
 
                 safeSubscribe(newMixer.player.state$, state => io.emit('player_status', { state }), 'player.state$');
                 safeSubscribe(newMixer.player.playlist$, playlist => io.emit('player_playlist', { playlist }), 'player.playlist$');
@@ -231,11 +250,48 @@ function registerMixerConnectionHandlers(io, socket, deps) {
                                 mixerSingleton.updateChannelState(i, { multiTrackSelected });
                                 io.emit('channel_multitrack_selected', { channel: i, selected: !!multiTrackSelected });
                             }, `input(${i}).multiTrackSelected$`);
+
+                            for (let b = 1; b <= 4; b++) {
+                                try {
+                                    const eqBand = input.eq().band(b);
+                                    if (eqBand && eqBand.type$) {
+                                        safeSubscribe(eqBand.type$, type => {
+                                            io.emit('channel_eq_band_type', { channel: i, band: b, type });
+                                        }, `input(${i}).eq().band(${b}).type$`);
+                                    }
+                                } catch (e) {}
+                            }
                         }
                     } catch (err) {
                         logger.warn(socket.id, `FALHA_OBTER_CANAL_${i}`, { error: err.message });
                     }
                 }
+
+                const busTypes = [
+                    { type: 'line', max: 2 },
+                    { type: 'player', max: 2 },
+                    { type: 'aux', max: 8 },
+                    { type: 'fx', max: 4 },
+                    { type: 'sub', max: 6 },
+                    { type: 'vca', max: 6 }
+                ];
+
+                busTypes.forEach(({ type, max }) => {
+                    for (let i = 1; i <= max; i++) {
+                        try {
+                            const chObj = newMixer.master[type](i);
+                            if (chObj) {
+                                safeSubscribe(chObj.name$, name => io.emit('bus_name_update', { busType: type, channel: i, name }), `master.${type}(${i}).name$`);
+                                safeSubscribe(chObj.faderLevel$, level => io.emit('bus_level', { busType: type, channel: i, level }), `master.${type}(${i}).faderLevel$`);
+                                safeSubscribe(chObj.mute$, mute => io.emit('bus_mute', { busType: type, channel: i, mute: !!mute }), `master.${type}(${i}).mute$`);
+                                safeSubscribe(chObj.solo$, solo => io.emit('bus_solo', { busType: type, channel: i, solo: !!solo }), `master.${type}(${i}).solo$`);
+                                safeSubscribe(chObj.pan$, pan => io.emit('bus_pan', { busType: type, channel: i, pan }), `master.${type}(${i}).pan$`);
+                            }
+                        } catch (err) {
+                            // Silenciar se o canal do barramento não existir
+                        }
+                    }
+                });
 
                 for (let f = 1; f <= 4; f++) {
                     try {

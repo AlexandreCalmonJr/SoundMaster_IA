@@ -426,6 +426,181 @@ function registerMixerCommandHandlers(io, socket, deps) {
         const msg = actions.automixAssignChannel(channel, group, weight);
         socket.emit('mixer_log', msg);
     });
+
+    socket.on('set_master_dim', (data) => {
+        if (!actions.ensureMixer(socket)) return;
+        try {
+            const enabled = data?.enabled !== false && data?.val !== 0;
+            const msg = actions.executeMixerCommand({ action: 'set_master_dim', enabled });
+            socket.emit('feedback_cut_success', { msg });
+        } catch (error) {
+            socket.emit('mixer_status', { connected: true, msg: error.message });
+        }
+    });
+
+    socket.on('fade_master_db', (data) => {
+        if (!actions.ensureMixer(socket)) return;
+        try {
+            const levelDb = Number(data?.levelDb || data?.val || 0);
+            const time = Number(data?.time || 2000);
+            const msg = actions.executeMixerCommand({ action: 'fade_master_db', levelDb, time });
+            socket.emit('feedback_cut_success', { msg });
+        } catch (error) {
+            socket.emit('mixer_status', { connected: true, msg: error.message });
+        }
+    });
+
+    socket.on('fade_channel_db', (data) => {
+        if (!actions.ensureMixer(socket)) return;
+        try {
+            const target = data?.target || 'channel';
+            const chType = data?.channelType || data?.type || 'input';
+            const ch = Number(data?.channel || data?.ch || 1);
+            const levelDb = Number(data?.levelDb || data?.val || 0);
+            const time = Number(data?.time || 2000);
+            const msg = actions.executeMixerCommand({ action: 'fade_channel_db', target, channelType: chType, channel: ch, levelDb, time });
+            socket.emit('feedback_cut_success', { msg });
+        } catch (error) {
+            socket.emit('mixer_status', { connected: true, msg: error.message });
+        }
+    });
+
+    socket.on('set_aux_post', (data) => {
+        if (!actions.ensureMixer(socket)) return;
+        try {
+            const ch = Number(data?.channel || data?.ch || 1);
+            const aux = Number(data?.aux || 1);
+            const enabled = data?.enabled !== false && data?.val !== 0;
+            const msg = actions.executeMixerCommand({ action: 'set_aux_post', channel: ch, aux, enabled });
+            socket.emit('feedback_cut_success', { msg });
+        } catch (error) {
+            socket.emit('mixer_status', { connected: true, msg: error.message });
+        }
+    });
+
+    socket.on('set_aux_pan', (data) => {
+        if (!actions.ensureMixer(socket)) return;
+        try {
+            const ch = Number(data?.channel || data?.ch || 1);
+            const aux = Number(data?.aux || 1);
+            const val = Number(data?.val || 0.5);
+            const msg = actions.executeMixerCommand({ action: 'set_aux_pan', channel: ch, aux, val });
+            socket.emit('feedback_cut_success', { msg });
+        } catch (error) {
+            socket.emit('mixer_status', { connected: true, msg: error.message });
+        }
+    });
+
+    socket.on('set_fx_bpm', (data) => {
+        if (!actions.ensureMixer(socket)) return;
+        try {
+            const fx = Number(data?.fx || 1);
+            const val = Number(data?.val || 120);
+            const msg = actions.executeMixerCommand({ action: 'set_fx_bpm', fx, val });
+            socket.emit('feedback_cut_success', { msg });
+        } catch (error) {
+            socket.emit('mixer_status', { connected: true, msg: error.message });
+        }
+    });
+
+    socket.on('set_fx_param', (data) => {
+        if (!actions.ensureMixer(socket)) return;
+        try {
+            const fx = Number(data?.fx || 1);
+            const param = Number(data?.param || 1);
+            const val = Number(data?.val || 0.5);
+            const msg = actions.executeMixerCommand({ action: 'set_fx_param', fx, param, val });
+            socket.emit('feedback_cut_success', { msg });
+        } catch (error) {
+            socket.emit('mixer_status', { connected: true, msg: error.message });
+        }
+    });
+
+    socket.on('set_channel_pan', (data) => {
+        if (!actions.ensureMixer(socket)) return;
+        try {
+            const target = data?.target || 'channel';
+            const chType = data?.channelType || data?.type || 'input';
+            const ch = Number(data?.channel || data?.ch || 1);
+            const val = Number(data?.val || 0.5);
+            const msg = actions.executeMixerCommand({ action: 'set_channel_pan', target, channelType: chType, channel: ch, val });
+            socket.emit('feedback_cut_success', { msg });
+        } catch (error) {
+            socket.emit('mixer_status', { connected: true, msg: error.message });
+        }
+    });
+
+    socket.on('set_monitor_volume', (data) => {
+        if (!actions.ensureMixer(socket)) return;
+        try {
+            const target = data?.target || 'hp1';
+            const val = Number(data?.val || 0.5);
+            const msg = actions.executeMixerCommand({ action: 'set_monitor_volume', target, val });
+            socket.emit('feedback_cut_success', { msg });
+        } catch (error) {
+            socket.emit('mixer_status', { connected: true, msg: error.message });
+        }
+    });
+
+    socket.on('player_cmd', (data) => {
+        if (!actions.ensureMixer(socket)) return;
+        try {
+            const action_type = data?.action_type || data?.action;
+            const val = data?.val;
+            const msg = actions.executeMixerCommand({ action: 'player_cmd', action_type, val });
+            socket.emit('feedback_cut_success', { msg });
+        } catch (error) {
+            socket.emit('mixer_status', { connected: true, msg: error.message });
+        }
+    });
+
+    socket.on('recorder_cmd', (data) => {
+        if (!actions.ensureMixer(socket)) return;
+        try {
+            const action_type = data?.action_type || data?.action;
+            const msg = actions.executeMixerCommand({ action: 'recorder_cmd', action_type });
+            socket.emit('feedback_cut_success', { msg });
+        } catch (error) {
+            socket.emit('mixer_status', { connected: true, msg: error.message });
+        }
+    });
+
+    socket.on('mtk_cmd', (data) => {
+        if (!actions.ensureMixer(socket)) return;
+        try {
+            const action_type = data?.action_type || data?.action;
+            const msg = actions.executeMixerCommand({ action: 'mtk_cmd', action_type });
+            socket.emit('feedback_cut_success', { msg });
+        } catch (error) {
+            socket.emit('mixer_status', { connected: true, msg: error.message });
+        }
+    });
+
+    socket.on('show_cmd', (data) => {
+        if (!actions.ensureMixer(socket)) return;
+        try {
+            const action_type = data?.action_type || data?.action;
+            const show = data?.show;
+            const target = data?.target;
+            const msg = actions.executeMixerCommand({ action: 'show_cmd', action_type, show, target });
+            socket.emit('feedback_cut_success', { msg });
+        } catch (error) {
+            socket.emit('mixer_status', { connected: true, msg: error.message });
+        }
+    });
+
+    socket.on('mute_group_cmd', (data) => {
+        if (!actions.ensureMixer(socket)) return;
+        try {
+            const id = data?.id || 'all';
+            const action_type = data?.action_type || data?.action;
+            const enabled = data?.enabled !== false && data?.val !== 0;
+            const msg = actions.executeMixerCommand({ action: 'mute_group_cmd', id, action_type, enabled });
+            socket.emit('feedback_cut_success', { msg });
+        } catch (error) {
+            socket.emit('mixer_status', { connected: true, msg: error.message });
+        }
+    });
 }
 
 module.exports = { registerMixerCommandHandlers };

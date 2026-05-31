@@ -167,6 +167,9 @@ module.exports = {
         mixer = m;
         if (m) {
             stateTree.meta.connectedAt = new Date().toISOString();
+            if (m.deviceInfo) {
+                stateTree.meta.model = m.deviceInfo.model || 'Soundcraft Ui';
+            }
             _applySocketQoS(m);
             console.log('[MixerSingleton] Mixer definido. QoS aplicado.');
         }

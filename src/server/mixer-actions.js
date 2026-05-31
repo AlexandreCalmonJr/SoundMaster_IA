@@ -398,6 +398,43 @@ function createMixerActions(getMixer) {
         return `Delay de ${ms}ms solicitado para ${target} ${id || ''}.`;
     }
 
+    function resolveTarget(c) {
+        const mixer = getMixer();
+        if (c.target === 'master') {
+            return mixer.master;
+        }
+        const type = String(c.channelType || c.type || 'input').toLowerCase();
+        const ch = c.channel || c.ch || c.id || 1;
+        switch (type) {
+            case 'line':
+            case 'l':
+                return mixer.master.line(ch);
+            case 'player':
+            case 'play':
+            case 'p':
+                return mixer.master.player(ch);
+            case 'aux':
+            case 'a':
+                return mixer.master.aux(ch);
+            case 'fx':
+            case 'f':
+                return mixer.master.fx(ch);
+            case 'sub':
+            case 'subgroup':
+            case 's':
+                return mixer.master.sub(ch);
+            case 'vca':
+            case 'v':
+                return mixer.master.vca(ch);
+            case 'input':
+            case 'channel':
+            case 'ch':
+            case 'i':
+            default:
+                return mixer.master.input(ch);
+        }
+    }
+
     function executeMixerCommand(cmd) {
         const mixer = getMixer();
         if (!cmd || !cmd.action) throw new Error('Comando invalido.');
@@ -408,33 +445,33 @@ function createMixerActions(getMixer) {
         const actionsMap = {
             'volume_up': (c) => {
                 const delta = Number(c.val) || 1;
-                const target = c.target === 'master' ? mixer.master : mixer.master.input(c.ch || c.channel || 1);
+                const target = resolveTarget(c);
                 target.changeFaderLevelDB(delta);
-                return `${c.target} ajustado em ${delta}dB.`;
+                return `${c.target || 'canal'} ajustado em ${delta}dB.`;
             },
             'volume_down': (c) => {
                 const delta = Number(c.val) || -1;
-                const target = c.target === 'master' ? mixer.master : mixer.master.input(c.ch || c.channel || 1);
+                const target = resolveTarget(c);
                 target.changeFaderLevelDB(delta);
-                return `${c.target} ajustado em ${delta}dB.`;
+                return `${c.target || 'canal'} ajustado em ${delta}dB.`;
             },
             'set_fader_level_db': (c) => {
-                const target = c.target === 'master' ? mixer.master : mixer.master.input(c.ch || c.channel || 1);
+                const target = resolveTarget(c);
                 const dbVal = clamp(c.levelDb || c.val || 0, -Infinity, 10);
                 target.setFaderLevelDB(dbVal);
-                return `${c.target} fader ajustado para ${dbVal}dB.`;
+                return `${c.target || 'canal'} fader ajustado para ${dbVal}dB.`;
             },
             'change_fader_level': (c) => {
-                const target = c.target === 'master' ? mixer.master : mixer.master.input(c.ch || c.channel || 1);
+                const target = resolveTarget(c);
                 const offset = clamp(c.offset || c.val || 0, -1, 1);
                 target.changeFaderLevel(offset);
-                return `${c.target} fader ajustado relativamente em ${offset} linear.`;
+                return `${c.target || 'canal'} fader ajustado relativamente em ${offset} linear.`;
             },
             'change_fader_level_db': (c) => {
-                const target = c.target === 'master' ? mixer.master : mixer.master.input(c.ch || c.channel || 1);
+                const target = resolveTarget(c);
                 const offsetDb = clamp(c.offsetDb || c.val || 0, -100, 100);
                 target.changeFaderLevelDB(offsetDb);
-                return `${c.target} fader ajustado relativamente em ${offsetDb}dB.`;
+                return `${c.target || 'canal'} fader ajustado relativamente em ${offsetDb}dB.`;
             },
             'fade_master_db': (c) => {
                 const dbVal = clamp(c.levelDb || c.val || 0, -Infinity, 10);
@@ -443,16 +480,17 @@ function createMixerActions(getMixer) {
                 return `Fade do Master para ${dbVal}dB em ${time}ms iniciado.`;
             },
             'fade_channel_db': (c) => {
-                const ch = c.channel || c.ch || 1;
+                const target = resolveTarget(c);
                 const dbVal = clamp(c.levelDb || c.val || 0, -Infinity, 10);
                 const time = c.time || 2000;
-                mixer.master.input(ch).fadeToDB(dbVal, time);
-                return `Fade do canal ${ch} para ${dbVal}dB em ${time}ms iniciado.`;
+                target.fadeToDB(dbVal, time);
+                return `Fade de ${c.target || 'canal'} para ${dbVal}dB em ${time}ms iniciado.`;
             },
             'set_master_dim': (c) => {
-                if (c.enabled) mixer.master.dim();
+                const dVal = c.enabled !== false && c.val !== 0;
+                if (dVal) mixer.master.dim();
                 else mixer.master.undim();
-                return `Dim do Master ${c.enabled ? 'ativado' : 'desativado'}.`;
+                return `Dim do Master ${dVal ? 'ativado' : 'desativado'}.`;
             },
             'set_master_delay': (c) => {
                 const ms = clamp(c.ms || c.val || 0, 0, 500);
@@ -472,10 +510,10 @@ function createMixerActions(getMixer) {
                 return `Pan do Master ajustado relativamente em ${offset}.`;
             },
             'change_channel_pan': (c) => {
-                const ch = c.channel || c.ch || 1;
+                const target = resolveTarget(c);
                 const offset = clamp(c.offset || c.val || 0, -1, 1);
-                mixer.master.input(ch).changePan(offset);
-                return `Pan do Canal ${ch} ajustado relativamente em ${offset}.`;
+                target.changePan(offset);
+                return `Pan de ${c.target || 'canal'} ajustado relativamente em ${offset}.`;
             },
             'eq_cut': (c) => applyEqCut(c.target, c.channel, c.hz, c.gain, c.q, c.band),
             'apply_channel_hpf': (c) => applyChannelHpf(c.channel || 1, c.hz || 100),
@@ -486,15 +524,45 @@ function createMixerActions(getMixer) {
             'run_master_ideal_curve': () => { const steps = [applyEqCut('master', null, 60, 3, 1.0, 1), applyEqCut('master', null, 400, -2, 1.2, 2), applyEqCut('master', null, 3000, 1, 1.0, 3)]; return `Curva ideal aplicada no Master: ${steps.join(' ')}`; },
             'set_master_level': (c) => { mixer.master.setFaderLevel(clamp(c.level || 0.7, 0, 1)); return `Master ajustado para ${Math.round((c.level || 0.7) * 100)}%`; },
             'master_mute': (c) => { if (c.enabled) mixer.master.mute(); else mixer.master.unmute(); return `Master ${c.enabled ? 'MUTADO' : 'DESMUTADO'}.`; },
-            'set_channel_level': (c) => { const ch = c.channel || c.ch || 1; mixer.master.input(ch).setFaderLevel(clamp(c.level || 0.7, 0, 1)); return `Canal ${ch} ajustado para ${Math.round((c.level || 0.7) * 100)}%`; },
-            'channel_fader': (c) => { const ch = c.channel || c.ch || 1; mixer.master.input(ch).setFaderLevel(clamp(c.level || 0.7, 0, 1)); return `Canal ${ch} ajustado para ${Math.round((c.level || 0.7) * 100)}%`; },
-            'channel_mute': (c) => { const ch = c.channel || c.ch || 1; if (c.enabled) mixer.master.input(ch).mute(); else mixer.master.input(ch).unmute(); return `Canal ${ch} ${c.enabled ? 'MUTADO' : 'DESMUTADO'}.`; },
+            'set_channel_level': (c) => {
+                const target = resolveTarget(c);
+                const lvl = clamp(c.level || c.val || 0.7, 0, 1);
+                target.setFaderLevel(lvl);
+                return `${c.target || 'canal'} ajustado para ${Math.round(lvl * 100)}%`;
+            },
+            'channel_fader': (c) => {
+                const target = resolveTarget(c);
+                const lvl = clamp(c.level || c.val || 0.7, 0, 1);
+                target.setFaderLevel(lvl);
+                return `${c.target || 'canal'} ajustado para ${Math.round(lvl * 100)}%`;
+            },
+            'channel_mute': (c) => {
+                const target = resolveTarget(c);
+                const mut = c.enabled !== false && c.enabled !== 0;
+                if (mut) target.mute(); else target.unmute();
+                return `${c.target || 'canal'} ${mut ? 'MUTADO' : 'DESMUTADO'}.`;
+            },
             'toggle_dim': () => { mixer.master.toggleDim(); return 'Função DIM alternada no Master.'; },
             'set_master_pan': (c) => { mixer.master.setPan(clamp(c.val || 0.5, 0, 1)); return `Pan do Master ajustado para ${c.val}`; },
-            'set_channel_pan': (c) => { const ch = c.channel || c.ch || 1; mixer.master.input(ch).setPan(clamp(c.val || 0.5, 0, 1)); return `Pan do Canal ${ch} ajustado para ${c.val}`; },
-            'toggle_solo': (c) => { const ch = c.channel || c.ch || 1; mixer.master.input(ch).toggleSolo(); return `Solo do Canal ${ch} alternado.`; },
+            'set_channel_pan': (c) => {
+                const target = resolveTarget(c);
+                const panLvl = clamp(c.val || 0.5, 0, 1);
+                target.setPan(panLvl);
+                return `Pan de ${c.target || 'canal'} ajustado para ${panLvl}`;
+            },
+            'toggle_solo': (c) => {
+                const target = resolveTarget(c);
+                target.toggleSolo();
+                return `Solo de ${c.target || 'canal'} alternado.`;
+            },
             'fade_master': (c) => fadeMaster(c.level || 0, c.time || 2000),
-            'fade_channel': (c) => fadeChannel(c.channel || 1, c.level || 0, c.time || 2000),
+            'fade_channel': (c) => {
+                const target = resolveTarget(c);
+                const lvl = clamp(c.level || 0, 0, 1);
+                const time = c.time || 2000;
+                target.fadeTo(lvl, time);
+                return `Fade de ${c.target || 'canal'} para ${Math.round(lvl * 100)}% em ${time}ms iniciado.`;
+            },
             'set_oscillator': (c) => applyOscillator(c.enabled !== 0, c.type, c.level),
             'set_aux_level': (c) => setAuxLevel(c.channel || 1, c.aux || 1, c.level || 0),
             'set_aux_post': (c) => setAuxPost(c.channel || 1, c.aux || 1, c.enabled !== 0),
@@ -506,11 +574,38 @@ function createMixerActions(getMixer) {
             'set_fx_bpm': (c) => setFxBpm(c.fx || 1, c.val || 120),
             'set_fx_param': (c) => setFxParam(c.fx || 1, c.param || 1, c.val || 0.5),
             'set_hw_gain': (c) => setHwGain(c.input || c.channel || 1, c.val || 0.5),
+            'change_hw_gain': (c) => {
+                const input = c.input || c.channel || 1;
+                const offset = clamp(c.offset || c.val || 0, -1, 1);
+                mixer.hw(input).changeGain(offset);
+                return `Ganho de Hardware da Entrada Física ${input} ajustado relativamente por ${offset}.`;
+            },
+            'change_hw_gain_db': (c) => {
+                const input = c.input || c.channel || 1;
+                const offsetDb = clamp(c.offsetDb || c.val || 0, -60, 60);
+                mixer.hw(input).changeGainDB(offsetDb);
+                return `Ganho de Hardware da Entrada Física ${input} ajustado relativamente por ${offsetDb}dB.`;
+            },
             'set_phantom': (c) => setPhantom(c.input || c.channel || 1, c.enabled !== 0),
             'set_phantom_power': (c) => setPhantom(c.input || c.channel || 1, c.enabled !== 0),
+            'toggle_phantom': (c) => {
+                const input = c.input || c.channel || 1;
+                const hw = mixer.hw(input);
+                if (hw.togglePhantom) hw.togglePhantom();
+                else {
+                    const current = mixerSingleton.getChannelState(input) || {};
+                    const next = !current.phantom;
+                    if (next) hw.phantomOn(); else hw.phantomOff();
+                }
+                return `Phantom Power da Entrada Física ${input} alternado.`;
+            },
             'set_monitor_volume': (c) => setMonitorVolume(c.target || 'hp1', c.val || 0.5),
             'select_channel': (c) => selectChannelSync(c.type || 'input', c.channel || c.ch || 1, c.syncId || 'SYNC_ID'),
             'player_cmd': (c) => playerControl(c.action_type || c.action, c.val),
+            'set_play_mode': (c) => {
+                mixer.player.setPlayMode(c.mode || c.val || 'manual');
+                return `Modo do Player configurado para ${c.mode || c.val}.`;
+            },
             'recorder_cmd': (c) => recorderControl(c.action_type),
             'mtk_cmd': (c) => mtkControl(c.action_type),
             'mtk_select': (c) => mtkSelectChannel(c.channel || c.ch || 1, c.enabled !== 0),
