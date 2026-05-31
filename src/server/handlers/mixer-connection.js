@@ -235,11 +235,13 @@ function registerMixerConnectionHandlers(io, socket, deps) {
                 if (newMixer.volume) {
                     if (newMixer.volume.solo) {
                         safeSubscribe(newMixer.volume.solo.faderLevel$, lvl => io.emit('solo_volume', { level: lvl }), 'volume.solo.faderLevel$');
+                        safeSubscribe(newMixer.volume.solo.faderLevelDB$, lvlDb => io.emit('solo_volume_db', { levelDb: lvlDb }), 'volume.solo.faderLevelDB$');
                     }
                     if (newMixer.volume.headphone) {
                         [1, 2].forEach(hpId => {
                             try {
                                 safeSubscribe(newMixer.volume.headphone(hpId).faderLevel$, lvl => io.emit('headphone_volume', { hp: hpId, level: lvl }), `volume.headphone(${hpId}).faderLevel$`);
+                                safeSubscribe(newMixer.volume.headphone(hpId).faderLevelDB$, lvlDb => io.emit('headphone_volume_db', { hp: hpId, levelDb: lvlDb }), `volume.headphone(${hpId}).faderLevelDB$`);
                             } catch (e) {}
                         });
                     }

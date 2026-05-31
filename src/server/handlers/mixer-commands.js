@@ -569,7 +569,8 @@ function registerMixerCommandHandlers(io, socket, deps) {
         if (!actions.ensureMixer(socket)) return;
         try {
             const action_type = data?.action_type || data?.action;
-            const msg = actions.executeMixerCommand({ action: 'mtk_cmd', action_type });
+            const val = data?.val !== undefined ? data?.val : data?.value;
+            const msg = actions.executeMixerCommand({ action: 'mtk_cmd', action_type, val });
             socket.emit('feedback_cut_success', { msg });
         } catch (error) {
             socket.emit('mixer_status', { connected: true, msg: error.message });

@@ -107,6 +107,18 @@ describe('Mixer Actions', () => {
                 headphone: vi.fn(() => volumeBusMock)
             },
             hw: vi.fn(() => hwMock),
+            recorderMultiTrack: {
+                setSoundcheck: vi.fn(),
+                activateSoundcheck: vi.fn(),
+                deactivateSoundcheck: vi.fn(),
+                toggleSoundcheck: vi.fn(),
+                recordStart: vi.fn(),
+                recordStop: vi.fn(),
+                recordToggle: vi.fn(),
+                play: vi.fn(),
+                pause: vi.fn(),
+                stop: vi.fn()
+            },
             reconnect: vi.fn()
         };
     }
@@ -216,6 +228,21 @@ describe('Mixer Actions', () => {
 
         actions.executeMixerCommand({ action: 'automix_change_weight_db', channel: 3, offsetDb: -3 });
         expect(mockMixer.master.input(3).automixChangeWeightDB).toHaveBeenCalledWith(-3);
+
+        actions.executeMixerCommand({ action: 'mtk_cmd', action_type: 'soundcheck_on' });
+        expect(mockMixer.recorderMultiTrack.activateSoundcheck).toHaveBeenCalled();
+
+        actions.executeMixerCommand({ action: 'mtk_cmd', action_type: 'soundcheck_off' });
+        expect(mockMixer.recorderMultiTrack.deactivateSoundcheck).toHaveBeenCalled();
+
+        actions.executeMixerCommand({ action: 'mtk_cmd', action_type: 'toggle_soundcheck' });
+        expect(mockMixer.recorderMultiTrack.toggleSoundcheck).toHaveBeenCalled();
+
+        actions.executeMixerCommand({ action: 'mtk_cmd', action_type: 'set_soundcheck', val: true });
+        expect(mockMixer.recorderMultiTrack.setSoundcheck).toHaveBeenCalledWith(1);
+
+        actions.executeMixerCommand({ action: 'mtk_cmd', action_type: 'set_soundcheck', val: false });
+        expect(mockMixer.recorderMultiTrack.setSoundcheck).toHaveBeenCalledWith(0);
     });
 
     it('should resolve and control VolumeBus targets (solo/headphones)', () => {
@@ -232,6 +259,15 @@ describe('Mixer Actions', () => {
         actions.executeMixerCommand({ action: 'fade_channel', target: 'hp2', level: 0, time: 1500 });
         expect(mockMixer.volume.headphone).toHaveBeenCalledWith(2);
         expect(mockMixer.volume.headphone(2).fadeTo).toHaveBeenCalledWith(0, 1500);
+
+        actions.executeMixerCommand({ action: 'fade_channel_db', target: 'solo', levelDb: -5, time: 1000 });
+        expect(mockMixer.volume.solo.fadeToDB).toHaveBeenCalledWith(-5, 1000);
+
+        actions.executeMixerCommand({ action: 'change_fader_level', target: 'hp1', val: 0.1 });
+        expect(mockMixer.volume.headphone(1).changeFaderLevel).toHaveBeenCalledWith(0.1);
+
+        actions.executeMixerCommand({ action: 'change_fader_level_db', target: 'hp2', val: -3 });
+        expect(mockMixer.volume.headphone(2).changeFaderLevelDB).toHaveBeenCalledWith(-3);
     });
 
     it('should control pre/post status for aux and fx sends', () => {

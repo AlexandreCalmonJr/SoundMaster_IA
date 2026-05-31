@@ -273,7 +273,7 @@ function createMixerActions(getMixer) {
         return `Gravador: comando ${action} executado.`;
     }
 
-    function mtkControl(action) {
+    function mtkControl(action, value = null) {
         const mtk = getMixer().recorderMultiTrack;
         switch (action) {
             case 'start': mtk.recordStart(); break;
@@ -289,6 +289,11 @@ function createMixerActions(getMixer) {
             case 'soundcheck_on': mtk.activateSoundcheck(); break;
             case 'soundcheck_off': mtk.deactivateSoundcheck(); break;
             case 'toggle_soundcheck': mtk.toggleSoundcheck(); break;
+            case 'set_soundcheck':
+                if (value !== null) {
+                    mtk.setSoundcheck(value !== false && value !== 0 ? 1 : 0);
+                }
+                break;
             default: return `Ação MTK desconhecida: ${action}`;
         }
         return `Multitrack: comando ${action} executado.`;
@@ -721,7 +726,7 @@ function createMixerActions(getMixer) {
                 return `Modo do Player configurado para ${c.mode || c.val}.`;
             },
             'recorder_cmd': (c) => recorderControl(c.action_type),
-            'mtk_cmd': (c) => mtkControl(c.action_type),
+            'mtk_cmd': (c) => mtkControl(c.action_type || c.action, c.val !== undefined ? c.val : (c.value !== undefined ? c.value : c.enabled)),
             'mtk_select': (c) => mtkSelectChannel(c.channel || c.ch || 1, c.enabled !== 0),
             'show_cmd': (c) => showControl(c.action_type, c.show, c.target),
             'mute_group_cmd': (c) => muteGroupControl(c.id || 'all', c.action_type || c.action, c.enabled !== 0),

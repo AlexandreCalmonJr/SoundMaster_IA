@@ -157,7 +157,8 @@ function buildSimulatedMixer(socket, mixerSingleton) {
             stop: () => log('[Sim] MTK Playback Stop'),
             activateSoundcheck: () => log('[Sim] Soundcheck ON'),
             deactivateSoundcheck: () => log('[Sim] Soundcheck OFF'),
-            toggleSoundcheck: () => log('[Sim] Soundcheck Toggle')
+            toggleSoundcheck: () => log('[Sim] Soundcheck Toggle'),
+            setSoundcheck: (v) => log(`[Sim] Soundcheck Set -> ${v}`)
         },
         automix: {
             groups: {
