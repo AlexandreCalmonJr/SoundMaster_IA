@@ -31,6 +31,11 @@ vi.mock('../src/server/mixers/mixer-factory', () => ({
             master: {
                 faderLevel$: { subscribe: vi.fn() },
                 faderLevelDB$: { subscribe: vi.fn() },
+                input: vi.fn(() => ({
+                    name$: { subscribe: vi.fn() },
+                    faderLevel$: { subscribe: vi.fn() },
+                    mute$: { subscribe: vi.fn() },
+                })),
             },
             vuProcessor: { vuData$: { subscribe: vi.fn() } },
             deviceInfo: {
@@ -46,11 +51,6 @@ vi.mock('../src/server/mixers/mixer-factory', () => ({
             recorderMultiTrack: { recording$: { subscribe: vi.fn() } },
             player: { state$: { subscribe: vi.fn() }, track$: { subscribe: vi.fn() } },
             shows: { currentShow$: { subscribe: vi.fn() }, currentSnapshot$: { subscribe: vi.fn() }, currentCue$: { subscribe: vi.fn() } },
-            input: vi.fn(() => ({
-                name$: { subscribe: vi.fn() },
-                faderLevel$: { subscribe: vi.fn() },
-                mute$: { subscribe: vi.fn() },
-            })),
             muteGroup: vi.fn(() => ({ state$: { subscribe: vi.fn() } })),
             channelSync: { getSelectedChannel: vi.fn(() => ({ subscribe: vi.fn() })) },
         };

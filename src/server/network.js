@@ -118,8 +118,26 @@ function init(io) {
 function start({ mixerIp, gatewayIp, intervalMs } = {}) {
     if (_state.running) stop();
 
-    _state.mixerIp    = mixerIp    || _state.mixerIp   || _detectGateway();
-    _state.gatewayIp  = gatewayIp  || _state.gatewayIp || _detectGateway();
+    const mixerSingleton = require('./mixer-singleton');
+    const activeMixer = mixerSingleton.getMixer();
+    
+    let resolvedMixerIp = mixerIp;
+    if (!resolvedMixerIp && activeMixer && activeMixer.targetIp && !activeMixer.isSimulated) {
+        resolvedMixerIp = activeMixer.targetIp;
+    }
+
+    _state.mixerIp = resolvedMixerIp || _state.mixerIp || _detectGateway();
+    
+    let resolvedGatewayIp = gatewayIp;
+    if (!resolvedGatewayIp && _state.mixerIp && _state.mixerIp !== 'simulado' && _state.mixerIp !== 'offline' && _state.mixerIp !== '127.0.0.1') {
+        const parts = _state.mixerIp.split('.');
+        if (parts.length === 4) {
+            parts[3] = '1';
+            resolvedGatewayIp = parts.join('.');
+        }
+    }
+
+    _state.gatewayIp  = resolvedGatewayIp || _state.gatewayIp || _detectGateway();
     _state.intervalMs = intervalMs || DEFAULT_INTERVAL_MS;
     _state.running    = true;
     _state.rttHistory = [];
