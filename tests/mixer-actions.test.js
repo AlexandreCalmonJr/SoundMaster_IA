@@ -11,26 +11,103 @@ vi.mock('../src/server/mixer-singleton', () => ({
 
 describe('Mixer Actions', () => {
     function createMockMixer() {
-        const inputFn = vi.fn((channel) => ({
-            eq: () => ({
-                setHpfFreq: vi.fn(),
-                setHpfSlope: vi.fn(),
-                band: vi.fn(() => ({ setFreq: vi.fn(), setGain: vi.fn(), setQ: vi.fn(), setType: vi.fn() }))
-            }),
-            gate: () => ({ enable: vi.fn(), disable: vi.fn(), setThreshold: vi.fn() }),
-            compressor: () => ({ enable: vi.fn(), setRatio: vi.fn(), setThreshold: vi.fn(), setAttack: vi.fn(), setRelease: vi.fn() }),
-            aux: vi.fn(() => ({ setFaderLevel: vi.fn() })),
-            fx: vi.fn(() => ({ setFaderLevel: vi.fn() })),
-            setName: vi.fn(),
-            setDelay: vi.fn()
-        }));
+        const cachedInputs = {};
+        const cachedLines = {};
+        const cachedPlayers = {};
+        const cachedAuxes = {};
+        const cachedFxs = {};
+        const cachedSubs = {};
+        const cachedVcas = {};
+
+        function getOrCreateMockChannel(cache, type, id) {
+            if (cache[id]) return cache[id];
+            
+            const auxMock = {
+                setFaderLevel: vi.fn(),
+                setPost: vi.fn(),
+                post: vi.fn(),
+                pre: vi.fn(),
+                togglePost: vi.fn(),
+                setPostProc: vi.fn(),
+                postProc: vi.fn(),
+                preProc: vi.fn(),
+                setPan: vi.fn()
+            };
+            const fxMock = {
+                setFaderLevel: vi.fn(),
+                setPost: vi.fn(),
+                post: vi.fn(),
+                pre: vi.fn(),
+                togglePost: vi.fn()
+            };
+            
+            cache[id] = {
+                eq: () => ({
+                    setHpfFreq: vi.fn(),
+                    setHpfSlope: vi.fn(),
+                    band: vi.fn(() => ({ setFreq: vi.fn(), setGain: vi.fn(), setQ: vi.fn(), setType: vi.fn() }))
+                }),
+                gate: () => ({ enable: vi.fn(), disable: vi.fn(), setThreshold: vi.fn() }),
+                compressor: () => ({ enable: vi.fn(), setRatio: vi.fn(), setThreshold: vi.fn(), setAttack: vi.fn(), setRelease: vi.fn() }),
+                aux: vi.fn((aId) => auxMock),
+                fx: vi.fn((fId) => fxMock),
+                setName: vi.fn(),
+                setDelay: vi.fn(),
+                setMute: vi.fn(),
+                toggleMute: vi.fn(),
+                setSolo: vi.fn(),
+                solo: vi.fn(),
+                unsolo: vi.fn(),
+                toggleSolo: vi.fn(),
+                multiTrackToggle: vi.fn(),
+                automixRemove: vi.fn(),
+                automixSetWeightDB: vi.fn(),
+                automixChangeWeightDB: vi.fn(),
+                setFaderLevel: vi.fn(),
+                setFaderLevelDB: vi.fn(),
+                changeFaderLevel: vi.fn(),
+                changeFaderLevelDB: vi.fn(),
+                fadeTo: vi.fn(),
+                fadeToDB: vi.fn()
+            };
+            return cache[id];
+        }
+
+        const inputFn = vi.fn((ch) => getOrCreateMockChannel(cachedInputs, 'input', ch));
+        const lineFn = vi.fn((ch) => getOrCreateMockChannel(cachedLines, 'line', ch));
+        const playerFn = vi.fn((ch) => getOrCreateMockChannel(cachedPlayers, 'player', ch));
+        const auxFn = vi.fn((ch) => getOrCreateMockChannel(cachedAuxes, 'aux', ch));
+        const fxFn = vi.fn((ch) => getOrCreateMockChannel(cachedFxs, 'fx', ch));
+        const subFn = vi.fn((ch) => getOrCreateMockChannel(cachedSubs, 'sub', ch));
+        const vcaFn = vi.fn((ch) => getOrCreateMockChannel(cachedVcas, 'vca', ch));
+
         const hwMock = { setGain: vi.fn(), setGainDB: vi.fn(), phantomOn: vi.fn(), phantomOff: vi.fn() };
+        const volumeBusMock = {
+            setFaderLevel: vi.fn(),
+            setFaderLevelDB: vi.fn(),
+            changeFaderLevel: vi.fn(),
+            changeFaderLevelDB: vi.fn(),
+            fadeTo: vi.fn(),
+            fadeToDB: vi.fn()
+        };
+
         return {
-            conn: { sendMessage: vi.fn() },
+            conn: { sendMessage: vi.fn(), reconnect: vi.fn(), status: 'OPEN' },
             master: {
-                input: inputFn
+                input: inputFn,
+                line: lineFn,
+                player: playerFn,
+                aux: auxFn,
+                fx: fxFn,
+                sub: subFn,
+                vca: vcaFn
             },
-            hw: vi.fn(() => hwMock)
+            volume: {
+                solo: volumeBusMock,
+                headphone: vi.fn(() => volumeBusMock)
+            },
+            hw: vi.fn(() => hwMock),
+            reconnect: vi.fn()
         };
     }
 
@@ -105,6 +182,88 @@ describe('Mixer Actions', () => {
         expect(mockMixer.hw).toHaveBeenCalledWith(3);
         expect(mockMixer.hw(3).setGainDB).toHaveBeenCalledWith(24);
         expect(result).toContain('Ganho de Hardware da Entrada Física 3 ajustado para 24dB.');
+    });
+
+    it('should handle boolean and advanced mute/solo/dim actions', () => {
+        const mockMixer = createMockMixer();
+        const actions = createMixerActions(() => mockMixer);
+
+        actions.executeMixerCommand({ action: 'channel_mute', channel: 1, enabled: true });
+        expect(mockMixer.master.input(1).setMute).toHaveBeenCalledWith(1);
+
+        actions.executeMixerCommand({ action: 'toggle_channel_mute', channel: 1 });
+        expect(mockMixer.master.input(1).toggleMute).toHaveBeenCalled();
+
+        actions.executeMixerCommand({ action: 'toggle_solo', channel: 1 });
+        expect(mockMixer.master.input(1).toggleSolo).toHaveBeenCalled();
+
+        actions.executeMixerCommand({ action: 'set_solo', channel: 1, enabled: true });
+        expect(mockMixer.master.input(1).setSolo).toHaveBeenCalledWith(1);
+    });
+
+    it('should handle multi-track recorder toggle and automix actions', () => {
+        const mockMixer = createMockMixer();
+        const actions = createMixerActions(() => mockMixer);
+
+        actions.executeMixerCommand({ action: 'mtk_toggle', channel: 2 });
+        expect(mockMixer.master.input(2).multiTrackToggle).toHaveBeenCalled();
+
+        actions.executeMixerCommand({ action: 'automix_remove', channel: 3 });
+        expect(mockMixer.master.input(3).automixRemove).toHaveBeenCalled();
+
+        actions.executeMixerCommand({ action: 'automix_set_weight_db', channel: 3, weightDb: 6 });
+        expect(mockMixer.master.input(3).automixSetWeightDB).toHaveBeenCalledWith(6);
+
+        actions.executeMixerCommand({ action: 'automix_change_weight_db', channel: 3, offsetDb: -3 });
+        expect(mockMixer.master.input(3).automixChangeWeightDB).toHaveBeenCalledWith(-3);
+    });
+
+    it('should resolve and control VolumeBus targets (solo/headphones)', () => {
+        const mockMixer = createMockMixer();
+        const actions = createMixerActions(() => mockMixer);
+
+        actions.executeMixerCommand({ action: 'set_channel_level', target: 'solo', level: 0.8 });
+        expect(mockMixer.volume.solo.setFaderLevel).toHaveBeenCalledWith(0.8);
+
+        actions.executeMixerCommand({ action: 'set_fader_level_db', target: 'hp1', levelDb: -10 });
+        expect(mockMixer.volume.headphone).toHaveBeenCalledWith(1);
+        expect(mockMixer.volume.headphone(1).setFaderLevelDB).toHaveBeenCalledWith(-10);
+
+        actions.executeMixerCommand({ action: 'fade_channel', target: 'hp2', level: 0, time: 1500 });
+        expect(mockMixer.volume.headphone).toHaveBeenCalledWith(2);
+        expect(mockMixer.volume.headphone(2).fadeTo).toHaveBeenCalledWith(0, 1500);
+    });
+
+    it('should control pre/post status for aux and fx sends', () => {
+        const mockMixer = createMockMixer();
+        const actions = createMixerActions(() => mockMixer);
+
+        actions.executeMixerCommand({ action: 'set_aux_post', channel: 1, aux: 2, enabled: true });
+        expect(mockMixer.master.input(1).aux(2).post).toHaveBeenCalled();
+
+        actions.executeMixerCommand({ action: 'set_aux_post_proc', channel: 1, aux: 2, enabled: true });
+        expect(mockMixer.master.input(1).aux(2).postProc).toHaveBeenCalled();
+
+        actions.executeMixerCommand({ action: 'set_fx_post', channel: 1, fx: 3, enabled: false });
+        expect(mockMixer.master.input(1).fx(3).pre).toHaveBeenCalled();
+
+        actions.executeMixerCommand({ action: 'toggle_aux_post', channel: 1, aux: 2 });
+        expect(mockMixer.master.input(1).aux(2).togglePost).toHaveBeenCalled();
+
+        actions.executeMixerCommand({ action: 'toggle_fx_post', channel: 1, fx: 3 });
+        expect(mockMixer.master.input(1).fx(3).togglePost).toHaveBeenCalled();
+    });
+
+    it('should handle connection reconnect and status actions', () => {
+        const mockMixer = createMockMixer();
+        const actions = createMixerActions(() => mockMixer);
+
+        const statusRes = actions.executeMixerCommand({ action: 'get_connection_status' });
+        expect(statusRes).toContain('OPEN');
+
+        const reconnectRes = actions.executeMixerCommand({ action: 'reconnect_mixer' });
+        expect(mockMixer.reconnect).toHaveBeenCalled();
+        expect(reconnectRes).toContain('Tentando reconectar');
     });
 });
 

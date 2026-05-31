@@ -9,17 +9,26 @@ function buildSimulatedMixer(socket, mixerSingleton) {
             setFaderLevel: (v) => log(`[Sim] ${displayName} ${id} Fader -> ${Math.round(v * 100)}%`),
             mute: () => log(`[Sim] ${displayName} ${id} MUTADO`),
             unmute: () => log(`[Sim] ${displayName} ${id} ATIVADO`),
+            setMute: (v) => log(`[Sim] ${displayName} ${id} setMute -> ${v}`),
+            toggleMute: () => log(`[Sim] ${displayName} ${id} Mute alternado`),
             setPan: (v) => log(`[Sim] ${displayName} ${id} Pan -> ${v}`),
             changePan: (v) => log(`[Sim] ${displayName} ${id} Pan relativo -> ${v}`),
             toggleSolo: () => log(`[Sim] ${displayName} ${id} SOLO alternado`),
+            setSolo: (v) => log(`[Sim] ${displayName} ${id} setSolo -> ${v}`),
+            solo: () => log(`[Sim] ${displayName} ${id} SOLO ativado`),
+            unsolo: () => log(`[Sim] ${displayName} ${id} SOLO desativado`),
             setDelay: (ms) => log(`[Sim] ${displayName} ${id} Delay -> ${ms}ms`),
             fadeTo: (v, ms) => log(`[Sim] ${displayName} ${id} Fade -> ${Math.round(v * 100)}% em ${ms}ms`),
             fadeToDB: (v, ms) => log(`[Sim] ${displayName} ${id} Fade -> ${v}dB em ${ms}ms`),
             setName: (name) => log(`[Sim] ${displayName} ${id} Nome -> ${name}`),
             multiTrackSelect: () => log(`[Sim] ${displayName} ${id} adicionado ao MTK`),
             multiTrackUnselect: () => log(`[Sim] ${displayName} ${id} removido do MTK`),
+            multiTrackToggle: () => log(`[Sim] ${displayName} ${id} multiTrackToggle`),
             automixAssignGroup: (group) => log(`[Sim] ${displayName} ${id} Automix -> ${group}`),
+            automixRemove: () => log(`[Sim] ${displayName} ${id} automixRemove`),
             automixSetWeight: (weight) => log(`[Sim] ${displayName} ${id} Peso Automix -> ${weight}`),
+            automixSetWeightDB: (weightDb) => log(`[Sim] ${displayName} ${id} Peso Automix DB -> ${weightDb}`),
+            automixChangeWeightDB: (weightDb) => log(`[Sim] ${displayName} ${id} Peso Automix DB Relativo -> ${weightDb}`),
             changeFaderLevelDB: (d) => log(`[Sim] ${displayName} ${id} Volume -> ${d}dB`),
             setFaderLevelDB: (d) => log(`[Sim] ${displayName} ${id} Volume -> ${d}dB`),
             changeFaderLevel: (v) => log(`[Sim] ${displayName} ${id} Fader relativo -> ${v}`),
@@ -36,8 +45,24 @@ function buildSimulatedMixer(socket, mixerSingleton) {
             }),
             gate: () => ({ enable: () => {}, disable: () => {}, setThreshold: () => {} }),
             compressor: () => ({ enable: () => {}, setRatio: () => {}, setThreshold: () => {}, setAttack: () => {}, setRelease: () => {} }),
-            aux: () => ({ setFaderLevel: () => {}, setPost: () => {}, setPostProc: () => {}, setPan: () => {} }),
-            fx: () => ({ setFaderLevel: () => {}, setPost: () => {} }),
+            aux: () => ({
+                setFaderLevel: () => {},
+                setPost: () => {},
+                post: () => {},
+                pre: () => {},
+                togglePost: () => {},
+                setPostProc: () => {},
+                postProc: () => {},
+                preProc: () => {},
+                setPan: () => {}
+            }),
+            fx: () => ({
+                setFaderLevel: () => {},
+                setPost: () => {},
+                post: () => {},
+                pre: () => {},
+                togglePost: () => {}
+            }),
             faderLevel$: { subscribe: () => {} },
             mute$: { subscribe: () => {} },
             solo$: { subscribe: () => {} },
@@ -50,7 +75,11 @@ function buildSimulatedMixer(socket, mixerSingleton) {
         brand: 'simulated',
         isSimulated: true,
         targetIp: 'simulado',
-        conn: { sendMessage: (msg) => log(`RAW: ${msg}`) },
+        conn: {
+            sendMessage: (msg) => log(`RAW: ${msg}`),
+            reconnect: () => log('[Sim] Connection reconnect'),
+            status: 'OPEN'
+        },
         master: {
             faderLevel$: { subscribe: () => {} },
             faderLevelDB$: { subscribe: () => {} },
@@ -203,8 +232,26 @@ function buildSimulatedMixer(socket, mixerSingleton) {
         }),
         clearMuteGroups: () => log('[Sim] Todos Mute Groups limpos'),
         volume: {
-            solo: { faderLevel$: { subscribe: () => {} }, setFaderLevel: () => {} },
-            headphone: (hpId) => ({ faderLevel$: { subscribe: () => {} }, setFaderLevel: () => {} })
+            solo: {
+                faderLevel$: { subscribe: () => {} },
+                faderLevelDB$: { subscribe: () => {} },
+                setFaderLevel: (v) => log(`[Sim] VolumeBus solo Fader -> ${Math.round(v * 100)}%`),
+                setFaderLevelDB: (v) => log(`[Sim] VolumeBus solo Fader -> ${v}dB`),
+                changeFaderLevel: (v) => log(`[Sim] VolumeBus solo Fader relativo -> ${v}`),
+                changeFaderLevelDB: (v) => log(`[Sim] VolumeBus solo Fader relativo -> ${v}dB`),
+                fadeTo: (v, ms) => log(`[Sim] VolumeBus solo Fade -> ${Math.round(v * 100)}% em ${ms}ms`),
+                fadeToDB: (v, ms) => log(`[Sim] VolumeBus solo Fade -> ${v}dB em ${ms}ms`)
+            },
+            headphone: (hpId) => ({
+                faderLevel$: { subscribe: () => {} },
+                faderLevelDB$: { subscribe: () => {} },
+                setFaderLevel: (v) => log(`[Sim] VolumeBus headphone ${hpId} Fader -> ${Math.round(v * 100)}%`),
+                setFaderLevelDB: (v) => log(`[Sim] VolumeBus headphone ${hpId} Fader -> ${v}dB`),
+                changeFaderLevel: (v) => log(`[Sim] VolumeBus headphone ${hpId} Fader relativo -> ${v}`),
+                changeFaderLevelDB: (v) => log(`[Sim] VolumeBus headphone ${hpId} Fader relativo -> ${v}dB`),
+                fadeTo: (v, ms) => log(`[Sim] VolumeBus headphone ${hpId} Fade -> ${Math.round(v * 100)}% em ${ms}ms`),
+                fadeToDB: (v, ms) => log(`[Sim] VolumeBus headphone ${hpId} Fade -> ${v}dB em ${ms}ms`)
+            })
         },
         fx: (id) => {
             const mockSend = () => ({
@@ -228,7 +275,9 @@ function buildSimulatedMixer(socket, mixerSingleton) {
             };
         },
         disconnect: () => { if (mixerSingleton) mixerSingleton.setMixer(null); },
-        connect: async () => {}
+        connect: async () => {},
+        reconnect: async () => log('[Sim] Mixer reconnect'),
+        status$: { subscribe: () => {} }
     };
 }
 

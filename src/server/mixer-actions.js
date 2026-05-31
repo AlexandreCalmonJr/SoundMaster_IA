@@ -112,12 +112,26 @@ function createMixerActions(getMixer) {
     }
 
     function setAuxPost(channel, aux, isPost) {
-        getMixer().master.input(channel).aux(aux).setPost(isPost ? 1 : 0);
+        const target = getMixer().master.input(channel).aux(aux);
+        if (isPost) {
+            if (target.post) target.post();
+            else target.setPost(1);
+        } else {
+            if (target.pre) target.pre();
+            else target.setPost(0);
+        }
         return `AUX ${aux} do canal ${channel} configurado como ${isPost ? 'POST' : 'PRE'}-Fader.`;
     }
 
     function setAuxPostProc(channel, aux, isPostProc) {
-        getMixer().master.input(channel).aux(aux).setPostProc(isPostProc ? 1 : 0);
+        const target = getMixer().master.input(channel).aux(aux);
+        if (isPostProc) {
+            if (target.postProc) target.postProc();
+            else target.setPostProc(1);
+        } else {
+            if (target.preProc) target.preProc();
+            else target.setPostProc(0);
+        }
         return `AUX ${aux} do canal ${channel} configurado como ${isPostProc ? 'POST' : 'PRE'}-PROC.`;
     }
 
@@ -129,7 +143,14 @@ function createMixerActions(getMixer) {
     }
 
     function setFxPost(channel, fx, isPost) {
-        getMixer().master.input(channel).fx(fx).setPost(isPost ? 1 : 0);
+        const target = getMixer().master.input(channel).fx(fx);
+        if (isPost) {
+            if (target.post) target.post();
+            else target.setPost(1);
+        } else {
+            if (target.pre) target.pre();
+            else target.setPost(0);
+        }
         return `FX ${fx} do canal ${channel} configurado como ${isPost ? 'POST' : 'PRE'}-Fader.`;
     }
 
@@ -412,9 +433,23 @@ function createMixerActions(getMixer) {
         if (c.target === 'master') {
             return mixer.master;
         }
+        if (c.target === 'solo') {
+            return mixer.volume && mixer.volume.solo;
+        }
+        if (c.target === 'hp1' || c.target === 'headphone1') {
+            return mixer.volume && mixer.volume.headphone && mixer.volume.headphone(1);
+        }
+        if (c.target === 'hp2' || c.target === 'headphone2') {
+            return mixer.volume && mixer.volume.headphone && mixer.volume.headphone(2);
+        }
         const type = String(c.channelType || c.type || 'input').toLowerCase();
         const ch = c.channel || c.ch || c.id || 1;
         switch (type) {
+            case 'solo':
+                return mixer.volume && mixer.volume.solo;
+            case 'headphone':
+            case 'hp':
+                return mixer.volume && mixer.volume.headphone && mixer.volume.headphone(ch);
             case 'line':
             case 'l':
                 return mixer.master.line(ch);
@@ -547,8 +582,15 @@ function createMixerActions(getMixer) {
             'channel_mute': (c) => {
                 const target = resolveTarget(c);
                 const mut = c.enabled !== false && c.enabled !== 0;
-                if (mut) target.mute(); else target.unmute();
+                if (target.setMute) target.setMute(mut ? 1 : 0);
+                else if (mut) target.mute();
+                else target.unmute();
                 return `${c.target || 'canal'} ${mut ? 'MUTADO' : 'DESMUTADO'}.`;
+            },
+            'toggle_channel_mute': (c) => {
+                const target = resolveTarget(c);
+                if (target.toggleMute) target.toggleMute();
+                return `${c.target || 'canal'} mute alternado.`;
             },
             'toggle_dim': () => { mixer.master.toggleDim(); return 'Função DIM alternada no Master.'; },
             'set_master_pan': (c) => { mixer.master.setPan(clamp(c.val || 0.5, 0, 1)); return `Pan do Master ajustado para ${c.val}`; },
@@ -560,8 +602,65 @@ function createMixerActions(getMixer) {
             },
             'toggle_solo': (c) => {
                 const target = resolveTarget(c);
-                target.toggleSolo();
+                if (target.toggleSolo) target.toggleSolo();
                 return `Solo de ${c.target || 'canal'} alternado.`;
+            },
+            'set_solo': (c) => {
+                const target = resolveTarget(c);
+                const enabled = c.enabled !== false && c.enabled !== 0;
+                if (target.setSolo) target.setSolo(enabled ? 1 : 0);
+                else if (enabled) {
+                    if (target.solo) target.solo();
+                } else {
+                    if (target.unsolo) target.unsolo();
+                }
+                return `Solo de ${c.target || 'canal'} ${enabled ? 'ATIVADO' : 'DESATIVADO'}.`;
+            },
+            'mtk_toggle': (c) => {
+                const target = resolveTarget(c);
+                if (target.multiTrackToggle) target.multiTrackToggle();
+                return `Multitrack de ${c.target || 'canal'} alternado.`;
+            },
+            'automix_remove': (c) => {
+                const target = resolveTarget(c);
+                if (target.automixRemove) target.automixRemove();
+                return `Canal ${c.channel || 1} removido do Automix.`;
+            },
+            'automix_set_weight_db': (c) => {
+                const target = resolveTarget(c);
+                const dbVal = clamp(c.weightDb !== undefined ? c.weightDb : (c.val || 0), -12, 12);
+                if (target.automixSetWeightDB) target.automixSetWeightDB(dbVal);
+                return `Peso Automix de ${c.target || 'canal'} ajustado para ${dbVal}dB.`;
+            },
+            'automix_change_weight_db': (c) => {
+                const target = resolveTarget(c);
+                const offsetDb = clamp(c.offsetDb !== undefined ? c.offsetDb : (c.val || 0), -24, 24);
+                if (target.automixChangeWeightDB) target.automixChangeWeightDB(offsetDb);
+                return `Peso Automix de ${c.target || 'canal'} ajustado relativamente em ${offsetDb}dB.`;
+            },
+            'toggle_aux_post': (c) => {
+                const ch = c.channel || c.ch || 1;
+                const aux = c.aux || 1;
+                const target = getMixer().master.input(ch).aux(aux);
+                if (target.togglePost) target.togglePost();
+                return `AUX ${aux} do canal ${ch} fader mode alternado.`;
+            },
+            'toggle_fx_post': (c) => {
+                const ch = c.channel || c.ch || 1;
+                const fx = c.fx || 1;
+                const target = getMixer().master.input(ch).fx(fx);
+                if (target.togglePost) target.togglePost();
+                return `FX ${fx} do canal ${ch} fader mode alternado.`;
+            },
+            'reconnect_mixer': () => {
+                const mixer = getMixer();
+                if (mixer.reconnect) mixer.reconnect();
+                return 'Tentando reconectar à mesa de som...';
+            },
+            'get_connection_status': () => {
+                const mixer = getMixer();
+                const status = mixer.conn && mixer.conn.status ? mixer.conn.status : 'UNKNOWN';
+                return `Status da conexão: ${status}`;
             },
             'fade_master': (c) => fadeMaster(c.level || 0, c.time || 2000),
             'fade_channel': (c) => {
@@ -571,14 +670,14 @@ function createMixerActions(getMixer) {
                 target.fadeTo(lvl, time);
                 return `Fade de ${c.target || 'canal'} para ${Math.round(lvl * 100)}% em ${time}ms iniciado.`;
             },
-            'set_oscillator': (c) => applyOscillator(c.enabled !== 0, c.type, c.level),
+            'set_oscillator': (c) => applyOscillator(c.enabled !== 0 && c.enabled !== false, c.type, c.level),
             'set_aux_level': (c) => setAuxLevel(c.channel || 1, c.aux || 1, c.level || 0),
-            'set_aux_post': (c) => setAuxPost(c.channel || 1, c.aux || 1, c.enabled !== 0),
-            'set_aux_post_proc': (c) => setAuxPostProc(c.channel || 1, c.aux || 1, c.enabled !== 0),
+            'set_aux_post': (c) => setAuxPost(c.channel || 1, c.aux || 1, c.enabled !== 0 && c.enabled !== false),
+            'set_aux_post_proc': (c) => setAuxPostProc(c.channel || 1, c.aux || 1, c.enabled !== 0 && c.enabled !== false),
             'set_aux_pan': (c) => { const ch = c.channel || c.ch || 1; getMixer().master.input(ch).aux(c.aux || 1).setPan(clamp(c.val || 0.5, 0, 1)); return `Pan do AUX ${c.aux} (Canal ${ch}) ajustado para ${c.val}`; },
             'set_channel_name': (c) => setChannelName(c.channel || 1, c.name || ''),
             'set_fx_level': (c) => setFxLevel(c.channel || 1, c.fx || 1, c.level || 0),
-            'set_fx_post': (c) => setFxPost(c.channel || 1, c.fx || 1, c.enabled !== 0),
+            'set_fx_post': (c) => setFxPost(c.channel || 1, c.fx || 1, c.enabled !== 0 && c.enabled !== false),
             'set_fx_bpm': (c) => setFxBpm(c.fx || 1, c.val || 120),
             'set_fx_param': (c) => setFxParam(c.fx || 1, c.param || 1, c.val || 0.5),
             'set_hw_gain': (c) => setHwGain(c.input || c.channel || 1, c.val || 0.5),
@@ -601,8 +700,8 @@ function createMixerActions(getMixer) {
                 mixer.hw(input).changeGainDB(offsetDb);
                 return `Ganho de Hardware da Entrada Física ${input} ajustado relativamente por ${offsetDb}dB.`;
             },
-            'set_phantom': (c) => setPhantom(c.input || c.channel || 1, c.enabled !== 0),
-            'set_phantom_power': (c) => setPhantom(c.input || c.channel || 1, c.enabled !== 0),
+            'set_phantom': (c) => setPhantom(c.input || c.channel || 1, c.enabled !== 0 && c.enabled !== false),
+            'set_phantom_power': (c) => setPhantom(c.input || c.channel || 1, c.enabled !== 0 && c.enabled !== false),
             'toggle_phantom': (c) => {
                 const input = c.input || c.channel || 1;
                 const hw = mixer.hw(input);
