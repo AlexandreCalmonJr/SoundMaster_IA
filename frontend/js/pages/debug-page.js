@@ -4,41 +4,46 @@
     var unsubscribeLogs = null;
 
     function _testPython() {
-        pm._log('debug-console', 'Testando endpoint de diagnóstico Python...');
-        fetch('/api/ai/diagnose').then(function (res) { return res.json(); }).then(function (data) {
-            pm._log('debug-console', 'Sucesso: ' + JSON.stringify(data));
-        }).catch(function (e) { pm._log('debug-console', 'Erro: ' + e.message, 'error'); });
+        AppStore.addLog('[System] Testando endpoint de diagnóstico Python...');
+        fetch('/api/ai/diagnose').then(function (res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.json();
+        }).then(function (data) {
+            AppStore.addLog('[System] Python OK: ' + JSON.stringify(data));
+        }).catch(function (e) {
+            AppStore.addLog('[ERROR] Python falhou: ' + e.message);
+        });
     }
 
     function _testNode() {
-        pm._log('debug-console', 'Verificando status do servidor Node e Socket...');
+        AppStore.addLog('[System] Verificando status do servidor Node e Socket...');
         pm._setTimeout(function () {
-            pm._log('debug-console', 'Allowlist Zod: OK');
-            pm._log('debug-console', 'Throttle Scoping: OK');
-            pm._log('debug-console', 'Canal 24 Limit: OK');
+            AppStore.addLog('[System] Allowlist Zod: OK');
+            AppStore.addLog('[System] Throttle Scoping: OK');
+            AppStore.addLog('[System] Canal 24 Limit: OK');
         }, 500);
     }
 
     function _renderLogs() {
-        const consoleDiv = pm._el('debug-console');
+        var consoleDiv = pm._el('debug-console');
         if (!consoleDiv) return;
-        const logs = AppStore.getState().mixerLog;
-        consoleDiv.innerHTML = logs.map(l => {
-            let color = '#4ade80';
-            if (l.text.includes('[WARN]') || l.text.toLowerCase().includes('aviso') || l.text.includes('JWT_SECRET_MISSING')) {
-                color = '#fbbf24';
-            } else if (l.text.includes('[ERROR]') || l.text.toLowerCase().includes('erro') || l.text.includes('falhou')) {
+        var logs = (AppStore.getState().mixerLog) || [];
+        consoleDiv.innerHTML = logs.map(function (l) {
+            var color = '#4ade80';
+            if (l.text.includes('[ERROR]') || l.text.toLowerCase().includes('erro') || l.text.includes('falhou')) {
                 color = '#f87171';
+            } else if (l.text.includes('[WARN]') || l.text.toLowerCase().includes('aviso') || l.text.includes('JWT_SECRET_MISSING')) {
+                color = '#fbbf24';
             } else if (l.text.includes('[System]')) {
                 color = '#60a5fa';
             }
-            const safeText = l.text.replace(/[&<>"']/g, function (c) {
+            var safeText = l.text.replace(/[&<>"']/g, function (c) {
                 return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
             });
-            return `<div style="margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 2px; font-family: monospace; font-size: 10px;">
-                <span style="color: #64748b; font-size: 8px;">[${l.time}]</span> 
-                <span style="color: ${color};">${safeText}</span>
-            </div>`;
+            return '<div style="margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 2px; font-family: monospace; font-size: 10px;">' +
+                '<span style="color: #64748b; font-size: 8px;">[' + l.time + ']</span> ' +
+                '<span style="color: ' + color + ';">' + safeText + '</span>' +
+                '</div>';
         }).join('');
         consoleDiv.scrollTop = consoleDiv.scrollHeight;
     }

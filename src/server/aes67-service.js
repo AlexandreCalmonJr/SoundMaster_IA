@@ -14,17 +14,20 @@ class AES67Receiver extends EventEmitter {
     }
 
     start() {
-        // Cria o socket dinamicamente no start()
+        if (this.server) {
+            this.stop();
+        }
+
         this.server = dgram.createSocket('udp4');
 
         this.server.on('error', (err) => {
             console.error(`[AES67] Erro: ${err.stack}`);
-            this.server.close();
-            this.server = null;
             this.isStreaming = false;
+            this.server = null;
         });
 
         this.server.on('message', (msg, rinfo) => {
+            if (!this.isStreaming) return;
             const payload = msg.slice(12);
             
             this.emit('multi-channel-audio', {
@@ -38,11 +41,11 @@ class AES67Receiver extends EventEmitter {
         this.server.on('listening', () => {
             const address = this.server.address();
             console.log(`[AES67] Receptor Ativo em ${address.address}:${address.port}`);
+            this.isStreaming = true;
         });
 
         try {
             this.server.bind(this.port);
-            this.isStreaming = true;
         } catch (e) {
             console.error('[AES67] Falha ao iniciar receptor:', e.message);
             this.isStreaming = false;

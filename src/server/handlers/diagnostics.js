@@ -175,10 +175,10 @@ function registerDiagnosticHandlers(io, socket, deps) {
         }
 
         try {
-            const cutoffMs = Date.now() - months * 30 * 86400 * 1000;
+            const safeChannel = String(channel || 'Canal 1').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const docs = await new Promise((resolve, reject) => {
                 historyService.db.find(
-                    { name: { $regex: new RegExp(channel, 'i') } }
+                    { name: { $regex: new RegExp(safeChannel, 'i') } }
                 )
                 .sort({ timestamp: 1 })
                 .exec((err, d) => err ? reject(err) : resolve(d || []));

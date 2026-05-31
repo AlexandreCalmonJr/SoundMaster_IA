@@ -260,7 +260,7 @@
         state.connected = true;
         _intervalId = setInterval(_tick, _tickRate);
         _emitVuUpdate();
-        AppStore.addLog('[SIM] Simulação iniciada — Mixer simulado ativo.');
+        if (window.AppStore) AppStore.addLog('[SIM] Simulação iniciada — Mixer simulado ativo.');
     }
 
     function stop() {
@@ -270,7 +270,7 @@
         _intervalId = null;
         state.connected = false;
         _emitVuUpdate();
-        AppStore.addLog('[SIM] Simulação pausada.');
+        if (window.AppStore) AppStore.addLog('[SIM] Simulação pausada.');
     }
 
     function reset() {

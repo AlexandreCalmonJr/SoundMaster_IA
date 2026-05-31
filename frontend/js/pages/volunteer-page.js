@@ -40,7 +40,7 @@
         pm._safeCall('MixerService', 'setMasterLevel', pa / 100);
     }
 
-    function _toggleMute(btnId, serviceMethod, muteText, unmuteText) {
+    function _toggleMute(btnId, serviceMethod, muteText, unmuteText, channel) {
         var btn = pm._el(btnId);
         if (!btn) return;
         var isMuted = btn.dataset.muted === 'true';
@@ -53,7 +53,11 @@
             btn.innerHTML = unmuteText;
             pm._toggleClasses(btnId, ['bg-red-600', 'hover:bg-red-500'], ['bg-slate-700', 'hover:bg-slate-600']);
         }
-        pm._safeCall('MixerService', serviceMethod, !isMuted);
+        if (channel !== undefined) {
+            pm._safeCall('MixerService', serviceMethod, channel, !isMuted);
+        } else {
+            pm._safeCall('MixerService', serviceMethod, !isMuted);
+        }
     }
 
     function init() {
@@ -80,11 +84,19 @@
         _updateSliderLabel(monitorSlider, monitorVal);
 
         pm._on(pm._el('vol-btn-mute-pa'), 'click', function () { _toggleMute('vol-btn-mute-pa', 'setMasterMute', '\uD83D\uDD07 Mutar PA', '\uD83D\uDD0A Desmutar PA'); });
-        pm._on(pm._el('vol-btn-mute-vocal'), 'click', function () { _toggleMute('vol-btn-mute-vocal', 'setChannelMute', 1, '\uD83D\uDD07 Mutar Vocal', '\uD83D\uDD0A Desmutar Vocal'); });
+        pm._on(pm._el('vol-btn-mute-vocal'), 'click', function () { _toggleMute('vol-btn-mute-vocal', 'setChannelMute', '\uD83D\uDD07 Mutar Vocal', '\uD83D\uDD0A Desmutar Vocal', 1); });
 
         pm._on(pm._el('vol-btn-preset-louvor'), 'click', function () { _setLevels(85, 65); });
         pm._on(pm._el('vol-btn-preset-pregacao'), 'click', function () { _setLevels(75, 60); });
-        pm._on(pm._el('vol-btn-preset-silencio'), 'click', function () { _setLevels(0, 0); pm._safeCall('MixerService', 'setChannelMute', 1, true); pm._safeCall('MixerService', 'setMasterMute', true); });
+        pm._on(pm._el('vol-btn-preset-silencio'), 'click', function () { 
+            _setLevels(0, 0); 
+            pm._safeCall('MixerService', 'setChannelMute', 1, true); 
+            pm._safeCall('MixerService', 'setMasterMute', true);
+            var paBtn = pm._el('vol-btn-mute-pa');
+            if (paBtn) { paBtn.dataset.muted = 'true'; paBtn.innerHTML = '\uD83D\uDD0A Desmutar PA'; pm._toggleClasses('vol-btn-mute-pa', ['bg-red-600', 'hover:bg-red-500'], ['bg-slate-700', 'hover:bg-slate-600']); }
+            var vocalBtn = pm._el('vol-btn-mute-vocal');
+            if (vocalBtn) { vocalBtn.dataset.muted = 'true'; vocalBtn.innerHTML = '\uD83D\uDD0A Desmutar Vocal'; pm._toggleClasses('vol-btn-mute-vocal', ['bg-red-600', 'hover:bg-red-500'], ['bg-slate-700', 'hover:bg-slate-600']); }
+        });
         pm._on(pm._el('vol-btn-ai-chat'), 'click', function () { pm._safeCall('router', 'navigate', 'home'); });
         pm._on(pm._el('vol-btn-exit'), 'click', function () { pm._safeCall('router', 'navigate', 'home'); });
 

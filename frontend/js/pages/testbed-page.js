@@ -35,7 +35,8 @@
             if (label) label.textContent = vu > -60 ? vu.toFixed(1) + 'dB' : '-\u221E';
         }
         var masterPct = s.master ? s.master.level * 100 : 0;
-        pm._el('sim-master-bar').style.width = masterPct + '%';
+        var masterBar = pm._el('sim-master-bar');
+        if (masterBar) masterBar.style.width = masterPct + '%';
         var ml = pm._el('sim-master-label');
         if (ml) ml.textContent = (s.master && s.master.mute) ? 'MUTE' : Math.round(((s.master ? s.master.level : 1) - 1) * 100) + 'dB';
     }
@@ -69,7 +70,13 @@
         ctx.beginPath(); ctx.moveTo(0, h * 0.66); ctx.lineTo(w, h * 0.66); ctx.stroke();
     }
 
-    function _animate() { _updateVuGrid(); animationFrameId = pm._requestAnimationFrame(_animate); }
+    var _animating = false;
+    function _animate() { 
+        if (_animating) return;
+        _animating = true;
+        _updateVuGrid(); 
+        animationFrameId = pm._requestAnimationFrame(function () { _animating = false; _animate(); });
+    }
 
     function _addChatMessage(role, text) {
         var container = pm._el('sim-chat-messages');
@@ -119,13 +126,13 @@
         if (!input || !window.SimulationService) return;
         var text = input.value.trim(); if (!text) return;
         input.value = ''; _addChatMessage('user', text);
-        SimulationService.askAI(text, 1).then(function (res) { _addChatMessage('ai', res.text); if (res.command) pm._log('sim-log', 'Comando gerado: ' + JSON.stringify(res.command)); });
+        SimulationService.askAI(text, 1).then(function (res) { _addChatMessage('ai', res.text); if (res.command) pm._log('sim-log', 'Comando gerado: ' + JSON.stringify(res.command)); }).catch(function (e) { _addChatMessage('ai', 'Erro ao processar mensagem.'); });
     }
 
     function init() {
         _buildVuGrid(); _initSceneButtons(); _updateAcousticDisplay(); _updateSimUI();
 
-        pm._on(pm._el('btn-sim-start'), 'click', function () { if (window.SimulationService) { SimulationService.start(); _updateSimUI(); _animate(); _updateAcousticDisplay(); pm._log('sim-log', 'Simula\u00E7\u00E3o iniciada'); SimulationService.askAI('status').then(function (r) { _addChatMessage('ai', r.text); }); } });
+        pm._on(pm._el('btn-sim-start'), 'click', function () { if (window.SimulationService) { SimulationService.start(); _updateSimUI(); _animate(); _updateAcousticDisplay(); pm._log('sim-log', 'Simula\u00E7\u00E3o iniciada'); SimulationService.askAI('status').then(function (r) { _addChatMessage('ai', r.text); }).catch(function (e) { _addChatMessage('ai', 'Erro ao obter status.'); }); } });
         pm._on(pm._el('btn-sim-stop'), 'click', function () { if (window.SimulationService) { SimulationService.stop(); if (animationFrameId) cancelAnimationFrame(animationFrameId); _updateSimUI(); pm._log('sim-log', 'Simula\u00E7\u00E3o pausada', 'warn'); } });
         pm._on(pm._el('btn-sim-reset'), 'click', function () { if (window.SimulationService) { SimulationService.reset(); _buildVuGrid(); _updateAcousticDisplay(); _updateSimUI(); pm._log('sim-log', 'Estado resetado'); } });
         pm._on(pm._el('btn-sim-chat'), 'click', _sendChat);
@@ -150,7 +157,13 @@
         });
     }
 
-    function destroy() { fftCtx = null; pm.destroy(); }
+    function destroy() { 
+        if (window.SimulationService && typeof SimulationService.stop === 'function') {
+            SimulationService.stop();
+        }
+        fftCtx = null; 
+        pm.destroy(); 
+    }
 
     window.TestbedPage = { init: init, destroy: destroy };
 })();

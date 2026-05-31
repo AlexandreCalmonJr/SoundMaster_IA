@@ -3,6 +3,10 @@
  * Persists and manages global user preferences, AI model, and updates check.
  */
 
+function _safeSetItem(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) { console.warn('[Settings] localStorage write failed:', e.message); }
+}
+
 'use strict';
 
 (function () {
@@ -75,6 +79,8 @@
                     : 'border-white/10 bg-slate-800/50 hover:border-white/20 hover:bg-slate-800'
             }`;
 
+            var safeName = pm._esc(m.name || '');
+            var safeKey = pm._esc(m.key || '');
             card.innerHTML = `
                 <div class="flex items-start justify-between mb-2">
                     <span class="text-2xl">${info.icon || '🤖'}</span>
@@ -83,39 +89,34 @@
                         ${isDownloaded ? '<span class="text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">Baixado</span>' : ''}
                     </div>
                 </div>
-                <h4 class="text-sm font-bold text-white mb-1">${m.name}</h4>
+                <h4 class="text-sm font-bold text-white mb-1">${safeName}</h4>
                 <p class="text-[11px] text-slate-400 mb-2">${info.desc || ''}</p>
                 <div class="flex items-center justify-between">
                     <span class="text-[10px] text-slate-500">${info.size || '—'}</span>
                     ${isActive
                         ? '<span class="text-[10px] font-bold text-cyan-400">✓ ATIVO</span>'
                         : isDownloaded
-                            ? `<button class="btn-select-model text-[10px] font-bold text-cyan-400 hover:text-cyan-300" data-key="${m.key}">Selecionar</button>`
-                            : `<button class="btn-download-model text-[10px] font-bold text-amber-400 hover:text-amber-300" data-key="${m.key}">Baixar</button>`
+                            ? `<button class="btn-select-model text-[10px] font-bold text-cyan-400 hover:text-cyan-300" data-key="${safeKey}">Selecionar</button>`
+                            : `<button class="btn-download-model text-[10px] font-bold text-amber-400 hover:text-amber-300" data-key="${safeKey}">Baixar</button>`
                     }
                 </div>
             `;
 
             container.appendChild(card);
         });
+    }
 
-        // Bind select buttons
-        container.querySelectorAll('.btn-select-model').forEach(btn => {
-            pm._on(btn, 'click', async (e) => {
-                e.stopPropagation();
-                const key = btn.dataset.key;
-                await _selectModel(key);
-            });
-        });
-
-        // Bind download buttons
-        container.querySelectorAll('.btn-download-model').forEach(btn => {
-            pm._on(btn, 'click', async (e) => {
-                e.stopPropagation();
-                const key = btn.dataset.key;
-                await _downloadModel(key);
-            });
-        });
+    // Event delegation for model list
+    function _handleModelListClick(e) {
+        var btn = e.target.closest('.btn-select-model, .btn-download-model');
+        if (!btn) return;
+        e.stopPropagation();
+        var key = btn.dataset.key;
+        if (btn.classList.contains('btn-select-model')) {
+            _selectModel(key);
+        } else if (btn.classList.contains('btn-download-model')) {
+            _downloadModel(key);
+        }
     }
 
     async function _loadModels() {
@@ -139,7 +140,7 @@
         try {
             await _apiPost('/api/models/select', { model: key });
             _currentModel = key;
-            localStorage.setItem('sm-ai-model', key);
+            _safeSetItem('sm-ai-model', key);
             _renderModelList(_modelsData, _currentModel);
             const active = _modelsData.find(m => m.key === key);
             _renderModelStatus(key, active ? active.downloaded : false);
@@ -147,6 +148,8 @@
             alert('Erro ao selecionar modelo: ' + err.message);
         }
     }
+
+    var _downloadAborted = false;
 
     async function _downloadModel(key) {
         const info = AI_MODELS[key];
@@ -159,8 +162,9 @@
 
         if (!section || !btn) return;
 
+        _downloadAborted = false;
         section.style.display = 'block';
-        downloadInfo.textContent = `Baixando ${info ? info.name : key}...`;
+        if (downloadInfo) downloadInfo.textContent = `Baixando ${info ? info.name : key}...`;
         btn.disabled = true;
         btn.textContent = 'Baixando...';
         btn.className = 'px-4 py-2 bg-slate-600 text-slate-400 rounded-lg text-xs font-bold cursor-not-allowed';
@@ -168,13 +172,14 @@
         if (progressContainer) progressContainer.classList.remove('hidden');
 
         try {
-            // Inicia download em background
             await _apiPost('/api/models/download', { model: key });
 
-            // Poll progress
-            let completed = false;
-            while (!completed) {
+            var completed = false;
+            var maxIterations = 300;
+            var iteration = 0;
+            while (!completed && iteration < maxIterations && !_downloadAborted) {
                 await new Promise(r => setTimeout(r, 1000));
+                iteration++;
                 try {
                     const status = await _apiGet('/api/models/download/status');
                     if (status.completed) {
@@ -190,17 +195,15 @@
                     }
                 } catch (pollErr) {
                     if (pollErr.name === 'AbortError') throw pollErr;
-                    // Se o endpoint de status não existir, assume conclusão
                     completed = true;
                     if (progressBar) progressBar.style.width = '100%';
                     if (progressText) progressText.textContent = 'Concluído!';
                 }
             }
 
-            // Atualiza lista
             await _loadModels();
 
-            setTimeout(() => {
+            pm._setTimeout(function () {
                 section.style.display = 'none';
                 if (progressContainer) progressContainer.classList.add('hidden');
             }, 2000);
@@ -244,7 +247,7 @@
 
         if (toggle) {
             pm._on(toggle, 'change', (e) => {
-                localStorage.setItem('sm-ollama-enabled', e.target.checked);
+                _safeSetItem('sm-ollama-enabled', e.target.checked);
                 if (config) config.classList.toggle('hidden', !e.target.checked);
             });
         }
@@ -254,15 +257,16 @@
                 const nameInput = pm._el('ollama-model-name');
                 const timeoutInput = pm._el('ollama-timeout');
                 const ollamaModel = nameInput ? nameInput.value.trim() : '';
-                const ollamaTimeout = timeoutInput ? parseInt(timeoutInput.value) : 45;
+                var rawTimeout = timeoutInput ? parseInt(timeoutInput.value) : 45;
+                const ollamaTimeout = Math.max(10, Math.min(120, isNaN(rawTimeout) ? 45 : rawTimeout));
 
                 if (!ollamaModel) {
                     alert('Informe o nome do modelo Ollama.');
                     return;
                 }
 
-                localStorage.setItem('sm-ollama-model', ollamaModel);
-                localStorage.setItem('sm-ollama-timeout', String(ollamaTimeout));
+                _safeSetItem('sm-ollama-model', ollamaModel);
+                _safeSetItem('sm-ollama-timeout', String(ollamaTimeout));
 
                 try {
                     await _apiPost('/api/ollama/config', { model: ollamaModel, timeout: ollamaTimeout });
@@ -300,11 +304,17 @@
         _loadOllamaConfig();
         _bindOllamaConfig();
 
+        // Event delegation for model list
+        var modelList = pm._el('ai-model-list');
+        if (modelList) {
+            pm._on(modelList, 'click', _handleModelListClick);
+        }
+
         // Bind auto start change
         const autoStartInput = pm._el('settings-auto-start');
         if (autoStartInput) {
             pm._on(autoStartInput, 'change', (e) => {
-                localStorage.setItem('sm-settings-auto-start', e.target.checked);
+                _safeSetItem('sm-settings-auto-start', e.target.checked);
             });
         }
 
@@ -312,7 +322,7 @@
         const highResInput = pm._el('settings-fft-highres');
         if (highResInput) {
             pm._on(highResInput, 'change', (e) => {
-                localStorage.setItem('sm-settings-fft-highres', e.target.checked);
+                _safeSetItem('sm-settings-fft-highres', e.target.checked);
                 if (window.SoundMasterAnalyzer && typeof window.SoundMasterAnalyzer.setHighResolution === 'function') {
                     window.SoundMasterAnalyzer.setHighResolution(e.target.checked);
                 }
@@ -323,7 +333,7 @@
         const unitSelect = pm._el('unit-select');
         if (unitSelect) {
             pm._on(unitSelect, 'change', (e) => {
-                localStorage.setItem('sm-settings-unit', e.target.value);
+                _safeSetItem('sm-settings-unit', e.target.value);
             });
         }
 
@@ -356,6 +366,7 @@
     }
 
     function destroy() {
+        _downloadAborted = true;
         pm.destroy();
     }
 

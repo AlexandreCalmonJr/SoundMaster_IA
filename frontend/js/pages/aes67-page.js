@@ -169,34 +169,37 @@
         }
     }
 
+    var _socketListenersAttached = false;
+
     function init() {
         buildMeters();
 
-        const socket = pm._call('SocketService', 'raw');
-        if (socket) {
+        var socket = pm._call('SocketService', 'raw');
+        if (socket && !_socketListenersAttached) {
             socket.on('multi_meter_update', updateMeters);
             socket.on('net_diag_update', handleNetDiagUpdate);
             socket.on('net_diag_alert', handleNetDiagAlert);
+            _socketListenersAttached = true;
 
-            // Request network diagnostic status & start if not running
             pm._safeCall('SocketService', 'emit', 'get_net_devices');
             pm._safeCall('SocketService', 'emit', 'start_net_diag', { interval: 3000 });
         }
 
-        const btnRestart = pm._el('aes67-btn-restart');
-        const btnScan = pm._el('aes67-btn-scan');
+        var btnRestart = pm._el('aes67-btn-restart');
+        var btnScan = pm._el('aes67-btn-scan');
 
         if (btnRestart) pm._on(btnRestart, 'click', restartStream);
         if (btnScan) pm._on(btnScan, 'click', activateIaScan);
     }
 
     function destroy() {
-        const socket = pm._call('SocketService', 'raw');
+        var socket = pm._call('SocketService', 'raw');
         if (socket) {
             socket.off('multi_meter_update', updateMeters);
             socket.off('net_diag_update', handleNetDiagUpdate);
             socket.off('net_diag_alert', handleNetDiagAlert);
         }
+        _socketListenersAttached = false;
         pm.destroy();
     }
 

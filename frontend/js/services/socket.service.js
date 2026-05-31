@@ -167,7 +167,10 @@
             AppStore.setState({ vuData: vuData });
         });
         _socket.on('recorder_status',  (data) => AppStore.setState({ recording: !!data.recording, mtkRecording: !!data.mtkRecording }));
-        _socket.on('device_info',      (info) => AppStore.setState({ deviceInfo: info }));
+        _socket.on('device_info',      (info) => {
+            const current = AppStore.getState().deviceInfo || {};
+            AppStore.setState({ deviceInfo: Object.assign({}, current, info) });
+        });
         _socket.on('player_status',    (data) => AppStore.setState({ playerState: data.state }));
         _socket.on('player_track',     (data) => AppStore.setState({ playerTrack: data.track }));
         _socket.on('show_status',      (data) => AppStore.setState({ currentShow: data.show }));

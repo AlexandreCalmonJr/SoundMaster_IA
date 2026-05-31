@@ -36,6 +36,24 @@
         pm._on(pm._el('btn-toggle-tunnel'), 'click', _toggleTunnel);
         pm._on(pm._el('btn-copy-link'), 'click', _copyLink);
 
+        var connectBtn = pm._el('btn-reconnect-mixer');
+        var ipInput = pm._el('mixer-ip-input');
+        if (connectBtn) {
+            pm._on(connectBtn, 'click', function () {
+                var ip = ipInput ? ipInput.value.trim() : '';
+                if (!ip) { alert('Informe o IP da mixer.'); return; }
+                connectBtn.disabled = true;
+                connectBtn.textContent = 'Conectando...';
+                if (window.MixerService && typeof MixerService.connect === 'function') {
+                    MixerService.connect(ip, 'soundcraft');
+                }
+                pm._setTimeout(function () {
+                    connectBtn.disabled = false;
+                    connectBtn.textContent = 'Conectar';
+                }, 3000);
+            });
+        }
+
         if (window.AppStore) {
             _vuUnsub = AppStore.subscribe('deviceInfo', function (info) {
                 if (!info || info.model === 'Unknown') return;
