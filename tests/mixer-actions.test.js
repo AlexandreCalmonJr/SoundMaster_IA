@@ -27,8 +27,7 @@ describe('Mixer Actions', () => {
         return {
             conn: { sendMessage: vi.fn() },
             master: {
-                input: inputFn,
-                eq: () => ({ band: vi.fn(() => ({ setFreq: vi.fn(), setGain: vi.fn(), setQ: vi.fn(), setType: vi.fn() })) })
+                input: inputFn
             },
             hw: vi.fn(() => ({ setGain: vi.fn(), phantomOn: vi.fn(), phantomOff: vi.fn() }))
         };
@@ -83,6 +82,18 @@ describe('Mixer Actions', () => {
         const result = actions.executeMixerCommand({ action: 'set_delay', target: 'channel', channel: 2, ms: 150 });
         expect(mockMixer.master.input).toHaveBeenCalledWith(2);
         expect(result).toContain('Delay de 150ms solicitado para channel');
+    });
+
+    it('should apply master EQ using raw commands', () => {
+        const mockMixer = createMockMixer();
+        const actions = createMixerActions(() => mockMixer);
+        
+        const result = actions.executeMixerCommand({ action: 'eq_cut', target: 'master', hz: 1000, gain: -6, q: 2.0, band: 3 });
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^m.eq.band.2.freq^1000');
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^m.eq.band.2.gain^-6');
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^m.eq.band.2.q^2');
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^m.eq.band.2.type^0');
+        expect(result).toContain('EQ aplicado no Master');
     });
 });
 

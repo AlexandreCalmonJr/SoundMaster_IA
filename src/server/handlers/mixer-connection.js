@@ -20,6 +20,7 @@ function registerMixerConnectionHandlers(io, socket, deps) {
     });
 
     socket.on('connect_mixer', async (data) => {
+        logger.info(socket.id, 'CONNECT_MIXER_RAW_DATA', { data });
         try {
             let ip, brand;
             if (typeof data === 'string') {
@@ -81,76 +82,104 @@ function registerMixerConnectionHandlers(io, socket, deps) {
             await newMixer.connect();
             logger.info(socket.id, 'MIXER_CONNECT_COMMAND_SENT', { ip });
 
+            if (!newMixer.master || typeof newMixer.master.input !== 'function') {
+                throw new Error('Instância do Mixer incompleta pós-conexão. Verifique a acessibilidade da mesa.');
+            }
+
             if (!newMixer.isSubscribed) {
                 newMixer.isSubscribed = true;
 
-                newMixer.master.faderLevel$.subscribe(level => {
+                const safeSubscribe = (observable$, handler, description) => {
+                    try {
+                        if (observable$ && typeof observable$.subscribe === 'function') {
+                            observable$.subscribe(handler);
+                        } else {
+                            logger.warn(socket.id, `OBSERVABLE_MISSING`, { desc: description });
+                        }
+                    } catch (err) {
+                        logger.error(socket.id, `SUBSCRIBE_ERROR`, { desc: description, error: err.message });
+                    }
+                };
+
+                safeSubscribe(newMixer.master.faderLevel$, level => {
                     mixerSingleton.updateMasterState({ level });
                     io.emit('master_level', encodeMasterLevel(level));
-                });
-                newMixer.master.faderLevelDB$.subscribe(levelDb => {
+                }, 'master.faderLevel$');
+
+                safeSubscribe(newMixer.master.faderLevelDB$, levelDb => {
                     mixerSingleton.updateMasterState({ levelDb });
                     io.emit('master_level_db', encodeMasterLevelDb(levelDb));
-                });
+                }, 'master.faderLevelDB$');
 
-                newMixer.vuProcessor.vuData$.subscribe(vuData => {
+                safeSubscribe(newMixer.vuProcessor.vuData$, vuData => {
                     const mapped = { master: null, channels: {} };
                     if (vuData['master']) mapped.master = vuData['master'];
                     for (let i = 1; i <= 24; i++) {
                         if (vuData[`i.${i-1}`]) mapped.channels[i] = vuData[`i.${i-1}`];
                     }
                     io.emit('vu_data', encodeVuData(mapped));
-                });
+                }, 'vuProcessor.vuData$');
 
-                newMixer.deviceInfo.firmware$.subscribe(fw => io.emit('device_info', { firmware: fw }));
+                safeSubscribe(newMixer.deviceInfo.firmware$, fw => io.emit('device_info', { firmware: fw }), 'deviceInfo.firmware$');
 
                 let cachedModel = newMixer.brand === 'soundcraft' ? 'Soundcraft Ui' : undefined;
-                newMixer.deviceInfo.model$.subscribe(model => {
+                safeSubscribe(newMixer.deviceInfo.model$, model => {
                     cachedModel = model;
                     io.emit('device_info', { model });
-                });
+                }, 'deviceInfo.model$');
 
-                newMixer.deviceInfo.capabilities$.subscribe(caps => {
+                safeSubscribe(newMixer.deviceInfo.capabilities$, caps => {
                     io.emit('device_info', {
                         model: cachedModel,
                         caps: { inputs: caps.inputChannels, aux: caps.auxBusses, fx: caps.fxChannels, sub: caps.subGroups, vca: caps.vcaGroups }
                     });
-                });
+                }, 'deviceInfo.capabilities$');
 
-                newMixer.automix.groups.a.state$.subscribe(state => io.emit('automix_state', { group: 'a', enabled: !!state }));
-                newMixer.automix.groups.b.state$.subscribe(state => io.emit('automix_state', { group: 'b', enabled: !!state }));
-                newMixer.automix.responseTimeMs$.subscribe(ms => io.emit('automix_response_time', { ms }));
+                safeSubscribe(newMixer.automix.groups.a.state$, state => io.emit('automix_state', { group: 'a', enabled: !!state }), 'automix.groups.a.state$');
+                safeSubscribe(newMixer.automix.groups.b.state$, state => io.emit('automix_state', { group: 'b', enabled: !!state }), 'automix.groups.b.state$');
+                safeSubscribe(newMixer.automix.responseTimeMs$, ms => io.emit('automix_response_time', { ms }), 'automix.responseTimeMs$');
 
-                newMixer.recorderDualTrack.recording$.subscribe(isRec => io.emit('recorder_status', { recording: !!isRec, mtkRecording: false }));
-                newMixer.recorderMultiTrack.recording$.subscribe(isMtkRec => io.emit('recorder_status', { recording: false, mtkRecording: !!isMtkRec }));
+                safeSubscribe(newMixer.recorderDualTrack.recording$, isRec => io.emit('recorder_status', { recording: !!isRec, mtkRecording: false }), 'recorderDualTrack.recording$');
+                safeSubscribe(newMixer.recorderMultiTrack.recording$, isMtkRec => io.emit('recorder_status', { recording: false, mtkRecording: !!isMtkRec }), 'recorderMultiTrack.recording$');
 
-                newMixer.player.state$.subscribe(state => io.emit('player_status', { state }));
-                newMixer.player.track$.subscribe(track => io.emit('player_track', { track }));
+                safeSubscribe(newMixer.player.state$, state => io.emit('player_status', { state }), 'player.state$');
+                safeSubscribe(newMixer.player.track$, track => io.emit('player_track', { track }), 'player.track$');
 
-                newMixer.shows.currentShow$.subscribe(show => io.emit('show_status', { show }));
-                newMixer.shows.currentSnapshot$.subscribe(snapshot => io.emit('snapshot_status', { snapshot }));
-                newMixer.shows.currentCue$.subscribe(cue => io.emit('cue_status', { cue }));
+                safeSubscribe(newMixer.shows.currentShow$, show => io.emit('show_status', { show }), 'shows.currentShow$');
+                safeSubscribe(newMixer.shows.currentSnapshot$, snapshot => io.emit('snapshot_status', { snapshot }), 'shows.currentSnapshot$');
+                safeSubscribe(newMixer.shows.currentCue$, cue => io.emit('cue_status', { cue }), 'shows.currentCue$');
 
                 for (let i = 1; i <= 24; i++) {
-                    const input = newMixer.master.input(i);
-                    input.name$.subscribe(name => io.emit('channel_name_update', { channel: i, name }));
-                    input.faderLevel$.subscribe(level => {
-                        mixerSingleton.updateChannelState(i, { level });
-                        io.emit('channel_level', encodeChannelLevel(i, level));
-                    });
-                    input.mute$.subscribe(mute => {
-                        mixerSingleton.updateChannelState(i, { mute });
-                        io.emit('channel_mute', { channel: i, mute });
-                    });
+                    try {
+                        const input = newMixer.master.input(i);
+                        if (input) {
+                            safeSubscribe(input.name$, name => io.emit('channel_name_update', { channel: i, name }), `input(${i}).name$`);
+                            safeSubscribe(input.faderLevel$, level => {
+                                mixerSingleton.updateChannelState(i, { level });
+                                io.emit('channel_level', encodeChannelLevel(i, level));
+                            }, `input(${i}).faderLevel$`);
+                            safeSubscribe(input.mute$, mute => {
+                                mixerSingleton.updateChannelState(i, { mute });
+                                io.emit('channel_mute', { channel: i, mute });
+                            }, `input(${i}).mute$`);
+                        }
+                    } catch (err) {
+                        logger.warn(socket.id, `FALHA_OBTER_CANAL_${i}`, { error: err.message });
+                    }
                 }
 
                 ['all', '1', '2', '3', '4', 'fx'].forEach(groupId => {
-                    newMixer.muteGroup(groupId).state$.subscribe(state => io.emit('mute_group_state', { groupId, enabled: !!state }));
+                    try {
+                        const mg = newMixer.muteGroup(groupId);
+                        safeSubscribe(mg.state$, state => io.emit('mute_group_state', { groupId, enabled: !!state }), `muteGroup(${groupId}).state$`);
+                    } catch (err) {
+                        logger.warn(socket.id, `FALHA_OBTER_MUTEGROUP_${groupId}`, { error: err.message });
+                    }
                 });
 
-                newMixer.channelSync.getSelectedChannel('SYNC_ID').subscribe(selection => {
+                safeSubscribe(newMixer.channelSync.getSelectedChannel('SYNC_ID'), selection => {
                     io.emit('channel_selected_external', selection);
-                });
+                }, 'channelSync.getSelectedChannel');
             }
         } catch (error) {
             logger.error(socket.id, 'MIXER_CONNECT_ERROR', { error: error.message });

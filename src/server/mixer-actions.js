@@ -63,13 +63,20 @@ function createMixerActions(getMixer) {
         const qValue = clamp(q, 0.2, 10);
         const bandIndex = clamp(band, 1, 4);
 
-        const eq = target === 'master' ? mixer.master.eq() : mixer.master.input(channel).eq();
-        
-        eq.band(bandIndex).setFreq(frequency);
-        eq.band(bandIndex).setGain(cutGain);
-        eq.band(bandIndex).setQ(qValue);
-        // EQ type 0 is usually Bell/Parametric
-        if (eq.band(bandIndex).setType) eq.band(bandIndex).setType(0);
+        if (target === 'master') {
+            const rawIndex = bandIndex - 1;
+            mixer.conn.sendMessage(`SETD^m.eq.band.${rawIndex}.freq^${frequency}`);
+            mixer.conn.sendMessage(`SETD^m.eq.band.${rawIndex}.gain^${cutGain}`);
+            mixer.conn.sendMessage(`SETD^m.eq.band.${rawIndex}.q^${qValue}`);
+            mixer.conn.sendMessage(`SETD^m.eq.band.${rawIndex}.type^0`);
+        } else {
+            const eq = mixer.master.input(channel).eq();
+            eq.band(bandIndex).setFreq(frequency);
+            eq.band(bandIndex).setGain(cutGain);
+            eq.band(bandIndex).setQ(qValue);
+            if (eq.band(bandIndex).setType) eq.band(bandIndex).setType(0);
+        }
+
         if (target === 'master') {
             mixerSingleton.updateMasterState({ eq: Object.assign({}, mixerSingleton.getMasterState().eq || {}, { [bandIndex]: { hz: frequency, gain: cutGain, q: qValue } }) });
         } else if (channel) {
@@ -482,17 +489,27 @@ function createMixerActions(getMixer) {
 
     function _applyBands(target, channel, bands, snapshot) {
         const mixer = getMixer();
-        const eq = target === 'master' ? mixer.master.eq() : mixer.master.input(channel).eq();
         const applied = [];
         for (const f of bands) {
             const frequency = clamp(f.hz || 250, 20, 20000);
             const cutGain = clamp(f.gainDb !== undefined ? f.gainDb : f.gain || 0, -12, 6);
             const qValue = clamp(f.q || 1.4, 0.2, 10);
             const bandIndex = clamp(f.band || 1, 1, 4);
-            eq.band(bandIndex).setFreq(frequency);
-            eq.band(bandIndex).setGain(cutGain);
-            eq.band(bandIndex).setQ(qValue);
-            if (eq.band(bandIndex).setType) eq.band(bandIndex).setType(0);
+
+            if (target === 'master') {
+                const rawIndex = bandIndex - 1;
+                mixer.conn.sendMessage(`SETD^m.eq.band.${rawIndex}.freq^${frequency}`);
+                mixer.conn.sendMessage(`SETD^m.eq.band.${rawIndex}.gain^${cutGain}`);
+                mixer.conn.sendMessage(`SETD^m.eq.band.${rawIndex}.q^${qValue}`);
+                mixer.conn.sendMessage(`SETD^m.eq.band.${rawIndex}.type^0`);
+            } else {
+                const eq = mixer.master.input(channel).eq();
+                eq.band(bandIndex).setFreq(frequency);
+                eq.band(bandIndex).setGain(cutGain);
+                eq.band(bandIndex).setQ(qValue);
+                if (eq.band(bandIndex).setType) eq.band(bandIndex).setType(0);
+            }
+
             const patch = { [bandIndex]: { hz: frequency, gain: cutGain, q: qValue } };
             if (target === 'master') {
                 mixerSingleton.updateMasterState({ eq: Object.assign({}, mixerSingleton.getMasterState().eq || {}, patch) });

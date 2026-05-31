@@ -12,8 +12,6 @@ function buildSimulatedMixer(socket, mixerSingleton) {
             mute: () => socket.emit('mixer_log', '[Sim] Master MUTADO'),
             unmute: () => socket.emit('mixer_log', '[Sim] Master ATIVADO'),
             fadeTo: (v, ms) => socket.emit('mixer_log', `[Sim] Master Fade -> ${Math.round(v*100)}% em ${ms}ms`),
-            eq: () => ({ band: () => ({ setFreq: () => {}, setGain: () => {}, setQ: () => {}, setType: () => {} }) }),
-            afs: () => ({ enable: () => {}, disable: () => {} }),
             toggleDim: () => {},
             setPan: (v) => socket.emit('mixer_log', `[Sim] Master Pan -> ${v}`),
             setDelayL: (ms) => socket.emit('mixer_log', `[Sim] Master Delay L -> ${ms}ms`),
