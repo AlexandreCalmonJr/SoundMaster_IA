@@ -44,7 +44,7 @@ class FeedbackPredictor {
             return data.risk || 0;
         } catch (e) {
             clearTimeout(timeout);
-            // Em caso de erro ou timeout, retorna risco zero para não travar
+            console.warn('[AIPredictor] Predict failed:', e.message);
             return 0;
         }
     }

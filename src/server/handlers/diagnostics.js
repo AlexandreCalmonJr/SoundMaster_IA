@@ -123,11 +123,17 @@ function registerDiagnosticHandlers(io, socket, deps) {
 
                 let stdout = '';
                 let stderr = '';
+                const timeoutMs = 60000;
+                const timer = setTimeout(() => {
+                    py.kill();
+                    reject(new Error('Python subprocess timeout (60s)'));
+                }, timeoutMs);
 
                 py.stdout.on('data', (d) => { stdout += d.toString(); });
                 py.stderr.on('data', (d) => { stderr += d.toString(); });
 
                 py.on('close', (code) => {
+                    clearTimeout(timer);
                     logger.info(socket.id, 'SWEEP_ANALYSIS_PY_CLOSE', { code, stdoutLen: stdout.length, stderrLen: stderr.length });
                     if (stderr) {
                         logger.warn(socket.id, 'SWEEP_ANALYSIS_PY_STDERR', { stderr: stderr.trim() });

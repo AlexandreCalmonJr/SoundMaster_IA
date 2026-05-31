@@ -56,6 +56,7 @@
     let sweepCaptureActive = false;
     let isSweepActive = false;
     let _sweepSafetyTimer = null;
+    let _sweepResultTimeout = null;
 
     // YAMNet live classification
     let _classifyBuffer = [];
@@ -673,6 +674,10 @@
         });
 
         _ss.on('sweep_analysis_result', (result) => {
+            if (_sweepResultTimeout) {
+                clearTimeout(_sweepResultTimeout);
+                _sweepResultTimeout = null;
+            }
             _handleSweepAnalysisResult(result);
         });
 
@@ -1947,6 +1952,10 @@
             sweepParams: { f0: 20, f1: 20000, duration: 10, amplitude: 0.85, silencePre: 0.5 }
         };
 
+        var _sweepResultTimeout = setTimeout(function () {
+            if (summaryEl) summaryEl.innerHTML = '<span class="text-red-400">Timeout: resposta do servidor demorou mais de 60s.</span>';
+        }, 65000);
+
         function _trySend(retries) {
             if (_ss && _ss.isConnected && _ss.isConnected()) {
                 _ss.emit('analyze_sweep_ir', payload);
@@ -1955,6 +1964,7 @@
             if (retries > 0) {
                 setTimeout(function () { _trySend(retries - 1); }, 2000);
             } else {
+                clearTimeout(_sweepResultTimeout);
                 if (summaryEl) summaryEl.innerHTML = '<span class="text-red-400">Falha ao enviar dados. Socket offline.</span>';
             }
         }

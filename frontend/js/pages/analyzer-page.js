@@ -26,7 +26,6 @@
         pm._on(pm._el('btn-pink-noise'), 'click', function () { pm._safeCall('SoundMasterAnalyzer', 'toggle'); });
         pm._on(pm._el('btn-start-audio'), 'click', function () { pm._safeCall('SoundMasterAnalyzer', 'toggle'); });
         pm._on(pm._el('btn-stop-audio'), 'click', function () { pm._safeCall('SoundMasterAnalyzer', 'toggle'); });
-        pm._on(pm._el('btn-send-analysis'), 'click', function () { if (window.SoundMasterAnalyzer) { var analysis = SoundMasterAnalyzer.getLastAnalysis(); if (!analysis) { alert('Nenhuma an\u00E1lise dispon\u00EDvel. Ative o microfone e aguarde.'); return; } if (typeof window._sendAnalysisToAI === 'function') window._sendAnalysisToAI(); } });
         pm._on(pm._el('btn-measure-pink'), 'click', function () { pm._safeCall('SoundMasterAnalyzer', 'startPinkNoiseMeasurement'); });
         pm._on(pm._el('btn-log-sweep'), 'click', function () { pm._safeCall('SoundMasterAnalyzer', 'triggerImpulse'); });
         pm._on(pm._el('btn-toggle-auto-cut'), 'change', function () { console.log('[AnalyzerPage] Auto-Cut: ' + (this.checked ? 'ON' : 'OFF')); });

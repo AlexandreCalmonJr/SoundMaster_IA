@@ -98,6 +98,16 @@ class SweepAnalyzer:
         downsample_factor = max(1, len(ir_data["schroeder"]) // 512)
         schroeder_downsampled = ir_data["schroeder"][::downsample_factor].tolist()
 
+        # Calculate STI from RT60 and SNR
+        from .processor import AcousticProcessor
+        sti_value = AcousticProcessor.estimate_sti(rt60_est, snr_db)
+        if sti_value >= 0.6:
+            sti_category = 'Bom'
+        elif sti_value >= 0.45:
+            sti_category = 'Regular'
+        else:
+            sti_category = 'Ruim'
+
         return {
             'edt': rev["edt"],
             't20': rev["t20"],
@@ -115,9 +125,9 @@ class SweepAnalyzer:
                 }
                 for band, m in (multiband or {}).items()
             },
-            'sti': None,
-            'sti_raw': None,
-            'sti_category': 'N/A',
+            'sti': sti_value,
+            'sti_raw': sti_value,
+            'sti_category': sti_category,
             'sti_per_band': {},
             'snr_db': round(snr_db, 1),
             'schroeder_curve': schroeder_downsampled,
