@@ -81,9 +81,27 @@ function buildSimulatedMixer(socket, mixerSingleton) {
             vca: (id) => mockChannel('vca', id)
         },
 
-        aux: (id) => ({ setDelay: (ms) => log(`[Sim] Aux ${id} Delay -> ${ms}ms`) }),
+        aux: (id) => {
+            const mockSend = () => ({
+                post$: { subscribe: () => {} },
+                setPost: () => {},
+                post: () => {},
+                pre: () => {},
+                togglePost: () => {},
+                setFaderLevel: () => {},
+                setPan: () => {}
+            });
+            return {
+                setDelay: (ms) => log(`[Sim] Aux ${id} Delay -> ${ms}ms`),
+                input: (ch) => mockSend(),
+                line: (ch) => mockSend(),
+                player: (ch) => mockSend(),
+                fx: (ch) => mockSend()
+            };
+        },
         hw: (id) => ({
             setGain: (v) => log(`[Sim] HW ${id} Gain -> ${v}`),
+            setGainDB: (v) => log(`[Sim] HW ${id} Gain -> ${v}dB`),
             changeGain: (offset) => log(`[Sim] HW ${id} Gain Offset -> ${offset}`),
             changeGainDB: (offsetDb) => log(`[Sim] HW ${id} Gain Offset -> ${offsetDb}dB`),
             phantomOn: () => log(`[Sim] HW ${id} Phantom ON`),
@@ -98,19 +116,34 @@ function buildSimulatedMixer(socket, mixerSingleton) {
             state$: { subscribe: () => {} },
             session$: { subscribe: () => {} },
             soundcheck$: { subscribe: () => {} },
+            length$: { subscribe: () => {} },
+            elapsedTime$: { subscribe: () => {} },
+            remainingTime$: { subscribe: () => {} },
+            recordingTime$: { subscribe: () => {} },
             recordStart: () => log('[Sim] MTK Record Start'),
             recordStop: () => log('[Sim] MTK Record Stop'),
             recordToggle: () => log('[Sim] MTK Record Toggle'),
             play: () => log('[Sim] MTK Play'),
             pause: () => log('[Sim] MTK Pause'),
+            stop: () => log('[Sim] MTK Playback Stop'),
             activateSoundcheck: () => log('[Sim] Soundcheck ON'),
             deactivateSoundcheck: () => log('[Sim] Soundcheck OFF'),
             toggleSoundcheck: () => log('[Sim] Soundcheck Toggle')
         },
         automix: {
             groups: {
-                a: { state$: { subscribe: () => {} } },
-                b: { state$: { subscribe: () => {} } }
+                a: {
+                    state$: { subscribe: () => {} },
+                    enable: () => log('[Sim] Automix Grupo A Ativado'),
+                    disable: () => log('[Sim] Automix Grupo A Desativado'),
+                    toggle: () => log('[Sim] Automix Grupo A Alternado')
+                },
+                b: {
+                    state$: { subscribe: () => {} },
+                    enable: () => log('[Sim] Automix Grupo B Ativado'),
+                    disable: () => log('[Sim] Automix Grupo B Desativado'),
+                    toggle: () => log('[Sim] Automix Grupo B Alternado')
+                }
             },
             responseTimeMs$: { subscribe: () => {} },
             responseTime$: { subscribe: () => {} },
@@ -173,7 +206,27 @@ function buildSimulatedMixer(socket, mixerSingleton) {
             solo: { faderLevel$: { subscribe: () => {} }, setFaderLevel: () => {} },
             headphone: (hpId) => ({ faderLevel$: { subscribe: () => {} }, setFaderLevel: () => {} })
         },
-        fx: () => ({ setBpm: () => {}, setParam: () => {} }),
+        fx: (id) => {
+            const mockSend = () => ({
+                post$: { subscribe: () => {} },
+                setPost: () => {},
+                post: () => {},
+                pre: () => {},
+                togglePost: () => {},
+                setFaderLevel: () => {}
+            });
+            return {
+                setBpm: (val) => log(`[Sim] FX ${id} BPM -> ${val}`),
+                setParam: (p, val) => log(`[Sim] FX ${id} Param ${p} -> ${val}`),
+                getParam: (p) => ({ subscribe: () => {} }),
+                fxType$: { subscribe: () => {} },
+                bpm$: { subscribe: () => {} },
+                input: (ch) => mockSend(),
+                line: (ch) => mockSend(),
+                player: (ch) => mockSend(),
+                sub: (ch) => mockSend()
+            };
+        },
         disconnect: () => { if (mixerSingleton) mixerSingleton.setMixer(null); },
         connect: async () => {}
     };

@@ -260,6 +260,11 @@ function createMixerActions(getMixer) {
             case 'toggle': mtk.recordToggle(); break;
             case 'play': mtk.play(); break;
             case 'pause': mtk.pause(); break;
+            case 'playback_stop':
+            case 'stop_play':
+            case 'stop_playback':
+                mtk.stop();
+                break;
             case 'soundcheck_on': mtk.activateSoundcheck(); break;
             case 'soundcheck_off': mtk.deactivateSoundcheck(); break;
             case 'toggle_soundcheck': mtk.toggleSoundcheck(); break;
@@ -311,7 +316,8 @@ function createMixerActions(getMixer) {
         const groupKey = action.endsWith('_a') ? 'a' : 'b';
         const group = am.groups[groupKey];
 
-        if (action.startsWith('enable')) group.enable();
+        if (action.startsWith('toggle')) group.toggle();
+        else if (action.startsWith('enable')) group.enable();
         else if (action.startsWith('disable')) group.disable();
         else if (action === 'set_response') {
             if (value <= 1.0) am.setResponseTime(clamp(value, 0, 1));
@@ -576,6 +582,13 @@ function createMixerActions(getMixer) {
             'set_fx_bpm': (c) => setFxBpm(c.fx || 1, c.val || 120),
             'set_fx_param': (c) => setFxParam(c.fx || 1, c.param || 1, c.val || 0.5),
             'set_hw_gain': (c) => setHwGain(c.input || c.channel || 1, c.val || 0.5),
+            'set_hw_gain_db': (c) => {
+                const input = c.input || c.channel || 1;
+                const dbVal = clamp(c.levelDb !== undefined ? c.levelDb : (c.val || 0), -6, 57);
+                mixer.hw(input).setGainDB(dbVal);
+                mixerSingleton.updateChannelState(input, { gainDb: dbVal });
+                return `Ganho de Hardware da Entrada Física ${input} ajustado para ${dbVal}dB.`;
+            },
             'change_hw_gain': (c) => {
                 const input = c.input || c.channel || 1;
                 const offset = clamp(c.offset || c.val || 0, -1, 1);

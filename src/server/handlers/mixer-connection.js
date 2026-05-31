@@ -227,6 +227,10 @@ function registerMixerConnectionHandlers(io, socket, deps) {
                 safeSubscribe(newMixer.recorderMultiTrack.state$, state => io.emit('mtk_state', { state }), 'recorderMultiTrack.state$');
                 safeSubscribe(newMixer.recorderMultiTrack.session$, session => io.emit('mtk_session', { session }), 'recorderMultiTrack.session$');
                 safeSubscribe(newMixer.recorderMultiTrack.soundcheck$, sc => io.emit('mtk_soundcheck', { soundcheck: !!sc }), 'recorderMultiTrack.soundcheck$');
+                safeSubscribe(newMixer.recorderMultiTrack.length$, length => io.emit('mtk_length', { length }), 'recorderMultiTrack.length$');
+                safeSubscribe(newMixer.recorderMultiTrack.elapsedTime$, elapsedTime => io.emit('mtk_elapsed_time', { elapsedTime }), 'recorderMultiTrack.elapsedTime$');
+                safeSubscribe(newMixer.recorderMultiTrack.remainingTime$, remainingTime => io.emit('mtk_remaining_time', { remainingTime }), 'recorderMultiTrack.remainingTime$');
+                safeSubscribe(newMixer.recorderMultiTrack.recordingTime$, recordingTime => io.emit('mtk_recording_time', { recordingTime }), 'recorderMultiTrack.recordingTime$');
 
                 if (newMixer.volume) {
                     if (newMixer.volume.solo) {
@@ -347,7 +351,102 @@ function registerMixerConnectionHandlers(io, socket, deps) {
                         logger.warn(socket.id, `FALHA_OBTER_FX_${f}`, { error: err.message });
                     }
                 }
-
+ 
+                for (let a = 1; a <= 10; a++) {
+                    try {
+                        const auxBus = newMixer.aux(a);
+                        if (auxBus) {
+                            for (let i = 1; i <= 24; i++) {
+                                try {
+                                    const sendCh = auxBus.input(i);
+                                    if (sendCh && sendCh.post$) {
+                                        safeSubscribe(sendCh.post$, post => {
+                                            io.emit('aux_send_post', { aux: a, channelType: 'input', channel: i, post: !!post });
+                                        }, `aux(${a}).input(${i}).post$`);
+                                    }
+                                } catch (e) {}
+                            }
+                            for (let i = 1; i <= 2; i++) {
+                                try {
+                                    const sendCh = auxBus.line(i);
+                                    if (sendCh && sendCh.post$) {
+                                        safeSubscribe(sendCh.post$, post => {
+                                            io.emit('aux_send_post', { aux: a, channelType: 'line', channel: i, post: !!post });
+                                        }, `aux(${a}).line(${i}).post$`);
+                                    }
+                                } catch (e) {}
+                            }
+                            for (let i = 1; i <= 2; i++) {
+                                try {
+                                    const sendCh = auxBus.player(i);
+                                    if (sendCh && sendCh.post$) {
+                                        safeSubscribe(sendCh.post$, post => {
+                                            io.emit('aux_send_post', { aux: a, channelType: 'player', channel: i, post: !!post });
+                                        }, `aux(${a}).player(${i}).post$`);
+                                    }
+                                } catch (e) {}
+                            }
+                            for (let i = 1; i <= 4; i++) {
+                                try {
+                                    const sendCh = auxBus.fx(i);
+                                    if (sendCh && sendCh.post$) {
+                                        safeSubscribe(sendCh.post$, post => {
+                                            io.emit('aux_send_post', { aux: a, channelType: 'fx', channel: i, post: !!post });
+                                        }, `aux(${a}).fx(${i}).post$`);
+                                    }
+                                } catch (e) {}
+                            }
+                        }
+                    } catch (err) {}
+                }
+ 
+                for (let f = 1; f <= 4; f++) {
+                    try {
+                        const fxBus = newMixer.fx(f);
+                        if (fxBus) {
+                            for (let i = 1; i <= 24; i++) {
+                                try {
+                                    const sendCh = fxBus.input(i);
+                                    if (sendCh && sendCh.post$) {
+                                        safeSubscribe(sendCh.post$, post => {
+                                            io.emit('fx_send_post', { fx: f, channelType: 'input', channel: i, post: !!post });
+                                        }, `fx(${f}).input(${i}).post$`);
+                                    }
+                                } catch (e) {}
+                            }
+                            for (let i = 1; i <= 2; i++) {
+                                try {
+                                    const sendCh = fxBus.line(i);
+                                    if (sendCh && sendCh.post$) {
+                                        safeSubscribe(sendCh.post$, post => {
+                                            io.emit('fx_send_post', { fx: f, channelType: 'line', channel: i, post: !!post });
+                                        }, `fx(${f}).line(${i}).post$`);
+                                    }
+                                } catch (e) {}
+                            }
+                            for (let i = 1; i <= 2; i++) {
+                                try {
+                                    const sendCh = fxBus.player(i);
+                                    if (sendCh && sendCh.post$) {
+                                        safeSubscribe(sendCh.post$, post => {
+                                            io.emit('fx_send_post', { fx: f, channelType: 'player', channel: i, post: !!post });
+                                        }, `fx(${f}).player(${i}).post$`);
+                                    }
+                                } catch (e) {}
+                            }
+                            for (let i = 1; i <= 6; i++) {
+                                try {
+                                    const sendCh = fxBus.sub(i);
+                                    if (sendCh && sendCh.post$) {
+                                        safeSubscribe(sendCh.post$, post => {
+                                            io.emit('fx_send_post', { fx: f, channelType: 'sub', channel: i, post: !!post });
+                                        }, `fx(${f}).sub(${i}).post$`);
+                                    }
+                                } catch (e) {}
+                            }
+                        }
+                    } catch (err) {}
+                }
                 for (let h = 1; h <= 24; h++) {
                     try {
                         const hw = newMixer.hw(h);

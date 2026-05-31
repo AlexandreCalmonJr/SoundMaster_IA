@@ -24,12 +24,13 @@ describe('Mixer Actions', () => {
             setName: vi.fn(),
             setDelay: vi.fn()
         }));
+        const hwMock = { setGain: vi.fn(), setGainDB: vi.fn(), phantomOn: vi.fn(), phantomOff: vi.fn() };
         return {
             conn: { sendMessage: vi.fn() },
             master: {
                 input: inputFn
             },
-            hw: vi.fn(() => ({ setGain: vi.fn(), phantomOn: vi.fn(), phantomOff: vi.fn() }))
+            hw: vi.fn(() => hwMock)
         };
     }
 
@@ -94,6 +95,16 @@ describe('Mixer Actions', () => {
         expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^m.eq.band.2.q^2');
         expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^m.eq.band.2.type^0');
         expect(result).toContain('EQ aplicado no Master');
+    });
+
+    it('should set physical hardware gain in dB', () => {
+        const mockMixer = createMockMixer();
+        const actions = createMixerActions(() => mockMixer);
+        
+        const result = actions.executeMixerCommand({ action: 'set_hw_gain_db', input: 3, val: 24 });
+        expect(mockMixer.hw).toHaveBeenCalledWith(3);
+        expect(mockMixer.hw(3).setGainDB).toHaveBeenCalledWith(24);
+        expect(result).toContain('Ganho de Hardware da Entrada Física 3 ajustado para 24dB.');
     });
 });
 
