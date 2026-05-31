@@ -150,7 +150,8 @@
             b: false
         },
         automix_response_time: 50,
-        automix_response_time_linear: 0.5
+        automix_response_time_linear: 0.5,
+        muteGroups: {}
     };
 
     // Inicialização dinâmica para chaves repetitivas
@@ -183,6 +184,7 @@
         _state[`fx_${i}_type`] = 'Reverb';
         _state[`fx_${i}_bpm`] = 120;
         _state[`fx_${i}_level`] = 0.5;
+        _state[`mute_fx_${i}`] = false;
         for (let p = 1; p <= 6; p++) {
             _state[`fx_${i}_param_${p}`] = 0.0;
         }
@@ -204,6 +206,11 @@
             _state[`bus_${type}_${i}_solo`] = false;
             _state[`bus_${type}_${i}_pan`] = 0.5;
             _state[`bus_${type}_${i}_name`] = `${type.toUpperCase()} ${i}`;
+            if (type === 'aux') {
+                _state[`aux_${i}_level`] = 0.75;
+                _state[`mute_aux_${i}`] = false;
+                _state[`aux_${i}_delay`] = 0;
+            }
         }
     });
 

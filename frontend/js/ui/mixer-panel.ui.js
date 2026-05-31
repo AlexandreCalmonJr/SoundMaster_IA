@@ -509,6 +509,18 @@
             }
         });
 
+        // Sincronizar Mute Groups
+        AppStore.subscribe('muteGroups', (mg) => {
+            if (!mg) return;
+            document.querySelectorAll('.mute-group-btn').forEach(btn => {
+                const groupId = btn.dataset.group;
+                const enabled = !!mg[groupId];
+                btn.classList.toggle('active', enabled);
+                btn.classList.toggle('bg-red-600', enabled && groupId === 'all');
+                btn.classList.toggle('bg-cyan-600', enabled && groupId !== 'all');
+            });
+        });
+
         // Sincronizar preamps de hardware (Phantom e Gain)
         for (let i = 1; i <= 24; i++) {
             AppStore.subscribe(`hw_${i}_phantom`, (val) => {

@@ -328,10 +328,37 @@ function registerMixerConnectionHandlers(io, socket, deps) {
                             const chObj = newMixer.master[type](i);
                             if (chObj) {
                                 safeSubscribe(chObj.name$, name => io.emit('bus_name_update', { busType: type, channel: i, name }), `master.${type}(${i}).name$`);
-                                safeSubscribe(chObj.faderLevel$, level => io.emit('bus_level', { busType: type, channel: i, level }), `master.${type}(${i}).faderLevel$`);
-                                safeSubscribe(chObj.mute$, mute => io.emit('bus_mute', { busType: type, channel: i, mute: !!mute }), `master.${type}(${i}).mute$`);
                                 safeSubscribe(chObj.solo$, solo => io.emit('bus_solo', { busType: type, channel: i, solo: !!solo }), `master.${type}(${i}).solo$`);
                                 safeSubscribe(chObj.pan$, pan => io.emit('bus_pan', { busType: type, channel: i, pan }), `master.${type}(${i}).pan$`);
+
+                                if (type === 'aux') {
+                                    safeSubscribe(chObj.faderLevel$, level => {
+                                        mixerSingleton.updateAuxState(i, { level });
+                                        io.emit('bus_level', { busType: type, channel: i, level });
+                                    }, `master.${type}(${i}).faderLevel$`);
+                                    safeSubscribe(chObj.mute$, mute => {
+                                        mixerSingleton.updateAuxState(i, { mute: !!mute });
+                                        io.emit('bus_mute', { busType: type, channel: i, mute: !!mute });
+                                    }, `master.${type}(${i}).mute$`);
+                                    if (chObj.delay$) {
+                                        safeSubscribe(chObj.delay$, delay => {
+                                            mixerSingleton.updateAuxState(i, { delay: Number(delay ?? 0) });
+                                            io.emit('bus_delay', { busType: type, channel: i, delay });
+                                        }, `master.${type}(${i}).delay$`);
+                                    }
+                                } else if (type === 'fx') {
+                                    safeSubscribe(chObj.faderLevel$, level => {
+                                        mixerSingleton.updateFxState(i, { level });
+                                        io.emit('bus_level', { busType: type, channel: i, level });
+                                    }, `master.${type}(${i}).faderLevel$`);
+                                    safeSubscribe(chObj.mute$, mute => {
+                                        mixerSingleton.updateFxState(i, { mute: !!mute });
+                                        io.emit('bus_mute', { busType: type, channel: i, mute: !!mute });
+                                    }, `master.${type}(${i}).mute$`);
+                                } else {
+                                    safeSubscribe(chObj.faderLevel$, level => io.emit('bus_level', { busType: type, channel: i, level }), `master.${type}(${i}).faderLevel$`);
+                                    safeSubscribe(chObj.mute$, mute => io.emit('bus_mute', { busType: type, channel: i, mute: !!mute }), `master.${type}(${i}).mute$`);
+                                }
                             }
                         } catch (err) {
                             // Silenciar se o canal do barramento não existir
@@ -343,10 +370,23 @@ function registerMixerConnectionHandlers(io, socket, deps) {
                     try {
                         const fxBus = newMixer.fx(f);
                         if (fxBus) {
-                            safeSubscribe(fxBus.fxType$, fxType => io.emit('fx_type', { fx: f, type: fxType }), `fx(${f}).fxType$`);
-                            safeSubscribe(fxBus.bpm$, bpm => io.emit('fx_bpm_feedback', { fx: f, bpm }), `fx(${f}).bpm$`);
+                            safeSubscribe(fxBus.fxType$, fxType => {
+                                mixerSingleton.updateFxState(f, { type: fxType });
+                                io.emit('fx_type', { fx: f, type: fxType });
+                            }, `fx(${f}).fxType$`);
+                            safeSubscribe(fxBus.bpm$, bpm => {
+                                mixerSingleton.updateFxState(f, { bpm });
+                                io.emit('fx_bpm_feedback', { fx: f, bpm });
+                            }, `fx(${f}).bpm$`);
                             for (let p = 1; p <= 6; p++) {
-                                safeSubscribe(fxBus.getParam(p), val => io.emit('fx_param_feedback', { fx: f, param: p, val }), `fx(${f}).getParam(${p})`);
+                                safeSubscribe(fxBus.getParam(p), val => {
+                                    const fxState = mixerSingleton.getStateTree().fx[f - 1];
+                                    if (fxState) {
+                                        if (!fxState.params) fxState.params = [0, 0, 0, 0, 0, 0];
+                                        fxState.params[p - 1] = val;
+                                    }
+                                    io.emit('fx_param_feedback', { fx: f, param: p, val });
+                                }, `fx(${f}).getParam(${p})`);
                             }
                         }
                     } catch (err) {

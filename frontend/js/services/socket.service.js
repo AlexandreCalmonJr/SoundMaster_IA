@@ -259,9 +259,18 @@
             if (data.busType === 'aux') {
                 AppStore.setState({ [`mute_aux_${data.channel}`]: !!data.mute });
             }
+            if (data.busType === 'fx') {
+                AppStore.setState({ [`mute_fx_${data.channel}`]: !!data.mute });
+            }
         });
         _socket.on('bus_solo', (data) => AppStore.setState({ [`bus_${data.busType}_${data.channel}_solo`]: !!data.solo }));
         _socket.on('bus_pan', (data) => AppStore.setState({ [`bus_${data.busType}_${data.channel}_pan`]: Number(data.pan ?? 0) }));
+        _socket.on('bus_delay', (data) => {
+            AppStore.setState({ [`bus_${data.busType}_${data.channel}_delay`]: Number(data.delay ?? 0) });
+            if (data.busType === 'aux') {
+                AppStore.setState({ [`aux_${data.channel}_delay`]: Number(data.delay ?? 0) });
+            }
+        });
 
         _socket.on('fx_type', (data) => AppStore.setState({ [`fx_${data.fx}_type`]: data.type }));
         _socket.on('fx_bpm_feedback', (data) => AppStore.setState({ [`fx_${data.fx}_bpm`]: Number(data.bpm ?? 120) }));
@@ -323,6 +332,8 @@
                     patch[`aux_${a}_level`] = aux.level ?? 0;
                     patch[`mute_aux_${a}`] = !!aux.mute;
                     patch[`bus_aux_${a}_mute`] = !!aux.mute;
+                    patch[`aux_${a}_delay`] = aux.delay ?? 0;
+                    patch[`bus_aux_${a}_delay`] = aux.delay ?? 0;
                 });
             }
             if (Array.isArray(data.fx)) {
@@ -331,6 +342,12 @@
                     patch[`bus_fx_${f}_level`] = fx.level ?? 0;
                     patch[`fx_${f}_level`] = fx.level ?? 0;
                     patch[`fx_${f}_bpm`] = fx.bpm ?? 120;
+                    if (fx.type) patch[`fx_${f}_type`] = fx.type;
+                    if (Array.isArray(fx.params)) {
+                        fx.params.forEach((val, pIdx) => {
+                            patch[`fx_${f}_param_${pIdx + 1}`] = val ?? 0;
+                        });
+                    }
                 });
             }
             if (data.player) {

@@ -49,6 +49,9 @@ describe('AppStore', () => {
         expect(state.mixerConnected).toBe(false);
         expect(state.mixerIp).toBe('10.10.1.1');
         expect(state.userMode).toBe('technician');
+        expect(state.muteGroups).toEqual({});
+        expect(state.aux_1_delay).toBe(0);
+        expect(state.mute_fx_1).toBe(false);
     });
 
     it('should return a deep clone from getState() to prevent accidental mutations', () => {

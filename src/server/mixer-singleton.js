@@ -32,8 +32,8 @@ const stateTree = {
         level: 0, levelDb: -100, mute: 0, phantom: 0,
         hpf: 100, gate: 0, comp: 0, eq: {}, name: '', delay: 0
     })),
-    aux:    Array.from({ length: 10 }, () => ({ level: 0 })),
-    fx:     Array.from({ length: 4 },  () => ({ level: 0, bpm: 120 })),
+    aux:    Array.from({ length: 10 }, () => ({ level: 0, mute: 0, delay: 0 })),
+    fx:     Array.from({ length: 4 },  () => ({ level: 0, bpm: 120, type: 'Reverb', params: [0, 0, 0, 0, 0, 0] })),
     player: { state: 'stop', track: '' },
     rec:    { recording: false, mtkRecording: false },
 };
@@ -199,11 +199,17 @@ module.exports = {
         Object.assign(stateTree.aux[aux - 1], patch);
         return stateTree.aux[aux - 1];
     },
+    updateFxState: (fxIdx, patch) => {
+        if (!stateTree.fx[fxIdx - 1]) return null;
+        Object.assign(stateTree.fx[fxIdx - 1], patch);
+        return stateTree.fx[fxIdx - 1];
+    },
 
     // Getters
     getChannelState: (ch)  => stateTree.inputs[ch - 1] || null,
     getMasterState:  ()    => stateTree.master,
     getAuxState:     (aux) => stateTree.aux[aux - 1] || null,
+    getFxState:      (fxIdx) => stateTree.fx[fxIdx - 1] || null,
 
     // Rate Limiter
     checkFaderRateLimit,
