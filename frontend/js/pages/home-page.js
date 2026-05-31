@@ -203,23 +203,27 @@
 
         if (command && !isUser) {
             const card = document.createElement('div');
-            card.className = 'mt-3 bg-slate-950/80 border border-cyan-500/30 rounded-xl p-4 shadow-lg transition-all hover:border-cyan-500/50 text-left';
+            card.className = 'mt-2 bg-slate-950/80 border border-cyan-500/20 rounded-xl p-2.5 text-left flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-lg';
             
+            const desc = (command.desc || 'Ajuste').replace(/[&<>]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]; });
+
             card.innerHTML = `
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-[10px] uppercase font-bold tracking-wider text-cyan-400">Recomendação da IA</span>
-                    <span class="text-[9px] font-mono bg-cyan-950 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500/20">Human-In-The-Loop</span>
+                <div class="flex flex-col min-w-0">
+                    <div class="flex items-center gap-1.5 leading-tight">
+                        <span class="text-cyan-400 text-xs shrink-0">⚡</span>
+                        <span class="text-xs text-white font-bold truncate">${desc}</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5 font-mono">
+                        <span>CH ${command.channel !== undefined ? command.channel : '-'}</span>
+                        <span>|</span>
+                        <span class="uppercase">${command.action || '-'}</span>
+                        ${command.value !== undefined ? `<span>|</span><span>${command.value}</span>` : ''}
+                    </div>
                 </div>
-                <p class="text-xs text-white font-semibold mb-2">${(command.desc || 'Ajuste de Mixer').replace(/[&<>]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]; })}</p>
-                <div class="grid grid-cols-3 gap-2 bg-slate-900/60 p-2 rounded-lg mb-3 border border-white/5 font-mono text-[10px] text-slate-400">
-                    <div>Canal: <span class="text-cyan-300">${command.channel !== undefined ? command.channel : '-'}</span></div>
-                    <div>Ação: <span class="text-cyan-300">${command.action || '-'}</span></div>
-                    <div>Valor: <span class="text-cyan-300">${command.value !== undefined ? command.value : '-'}</span></div>
-                </div>
-                <div class="flex gap-2 justify-end">
-                    <button class="ignore-btn px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10px] font-semibold text-slate-400 hover:text-white transition-all">Ignorar</button>
-                    <button class="exec-btn px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-[10px] font-bold text-white transition-all shadow-md shadow-cyan-950/50 flex items-center gap-1">
-                        <span>⚡</span> Aplicar Ajuste
+                <div class="flex gap-1.5 justify-end shrink-0">
+                    <button class="ignore-btn px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-400 hover:text-white transition-all">Ignorar</button>
+                    <button class="exec-btn px-3 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-[10px] font-extrabold text-white transition-all flex items-center gap-1">
+                        Aplicar
                     </button>
                 </div>
             `;
@@ -228,26 +232,26 @@
             const btnIgnore = card.querySelector('.ignore-btn');
 
             if (executed) {
-                btnExec.innerText = 'Executado ✓';
+                btnExec.innerHTML = '✓ Aplicado';
                 btnExec.disabled = true;
-                btnExec.style.background = 'var(--success)';
+                btnExec.className = 'exec-btn px-3 py-1 rounded bg-emerald-950/40 border border-emerald-500/30 text-[10px] font-bold text-emerald-400 flex items-center gap-1';
                 btnIgnore.style.display = 'none';
             } else {
                 pm._on(btnExec, 'click', function () {
                     const ok = MixerService.executeAICommand(command);
                     if (ok) {
-                        btnExec.innerText = 'Executado ✓';
+                        btnExec.innerHTML = '✓ Aplicado';
                         btnExec.disabled = true;
-                        btnExec.style.background = 'var(--success)';
+                        btnExec.className = 'exec-btn px-3 py-1 rounded bg-emerald-950/40 border border-emerald-500/30 text-[10px] font-bold text-emerald-400 flex items-center gap-1';
                         btnIgnore.style.display = 'none';
                         _markCommandExecutedInHistory(id);
                     } else {
-                        btnExec.innerText = '⚠️ Conecte-se à mesa primeiro';
+                        btnExec.innerText = '⚠️ Conecte-se à mesa';
                     }
                 });
 
                 pm._on(btnIgnore, 'click', function () {
-                    card.style.opacity = '0.5';
+                    card.style.opacity = '0.4';
                     btnExec.disabled = true;
                     btnIgnore.disabled = true;
                 });
