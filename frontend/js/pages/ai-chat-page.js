@@ -373,23 +373,18 @@
     function _checkAutonomousAction(text, channel) {
         const t = text.toLowerCase();
 
-        // Análise / medição de som
-        if (/(?:anali[sz]|medir|med[iç]|mensura|como.?est[aá].*som|est[aá].*bom|est[aá].*ruim|avaliar|verificar som|check.*sound)/.test(t)) {
-            return { type: 'live_analysis', prompt: text };
+        // RT60 / Medição Acústica / Relatório Técnico (Requer sweep de sinal / pulso acústico)
+        if (/(?:rt60|reverbera|tempo.*decai|eco|vivo|morto|dura[cç][aã]o|medir|med[iç]|mensura|sweep|pulso|relat[oó]rio|resumo|estat[ií]stica|laudo|documento)/.test(t)) {
+            return { type: 'rt60_measurement', prompt: text };
         }
 
-        // RT60 / reverberação
-        if (/(?:rt60|reverbera|tempo.*decai|eco|vivo|morto|dura[cç][aã]o)/.test(t)) {
-            return { type: 'rt60_measurement', prompt: text };
+        // Análise em tempo real / Captura espectral (Apenas RTA passivo, sem sweep de sinal)
+        if (/(?:anali[sz]|como.?est[aá].*som|est[aá].*bom|est[aá].*ruim|avaliar|verificar som|check.*sound|ouvir|escutar|capturar)/.test(t)) {
+            return { type: 'live_analysis', prompt: text };
         }
 
         // Feedback / microfonia
         if (/(?:apito|microfonia|feedback|realimenta|chiado|guincho)/.test(t)) {
-            return { type: 'live_analysis', prompt: text };
-        }
-
-        // Relatório
-        if (/(?:relat[oó]rio|resumo|estat[ií]stica|laudo|documento)/.test(t)) {
             return { type: 'live_analysis', prompt: text };
         }
 

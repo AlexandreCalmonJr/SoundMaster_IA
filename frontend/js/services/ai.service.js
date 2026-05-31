@@ -55,7 +55,7 @@
     }
 
     function _getLiveAnalysis() {
-        if (window.SoundMasterAnalyzer && window.SoundMasterAnalyzer.isAnalyzing()) {
+        if (window.SoundMasterAnalyzer && (window.SoundMasterAnalyzer.isAnalyzing() || window.SoundMasterAnalyzer.hasAnalysis())) {
             const analysis = window.SoundMasterAnalyzer.getLastAnalysis();
             if (analysis) {
                 return {

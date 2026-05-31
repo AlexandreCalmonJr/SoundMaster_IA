@@ -714,18 +714,32 @@ class AIEngine:
                 rt60_avg = sum(vals) / len(vals) if vals else 0
         if rt60_avg <= 0:
             rt60_avg = self._safe_float(analysis.get('rt60', 0), 0)
-        if rt60_avg <= 0:
-            return None
-        
-        rt60_info = AcousticProcessor.classify_room(rt60_avg)
         
         rms_noise = self._safe_float(analysis.get('rms', -45), -45)
-        snr_calc = max(5, -18 - rms_noise)
-        sti = AcousticProcessor.estimate_sti(rt60_avg, snr=snr_calc)
-        
         room_vol = self._safe_float(analysis.get('room_vol', analysis.get('volume', 900)), 900)
-        dc = AcousticProcessor.calculate_critical_distance(room_vol, rt60_avg)
         
+        if rt60_avg > 0:
+            rt60_info = AcousticProcessor.classify_room(rt60_avg)
+            rt60_text = f"{rt60_avg:.2f}s"
+            rt60_status = rt60_info['status']
+            rt60_desc = rt60_info['desc']
+            rt60_rating = f"{rt60_info['rating']}/5"
+            
+            snr_calc = max(5, -18 - rms_noise)
+            sti_val = AcousticProcessor.estimate_sti(rt60_avg, snr=snr_calc)
+            sti_rating = "Excelente" if sti_val > 0.75 else "Bom" if sti_val > 0.6 else "Razoável" if sti_val > 0.45 else "Pobre"
+            sti_text = f"{sti_val:.2f} ({sti_rating})"
+            
+            dc = AcousticProcessor.calculate_critical_distance(room_vol, rt60_avg)
+            dc_text = f"{dc:.1f} metros"
+        else:
+            rt60_text = "Não medido"
+            rt60_status = "Pendente"
+            rt60_desc = "Dispare um sweep na tela de Análise para medir o tempo de reverberação."
+            rt60_rating = "--"
+            sti_text = "Pendente (requer medição RT60)"
+            dc_text = "Pendente (requer medição RT60)"
+
         patterns = AcousticProcessor.diagnose_patterns(self.session.analyses_history)
         
         peak_hz = analysis.get('peakHz', '--')
@@ -735,17 +749,16 @@ class AIEngine:
 # 📊 RELATÓRIO TÉCNICO: AUDITORIA ACÚSTICA AI
 
 ## 1. Análise de Reverberação (RT60)
-- **Tempo Médio (RT60):** {rt60_avg:.2f}s
-- **Status:** {rt60_info['status']}
-- **Diagnóstico:** {rt60_info['desc']}
-- **Pontuação:** {rt60_info['rating']}/5
+- **Tempo Médio (RT60):** {rt60_text}
+- **Status:** {rt60_status}
+- **Diagnóstico:** {rt60_desc}
+- **Pontuação:** {rt60_rating}
 
 ## 2. Qualidade de Transmissão (STI)
-- **STI Estimado:** {sti:.2f}
-- **Avaliação:** {"Excelente" if sti > 0.75 else "Bom" if sti > 0.6 else "Razoável" if sti > 0.45 else "Pobre"}
+- **STI Estimado:** {sti_text}
 
 ## 3. Cobertura e Distância Crítica
-- **Distância Crítica (Dc):** {dc:.1f} metros
+- **Distância Crítica (Dc):** {dc_text}
 
 ## 4. Espectro Detectado
 - **Frequência Pico:** {peak_hz}Hz
