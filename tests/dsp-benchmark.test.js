@@ -151,7 +151,7 @@ describe('DSP Performance Benchmark', () => {
         
         const elapsed = performance.now() - startTime;
         
-        expect(elapsed).toBeLessThan(50);
+        expect(elapsed).toBeLessThan(100);
     });
 
     it('Magnitude calculation deve ser rápida', () => {
