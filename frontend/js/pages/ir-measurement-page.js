@@ -77,11 +77,19 @@
         ctx.strokeStyle = '#a855f7';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        var step = Math.max(1, Math.floor(data.length / w));
+
+        // Encontra o valor máximo absoluto para normalizar o desenho da onda
+        var maxVal = 0;
+        for (var i = 0; i < data.length; i++) {
+            var abs = Math.abs(data[i]);
+            if (abs > maxVal) maxVal = abs;
+        }
+        if (maxVal < 1e-5) maxVal = 1.0;
+
         for (var x = 0; x < w; x++) {
             var idx = Math.min(Math.floor(x * data.length / w), data.length - 1);
-            var val = data[idx];
-            var y = h / 2 - (val * h / 2);
+            var val = data[idx] / maxVal;
+            var y = h / 2 - (val * (h / 2) * 0.85); // 15% de margem vertical
             if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         }
         ctx.stroke();
@@ -249,8 +257,11 @@
         var filter = _inverseFilter || _capturedIR;
         if (window.FIRConvolution && typeof window.FIRConvolution.loadIRFromArray === 'function') {
             window.FIRConvolution.loadIRFromArray(Array.from(filter)).then(function () {
+                if (typeof window.FIRConvolution.apply === 'function') {
+                    window.FIRConvolution.apply();
+                }
                 var s = pm._el('ir-generate-status');
-                if (s) s.textContent = '✅ Filtro carregado no convolver em tempo real!';
+                if (s) s.textContent = '✅ Filtro carregado e ativo no convolver em tempo real!';
             }).catch(function (e) {
                 var s = pm._el('ir-generate-status');
                 if (s) s.textContent = 'Erro: ' + e.message;

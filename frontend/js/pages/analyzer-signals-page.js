@@ -214,10 +214,6 @@
     }
 
     function destroy() {
-        // Automatically stop all playing signals when navigating away to protect users' ears/equipment
-        if (window.SignalGeneratorController) {
-            window.SignalGeneratorController.stopAll();
-        }
         pm.destroy();
     }
 

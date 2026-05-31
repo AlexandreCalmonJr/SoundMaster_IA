@@ -704,18 +704,11 @@
 
         _bindTfEventListeners();
 
-        // Evento de page-unload para limpar recursos de áudio e referências DOM
+        // Evento de page-unload para limpar recursos de UI e referências DOM
         window.addEventListener('page-unload', (e) => {
             if (e.detail && e.detail.pageId === 'analyzer') {
-                console.log('[Analyzer] Limpando recursos no page-unload...');
-                stopAnalyzer();
+                console.log('[Analyzer] Limpando recursos de UI no page-unload (mantendo fluxo de áudio)...');
                 _isStarting = false;
-                _lastWfSec = 0;
-                _delayHistory = [];
-                _delayStableCount = 0;
-                refAudioQueue = [];
-                peakPerOctave = [];
-                peakHold = { hz: 0, db: -100, timer: 0 };
                 if (_audioResumeHandler) {
                     document.removeEventListener('click', _audioResumeHandler);
                     _audioResumeHandler = null;
@@ -991,7 +984,18 @@
 
             monitorGain = audioCtx.createGain();
             monitorGain.gain.value = 0;
-            source.connect(monitorGain);
+            
+            if (window.FIRConvolution && typeof window.FIRConvolution.init === 'function') {
+                window.FIRConvolution.init(audioCtx).then(() => {
+                    window.FIRConvolution.connectTo(source);
+                    window.FIRConvolution.connectToDestination(monitorGain);
+                }).catch(e => {
+                    console.warn('[Analyzer] Falha ao inicializar FIRConvolution:', e);
+                    source.connect(monitorGain);
+                });
+            } else {
+                source.connect(monitorGain);
+            }
             monitorGain.connect(audioCtx.destination);
 
             if (audioWorkletNode) {

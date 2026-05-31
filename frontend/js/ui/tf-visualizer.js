@@ -1472,6 +1472,19 @@
     }
 
     function drawTransferFunction(magnitude, phase, coherence, meta) {
+        if (magnitude && phase) {
+            lastMagnitude = magnitude;
+            lastPhase = phase;
+            lastSampleRate = meta.sampleRate || 48000;
+            
+            // Sempre calcula lirData em segundo plano se o analisador estiver ativo,
+            // garantindo que outras páginas possam capturar a IR a qualquer momento.
+            lirFrameCount = (lirFrameCount + 1) % 15;
+            if (lirFrameCount === 0 || !lirData) {
+                lirData = computeImpulseResponse(magnitude, unwrapPhase(phase), lastSampleRate);
+            }
+        }
+
         magCanvas = _el('tf-magnitude-canvas');
         phaseCanvas = _el('tf-phase-canvas');
         if (!magCanvas || !phaseCanvas) return;
@@ -1645,11 +1658,10 @@
                     lirCanvas.width = lirW;
                     lirCanvas.height = lirH;
                 }
-                lirFrameCount = (lirFrameCount + 1) % 15;
-                if (lirFrameCount === 0 || !lirData) {
-                    lirData = computeImpulseResponse(magnitude, unwrapPhase(phase), sampleRate);
+                // lirData já é calculado no início da função em segundo plano, apenas desenha
+                if (lirData) {
+                    _drawLir(lirCtx, lirData.ir, lirData.sampleRate);
                 }
-                _drawLir(lirCtx, lirData.ir, lirData.sampleRate);
             }
         }
     }

@@ -317,6 +317,7 @@
         init,
         loadIRFromArray,
         loadIRFromFile,
+        generateInverse: generateInverseFilter,
         generateInverseFilter,
         generateEQFilter,
         apply,
