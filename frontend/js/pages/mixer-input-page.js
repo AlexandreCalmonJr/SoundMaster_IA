@@ -40,6 +40,8 @@
     let chNames = {};
     let currentTarget = 'master';
     let localMuteState = {};
+    let localSoloState = {};
+    let localMtkState = {};
 
     async function loadNames() {
         try {
@@ -59,6 +61,8 @@
         for (let i = 1; i <= 24; i++) {
             const chName = chNames[i] || `CANAL ${i}`;
             localMuteState[i] = state[`mute_ch_${i}`] || false;
+            localSoloState[i] = state[`ch_${i}_solo`] || false;
+            localMtkState[i] = state[`ch_${i}_mtk_selected`] || false;
             const chDiv = document.createElement('div');
             chDiv.className = 'w-24 flex flex-col gap-4 flex-shrink-0';
             chDiv.innerHTML =
@@ -72,11 +76,17 @@
                     '</div>' +
                     '<input type="text" id="name-ch-' + i + '" value="' + esc(chName) + '" class="bg-transparent text-[9px] font-bold text-white text-center w-full focus:outline-none focus:bg-white/5 rounded p-1 border-b border-transparent focus:border-cyan-500/50">' +
                 '</div>' +
-                '<button id="mute-ch-' + i + '" class="py-2 bg-slate-800 text-slate-500 text-[10px] font-black rounded-lg border border-white/5 transition-all">MUTE</button>';
+                '<div class="flex gap-1 w-full mt-2">' +
+                    '<button id="mute-ch-' + i + '" class="flex-1 py-1.5 bg-slate-800 text-slate-500 text-[9px] font-black rounded-lg border border-white/5 transition-all uppercase">Mute</button>' +
+                    '<button id="solo-ch-' + i + '" class="flex-1 py-1.5 bg-slate-800 text-slate-500 text-[9px] font-black rounded-lg border border-white/5 transition-all uppercase">Solo</button>' +
+                    '<button id="mtk-ch-' + i + '" class="flex-1 py-1.5 bg-slate-800 text-slate-500 text-[9px] font-black rounded-lg border border-white/5 transition-all uppercase">Mtk</button>' +
+                '</div>';
             container.appendChild(chDiv);
 
-            // Apply initial mute state
+            // Apply initial states
             if (localMuteState[i]) updateMuteUI(i, true);
+            if (localSoloState[i]) updateSoloUI(i, true);
+            if (localMtkState[i]) updateMtkUI(i, true);
 
             // Bind DOM events
             const muteBtn = pm._el('mute-ch-' + i);
@@ -87,6 +97,30 @@
                     MixerService.sendRaw('SETD|c|' + (i - 1) + '|mute|' + (next ? 1 : 0));
                     AppStore.setState({ ['mute_ch_' + i]: next });
                     updateMuteUI(i, next);
+                });
+            }
+
+            const soloBtn = pm._el('solo-ch-' + i);
+            if (soloBtn) {
+                pm._on(soloBtn, 'click', function () {
+                    var next = !localSoloState[i];
+                    localSoloState[i] = next;
+                    MixerService.sendRaw('SETD|c|' + (i - 1) + '|solo|' + (next ? 1 : 0));
+                    AppStore.setState({ ['ch_' + i + '_solo']: next });
+                    updateSoloUI(i, next);
+                });
+            }
+
+            const mtkBtn = pm._el('mtk-ch-' + i);
+            if (mtkBtn) {
+                pm._on(mtkBtn, 'click', function () {
+                    var next = !localMtkState[i];
+                    localMtkState[i] = next;
+                    if (window.SocketService) {
+                        SocketService.emit('execute_ai_command', { action: 'mtk_select', channel: i, enabled: next ? 1 : 0 });
+                    }
+                    AppStore.setState({ ['ch_' + i + '_mtk_selected']: next });
+                    updateMtkUI(i, next);
                 });
             }
 
@@ -129,6 +163,16 @@
                 localMuteState[i] = !!isMuted;
                 updateMuteUI(i, !!isMuted);
             });
+
+            pm._subscribe('AppStore', 'ch_' + i + '_solo', function (isSolo) {
+                localSoloState[i] = !!isSolo;
+                updateSoloUI(i, !!isSolo);
+            });
+
+            pm._subscribe('AppStore', 'ch_' + i + '_mtk_selected', function (isMtk) {
+                localMtkState[i] = !!isMtk;
+                updateMtkUI(i, !!isMtk);
+            });
         }
 
         syncFadersToTarget();
@@ -143,6 +187,30 @@
         } else {
             btn.classList.add('bg-slate-800', 'text-slate-500');
             btn.classList.remove('bg-red-900/40', 'text-red-500', 'border-red-500/20');
+        }
+    }
+
+    function updateSoloUI(ch, isSolo) {
+        const btn = pm._el(`solo-ch-${ch}`);
+        if (!btn) return;
+        if (isSolo) {
+            btn.classList.remove('bg-slate-800', 'text-slate-500');
+            btn.classList.add('bg-amber-900/40', 'text-amber-500', 'border-amber-500/20');
+        } else {
+            btn.classList.add('bg-slate-800', 'text-slate-500');
+            btn.classList.remove('bg-amber-900/40', 'text-amber-500', 'border-amber-500/20');
+        }
+    }
+
+    function updateMtkUI(ch, isMtk) {
+        const btn = pm._el(`mtk-ch-${ch}`);
+        if (!btn) return;
+        if (isMtk) {
+            btn.classList.remove('bg-slate-800', 'text-slate-500');
+            btn.classList.add('bg-cyan-900/40', 'text-cyan-400', 'border-cyan-500/20');
+        } else {
+            btn.classList.add('bg-slate-800', 'text-slate-500');
+            btn.classList.remove('bg-cyan-900/40', 'text-cyan-400', 'border-cyan-500/20');
         }
     }
 

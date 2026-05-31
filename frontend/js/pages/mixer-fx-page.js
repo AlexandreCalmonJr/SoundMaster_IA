@@ -74,6 +74,13 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="bg-black/25 rounded-xl border border-white/5 p-4 space-y-3">
+                    <span class="text-[9px] uppercase font-black text-slate-500 tracking-wider">Parâmetros Lexicon</span>
+                    <div class="grid grid-cols-2 gap-3" id="fx-params-container-${i}">
+                        <!-- Parâmetros de 1 a 6 -->
+                    </div>
+                </div>
             `;
             container.appendChild(fxCard);
 
@@ -118,6 +125,47 @@
                 });
             }
 
+            // Build dynamic parameters P1 - P6
+            const paramsContainer = fxCard.querySelector(`#fx-params-container-${i}`);
+            if (paramsContainer) {
+                paramsContainer.innerHTML = '';
+                for (let p = 1; p <= 6; p++) {
+                    const pDiv = document.createElement('div');
+                    pDiv.className = 'flex flex-col gap-1';
+                    pDiv.innerHTML = `
+                        <div class="flex justify-between items-center text-[9px] font-bold text-slate-500">
+                            <span>Param ${p}</span>
+                            <span id="fx-${i}-param-val-${p}" class="text-cyan-400 font-mono">0%</span>
+                        </div>
+                        <input type="range" id="fx-${i}-param-slider-${p}" min="0" max="100" value="0"
+                               class="w-full h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-cyan-500">
+                    `;
+                    paramsContainer.appendChild(pDiv);
+                    
+                    const pSlider = pDiv.querySelector(`#fx-${i}-param-slider-${p}`);
+                    if (pSlider) {
+                        pm._on(pSlider, 'input', (e) => {
+                            const val = e.target.value;
+                            const valText = pDiv.querySelector(`#fx-${i}-param-val-${p}`);
+                            if (valText) valText.innerText = val + '%';
+                        });
+                        pm._on(pSlider, 'change', (e) => {
+                            const val = Number(e.target.value) / 100;
+                            MixerService.sendRaw(`SETD|f|${i - 1}|param|${p - 1}|${val}`);
+                        });
+                    }
+
+                    // Subscribe to the parameter's AppStore state
+                    pm._subscribe('AppStore', `fx_${i}_param_${p}`, (val) => {
+                        const slider = pDiv.querySelector(`#fx-${i}-param-slider-${p}`);
+                        const valText = pDiv.querySelector(`#fx-${i}-param-val-${p}`);
+                        const pct = Math.round((val || 0) * 100);
+                        if (slider) slider.value = pct;
+                        if (valText) valText.innerText = pct + '%';
+                    });
+                }
+            }
+
             // Subscriptions
             pm._subscribe('AppStore', `fx_${i}_level`, (level) => {
                 if (window.SocketService && window.SocketService.isFaderLocked(`fx_${i}`)) return;
@@ -131,6 +179,11 @@
             pm._subscribe('AppStore', `fx_${i}_bpm`, (bpm) => {
                 const input = pm._el(`fx-bpm-${i}`);
                 if (input) input.value = bpm || 120;
+            });
+
+            pm._subscribe('AppStore', `fx_${i}_type`, (type) => {
+                const label = pm._el(`fx-type-${i}`);
+                if (label && type) label.innerText = type;
             });
         }
     }

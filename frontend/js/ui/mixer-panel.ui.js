@@ -392,9 +392,38 @@
         });
 
         // ✅ Novo: Hardware Gain
+        function updateHwUIForChannel() {
+            const hwCh = els.hwInputNum?.value || '1';
+            const state = AppStore.getState();
+            const phantom = !!state[`hw_${hwCh}_phantom`];
+            const gain = state[`hw_${hwCh}_gain`] !== undefined ? state[`hw_${hwCh}_gain`] : 0;
+            const gainDb = state[`hw_${hwCh}_gain_db`];
+            
+            if (els.hwPhantom) els.hwPhantom.checked = phantom;
+            if (els.hwGainSlider) els.hwGainSlider.value = Math.round(gain * 100);
+            if (els.hwGainVal) {
+                if (gainDb !== undefined && gainDb !== null) {
+                    els.hwGainVal.innerText = `${Math.round(gain * 100)}% (${Number(gainDb).toFixed(1)} dB)`;
+                } else {
+                    els.hwGainVal.innerText = `${Math.round(gain * 100)}%`;
+                }
+            }
+        }
+
+        els.hwInputNum?.addEventListener('change', updateHwUIForChannel, { signal: _panelController.signal });
+
         els.hwGainSlider?.addEventListener('input', (e) => {
             const val = e.target.value;
-            if (els.hwGainVal) els.hwGainVal.innerText = val + '%';
+            if (els.hwGainVal) {
+                const state = AppStore.getState();
+                const hwCh = els.hwInputNum?.value || '1';
+                const gainDb = state[`hw_${hwCh}_gain_db`];
+                if (gainDb !== undefined && gainDb !== null) {
+                    els.hwGainVal.innerText = val + `% (${Number(gainDb).toFixed(1)} dB)`;
+                } else {
+                    els.hwGainVal.innerText = val + '%';
+                }
+            }
             MixerService.setHwGain(els.hwInputNum.value, val / 100);
         }, { signal: _panelController.signal });
 
@@ -402,6 +431,10 @@
         els.hwPhantom?.addEventListener('change', (e) => {
             MixerService.setPhantomPower(els.hwInputNum.value, e.target.checked);
         }, { signal: _panelController.signal });
+
+        if (els.hwInputNum) {
+            updateHwUIForChannel();
+        }
 
         // ✅ Novo: Shows & Snapshots
         els.btnSyncShows?.addEventListener('click', () => {
@@ -475,6 +508,42 @@
                 els.recStatusBadge.classList.toggle('hidden', !isRecording);
             }
         });
+
+        // Sincronizar preamps de hardware (Phantom e Gain)
+        for (let i = 1; i <= 24; i++) {
+            AppStore.subscribe(`hw_${i}_phantom`, (val) => {
+                if (Number(els.hwInputNum?.value) === i) {
+                    if (els.hwPhantom) els.hwPhantom.checked = !!val;
+                }
+            });
+            AppStore.subscribe(`hw_${i}_gain`, (val) => {
+                if (Number(els.hwInputNum?.value) === i) {
+                    const gain = val !== undefined ? val : 0;
+                    const gainDb = AppStore.getState()[`hw_${i}_gain_db`];
+                    if (els.hwGainSlider) els.hwGainSlider.value = Math.round(gain * 100);
+                    if (els.hwGainVal) {
+                        if (gainDb !== undefined && gainDb !== null) {
+                            els.hwGainVal.innerText = `${Math.round(gain * 100)}% (${Number(gainDb).toFixed(1)} dB)`;
+                        } else {
+                            els.hwGainVal.innerText = `${Math.round(gain * 100)}%`;
+                        }
+                    }
+                }
+            });
+            AppStore.subscribe(`hw_${i}_gain_db`, (val) => {
+                if (Number(els.hwInputNum?.value) === i) {
+                    const gain = AppStore.getState()[`hw_${i}_gain`] !== undefined ? AppStore.getState()[`hw_${i}_gain`] : 0;
+                    const gainDb = val;
+                    if (els.hwGainVal) {
+                        if (gainDb !== undefined && gainDb !== null) {
+                            els.hwGainVal.innerText = `${Math.round(gain * 100)}% (${Number(gainDb).toFixed(1)} dB)`;
+                        } else {
+                            els.hwGainVal.innerText = `${Math.round(gain * 100)}%`;
+                        }
+                    }
+                }
+            });
+        }
 
         _socketHandlers.presets_list = (presets) => _renderPresets(presets);
         _socketHandlers.preset_saved = () => MixerService.listPresets();

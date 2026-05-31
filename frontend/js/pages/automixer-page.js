@@ -190,6 +190,75 @@
         pm._on(pm._el('am-activate-all'), 'click', function () { for (var i = 1; i <= NUM_CHANNELS; i++) channelState[i].enabled = true; _updateChannelStates(); _queueSendUpdate(); });
         pm._on(pm._el('am-deactivate-all'), 'click', function () { for (var i = 1; i <= NUM_CHANNELS; i++) channelState[i].enabled = false; _updateChannelStates(); _queueSendUpdate(); });
         pm._on(pm._el('am-reset'), 'click', function () { for (var i = 1; i <= NUM_CHANNELS; i++) { channelState[i].weight = 0.5; channelState[i].reduction = 0; var slider = document.querySelector('.am-weight-slider[data-ch="' + i + '"]'); if (slider) slider.value = 50; } var masterSlider = pm._el('am-master-weight'); if (masterSlider) { masterSlider.value = 50; pm._setText('am-master-weight-val', '50%'); } _updateChannelStates(); _queueSendUpdate(); });
+        
+        // Assinar mudanças do AppStore para automix global
+        pm._subscribe('AppStore', 'automix', function (automixState) {
+            if (!automixState) return;
+            ['a', 'b'].forEach(function (group) {
+                const active = !!automixState[group];
+                const btn = pm._el('am-toggle-' + group);
+                const dot = pm._el('am-' + group + '-dot');
+                if (btn) {
+                    if (active) {
+                        btn.classList.add('active');
+                        btn.style.backgroundColor = group === 'a' ? 'rgba(6,182,212,0.3)' : 'rgba(16,185,129,0.3)';
+                    } else {
+                        btn.classList.remove('active');
+                        btn.style.backgroundColor = '';
+                    }
+                }
+                if (dot) {
+                    if (active) {
+                        dot.classList.remove('bg-slate-600');
+                        dot.classList.add('bg-green-500');
+                    } else {
+                        dot.classList.remove('bg-green-500');
+                        dot.classList.add('bg-slate-600');
+                    }
+                }
+            });
+        });
+
+        pm._subscribe('AppStore', 'automix_response_time', function (val) {
+            if (val === undefined || val === null) return;
+            const slider = pm._el('am-response');
+            if (slider) {
+                slider.value = val;
+                pm._setText('am-response-val', val + 'ms');
+            }
+        });
+
+        // Assinar mudanças dos canais
+        for (let i = 1; i <= NUM_CHANNELS; i++) {
+            (function (chIdx) {
+                pm._subscribe('AppStore', 'ch_' + chIdx + '_automix_group', function (groupVal) {
+                    const group = groupVal || 'none';
+                    if (group !== 'none') {
+                        channelState[chIdx].group = group;
+                        channelState[chIdx].enabled = true;
+                        groupAssignments.a.delete(chIdx);
+                        groupAssignments.b.delete(chIdx);
+                        groupAssignments[group].add(chIdx);
+                    } else {
+                        channelState[chIdx].enabled = false;
+                        groupAssignments.a.delete(chIdx);
+                        groupAssignments.b.delete(chIdx);
+                    }
+                    _updateChannelStates();
+                });
+
+                pm._subscribe('AppStore', 'ch_' + chIdx + '_automix_weight', function (weightVal) {
+                    const w = weightVal !== undefined ? weightVal : 0.5;
+                    channelState[chIdx].weight = w;
+                    const slider = document.querySelector('.am-weight-slider[data-ch="' + chIdx + '"]');
+                    if (slider) {
+                        slider.value = Math.round(w * 100);
+                    }
+                    _updateChannelStates();
+                });
+            })(i);
+        }
+        
         _updateChannelStates();
     }
 
