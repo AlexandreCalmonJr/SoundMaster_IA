@@ -58,6 +58,12 @@
     outline-offset: 2px;
     box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.2);
   }
+
+  /* Minimum touch target size for WCAG 2.5.8 compliance */
+  button, a, input[type="checkbox"], input[type="radio"], select, [role="button"], [role="switch"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 
 /* ==========================================
@@ -592,6 +598,36 @@
   .fader-vertical::-webkit-slider-thumb {
     height: 16px;
     width: 12px;
+  }
+}
+
+@media (max-width: 1024px) and (min-width: 769px) {
+  #app-mixer {
+    width: 320px;
+  }
+  #app-main {
+    padding: 24px;
+  }
+  .category-panel.open {
+    width: 180px;
+  }
+}
+
+@media (max-width: 768px) {
+  #app-mixer {
+    width: 280px;
+  }
+  #app-main {
+    padding: 16px;
+  }
+  .category-panel.open {
+    width: 100%;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+  }
+  .category-panel.open .panel-header {
+    padding-top: 20px;
   }
 }
 

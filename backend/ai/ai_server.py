@@ -392,8 +392,8 @@ async def chat_endpoint(
     try:
         session = get_session(request.session_id)
         ai_engine = AIEngine(session)
-        # Executado de forma síncrona na thread principal para evitar Access Violation (segfault) do llama-cpp nas threads de worker do FastAPI
-        result = ai_engine.process(request.message, request.analysis, request.mixer_context)
+        # Executado em thread separada para não bloquear o event loop do FastAPI
+        result = await asyncio.to_thread(ai_engine.process, request.message, request.analysis, request.mixer_context)
         if not result or not result.get("text"):
             result = {"text": "Entendi! Pode me dar mais detalhes sobre o que está sentindo no som?", "command": None}
         if result.get("text"):

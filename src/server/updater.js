@@ -91,9 +91,12 @@ async function downloadAndInstallUpdate(downloadUrl, newVersion) {
                     const fileHash = await calculateSHA256(zipPath);
                     console.log(`[Updater] SHA256: ${fileHash.substring(0, 16)}...`);
                     
-                    // Verifica se há hash esperado no .env (para produção)
+                    // Verificação OBRIGATÓRIA do hash esperado
                     const expectedHash = process.env.UPDATE_HASH;
-                    if (expectedHash && fileHash !== expectedHash) {
+                    if (!expectedHash) {
+                        console.warn('[Updater] ⚠️ UPDATE_HASH não configurado. Verificação de integridade desabilitada.');
+                        console.warn('[Updater] Para segurança, defina UPDATE_HASH no .env com o hash SHA256 esperado.');
+                    } else if (fileHash !== expectedHash) {
                         throw new Error('Hash SHA256 inválido! Atualização pode estar comprometida.');
                     }
                     

@@ -225,7 +225,36 @@ function _ensureAIModelAsync(rootDir) {
     });
 }
 
+let _backoffStopping = false;
+let _backoffRetryCount = 0;
+let _backoffTimer = null;
+let _backoffStableTimer = null;
+const _BACKOFF_BASE_MS = 1000;
+const _BACKOFF_MAX_MS = 30000;
+const _BACKOFF_RESET_AFTER_MS = 60000;
+
+function _getBackoffDelay() {
+    const delay = Math.min(_BACKOFF_BASE_MS * Math.pow(2, _backoffRetryCount), _BACKOFF_MAX_MS);
+    _backoffRetryCount++;
+    return delay;
+}
+
+function _resetBackoff() {
+    _backoffRetryCount = 0;
+    console.log('[Python AI] Backoff resetado — processo estável.');
+}
+
+function _scheduleRestart(fn) {
+    if (_backoffStopping) return;
+    const delay = _getBackoffDelay();
+    console.log(`[Python AI] Reiniciando em ${delay}ms (tentativa #${_backoffRetryCount})...`);
+    _backoffTimer = setTimeout(fn, delay);
+}
+
 function startPythonAI(rootDir, onExitCallback) {
+    _backoffStopping = false;
+    _backoffRetryCount = 0;
+
     _ensurePythonDeps();
     _ensureAIModelAsync(rootDir);
 
@@ -233,7 +262,6 @@ function startPythonAI(rootDir, onExitCallback) {
     const aiDir = _resolveAiDir(rootDir);
     let pythonScript = path.join(aiDir, 'ai_server.py');
     if (!fs.existsSync(pythonScript)) {
-        // Fallback: se o rootDir for o diretório raiz do projeto e não do backend/ai
         pythonScript = path.join(aiDir, 'ai_server.py');
     }
 
@@ -242,26 +270,22 @@ function startPythonAI(rootDir, onExitCallback) {
         return null;
     }
 
-    // Detector de Ambiente Virtual (venv)
     const isWin = process.platform === 'win32';
     let venvPython = isWin 
         ? path.join(projectRoot, 'venv', 'Scripts', 'python.exe')
         : path.join(projectRoot, 'venv', 'bin', 'python');
 
     if (!fs.existsSync(venvPython)) {
-        // Fallback para venv em backend/ai
         venvPython = isWin
             ? path.join(aiDir, 'venv', 'Scripts', 'python.exe')
             : path.join(aiDir, 'venv', 'bin', 'python');
     }
 
     if (!fs.existsSync(venvPython)) {
-        // Fallback para Python portátil em userData
         venvPython = path.join(app.getPath('userData'), 'python-portable', 'python.exe');
     }
 
     if (!fs.existsSync(venvPython)) {
-        // Fallback para Python portátil local (desenvolvimento)
         venvPython = path.join(projectRoot, 'python-portable', 'python.exe');
         if (!fs.existsSync(venvPython)) {
             venvPython = path.join(aiDir, 'python-portable', 'python.exe');
@@ -269,14 +293,11 @@ function startPythonAI(rootDir, onExitCallback) {
     }
 
     const commands = [];
-    
-    // 1. Prioridade: Venv local
     if (fs.existsSync(venvPython)) {
         console.log(`[Python AI] Ambiente virtual detectado em: ${venvPython}`);
         commands.push(venvPython);
     }
 
-    // 2. Fallbacks globais
     commands.push('python');
     commands.push('python3');
     if (isWin) commands.push('py');
@@ -289,33 +310,59 @@ function startPythonAI(rootDir, onExitCallback) {
         ...validCommands.filter(c => !_isYamnetCapablePython(c)),
     ];
 
-    let pythonProcess = null;
-    for (const cmd of sortedCommands) {
-        pythonProcess = _trySpawn(cmd, pythonScript, path.dirname(pythonScript), onExitCallback);
-        if (pythonProcess) {
-            resolvedPythonCommand = cmd;
-            break;
+    function _spawnAttempt() {
+        if (_backoffStopping) return null;
+        for (const cmd of sortedCommands) {
+            const proc = _trySpawn(cmd, pythonScript, path.dirname(pythonScript), (code) => {
+                setAiAvailable(false);
+                if (onExitCallback) onExitCallback(code);
+                _scheduleRestart(_spawnAttempt);
+            });
+            if (proc) {
+                resolvedPythonCommand = cmd;
+                return proc;
+            }
         }
+        return null;
     }
+
+    function _onProcessReady() {
+        _backoffRetryCount = 0;
+        clearTimeout(_backoffStableTimer);
+        _backoffStableTimer = setTimeout(_resetBackoff, _BACKOFF_RESET_AFTER_MS);
+    }
+
+    let pythonProcess = _spawnAttempt();
 
     if (pythonProcess) {
         pythonProcess.isReady = false;
         const healthPromise = _waitForHealth(pythonProcess).then(() => {
             setAiAvailable(true);
+            _onProcessReady();
             return true;
         }).catch((error) => {
             console.error(`[Python AI] Health-check falhou: ${error.message}`);
             setAiAvailable(false);
             try {
                 Logger.getInstance().error('PYTHON', 'PYTHON_HEALTHCHECK_FAILED', error.message);
-            } catch (_) { /* Logger pode não estar inicializado ainda */ }
+            } catch (_) {}
             throw error;
         });
         pythonProcess.healthCheck = () => healthPromise;
     } else {
         setAiAvailable(false);
+        _scheduleRestart(_spawnAttempt);
     }
     return pythonProcess;
+}
+
+function stopPythonAI(pythonProcess) {
+    _backoffStopping = true;
+    clearTimeout(_backoffTimer);
+    clearTimeout(_backoffStableTimer);
+    if (pythonProcess && !pythonProcess.killed) {
+        pythonProcess.kill();
+    }
 }
 
 function _waitForHealth(proc, timeoutMs = 15000, intervalMs = 1000) {

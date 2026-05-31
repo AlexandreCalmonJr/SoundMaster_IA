@@ -249,7 +249,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     // Proxy para IA (permite acesso mobile)
     expressApp.post('/api/ai', async (req, res) => {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 30000);
+        const timeout = setTimeout(() => controller.abort(), 60000);
         try {
             const payload = req.body;
             const targetCh = payload.channel || (payload.analysis && payload.analysis.channel);
@@ -544,7 +544,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
 
     expressApp.post('/api/acoustic_analysis', async (req, res) => {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 30000);
+        const timeout = setTimeout(() => controller.abort(), 60000);
         try {
             const hdrsAcoustic = { 'Content-Type': 'application/json' };
             if (AI_API_KEY) hdrsAcoustic['X-API-Key'] = AI_API_KEY;
@@ -623,8 +623,24 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
 
     expressApp.post('/api/mixer/names', authenticateToken, async (req, res) => {
         try {
-            const names = req.body; // { channels: {...}, aux: {...} }
-            db.settings.update({ type: 'mixer_names' }, { $set: { names: names } }, { upsert: true }, (err) => {
+            const names = req.body;
+            if (!names || typeof names !== 'object' || Array.isArray(names)) {
+                return res.status(400).json({ error: 'Corpo deve ser um objeto JSON' });
+            }
+            const valid = { channels: {}, aux: {} };
+            for (const section of ['channels', 'aux']) {
+                const input = names[section];
+                if (input && typeof input === 'object' && !Array.isArray(input)) {
+                    for (const [key, val] of Object.entries(input)) {
+                        if (typeof key !== 'string' || key.length > 50) continue;
+                        const sanitized = typeof val === 'string'
+                            ? val.replace(/<[^>]*>/g, '').slice(0, 100)
+                            : '';
+                        valid[section][key] = sanitized;
+                    }
+                }
+            }
+            db.settings.update({ type: 'mixer_names' }, { $set: { names: valid } }, { upsert: true }, (err) => {
                 if (err) return res.status(500).json({ error: err.message });
                 res.json({ success: true });
             });
@@ -662,7 +678,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
             methods: ['GET', 'POST'],
             credentials: true
         },
-        maxHttpBufferSize: 1e8,
+        maxHttpBufferSize: 1e7, // 10MB (reduzido de 100MB para prevenir memory exhaustion)
         pingTimeout: 60000,
         pingInterval: 25000
     });

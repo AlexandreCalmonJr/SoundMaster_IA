@@ -1,11 +1,10 @@
-:root {
+.mixer-git-page * { box-sizing:border-box; margin:0; padding:0; }
+.mixer-git-page {
     --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;--border:#30363d;
     --accent:#58a6ff;--green:#3fb950;--red:#f85149;--yellow:#e3b341;
     --emerald:#34d399;--text:#c9d1d9;--sub:#8b949e;
+    background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif;
 }
-
-.mixer-git-page * { box-sizing:border-box; margin:0; padding:0; }
-.mixer-git-page { background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif; }
 .mixer-git-page h1 { font-size:1.3rem; font-weight:700; margin-bottom:4px; }
 .mixer-git-page .subtitle { color:var(--sub); font-size:.8rem; margin-bottom:20px; }
 

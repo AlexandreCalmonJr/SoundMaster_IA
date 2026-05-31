@@ -17,6 +17,25 @@ class Logger {
             try { fs.mkdirSync(logDir, { recursive: true }); } catch(e) {}
         }
         this.onLog = null;
+        this._buffer = [];
+        this._bufferSize = 50;
+        this._flushInterval = null;
+        this._startFlushTimer();
+    }
+
+    _startFlushTimer() {
+        this._flushInterval = setInterval(() => this._flush(), 5000);
+        if (this._flushInterval && this._flushInterval.unref) {
+            this._flushInterval.unref();
+        }
+    }
+
+    _flush() {
+        if (this._buffer.length === 0) return;
+        const lines = this._buffer.splice(0).join('\n') + '\n';
+        fs.appendFile(this.logFile, lines, (err) => {
+            if (err) console.error('[Logger] Falha ao escrever log:', err.message);
+        });
     }
 
     log(level, socketId, event, data) {
@@ -41,8 +60,11 @@ class Logger {
         // Log para console
         console.log(`${color}[${timestamp}] [${level.toUpperCase()}] [${socketId || 'SYSTEM'}] ${event}\x1b[0m`, data || '');
 
-        // Persistência
-        try { fs.appendFileSync(this.logFile, logString + '\n'); } catch(e) {}
+        // Buffer para persistência assíncrona
+        this._buffer.push(logString);
+        if (this._buffer.length >= this._bufferSize) {
+            this._flush();
+        }
 
         // Broadcast
         if (this.onLog) this.onLog(entry);
@@ -52,6 +74,14 @@ class Logger {
     warn(socketId, event, data) { this.log('warn', socketId, event, data); }
     error(socketId, event, data) { this.log('error', socketId, event, data); }
     system(event, data) { this.log('system', 'SYSTEM', event, data); }
+
+    destroy() {
+        if (this._flushInterval) {
+            clearInterval(this._flushInterval);
+            this._flushInterval = null;
+        }
+        this._flush();
+    }
 }
 
 module.exports = Logger;

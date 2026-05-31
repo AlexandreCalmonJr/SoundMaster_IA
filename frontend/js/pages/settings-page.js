@@ -291,7 +291,7 @@ function _safeSetItem(key, value) {
             nameInput.value = localStorage.getItem('sm-ollama-model') || 'phi3.5:3.8b';
         }
         if (timeoutInput) {
-            timeoutInput.value = localStorage.getItem('sm-ollama-timeout') || '45';
+            timeoutInput.value = localStorage.getItem('sm-ollama-timeout') || '60';
         }
     }
 
@@ -312,7 +312,7 @@ function _safeSetItem(key, value) {
                 const nameInput = pm._el('ollama-model-name');
                 const timeoutInput = pm._el('ollama-timeout');
                 const ollamaModel = nameInput ? nameInput.value.trim() : '';
-                var rawTimeout = timeoutInput ? parseInt(timeoutInput.value) : 45;
+                var rawTimeout = timeoutInput ? parseInt(timeoutInput.value) : 60;
                 const ollamaTimeout = Math.max(10, Math.min(120, isNaN(rawTimeout) ? 45 : rawTimeout));
 
                 if (!ollamaModel) {

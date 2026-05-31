@@ -10,14 +10,52 @@ let settingsDb = null;
  * Deve ser chamado uma vez em main.js antes de usar os DBs.
  * @param {string} dataDir - Caminho absoluto para o diretório de dados
  */
+const COMPACT_INTERVAL_MS = 300000; // 5 minutos
+
+let _compactTimers = [];
+
+function _startAutoCompact(db, name) {
+    const timer = setInterval(() => {
+        try {
+            db.persistence.compactDatafile();
+        } catch (_) {
+            console.warn(`[DB] Falha ao compactar ${name}`);
+        }
+    }, COMPACT_INTERVAL_MS);
+    timer.unref();
+    _compactTimers.push(timer);
+}
+
 function initDatabase(dataDir) {
     presetsDb = new Datastore({ filename: path.join(dataDir, 'presets.db'), autoload: true });
     mappingsDb = new Datastore({ filename: path.join(dataDir, 'mappings.db'), autoload: true });
     settingsDb = new Datastore({ filename: path.join(dataDir, 'settings.db'), autoload: true });
 
-    // Adicionar índices para performance
     mappingsDb.ensureIndex({ fieldName: 'hz' });
     mappingsDb.ensureIndex({ fieldName: 'date' });
+
+    _startAutoCompact(presetsDb, 'presets');
+    _startAutoCompact(mappingsDb, 'mappings');
+    _startAutoCompact(settingsDb, 'settings');
+}
+
+function compactAll() {
+    const dbs = [presetsDb, mappingsDb, settingsDb];
+    const names = ['presets', 'mappings', 'settings'];
+    for (let i = 0; i < dbs.length; i++) {
+        if (dbs[i]) {
+            try {
+                dbs[i].persistence.compactDatafile();
+            } catch (_) {
+                console.warn(`[DB] Falha ao compactar ${names[i]}`);
+            }
+        }
+    }
+}
+
+function stopAutoCompact() {
+    for (const t of _compactTimers) clearInterval(t);
+    _compactTimers = [];
 }
 
 module.exports = {
@@ -33,5 +71,7 @@ module.exports = {
         if (!settingsDb) throw new Error('Database não inicializado. Chame initDatabase() primeiro.');
         return settingsDb;
     },
-    initDatabase
+    initDatabase,
+    compactAll,
+    stopAutoCompact
 };

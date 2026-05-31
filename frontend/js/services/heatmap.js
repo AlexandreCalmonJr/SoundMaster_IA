@@ -298,14 +298,23 @@
         ctx.restore();
     }
     
-    function showToast(message, type = 'info') {
-        const toast = document.createElement('div');
-        toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg text-sm font-bold shadow-xl z-50 ${
-            type === 'success' ? 'bg-emerald-600 text-white' : 'bg-cyan-600 text-white'
-        }`;
-        toast.textContent = message;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
+    function showToast(message, type) {
+        if (window.SoundMasterToast && window.SoundMasterToast.showToast) {
+            window.SoundMasterToast.showToast(message, type, 3000);
+        } else {
+            var el = document.createElement('div');
+            Object.assign(el.style, {
+                position: 'fixed', bottom: '16px', right: '16px',
+                padding: '8px 16px', borderRadius: '8px',
+                fontSize: '13px', fontWeight: '700',
+                zIndex: '50', boxShadow: '0 4px 16px rgba(0,0,0,.3)',
+                background: type === 'success' ? '#059669' : '#0891b2',
+                color: '#fff'
+            });
+            el.textContent = message;
+            document.body.appendChild(el);
+            setTimeout(function () { el.remove(); }, 3000);
+        }
     }
 
     function _getMeasurementMetadata(db) {

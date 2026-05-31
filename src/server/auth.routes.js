@@ -44,24 +44,63 @@ function registerAuthRoutes(app) {
         }
     });
 
+    // Brute-force protection: track failed login attempts
+    const _loginAttempts = new Map(); // key: 'username:ip' -> { count, lastAttempt }
+    const MAX_ATTEMPTS = 5;
+    const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
+
+    function _checkBruteForce(username, ip) {
+        const key = `${username}:${ip}`;
+        const record = _loginAttempts.get(key);
+        if (!record) return true;
+        if (record.count >= MAX_ATTEMPTS) {
+            const elapsed = Date.now() - record.lastAttempt;
+            if (elapsed < LOCKOUT_MS) return false;
+            _loginAttempts.delete(key); // Reset after lockout
+        }
+        return true;
+    }
+
+    function _recordFailedAttempt(username, ip) {
+        const key = `${username}:${ip}`;
+        const record = _loginAttempts.get(key) || { count: 0, lastAttempt: 0 };
+        record.count++;
+        record.lastAttempt = Date.now();
+        _loginAttempts.set(key, record);
+    }
+
+    function _clearAttempts(username, ip) {
+        const key = `${username}:${ip}`;
+        _loginAttempts.delete(key);
+    }
+
     app.post('/api/auth/login', (req, res) => {
         try {
             const { username, password } = req.body;
+            const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
 
             if (!username || !password) {
                 return res.status(400).json({ error: 'Campos obrigatórios: username, password' });
             }
 
+            if (!_checkBruteForce(username, clientIp)) {
+                logger.warn('auth', 'LOGIN_LOCKED_OUT', { username, ip: clientIp });
+                return res.status(429).json({ error: 'Conta bloqueada temporariamente. Tente novamente em 15 minutos.' });
+            }
+
             const user = authDb.findUserByUsername(username);
             if (!user) {
+                _recordFailedAttempt(username, clientIp);
                 return res.status(401).json({ error: 'Credenciais inválidas' });
             }
 
             const valid = authDb.verifyPassword(password, user.password_hash);
             if (!valid) {
+                _recordFailedAttempt(username, clientIp);
                 return res.status(401).json({ error: 'Credenciais inválidas' });
             }
 
+            _clearAttempts(username, clientIp);
             const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
             res.json({
