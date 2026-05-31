@@ -114,7 +114,111 @@
         userMode: _loadPersisted('userMode', 'technician'),
         volunteerChannels: _loadPersisted('volunteerChannels', [1, 2, 3, 4]),
         faderCeiling: _loadPersisted('faderCeiling', 0.85),
+
+        // Chaves adicionais do Master
+        master_pan: 0.5,
+        master_dim: false,
+        master_delay_l: 0,
+        master_delay_r: 0,
+        master_name: 'MASTER',
+
+        // Player e Gravador
+        player_playlist: '',
+        player_length: 0,
+        player_elapsed: 0,
+        player_remaining: 0,
+        player_shuffle: false,
+
+        // Multitrack e Gravador busy
+        mtk_state: 'stop',
+        mtk_session: '',
+        mtk_soundcheck: false,
+        mtk_length: 0,
+        mtk_elapsed_time: 0,
+        mtk_remaining_time: 0,
+        mtk_recording_time: 0,
+        recorder_busy_mtk: false,
+        recorder_busy_dual: false,
+
+        // Volumes de monitoramento
+        solo_volume: 0.0,
+        solo_volume_db: -99.0,
+
+        // Automixer
+        automix: {
+            a: false,
+            b: false
+        },
+        automix_response_time: 50,
+        automix_response_time_linear: 0.5
     };
+
+    // Inicialização dinâmica para chaves repetitivas
+    // 1. Canais (1 a 24)
+    for (let i = 1; i <= 24; i++) {
+        _state[`ch_${i}_level`] = 0.75;
+        _state[`mute_ch_${i}`] = false;
+        _state[`phantom_ch_${i}`] = false;
+        _state[`hw_${i}_phantom`] = false;
+        _state[`ch_${i}_solo`] = false;
+        _state[`ch_${i}_delay`] = 0;
+        _state[`ch_${i}_pan`] = 0.5;
+        _state[`ch_${i}_automix_group`] = 'none';
+        _state[`ch_${i}_automix_weight`] = 0.5;
+        _state[`ch_${i}_automix_weight_db`] = 0;
+        _state[`ch_${i}_mtk_selected`] = false;
+        _state[`ch_${i}_name`] = `CANAL ${i}`;
+        
+        for (let b = 1; b <= 4; b++) {
+            _state[`ch_${i}_eq_band_${b}_type`] = 'peq';
+        }
+
+        // Preamps de Hardware
+        _state[`hw_${i}_gain`] = 0.0;
+        _state[`hw_${i}_gain_db`] = -99.0;
+    }
+
+    // 2. Motores de Efeitos (1 a 4) e Parâmetros (1 a 6)
+    for (let i = 1; i <= 4; i++) {
+        _state[`fx_${i}_type`] = 'Reverb';
+        _state[`fx_${i}_bpm`] = 120;
+        _state[`fx_${i}_level`] = 0.5;
+        for (let p = 1; p <= 6; p++) {
+            _state[`fx_${i}_param_${p}`] = 0.0;
+        }
+    }
+
+    // 3. Fones de Ouvido (1 a 2)
+    for (let hp = 1; hp <= 2; hp++) {
+        _state[`headphone_${hp}_volume`] = 0.5;
+        _state[`headphone_${hp}_volume_db`] = -12.0;
+    }
+
+    // 4. Barramentos e Roteamento
+    const busTypes = ['line', 'player', 'aux', 'fx', 'sub', 'vca'];
+    busTypes.forEach(type => {
+        const count = type === 'aux' ? 10 : (type === 'fx' ? 4 : 6);
+        for (let i = 1; i <= count; i++) {
+            _state[`bus_${type}_${i}_level`] = 0.75;
+            _state[`bus_${type}_${i}_mute`] = false;
+            _state[`bus_${type}_${i}_solo`] = false;
+            _state[`bus_${type}_${i}_pan`] = 0.5;
+            _state[`bus_${type}_${i}_name`] = `${type.toUpperCase()} ${i}`;
+        }
+    });
+
+    // 5. Roteamento de Envios Aux e FX (aux 1 a 10, fx 1 a 4, canais/entradas 1 a 24)
+    for (let a = 1; a <= 10; a++) {
+        for (let i = 1; i <= 24; i++) {
+            _state[`aux_${a}_send_input_${i}_post`] = false; // false = pre, true = post
+            _state[`aux_${a}_ch_${i}_level`] = 0.70;
+        }
+    }
+    for (let f = 1; f <= 4; f++) {
+        for (let i = 1; i <= 24; i++) {
+            _state[`fx_${f}_send_input_${i}_post`] = true; // fx sends are post-fader by default
+        }
+    }
 
     // -------------------------------------------------------------------------
     // Computed State Registry (auto-derived properties)
