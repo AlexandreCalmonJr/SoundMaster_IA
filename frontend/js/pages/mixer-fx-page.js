@@ -1,6 +1,31 @@
 /**
- * SoundMaster — Mixer FX Page Module
- * Controls the 4 Lexicon FX engines, levels, types, BPMs, and TAP buttons.
+ * @fileoverview Módulo de Página de Efeitos do Mixer
+ * @module MixerFxPage
+ * @description Página responsável por controlar os 4 motores de efeitos Lexicon.
+ * Permite ajustar níveis de retorno, tipo de efeito, BPM (tempo) e controle TAP.
+ *
+ * ## Funcionalidades Principais
+ * - Renderização de 4 cards de motores de efeitos Lexicon
+ * - Controle de nível de retorno via fader vertical (0-100%)
+ * - Exibição do tipo de efeito (Reverb, Delay, Chorus, Room)
+ * - Configuração de BPM (40-300) com entrada numérica
+ * - Botão TAP para incremento de BPM (+5, ciclo 80-180)
+ * - Indicador visual de volume de retorno em porcentagem
+ *
+ * ## Como Usar
+ * 1. Inicializar a página chamando `MixerFxPage.init()`
+ * 2. Ajustar o fader de nível para controlar o volume de retorno do efeito
+ * 3. Digitar o BPM desejado ou usar o botão TAP para incrementar
+ * 4. Monitorar o tipo de efeito exibido no cabeçalho de cada card
+ * 5. O efeito é aplicado automaticamente ao mixer via MixerService
+ *
+ * ## Dependências e Integrações
+ * - **MixerService**: Serviço de comunicação com o mixer (comandos SETD para efeitos, setFxBpm)
+ * - **AppStore**: Armazenamento de estado global (níveis fx, BPMs)
+ * - **SocketService**: Serviço de WebSocket para controle de faders (lock/unlock)
+ * - **createPageModule()**: Factory de módulo de página para gerenciamento de lifecycle
+ * - Eventos: `fx_X_level` (nível efeito), `fx_X_bpm` (BPM efeito)
+ * - Tipos de efeito: Reverb, Delay, Chorus, Room
  */
 
 'use strict';

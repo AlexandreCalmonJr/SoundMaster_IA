@@ -1,8 +1,51 @@
 /**
- * SoundMaster — AES67 Page Module
- * Controls multi-channel meters (AES67 stream telemetry) and network diagnostic info.
+ * =============================================================================
+ * SoundMaster — Página AES67 / Saúde de Cabo e Rede (AES67 Page)
+ * =============================================================================
+ *
+ * @description
+ * Página de monitoramento de streams AES67/AoIP (Audio over IP) com visualização
+ * de niveis de áudio multi-canal em tempo real, diagnóstico de rede (latência,
+ * jitter, perda de pacotes) e integração com PTP (Precision Time Protocol).
+ * Inclui funcionalidade de varredura IA de rede e reinicialização de stream.
+ *
+ * @page aes67-page
+ * @module Aes67Page
+ *
+ * @features
+ * - Medidores de nível de áudio para 32 canais (24 CH + 6 Aux + 2 FX)
+ * - Atualização em tempo real via WebSocket (multi_meter_update)
+ * - Diagnóstico de rede: latência, jitter, perda de pacotes, status PTP
+ * - Alertas de IA para problemas de rede (com timestamps)
+ * - Reinicialização do stream AoIP
+ * - Varredura IA de rede (mDNS + scan de portas TCP)
+ * - Indicadores visuais com cores por severidade (verde/amarelo/vermelho)
+ *
+ * @dependencies
+ * - createPageModule() — Módulo base de páginas com helpers de DOM e eventos
+ * - SocketService — Serviço de WebSocket para comunicação com o servidor
+ *   - Eventos recebidos: 'multi_meter_update', 'net_diag_update', 'net_diag_alert'
+ *   - Eventos emitidos: 'stop_net_diag', 'start_net_diag', 'get_net_devices', 'scan_network'
+ *
+ * @events
+ * - Socket 'multi_meter_update' → Atualiza medidores de nível
+ * - Socket 'net_diag_update'    → Atualiza indicadores de rede
+ * - Socket 'net_diag_alert'     → Exibe alertas de problemas de rede
+ * - Botão "Reiniciar Stream" → Reinicia receptor AoIP
+ * - Botão "Varredura IA" → Inicia varredura de rede via mDNS e portas TCP
+ *
+ * @usage
+ * 1. A página é carregada e conecta automaticamente ao WebSocket
+ * 2. Medidores de áudio são atualizados em tempo real (a cada 3s)
+ * 3. Métricas de rede são exibidas com cores indicando severidade
+ * 4. Use "Reiniciar Stream" se houver problemas de conectividade
+ * 5. Use "Varredura IA" para diagnóstico automático da rede
+ *
+ * @exposes window.Aes67Page
+ *   - init()    — Inicializa medidores, eventos e conexões WebSocket
+ *   - destroy() — Remove listeners e limpa recursos
+ * =============================================================================
  */
-
 'use strict';
 
 (function () {

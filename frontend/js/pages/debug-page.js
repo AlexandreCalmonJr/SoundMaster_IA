@@ -1,3 +1,53 @@
+/**
+ * =============================================================================
+ * SoundMaster — Página de Console de Depuração (Debug Console)
+ * =============================================================================
+ *
+ * @description
+ * Página de depuração e diagnóstico do sistema SoundMaster. Exibe logs em
+ * tempo real, permite testar endpoints do backend (Python e Node) e fornece
+ * informações sobre o estado interno do sistema para desenvolvedores e suporte.
+ *
+ * @page debug-page
+ * @module DebugPage
+ *
+ * @features
+ * - Console de logs em tempo real com colorização por severidade
+ * - Teste do endpoint Python de diagnóstico (/api/ai/diagnose)
+ * - Teste de status do servidor Node e Socket
+ * - Renderização automática de logs com auto-scroll
+ * - Identificação visual de erros (vermelho), avisos (amarelo) e info (azul)
+ *
+ * @dependencies
+ * - createPageModule() — Módulo base de páginas com helpers de DOM e eventos
+ * - AppStore — Store global para logs e estado do sistema (window.AppStore)
+ *   - getState().mixerLog — Array de logs do sistema
+ *   - subscribe('mixerLog') — Escuta atualizações de logs
+ *   - addLog() — Adiciona entrada de log ao store
+ * - API /api/ai/diagnose — Endpoint de diagnóstico Python
+ *
+ * @log-levels
+ * - [ERROR] / erro / falhou — Vermelho (#f87171)
+ * - [WARN] / aviso / JWT_SECRET_MISSING — Amarelo (#fbbf24)
+ * - [System] — Azul (#60a5fa)
+ * - Padrão — Verde (#4ade80)
+ *
+ * @events
+ * - Botão "Testar Python" → Executa diagnóstico via /api/ai/diagnose
+ * - Botão "Testar Node"   → Verifica status do servidor Node
+ * - AppStore 'mixerLog'   → Atualiza renderização do console
+ *
+ * @usage
+ * 1. Acesse a página de Debug para ver logs em tempo real
+ * 2. Clique em "Testar Python" para verificar o endpoint de diagnóstico
+ * 3. Clique em "Testar Node" para verificar status do servidor
+ * 4. Observe os logs coloridos no console de depuração
+ *
+ * @exposes window.DebugPage
+ *   - init()    — Inicializa console e vincula eventos
+ *   - destroy() — Remove subscriptions e limpa recursos
+ * =============================================================================
+ */
 'use strict';
 (function () {
     var pm = createPageModule();

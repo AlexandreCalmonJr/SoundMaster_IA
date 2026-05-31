@@ -1,4 +1,36 @@
 'use strict';
+/**
+ * @fileoverview Página do Auto-Mixer Dugan - Sistema de mixagem automática para 16 canais.
+ * 
+ * Esta página implementa um mixer automático inspirado no algoritmo Dugan, permitindo
+ * controle individual de canais com grupos A/B, ajuste de peso e tempo de resposta.
+ * O sistema gerencia a atribuição de canais a grupos para automixagem em tempo real.
+ * 
+ * Funcionalidades Principais:
+ * - Grid de 16 canais com controle individual de ativação/desativação
+ * - Dois grupos (A e B) para automixagem com ativação por grupo
+ * - Ajuste de peso por canal e peso mestre global
+ * - Controle de tempo de resposta do algoritmo de automixagem
+ * - Ativação/desativação de todos os canais de uma vez
+ * - Reset completo dos parâmetros para valores padrão
+ * 
+ * Uso:
+ * - Chame AutomixerPage.init() para inicializar a página
+ * - Chame AutomixerPage.destroy() para limpar recursos quando a página for descarregada
+ * - Os canais são representados como cards clicáveis com botões de grupo (A/B)
+ * - O slider de peso mestre afeta todos os canais simultaneamente
+ * - O slider de tempo de resposta ajusta a velocidade do algoritmo Dugan
+ * 
+ * Dependências e Integrações:
+ * - MixerService: Serviço para controle do mixer (automixControl, emit events)
+ * - SocketService: Serviço de comunicação via WebSocket para eventos em tempo real
+ * - createPageModule(): Módulo auxiliar para manipulação do DOM e eventos
+ * - Eventos emitidos: 'automix_assign' com dados de canal, grupo e peso
+ * 
+ * @namespace AutomixerPage
+ * @version 1.0.0
+ * @author SoundMaster Team
+ */
 (function () {
     var pm = createPageModule();
     var esc = function (s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };

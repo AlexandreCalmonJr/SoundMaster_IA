@@ -1,6 +1,56 @@
 /**
- * SoundMaster — Home Page Module
- * Displays server configuration, local network link, live system metrics, and premium AI Chat interface.
+ * @fileoverview Página Inicial — Dashboard principal com Chat IA premium,
+ * métricas de sistema em tempo real e configuração do servidor.
+ *
+ * Esta página serve como o hub central do SoundMaster, exibindo informações
+ * do servidor, métricas ao vivo (SPL, RT60, status do mixer), link de acesso
+ * mobile com QR Code e uma interface de chat IA completa com ações autônomas.
+ *
+ * ## Funcionalidades Principais
+ * - Exibição do endereço IP do servidor e QR Code para acesso mobile
+ * - Métricas em tempo real: SPL (dBA), RT60 (s), status do mixer (Online/Offline)
+ * - Interface de chat IA com Markdown renderizado e cards de recomendação
+ * - Sugestões rotativas de prompts (Auditar Mixer, Relatório Acústico, etc.)
+ * - Quick actions: limpar som, HPF, gate, corte de EQ, AFS
+ * - Histórico de chat persistido no servidor via API REST
+ * - Exportação do chat em formato Markdown
+ * - Contador de caracteres no input
+ * - Análise acústica automática com captura de microfone
+ * - Escuta ao vivo via microfone para análise em tempo real
+ * - Cards de comando "Human-in-the-Loop" com aplicação/ignorar
+ * - Assinaturas em tempo real para SPL, mixer e status IA
+ *
+ * ## Como Usar
+ * 1. As métricas são exibidas automaticamente no dashboard
+ * 2. Clique no QR Code ou link para acessar pelo celular
+ * 3. Use os prompts de atalho ou digite uma mensagem no chat
+ * 4. Clique em "Ouvir" para analisar o áudio do microfone
+ * 5. Use quick actions para ajustes rápidos na mesa
+ * 6. Exporte o chat usando o botão de download
+ *
+ * ## Dependências e Integrações
+ * - **createPageModule()**: Módulo base para páginas
+ * - **AppStore**: Store global (SPL, mixer, chat, sessão IA)
+ * - **AIService**: Serviço de IA para análise e comandos
+ *   - `ask(text, channel, payload)` — Envia pergunta com contexto
+ *   - `listenAndAnalyze(channel)` — Escuta e analisa microfone
+ * - **MixerService**: Controle da mesa de mixagem
+ *   - `executeAICommand(command)` — Executa comando da IA
+ *   - `runCleanSoundPreset(ch)` — Preset de som limpo
+ *   - `applyHpf(ch, freq)` — Filtro passa-alta
+ *   - `applyGate(ch)` — Gate
+ *   - `applyEqCut(type, ch, freq, gain, q, band)` — Corte de EQ
+ *   - `setAfs(enabled)` — AFS (Automatic Feedback Suppression)
+ * - **SoundMasterAnalyzer**: Analisador de áudio ao vivo
+ *   - `start()` — Inicia captura
+ *   - `getLastAnalysis()` — Última análise
+ *   - `getLastRt60()` — Último RT60
+ *   - `isAnalyzing()` — Estado da análise
+ * - **SocketService**: Comunicação WebSocket (eventos rt60-result)
+ * - **API REST**: `/api/config`, `/api/chat/save/:sid`, `/api/chat/load/:sid`
+ *
+ * @module HomePage
+ * @version 2.0.0
  */
 
 'use strict';

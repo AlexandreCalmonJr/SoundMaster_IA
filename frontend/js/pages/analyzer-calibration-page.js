@@ -1,6 +1,45 @@
 /**
- * SoundMaster — Analyzer Calibration Page Module
- * Controls the microphone calibration file uploads and SPL absolute reference calibration.
+ * =============================================================================
+ * SoundMaster — Página de Calibração do Analisador
+ * =============================================================================
+ *
+ * Descrição:
+ *     Módulo responsável pela calibração do microfone e configuração de
+ *     referência absoluta de SPL (Sound Pressure Level). Permite carregamento
+ *     de arquivos de calibração do microfone e calibração com calibrador
+ *     acústico de 94dB a 1kHz.
+ *
+ * Funcionalidades:
+ *     - Upload e carregamento de arquivos de calibração do microfone
+ *     - Calibração SPL usando calibrador acústico de referência (94dB @ 1kHz)
+ *     - Exibição do status atual da calibração (perfil ativo ou genérico)
+ *     - Exibição do offset SPL atual em dB
+ *     - Remoção de calibração (retorna ao microfone genérico plano)
+ *     - Validação de sinal do microfone antes da calibração
+ *
+ * Fluxo de Calibração SPL:
+ *     1. Ativar o microfone na aba FFT & Waterfall
+ *     2. Ligar o calibrador acústico de 94dB a 1kHz no microfone
+ *     3. Clicar em "Calibrar SPL para 94dB"
+ *     4. O sistema calcula o offset automaticamente
+ *
+ * Dependências:
+ *     - AcousticCalibration: Serviço de calibração acústica
+ *     - _rawFreqRMS_dB: Variável global com o RMS bruto em dB da frequência
+ *     - createPageModule(): Módulo base de páginas
+ *
+ * Integrações:
+ *     - Integra com o analisador FFT para obter leituras de sinal
+ *     - Conecta-se ao sistema de calibração para aplicar offsets
+ *     - Afeta todas as medições de SPL no sistema
+ *
+ * Uso:
+ *     Para inicializar: AnalyzerCalibrationPage.init()
+ *     Para destruir: AnalyzerCalibrationPage.destroy()
+ *
+ * Variável Global:
+ *     window.AnalyzerCalibrationPage - Objeto público com init() e destroy()
+ * =============================================================================
  */
 
 'use strict';

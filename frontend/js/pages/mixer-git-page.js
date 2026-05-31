@@ -1,3 +1,41 @@
+/**
+ * @fileoverview Módulo de Página Git do Mixer
+ * @module MixerGitPage
+ * @description Página de versionamento de configurações do mixer类似于 Git.
+ * Permite criar commits do estado atual da mesa, visualizar diferenças,
+ * comparar commits e reverter configurações específicas.
+ *
+ * ## Funcionalidades Principais
+ * - Criar commits do estado atual da mesa com label opcional
+ * - Listar commits com data/hora e indicador de commit automático
+ * - Visualizar diferenças (diffs) entre commit selecionado e estado atual
+ * - Modo comparação entre dois commits específicos
+ * - Rollback seletivo por categoria (escopo)
+ * - Deletar commits individuais
+ * - Toast de confirmação para ações
+ *
+ * ## Como Usar
+ * 1. Inicializar a página chamando `MixerGitPage.init()`
+ * 2. Criar commit: digitar label (opcional) e clicar "Commit"
+ * 3. Selecionar commit na lista para ver diferenças
+ * 4. Usar "Modo Comparação" para comparar dois commits
+ * 5. Selecionar categorias no rollback para restaurar configurações específicas
+ * 6. Clicar "Reverter" para aplicar mudanças selecionadas
+ *
+ * ## Dependências e Integrações
+ * - **API REST**: Endpoints para gerenciamento de commits:
+ *   - `GET /api/git/commits` - Listar commits
+ *   - `POST /api/git/commits` - Criar commit
+ *   - `DELETE /api/git/commits/:id` - Deletar commit
+ *   - `GET /api/git/diff/:id` - Diferenças de um commit
+ *   - `GET /api/git/diff/:idA/:idB` - Comparar dois commits
+ *   - `POST /api/git/rollback/:id` - Reverter para commit
+ * - **MixerService**: Serviço de comunicação com o mixer (via comandos do rollback)
+ * - **AppStore**: Armazenamento global
+ * - **createPageModule()**: Factory de módulo de página para gerenciamento de lifecycle
+ * - Eventos: Commit selection, diff rendering, scope selection
+ */
+
 'use strict';
 (function () {
     var pm = createPageModule();

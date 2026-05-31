@@ -1,3 +1,37 @@
+/**
+ * @fileoverview Página de Benchmarking — Comparação de medições acústicas
+ * entre cenários (sala vazia vs. lotada) e histórico de medições.
+ *
+ * Esta página permite comparar métricas acústicas (RT60) entre diferentes
+ * configurações do ambiente, como sala vazia e sala lotada, além de exibir
+ * um histórico cronológico das medições realizadas.
+ *
+ * ## Funcionalidades Principais
+ * - Visualização comparativa de RT60: sala vazia vs. sala lotada
+ * - Barras proporcionais com escala máxima de 3.0 segundos
+ * - Lista cronológica das últimas 10 medições salvas
+ * - Botão de atualização para buscar novos dados do servidor
+ * - Indicadores visuais de carregamento (animate-pulse)
+ * - Integração com SocketService para dados em tempo real
+ *
+ * ## Como Usar
+ * 1. Os dados são carregados automaticamente ao iniciar a página
+ * 2. Clique em "Atualizar" para buscar medições mais recentes
+ * 3. Compare visualmente os valores de RT60 entre cenários
+ * 4. Revise o histórico de medições na lista abaixo
+ *
+ * ## Dependências e Integrações
+ * - **createPageModule()**: Módulo base para páginas
+ * - **SocketService**: Comunicação WebSocket
+ *   - `on('acoustic_history_data', handler)` — Recebe dados históricos
+ *   - `emit('get_acoustic_history')` — Solicita dados do servidor
+ * - **AppStore**: Store global (logs)
+ *   - `addLog(message)` — Adiciona log ao sistema
+ *
+ * @module BenchmarkingPage
+ * @version 1.0.0
+ */
+
 'use strict';
 (function () {
     var pm = createPageModule();

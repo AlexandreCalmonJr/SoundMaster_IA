@@ -1,6 +1,61 @@
 /**
- * SoundMaster — Settings Page Module
- * Persists and manages global user preferences, AI model, and updates check.
+ * =============================================================================
+ * SoundMaster — Página de Configurações (Settings Page)
+ * =============================================================================
+ *
+ * @description
+ * Página de configurações globais do sistema SoundMaster. Gerencia preferências
+ * do usuário, configuração de modelos de IA (Ollama), configurações de análise
+ * de áudio (FFT, unidades) e verificação de atualizações do sistema.
+ *
+ * @page settings-page
+ * @module SettingsPage
+ *
+ * @features
+ * - Seleção e download de modelos de IA (Phi-3.5, Llama 3.2, Gemma 2, TinyLlama)
+ * - Configuração do Ollama (nome do modelo, timeout)
+ * - Configurações de auto-start e FFT de alta resolução
+ * - Seleção de unidade de medida (metros)
+ * - Verificação de atualizações do sistema
+ * - Persistência de todas as configurações no localStorage
+ *
+ * @models
+ * - phi3.5-mini    — Phi-3.5 Mini 3.8B (~2.3GB) — Melhor qualidade, 8GB+ RAM
+ * - llama3.2-3b    — Llama 3.2 3B (~2.0GB) — Bom equilíbrio
+ * - gemma2-2b      — Gemma 2 2B (~1.6GB) — Leve e rápido, 4-8GB RAM
+ * - tinyllama-1.1b — TinyLlama 1.1B (~670MB) — Mais leve, respostas básicas
+ *
+ * @dependencies
+ * - createPageModule() — Módulo base de páginas com helpers de DOM e eventos
+ * - SoundMasterAnalyzer — Analisador de áudio para configuração de FFT
+ * - window.updater / UpdaterService — Serviço de atualização do sistema
+ * - API /api/models          — GET: Lista modelos disponíveis
+ * - API /api/models/select   — POST: Seleciona modelo ativo
+ * - API /api/models/download — POST: Inicia download do modelo
+ * - API /api/models/download/status — GET: Verifica progresso do download
+ * - API /api/ollama/config   — POST: Salva configuração do Ollama
+ * - localStorage — Persistência de configurações (chaves: sm-settings-*, sm-ollama-*, sm-ai-model)
+ *
+ * @events
+ * - Toggle "Auto Start" → Salva preferência de inicialização automática
+ * - Toggle "FFT Alta Resolução" → Atualiza configuração do analisador
+ * - Seletor "Unidade" → Salva unidade de medida preferida
+ * - Botão "Verificar Atualizações" → Consulta versão mais recente
+ * - Cards de modelo → Seleciona ou baixa modelo de IA
+ * - Botão "Salvar Ollama" → Salva configuração do Ollama
+ *
+ * @usage
+ * 1. Navegue até a página de Configurações
+ * 2. Selecione um modelo de IA na seção "Modelos"
+ * 3. Baixe o modelo desejado se ainda não estiver disponível
+ * 4. Configure as preferências de FFT e unidades
+ * 5. Configure Ollama se necessário (avançado)
+ * 6. Verifique atualizações periodicamente
+ *
+ * @exposes window.SettingsPage
+ *   - init()    — Inicializa configurações e vincula eventos
+ *   - destroy() — Interrompe downloads em andamento e limpa recursos
+ * =============================================================================
  */
 
 function _safeSetItem(key, value) {

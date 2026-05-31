@@ -1,6 +1,46 @@
 /**
- * SoundMaster — EQ Guide Page Module
- * Controls the detailed equalization guide, AI synchronization, and dynamic suggestions.
+ * =============================================================================
+ * SoundMaster — Página de Guia de Equalização (EQ)
+ * =============================================================================
+ *
+ * Descrição:
+ *     Módulo de orientação para equalização de instrumentos. Fornece dados
+ *     de EQ pré-configurados para diferentes instrumentos e integra com
+ *     IA para sugestões dinâmicas de equalização em tempo real.
+ *
+ * Funcionalidades:
+ *     - Seleção de instrumento com dados de EQ pré-configurados
+ *     - Configuração de canal (1-24) e auxiliar para envio
+ *     - Exibição visual dos parâmetros de EQ (frequência, ganho, Q)
+ *     - Sincronização com IA para sugestões de equalização
+ *     - Renderização dinâmica dos dados de EQ via EqDisplayService
+ *     - Geração automática de prompt para IA baseado em instrumento/canal
+ *
+ * Dados de EQ:
+ *     Os dados são carregados de window.eqData e incluem:
+ *     - Frequências centrais dos filtros
+ *     - Ganhos em dB
+ *     - Fatores de qualidade (Q)
+ *     - Recomendações por instrumento
+ *
+ * Dependências:
+ *     - eqData: Dados de EQ por instrumento (window.eqData)
+ *     - EqDisplayService: Serviço de renderização de EQ
+ *     - AIService: Serviço de inteligência artificial para sugestões
+ *     - createPageModule(): Módulo base de páginas
+ *
+ * Integrações:
+ *     - Integra com AIService para consultas de equalização
+ *     - Conecta-se ao EqDisplayService para renderização
+ *     - Suporta 24 canais de mixer e múltiplos auxiliares
+ *
+ * Uso:
+ *     Para inicializar: EqGuidePage.init()
+ *     Para destruir: EqGuidePage.destroy()
+ *
+ * Variável Global:
+ *     window.EqGuidePage - Objeto público com init() e destroy()
+ * =============================================================================
  */
 
 'use strict';

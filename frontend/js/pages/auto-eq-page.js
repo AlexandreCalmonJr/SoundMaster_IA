@@ -1,3 +1,60 @@
+/**
+ * @fileoverview Página de Auto-EQ — Equalização automática baseada em análise
+ * de espectro com suporte a IA e múltiplos alvos de referência.
+ *
+ * Esta página permite realizar equalização automática do sistema de som
+ * comparando o espectro capturado com curvas de referência (SMAART, flat,
+ * etc.) e calculando filtros PEQ e GEQ para correção. Suporta tanto o motor
+ * local de cálculo quanto processamento via IA Python.
+ *
+ * ## Funcionalidades Principais
+ * - Análise automática de espectro com dados ao vivo ou demonstração
+ * - Múltiplos alvos de referência: SMAART, flat, custom (JSON)
+ * - Curva customizada via JSON para alvos personalizados
+ * - Cálculo de filtros PEQ (parametric EQ) e GEQ (graphic EQ)
+ * - Renderização gráfica do espectro e curvas de correção
+ * - Estatísticas de análise (RMS, desvio, etc.)
+ * - Aplicação direta dos filtros na mesa (master ou canal)
+ * - Confirmação visual antes de aplicar com resumo dos filtros
+ * - Desfazer (undo) do EQ aplicado
+ * - Exportação em CSV (GEQ), formato Lake (PEQ) e texto genérico (PEQ)
+ * - Modo IA: consulta ao servidor Python para cálculo otimizado
+ *
+ * ## Como Usar
+ * 1. Selecione o alvo de equalização (SMAART, flat, custom)
+ * 2. Clique em "Analisar" para capturar e processar o espectro
+ * 3. Revise os filtros PEQ/GEQ calculados
+ * 4. Selecione o destino (Master ou Canal específico)
+ * 5. Clique em "Aplicar" e confirme para enviar à mesa
+ * 6. Use "Desfazer" para reverter o EQ aplicado
+ * 7. Use "Exportar" para salvar os dados em arquivo
+ *
+ * ## Dependências e Integrações
+ * - **createPageModule()**: Módulo base para páginas
+ * - **AutoEQ**: Motor principal de cálculo de EQ
+ *   - `analyze(freqData, sampleRate, fftSize)` — Análise completa
+ *   - `setTarget(target, customPts)` — Define alvo de referência
+ *   - `applyToMixer(peq, dest, ch)` — Aplica filtros na mesa
+ *   - `requestUndo()` — Desfaz último EQ aplicado
+ *   - `exportGEQ()` — Exporta GEQ em CSV
+ *   - `exportLake(peq)` — Exporta no formato Lake
+ *   - `exportGenericPEQ(peq)` — Exporta PEQ em texto
+ *   - `downloadEqData(data, filename, mimeType)` — Download de arquivo
+ * - **AutoEqRenderer**: Renderização gráfica e estatísticas
+ *   - `renderStats(stats, targetName)` — Renderiza estatísticas
+ *   - `renderPEQ(element, peq)` — Renderiza lista de filtros PEQ
+ *   - `renderGEQ(element, geq)` — Renderiza lista de filtros GEQ
+ *   - `drawGraph(canvas, result, freqData, sampleRate, fftSize)` — Desenha gráfico
+ *   - `demoFreqData(size, sampleRate)` — Gera dados de demonstração
+ * - **AIService**: Consulta IA Python para cálculo de EQ
+ *   - `autoEqFromAI(freqData, sampleRate, fftSize, target)` — EQ via IA
+ * - **SoundMasterAnalyzer**: Captura de dados de espectro ao vivo
+ *   - `getFreqData()` — Obtém snapshot de dados de frequência
+ *
+ * @module AutoEqPage
+ * @version 1.0.0
+ */
+
 'use strict';
 (function () {
     var pm = createPageModule();

@@ -1,3 +1,48 @@
+/**
+ * @fileoverview Página de Testbed — Simulação interativa de mixer digital com 12 canais.
+ *
+ * Esta página implementa um ambiente de simulação completo de um mixer digital,
+ * permitindo testar e demonstrar funcionalidades sem necessidade de hardware real.
+ * Inclui visualização de medidores VU por canal, gráfico FFT em tempo real,
+ * controle de faders, cenários de simulação e um chat com IA integrado.
+ *
+ * ## Funcionalidades Principais
+ * - Grid de medidores VU para 12 canais com barras e indicadores de pico
+ * - Gráfico FFT (spectrum analyzer) em tempo real via Canvas
+ * - Faders de controle para canal 1, canal 2 e master
+ * - Botões de mute e solo com indicadores visuais
+ * - Sistema de cenários (Louvor, etc.) com botões interativos
+ * - Painel de status acústico (RT60, STI, C50, pico de frequência)
+ * - Chat integrado com IA para comandos de simulação
+ * - Botões de comandos rápidos (EQ, HPF, compressor)
+ * - Log de eventos da simulação
+ *
+ * ## Como Usar
+ * 1. Pressione "Iniciar" para iniciar a simulação
+ * 2. Ajuste os faders para controlar níveis dos canais
+ * 3. Use os botões de mute/solo para isolar canais
+ * 4. Selecione cenários diferentes para variações acústicas
+ * 5. Digite mensagens no chat para interagir com a IA
+ * 6. Pressione "Parar" para pausar a simulação
+ *
+ * ## Dependências e Integrações
+ * - **createPageModule()**: Módulo base para páginas
+ * - **SimulationService**: Serviço principal de simulação
+ *   - `start()` / `stop()` / `reset()` — Controle da simulação
+ *   - `getState()` — Obtém estado atual (canais, master)
+ *   - `setChannelLevel(ch, level)` — Ajusta nível do canal
+ *   - `setMasterLevel(level)` — Ajusta nível master
+ *   - `setChannelMute(ch, muted)` — Alterna mute do canal
+ *   - `setMasterMute(muted)` — Alterna mute master
+ *   - `setScene(id)` — Seleciona cenário de simulação
+ *   - `getScenes()` — Lista cenários disponíveis
+ *   - `getFakeAnalysis()` — Dados acústicos simulados
+ *   - `askAI(text, channel)` — Chat com IA do simulador
+ *
+ * @module TestbedPage
+ * @version 1.0.0
+ */
+
 'use strict';
 (function () {
     var pm = createPageModule();

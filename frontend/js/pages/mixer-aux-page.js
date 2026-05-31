@@ -1,6 +1,32 @@
 /**
- * SoundMaster — Mixer Aux Page Module
- * Controls the 10 aux outputs (monitors), their names, volume levels, delay, and mutes.
+ * @fileoverview Módulo de Página de Auxiliares/Monitores do Mixer
+ * @module MixerAuxPage
+ * @description Página responsável por controlar as 10 saídas auxiliares (monitores).
+ * Permite configurar níveis de envio, nomes personalizados, delay (até 500ms)
+ * e silenciamento individual de cada auxiliar.
+ *
+ * ## Funcionalidades Principais
+ * - Renderização de 10 cards de auxiliares com layout horizontal
+ * - Controle de nível de envio via fader vertical (0-100%)
+ * - Ajuste de delay por auxiliar (0-500ms)
+ * - Controle de mute com feedback visual (vermelho quando ativo)
+ * - Edição de nomes com nomes padrão pré-definidos (Pastor, Líder, Vocal 1, etc.)
+ * - Indicador de status "Post-Fader" por auxiliar
+ *
+ * ## Como Usar
+ * 1. Inicializar a página chamando `MixerAuxPage.init()`
+ * 2. Ajustar o fader de nível para controlar o envio de áudio para cada monitor
+ * 3. Configurar delay conforme necessário (para compensação de latência)
+ * 4. Usar botão "MUTE AUXILIAR" para silenciar temporariamente
+ * 5. Editar nomes conforme os músicos/instrumentos
+ *
+ * ## Dependências e Integrações
+ * - **MixerService**: Serviço de comunicação com o mixer (comandos SETD, saveNames, setDelay)
+ * - **AppStore**: Armazenamento de estado global (níveis aux, mutes, nomes)
+ * - **SocketService**: Serviço de WebSocket para controle de faders (lock/unlock)
+ * - **createPageModule()**: Factory de módulo de página para gerenciamento de lifecycle
+ * - Eventos: `mute_aux_X` (mute auxiliar), `aux_X_level` (nível aux), `aux_X_delay` (delay aux)
+ * - Nomes padrão: Pastor, Líder, Vocal 1, Vocal 2, Piano, Bateria, Guit 1, Guit 2, Side L, Side R
  */
 
 'use strict';

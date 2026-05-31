@@ -1,3 +1,49 @@
+/**
+ * @fileoverview Página de Medição RT60 — Medição e visualização do tempo de
+ * decaimento sonoro (RT60) com curva de Schroeder e métricas acústicas.
+ *
+ * Esta página permite medir o RT60 (tempo de reverberação) de um ambiente
+ * utilizando pulso/sweep de sinal, exibir a curva de Schroeder decrescente
+ * e calcular métricas acústicas como T20, T30, EDT, C50, C80, D50 e STI.
+ * Também integra gravação multitrack (MTK) para virtual soundcheck.
+ *
+ * ## Funcionalidades Principais
+ * - Disparo de pulso/sweep de sinal para medição (12 segundos)
+ * - Visualização gráfica da curva de Schroeder com marks T20/T30
+ * - Cards de métricas: RT60, EDT, T20, T30, C50, C80, D50, STI
+ * - Cálculo manual de RT60 a partir de dados salvos
+ * - Histórico de medições acústicas (vazio vs. lotado)
+ * - Gravação multitrack (MTK) para virtual soundcheck
+ * - Botão de limpar medições e redefinir visualização
+ * - Integração com eventos rt60-result em tempo real
+ *
+ * ## Como Usar
+ * 1. Conecte o analisador (SoundMasterAnalyzer) com microfone calibrado
+ * 2. Clique em "Disparar Pulso de Medição" e aguarde 12 segundos
+ * 3. A curva de Schroeder e as métricas serão exibidas automaticamente
+ * 4. Use "Calcular RT60" para recalcular a partir dos últimos dados
+ 5. Use "Limpar" para resetar a visualização
+ * 6. Opcionalmente, use MTK para gravar multitrack
+ *
+ * ## Dependências e Integrações
+ * - **createPageModule()**: Módulo base para páginas
+ * - **SoundMasterAnalyzer**: Analisador de áudio
+ *   - `triggerImpulse()` — Dispara sweep de medição
+ *   - `getLastRt60()` — Obtém último resultado RT60
+ * - **SchroederRenderer**: Renderização da curva de Schroeder
+ *   - `draw(canvas, curve, params)` — Desenha curva no canvas
+ *   - `updateMetricCards(params)` — Atualiza cards de métricas
+ * - **SocketService**: Comunicação WebSocket
+ *   - `on('acoustic_history_data', handler)` — Recebe histórico
+ *   - `emit('get_acoustic_history')` — Solicita histórico
+ * - **MixerService**: Controle de gravação MTK
+ *   - `mtkControl(action)` — Inicia/para gravação multitrack
+ * - **AppStore**: Estado global (isRecordingMTK, logs)
+ *
+ * @module RT60Page
+ * @version 1.0.0
+ */
+
 'use strict';
 (function () {
     var pm = createPageModule();

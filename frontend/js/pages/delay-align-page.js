@@ -1,3 +1,43 @@
+/**
+ * @fileoverview Página de Alinhamento de Delay — Assistente passo a passo para
+ * medir e aplicar delay de alinhamento entre systems de PA.
+ *
+ * Esta página implementa um assistente em 3 etapas para alinhamento temporal
+ * entre caixas de som. Utiliza a Transfer Function (TF) do analisador para
+ * medir automaticamente o delay entre o system de referência e o system a
+ * ser alinhado, aplicando o resultado diretamente no mixer.
+ *
+ * ## Funcionalidades Principais
+ * - Assistente em 3 passos: Configuração → Medição → Aplicação
+ * - Medição automática de delay via Transfer Function (duplo canal)
+ * - Atualização em tempo real do valor de delay durante medição
+ * - Barra visual de progresso do delay medido
+ * - Aplicação do delay em auxiliaries ou canais do mixer
+ * - Navegação para frente e trás entre as etapas
+ * - Indicadores visuais de progresso das etapas
+ *
+ * ## Como Usar
+ * 1. **Etapa 1**: Configure o canal de referência e alvo
+ * 2. **Etapa 2**: Aguarde a medição automática do delay (valores em ms)
+ * 3. **Etapa 3**: Revise o delay medido e aplique no mixer
+ *
+ * ## Pré-requisitos
+ * - Analyzer com Transfer Function (TF) ativo (duplo canal)
+ * - Conexão com o mixer via MixerService ou SocketService
+ *
+ * ## Dependências e Integrações
+ * - **createPageModule()**: Módulo base para páginas
+ * - **SoundMasterAnalyzer**: Analisador de áudio
+ *   - `getDelayMs()` — Obtém delay medido em milissegundos
+ * - **MixerService**: Controle da mesa de mixagem
+ *   - `setDelay(channel, delayMs)` — Aplica delay no canal
+ * - **SocketService**: Comunicação WebSocket (fallback)
+ *   - `emit('set_aux_delay', { aux, delayMs })` — Emite comando de delay
+ *
+ * @module DelayAlignPage
+ * @version 1.0.0
+ */
+
 (function () {
     'use strict';
     var pm = createPageModule();

@@ -1,6 +1,42 @@
 /**
- * SoundMaster — Feedback Detector Page Module
- * Displays real-time feedback detection alarms and history.
+ * =============================================================================
+ * SoundMaster — Página de Detector de Feedback (Microfonia)
+ * =============================================================================
+ *
+ * Descrição:
+ *     Módulo de monitoramento em tempo real para detecção de feedback
+ *     (microfonia) em sistemas de PA. Exibe alarmes visuais quando uma
+ *     frequência ressonante é detectada e mantém histórico das ocorrências.
+ *
+ * Funcionalidades:
+ *     - Monitoramento em tempo real de frequências de feedback
+ *     - Indicador visual de status (seguro/alerta) com animação
+ *     - Exibição da frequência crítica detectada em Hz
+ *     - Histórico das últimas 10 ocorrências com timestamp
+ *     - Descrição do problema e orientação para correção
+ *     - Atualização automática via assinatura do AppStore
+ *
+ * Estados do Sistema:
+ *     - Seguro: Ícone verde "✅", texto "Sistema Seguro"
+ *     - Alerta: Ícone vermelho pulsante "🚨", texto "Feedback Detectado!"
+ *               com frequência e instrução de corte
+ *
+ * Dependências:
+ *     - AppStore: Store global (estado: feedbackHz)
+ *     - createPageModule(): Módulo base de páginas
+ *
+ * Integrações:
+ *     - Assina mudanças no AppStore.feedbackHz via pm._subscribe()
+ *     - Atualiza UI automaticamente quando detector identifica feedback
+ *     - Fornece dados históricos para análise de tendências
+ *
+ * Uso:
+ *     Para inicializar: FeedbackDetectorPage.init()
+ *     Para destruir: FeedbackDetectorPage.destroy()
+ *
+ * Variável Global:
+ *     window.FeedbackDetectorPage - Objeto público com init() e destroy()
+ * =============================================================================
  */
 
 'use strict';

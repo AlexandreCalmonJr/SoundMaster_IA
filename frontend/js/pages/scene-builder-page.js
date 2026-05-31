@@ -1,4 +1,42 @@
 'use strict';
+/**
+ * @fileoverview Página do Construtor de Cenas - Sistema de gerenciamento de cenas para mixagem.
+ * 
+ * Esta página permite criar, editar, visualizar e aplicar cenas de mixagem pré-configuradas.
+ * Cenas são configurações completas de mixer que podem ser salvas, carregadas e aplicadas
+ * rapidamente durante apresentações ao vivo.
+ * 
+ * Funcionalidades Principais:
+ * - Lista de cenas salvas com seleção e visualização
+ * - Miniaturas visuais das cenas com cores por gênero
+ * - Criação de novas cenas com nome, gênero e descrição
+ * - Geração de cenas via IA com seleção de instrumentos
+ * - Presets rápidos (Louvor, Pregação, Silêncio, Transição)
+ * - Aplicação e exclusão de cenas existentes
+ * - Visualização detalhada das propriedades da cena selecionada
+ * 
+ * Uso:
+ * - Chame SceneBuilderPage.init() para inicializar a página
+ * - Chame SceneBuilderPage.destroy() para limpar recursos quando a página for descarregada
+ * - Clique em uma cena na lista para visualizar seus detalhes
+ * - Use os botões de ação (Aplicar/Excluir) na pré-visualização
+ * - Para criar nova cena, clique em "Nova Cena" e preencha os campos
+ * - Para usar IA, clique em "Gerar com IA", selecione instrumentos e insira o prompt
+ * 
+ * Dependências e Integrações:
+ * - SceneBuilderService: Serviço para operações CRUD de cenas
+ *   - loadScenes(): Retorna array de cenas salvas
+ *   - createScene(): Cria nova cena com dados fornecidos
+ *   - applyScene(): Aplica cena selecionada ao mixer
+ *   - deleteScene(): Remove cena pelo ID
+ *   - generateWithAI(): Gera cena usando inteligência artificial
+ * - createPageModule(): Módulo auxiliar para manipulação do DOM e eventos
+ * - Dados da cena: name, genre, description, channels, mixType, aiData, timestamp, id
+ * 
+ * @namespace SceneBuilderPage
+ * @version 1.0.0
+ * @author SoundMaster Team
+ */
 (function () {
     var pm = createPageModule();
     var _selectedScene = null, _selectedInstruments = new Set();

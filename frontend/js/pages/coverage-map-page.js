@@ -1,3 +1,42 @@
+/**
+ * @fileoverview Página de Mapa de Cobertura — Mapeamento interativo de pontos
+ * de medição de SPL e delay em um layout 2D do ambiente.
+ *
+ * Esta página permite ao usuário clicar em um canvas para adicionar pontos
+ * de medição, visualizando a cobertura sonora do sistema de PA. Cada ponto
+ * captura automaticamente o SPL e delay do analisador ao vivo, exibindo um
+ * mapa de calor interpolado (estilo Voronoi) e estatísticas de cobertura.
+ *
+ * ## Funcionalidades Principais
+ * - Canvas interativo com grid para posicionamento de pontos
+ * - Captura automática de SPL e delay ao vivo para cada ponto
+ * - Mapa de calor interpolado (Voronoi) com cores proporcionais
+ * - Dois modos de visualização: SPL e Delay
+ * - Lista de pontos com valores e botão de remoção
+ * - Estatísticas: média SPL, variância, cobertura (% dentro de ±3dB)
+ * - Exportação dos dados em formato CSV
+ * - Redimensionamento automático do canvas ao resize da janela
+ *
+ * ## Como Usar
+ * 1. Clique no canvas para adicionar pontos de medição
+ * 2. Cada ponto captura SPL e delay automaticamente do analisador
+ * 3. Alterne entre modos SPL e Delay usando os radio buttons
+ * 4. Visualize as estatísticas de cobertura na lateral
+ * 5. Remova pontos individualmente ou limpe todos
+ * 6. Exporte os dados para análise externa via CSV
+ *
+ * ## Dependências e Integrações
+ * - **createPageModule()**: Módulo base para páginas
+ * - **SoundMasterAnalyzer**: Fonte de dados ao vivo
+ *   - `getLastAnalysis()` — Obtém análise com RMS dB
+ *   - `getDelayMs()` — Obtém delay em milissegundos
+ * - **SpatialAverager**: Média espacial de SPL
+ *   - `getResult()` — Obtém resultado com médias por posição
+ *
+ * @module CoverageMapPage
+ * @version 1.0.0
+ */
+
 (function () {
     'use strict';
     var pm = createPageModule();

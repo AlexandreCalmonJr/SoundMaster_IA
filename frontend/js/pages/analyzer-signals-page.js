@@ -1,6 +1,47 @@
 /**
- * SoundMaster — Analyzer Signals Page Module
- * Controls the signal generator UI and delegates audio generation to SignalGeneratorController.
+ * =============================================================================
+ * SoundMaster — Página de Sinais do Analisador
+ * =============================================================================
+ *
+ * Descrição:
+ *     Módulo responsável pela interface de geração de sinais de áudio.
+ *     Controla a geração de múltiplos tipos de sinais e delega a geração
+ *     efetiva para o SignalGeneratorController.
+ *
+ * Tipos de Sinais Suportados:
+ *     - Pink Noise (Ruído Rosa): Ruído com distribuição de energia por oitava
+ *     - White Noise (Ruído Branco): Ruído com distribuição uniforme de energia
+ *     - MLS (Maximum Length Sequence): Sequência de comprimento máximo para medição
+ *     - Chirp: Varredura de frequência linear ou logarítmica
+ *     - Dual-Tone: Dois tons simultâneos (1000Hz e 1500Hz padrão)
+ *     - Sine Wave (Onda Senoidal): Tom puro com frequência e nível configuráveis
+ *     - Band-Limited Noise: Ruído limitado a banda específica (pink/white)
+ *
+ * Funcionalidades:
+ *     - Controle de nível de saída global (slider em dB)
+ *     - Presets de frequência para onda senoidal
+ *     - Configuração de banda para ruído limitado
+ *     - Botões de estado com feedback visual (toggle on/off)
+ *     - Prevenção de sobreposição de sinais (stopAll antes de iniciar)
+ *     - Parada automática ao navegar fora da página
+ *
+ * Dependências:
+ *     - SignalGeneratorController: Controlador de geração de sinais
+ *     - SoundMasterAnalyzer: Analisador para medição de ruído rosa
+ *     - createPageModule(): Módulo base de páginas
+ *
+ * Integrações:
+ *     - Integra com o Analisador para medições de ruído rosa
+ *     - Conecta-se ao trigger de impulso do analisador
+ *     - Fornece controles para calibração de sistema
+ *
+ * Uso:
+ *     Para inicializar: AnalyzerSignalsPage.init()
+ *     Para destruir (para todos os sinais): AnalyzerSignalsPage.destroy()
+ *
+ * Variável Global:
+ *     window.AnalyzerSignalsPage - Objeto público com métodos init() e destroy()
+ * =============================================================================
  */
 
 'use strict';

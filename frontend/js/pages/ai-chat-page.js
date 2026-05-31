@@ -1,6 +1,59 @@
 /**
- * SoundMaster — AI Chat Page Module
- * Chat 100% autônomo com ações automáticas de análise.
+ * @fileoverview Página de Chat IA — Interface de chat inteligente 100% autônoma
+ * com ações automáticas de análise acústica.
+ *
+ * Esta página implementa um chat completo com inteligência artificial capaz de
+ * realizar análises acústicas autônomas, medições RT60, classificação de áudio
+ * e ajustes automáticos na mesa de mixagem. O sistema opera de forma autônoma
+ * detectando intenções do usuário e executando ações sem intervenção manual.
+ *
+ * ## Funcionalidades Principais
+ * - Chat interativo com IA (AIService) para diagnóstico acústico
+ * - Ações autônomas: análise ao vivo, medição RT60, classificação de áudio
+ * - Renderer Markdown para respostas formatadas com código e listas
+ * - Indicador de status da IA (online/offline/processando/ouvindo)
+ * - Histórico de mensagens persistido no AppStore
+ * - Cards de comando "Human-in-the-Loop" com botões Aplicar/Ignorar
+ * - Indicador de digitação animado durante processamento
+ * - Quick actions: limpar som, HPF, gate, corte de EQ
+ * - Suporte a mensagens de voz (botão "Ouvir")
+ * - Prompts rápidos pré-definidos
+ * - Sanitização HTML com DOMPurify para segurança
+ *
+ * ## Como Usar
+ * 1. Digite uma mensagem descrevendo o problema de som
+ * 2. A IA detectará automaticamente a intenção e executará a ação
+ * 3. Para análise ao vivo: digite "Analise o som" ou clique em "Ouvir"
+ * 4. Para RT60: digite "Meça o RT60" ou "Como está a reverberação?"
+ * 5. Para classificação: digite "O que está soando aqui?"
+ * 6. Ajuste o canal alvo usando o seletor numérico
+ * 7. Use quick actions para ajustes rápidos na mesa
+ *
+ * ## Dependências e Integrações
+ * - **createPageModule()**: Módulo base para páginas
+ * - **AppStore**: Store global (histórico, status IA, sessão)
+ * - **AIService**: Serviço de IA para análise e comandos
+ *   - `ask(text, channel, payload)` — Envia pergunta com contexto
+ *   - `classifyAudio(data, sampleRate, topK, threshold)` — Classifica áudio
+ *   - `ping()` — Verifica conectividade com IA
+ * - **MixerService**: Execução de comandos de mixagem
+ *   - `executeAICommand(command)` — Executa comando retornado pela IA
+ *   - `runCleanSoundPreset(ch)` — Aplica preset de som limpo
+ *   - `applyHpf(ch, freq)` — Aplica filtro passa-alta
+ *   - `applyGate(ch)` — Aplica gate
+ *   - `applyEqCut(type, ch, freq, gain, q, band)` — Corte de EQ
+ *   - `setAfs(enabled)` — Liga/desliga AFS
+ * - **SoundMasterAnalyzer**: Analisador de áudio ao vivo
+ *   - `start()` — Inicia captura de microfone
+ *   - `getLastAnalysis()` — Obtém última análise
+ *   - `getLastRt60()` — Obtém último RT60 medido
+ *   - `getFreqData()` — Obtém dados de frequência
+ *   - `triggerImpulse()` — Dispara sweep de medição
+ *   - `isAnalyzing()` — Verifica se está analisando
+ * - **DOMPurify**: Sanitização de HTML (opicional)
+ *
+ * @module AiChatPage
+ * @version 2.0.0
  */
 
 'use strict';

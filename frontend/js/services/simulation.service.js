@@ -1,3 +1,33 @@
+/**
+ * @fileoverview Simulation Service - Serviço de simulação de mixer para testes offline
+ * @module SimulationService
+ * @description Serviço que simula um mixer com 24 canais, 10 auxs e 4 FX.
+ *              Permite testar a interface sem hardware real, com VU meters,
+ *              níveis de canal, mute, e geração de áudio fake.
+ *
+ * @funcionalidades
+ * - Simulação de 24 canais com níveis independently controláveis
+ * - 10 auxiliares e 4 efeitos (Reverb, Delay, Chorus, Room)
+ * - VU meters com animação Brownian para realismo
+ * - 4 cenas pré-definidas (Louvor, Pregação, Silêncio, Transição)
+ * - Chat IA simulado com respostas pré-definidas
+ * - Análise acústica fake (RT60, STI, bandas)
+ * - Integração com AppStore para VU data
+ *
+ * @como-usar
+ * - SimulationService.start() → inicia simulação (setInterval a cada 80ms)
+ * - SimulationService.stop() → pausa simulação
+ * - SimulationService.getState() → retorna estado atual do mixer
+ * - SimulationService.setChannelLevel(ch, level) → ajusta nível do canal
+ * - SimulationService.setMasterLevel(level) → ajusta nível master
+ * - SimulationService.askAI(text, channel) → simula resposta IA
+ * - SimulationService.getActiveScene() → retorna cena ativa
+ *
+ * @dependencias
+ * - AppStore (para estado global e VU data)
+ *
+ * @exposes window.SimulationService
+ */
 (function () {
     'use strict';
 

@@ -1,5 +1,30 @@
 'use strict';
 
+/**
+ * @fileoverview Tutoriais - Página de tutoriais interativos do SoundMaster
+ * @module TutorialsPage
+ * @description Sistema de tutoriais passo a passo para novos usuários.
+ *              Guia o usuário através das principais funcionalidades do sistema
+ *              com instruções visuais e progresso salvo.
+ *
+ * @funcionalidades
+ * - 4 tutoriais interativos (Primeiros Passos, EQ Rápida, Microfonia, Configuração)
+ * - Progresso salvo por tutorial (localStorage)
+ * - Interface passo a passo com navegação
+ * - Checkpoints de conclusão
+ *
+ * @como-usar
+ * 1. Navegue até "Tutoriais" no menu lateral
+ * 2. Selecione um tutorial para iniciar
+ * 3. Siga as instruções passo a passo
+ * 4. O progresso é salvo automaticamente
+ *
+ * @dependencias
+ * - createPageModule() (framework de páginas)
+ * - localStorage (persistência de progresso)
+ *
+ * @exposes window.TutorialsPage
+ */
 (function () {
     var pm = createPageModule();
     var STORAGE_KEY = 'sm_tutorial_progress';

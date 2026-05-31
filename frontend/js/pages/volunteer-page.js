@@ -1,4 +1,45 @@
-﻿'use strict';
+﻿/**
+ * @fileoverview Página de Modo Voluntário — Painel simplificado para operadores
+ * de som em eventos ao vivo (igrejas, shows, conferências).
+ *
+ * Esta página fornece uma interface simplificada e amigável para voluntários
+ * que operam o sistema de som sem treinamento técnico avançado. O modo
+ * voluntário permite controle básico de volume vocal, PA e monitor, com
+ * presets pré-configurados para diferentes cenários de evento.
+ *
+ * ## Funcionalidades Principais
+ * - Controle deslizante de volume vocal (canal 1) e PA (master)
+ * - Controle de volume de monitor (aux 1)
+ * - Botões de mute para vocal e PA com indicadores visuais
+ * - Presets de cena: Louvo, Pregação e Silêncio
+ * - Presets de timbre: Claro, Suave, Potente e Estável
+ * - Medidores VU em tempo real para vocal e PA
+ * - Botões de acesso rápido ao Chat IA e saída
+ *
+ * ## Como Usar
+ * 1. Ajuste os níveis de vocal e PA usando os sliders
+ * 2. Use os presets de cena para configurações rápidas
+ * 3. Use os presets de timbre para ajustar o character do som
+ * 4. Pressione os botões de mute para silenciar vocal ou PA
+ * 5. Pressione "Chat IA" para acessar o assistente inteligente
+ *
+ * ## Dependências e Integrações
+ * - **createPageModule()**: Módulo base para páginas (métodos auxiliares)
+ * - **AppStore**: Store global do estado da aplicação (dados VU)
+ * - **MixerService**: Serviço de controle da mesa de mixagem
+ *   - `setChannelLevel(channel, level)` — Ajusta nível do canal
+ *   - `setMasterLevel(level)` — Ajusta nível master
+ *   - `setChannelMute(channel, muted)` — Alterna mute do canal
+ *   - `setMasterMute(muted)` — Alterna mute master
+ *   - `setAuxLevel(aux, channel, level)` — Ajusta nível de aux
+ * - **SimulationService**: Modo simulação para testes sem mixer real
+ * - **router**: Navegação entre páginas
+ *
+ * @module VolunteerPage
+ * @version 1.0.0
+ */
+
+'use strict';
 (function () {
     var pm = createPageModule();
     var _vuUnsub = null;

@@ -1,3 +1,29 @@
+/**
+ * @fileoverview Scene Builder Service - Serviço de gerenciamento de cenas de mixagem
+ * @module SceneBuilderService
+ * @description Serviço responsável por CRUD de cenas, geração via IA e aplicação no mixer.
+ *              Fornece persistência via localStorage com cache em memória.
+ *
+ * @funcionalidades
+ * - Criar, editar e excluir cenas de mixagem
+ * - Gerar cenas automaticamente via IA (AIService)
+ * - Aplicar cenas ao mixer (via MixerService)
+ * - Presets rápidos (Louvor, Pregação, Silêncio, Transição)
+ * - Cache em memória para evitar parses repetidos de localStorage
+ *
+ * @como-usar
+ * - SceneBuilderService.createScene({ name, genre, description }) → cria cena
+ * - SceneBuilderService.loadScenes() → retorna array de cenas
+ * - SceneBuilderService.applyScene(scene) → aplica cena ao mixer
+ * - SceneBuilderService.generateWithAI(prompt, instruments) → gera cena via IA
+ *
+ * @dependencias
+ * - AIService (para geração de cenas via IA)
+ * - MixerService (para aplicação de comandos no mixer)
+ * - AppStore (para logs)
+ *
+ * @exposes window.SceneBuilderService
+ */
 (function () {
     'use strict';
 

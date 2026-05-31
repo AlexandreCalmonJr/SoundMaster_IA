@@ -1,3 +1,50 @@
+/**
+ * =============================================================================
+ * SoundMaster — Página de Diagnóstico de Hardware (Hardware Diagnostics)
+ * =============================================================================
+ *
+ * @description
+ * Página de diagnóstico avançado de hardware de áudio que permite capturar
+ * snapshots do espectro de frequência, analisar degradação de cabos/conectores
+ * e visualizar tendências de drift ao longo do tempo. Utiliza análise de IA
+ * (quando disponível) ou diagnóstico local baseado em thresholds de frequência.
+ *
+ * @page hardware-diagnostics-page
+ * @module HardwareDiagnosticsPage
+ *
+ * @features
+ * - Captura de snapshots do espectro de frequência (até 50 amostras)
+ * - Diagnóstico via IA (AIService.hardwareDiagnosis) ou análise local
+ * - Detecção de: cabo degradado, conector oxidado, cápsula com desgaste
+ * - Gráfico de tendência de drift por frequência (125Hz, 500Hz, 1kHz, 4kHz, 8kHz)
+ * - Persistência de snapshots no localStorage
+ * - Limpeza de histórico completo
+ *
+ * @dependencies
+ * - createPageModule() — Módulo base de páginas com helpers de DOM e eventos
+ * - SoundMasterAnalyzer — Analisador de áudio para captura de espectro (window.SoundMasterAnalyzer)
+ * - AIService — Serviço de IA para diagnóstico de hardware (window.AIService)
+ * - API /api/ai/diagnose — Endpoint de diagnóstico via Python (fallback)
+ * - localStorage — Persistência de snapshots (chave: 'hd-snapshots')
+ *
+ * @events
+ * - Botão "Analisar" → Executa diagnóstico (IA ou local)
+ * - Botão "Salvar Snapshot" → Captura espectro atual
+ * - Botão "Limpar" → Remove todo o histórico de snapshots e diagnósticos
+ *
+ * @usage
+ * 1. Ative o microfone para habilitar captura de espectro
+ * 2. Selecione o canal desejado no seletor
+ * 3. Clique em "Salvar Snapshot" para capturar o espectro atual
+ * 4. Repita o processo para coletar pelo menos 3 snapshots
+ * 5. Clique em "Analisar" para executar o diagnóstico
+ * 6. Visualize o resultado e recomendações
+ *
+ * @exposes window.HardwareDiagnosticsPage
+ *   - init()    — Inicializa a página e carrega snapshots salvos
+ *   - destroy() — Destroi a página e limpa recursos
+ * =============================================================================
+ */
 'use strict';
 (function () {
     var pm = createPageModule();

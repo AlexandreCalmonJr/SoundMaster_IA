@@ -1,6 +1,31 @@
 /**
- * SoundMaster — Mixer Input Page Module
- * Controls the 24 input channels, levels, mutes, names, and VU meters.
+ * @fileoverview Módulo de Página de Entradas do Mixer
+ * @module MixerInputPage
+ * @description Página responsável por controlar as 24 entradas de canais do mixer.
+ * Permite ajustar níveis de volume (faders), silenciamento (mute), nomes dos canais
+ * e exibição de medidores VU em tempo real.
+ *
+ * ## Funcionalidades Principais
+ * - Renderização de 24 canais de entrada com controles individuais
+ * - Ajuste de níveis via faders verticais (0-100%)
+ * - Controle de mute por canal com estado visual
+ * - Edição de nomes dos canais com persistência
+ * - Medidores VU com atualização em tempo real
+ * - Suporte a mixagem master e auxiliar (10 saídas aux)
+ *
+ * ## Como Usar
+ * 1. Inicializar a página chamando `MixerInputPage.init()`
+ * 2. Selecionar o destino de mixagem (master ou aux) no seletor
+ * 3. Ajustar faders para controlar níveis de volume
+ * 4. Usar botões MUTE para silenciar canais individuais
+ * 5. Editar nomes clicando nos campos de texto abaixo de cada canal
+ *
+ * ## Dependências e Integrações
+ * - **MixerService**: Serviço de comunicação com o mixer (envio de comandos, carregamento de nomes)
+ * - **AppStore**: Armazenamento de estado global da aplicação (níveis, mutes, nomes)
+ * - **SocketService**: Serviço de WebSocket para atualizações em tempo real
+ * - **createPageModule()**: Factory de módulo de página para gerenciamento de lifecycle
+ * - Eventos: `vuData` (dados VU), `ch_X_level` (nível do canal), `mute_ch_X` (estado mute)
  */
 
 'use strict';

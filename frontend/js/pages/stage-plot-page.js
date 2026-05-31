@@ -1,3 +1,47 @@
+/**
+ * @fileoverview Módulo de Página de Plot do Palco
+ * @module StagePlotPage
+ * @description Página interativa para criação e gerenciamento do layout do palco.
+ * Permite posicionar instrumentos/músicos com drag-and-drop, associar canais do mixer
+ * e integrar com SpatialAverager para média espacial de áudio.
+ *
+ * ## Funcionalidades Principais
+ * - Canvas interativo com grid de referência (8x6)
+ * - Sistema de arrastar e soltar (drag-and-drop) de instrumentos
+ * - Popup de edição para nome e número de canal
+ * - Salvar/carregar layout no localStorage
+ * - Exportar layout via impressão
+ * - Integração com SpatialAverager para média espacial
+ * - Abertura rápida de canais do mixer
+ * - Contagem dinâmica de instrumentos
+ *
+ * ## Como Usar
+ * 1. Inicializar a página chamando `StagePlotPage.init()`
+ * 2. Arrastar instrumentos da paleta para o canvas
+ * 3. Clicar em um instrumento para editar nome e canal
+ * 4. Usar "Abrir Canal" no popup para acessar rapidamente o mixer
+ * 5. Salvar layout com botão "Salvar Layout"
+ * 6. Carregar layout salvo com botão "Carregar Layout"
+ * 7. Ativar SpatialAverager para média espacial (opcional)
+ *
+ * ## Dependências e Integrações
+ * - **SpatialAverager**: Serviço de média espacial multi-device (opcional)
+ * - **AppStore**: Armazenamento global (addLog para registro)
+ * - **Router**: Navegação para mixer-input ao abrir canal
+ * - **createPageModule()**: Factory de módulo de página para gerenciamento de lifecycle
+ * - Eventos: `stage-plot-channel-open` (abrir canal), `resize` (redimensionamento)
+ * - Armazenamento: localStorage com chave `sm_stage_plot_v2`
+ *
+ * @typedef {Object} Actor
+ * @property {string} id - Identificador único do ator
+ * @property {string} type - Tipo do instrumento
+ * @property {string} icon - Emoji/ícone do instrumento
+ * @property {string} label - Label original do instrumento
+ * @property {string} name - Nome personalizado do músico
+ * @property {number|null} channel - Número do canal do mixer associado
+ * @property {Object} pct - Posição percentual no canvas {x, y}
+ */
+
 'use strict';
 (function () {
     var pm = createPageModule();

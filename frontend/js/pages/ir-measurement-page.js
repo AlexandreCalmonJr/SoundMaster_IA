@@ -1,3 +1,57 @@
+/**
+ * =============================================================================
+ * SoundMaster — Página de Medição de Resposta de Impulso (IR)
+ * =============================================================================
+ *
+ * Descrição:
+ *     Módulo completo para medição, análise e processamento de Resposta de
+ *     Impulso (Impulse Response - IR). Implementa um fluxo de trabalho em 3
+ *     etapas: Captura → Análise → Processamento.
+ *
+ * Fluxo de Trabalho (3 Etapas):
+ *     Etapa 1 - Captura:
+ *         - Captura a resposta de impulso do analisador via SoundMasterVisualizer
+ *         - Exibe forma de onda da IR capturada
+ *         - Valida dados antes de prosseguir
+ *
+ *     Etapa 2 - Análise:
+ *         - Exibe Energy Time Curve (ETC) em dB
+ *         - Exibe gráfico de decaimento por bandas de frequência
+ *         - Bandas analisadas: 125, 250, 500, 1k, 2k, 4k, 8k Hz
+ *
+ *     Etapa 3 - Processamento:
+ *         - Gera filtro inverso (método minimum-phase ou reversal)
+ *         - Exporta IR e filtro inverso como arquivos WAV (32-bit float)
+ *         - Aplica convolução em tempo real via FIRConvolution
+ *
+ * Funcionalidades:
+ *     - Captura de IR a partir do analisador LIR (Linear Impulse Response)
+ *     - Visualização de forma de onda com suporte a HiDPI
+ *     - Análise ETC com escala de 60dB
+ *     - Análise de decaimento multibanda com cores por frequência
+ *     - Geração de filtro inverso (minimum-phase ou reversal)
+ *     - Exportação WAV 32-bit float a 48kHz
+ *     - Aplicação de convolução em tempo real
+ *
+ * Dependências:
+ *     - SoundMasterVisualizer: Obtém dados LIR (getLirData())
+ *     - FIRConvolution: Processamento de convolução e geração de filtro inverso
+ *     - createPageModule(): Módulo base de páginas
+ *
+ * Integrações:
+ *     - Integra com o analisador FFT para captura de IR
+ *     - Conecta-se ao convolver em tempo real para processamento
+ *     - Permite exportação de arquivos WAV para uso externo
+ *
+ * Uso:
+ *     Para inicializar: IRMeasurementPage.init()
+ *     Para destruir: IRMeasurementPage.destroy()
+ *
+ * Variável Global:
+ *     window.IRMeasurementPage - Objeto público com init() e destroy()
+ * =============================================================================
+ */
+
 (function () {
     'use strict';
     var pm = createPageModule();

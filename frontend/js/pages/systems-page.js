@@ -1,4 +1,45 @@
-﻿'use strict';
+﻿/**
+ * =============================================================================
+ * SoundMaster — Página de Conexão do Sistema (Systems Page)
+ * =============================================================================
+ *
+ * @description
+ * Página responsável pela gestão de conexão com a mixer de áudio e pelo controle
+ * do túnel de acesso remoto (tunnel). Permite ao usuário conectar-se à mixer via
+ * IP, visualizar informações do dispositivo (modelo, firmware, capacidades) e
+ * gerenciar o túnel para acesso externo.
+ *
+ * @page systems-page
+ * @module SystemsPage
+ *
+ * @features
+ * - Conexão com mixer de áudio via endereço IP (suporta Soundcraft)
+ * - Ativação/desativação do túnel de acesso remoto
+ * - Cópia do link do túnel para a área de transferência
+ * - Exibição do modelo, firmware e capacidades da mixer em tempo real
+ *
+ * @dependencies
+ * - createPageModule() — Módulo base de páginas com helpers de DOM e eventos
+ * - MixerService — Serviço de conexão com a mixer (window.MixerService)
+ * - AppStore — Store global para dados do dispositivo (window.AppStore)
+ * - API /api/config — Retorna configuração do servidor (tunnelUrl)
+ * - API /api/tunnel/toggle — Endpoint para alternar estado do túnel
+ *
+ * @events
+ * - AppStore 'deviceInfo' — Atualiza display do modelo, firmware e capacidades
+ *
+ * @usage
+ * 1. O usuário informa o IP da mixer no campo de input
+ * 2. Clica em "Conectar" para iniciar a conexão via MixerService
+ * 3. Use o botão de túnel para ativar/desativar acesso remoto
+ * 4. Copie o link do túnel para compartilhar acesso externo
+ *
+ * @exposes window.SystemsPage
+ *   - init()    — Inicializa a página e vincula eventos
+ *   - destroy() — Destroi a página e remove subscriptions
+ * =============================================================================
+ */
+'use strict';
 (function () {
     var pm = createPageModule();
     var _vuUnsub = null;

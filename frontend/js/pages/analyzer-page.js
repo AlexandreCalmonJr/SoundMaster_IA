@@ -1,3 +1,41 @@
+/**
+ * =============================================================================
+ * SoundMaster — Página Principal do Analisador
+ * =============================================================================
+ *
+ * Descrição:
+ *     Módulo principal da página de análise de áudio. Fornece controles para
+ *     geração de sinais (ruído branco, MLS, Chirp, Dual-Tone), controle do
+ *     analisador FFT em tempo real, medição de ruído rosa e trigger de impulso.
+ *
+ * Funcionalidades:
+ *     - Geração e controle de sinais de teste (toggle on/off)
+ *     - Controle do analisador FFT (iniciar/parar)
+ *     - Medição de ruído rosa para calibração
+ *     - Trigger de sweep logarítmico para medição de impulso
+ *     - Toggle de auto-cut para controle automático de corte
+ *     - Diagnóstico acústico baseado na última análise
+ *     - Navegação entre sub-abas do analisador
+ *
+ * Dependências:
+ *     - SignalGeneratorService: Serviço de geração de sinais de áudio
+ *     - SoundMasterAnalyzer: Serviço principal de análise FFT
+ *     - createPageModule(): Módulo base de páginas (fornece _el, _on, _safeCall)
+ *
+ * Integrações:
+ *     - Integra com o sistema de sinais para gerar diferentes tipos de onda
+ *     - Conecta-se ao analisador FFT para medições em tempo real
+ *     - Expõe interface para diagnóstico acústico
+ *
+ * Uso:
+ *     Para inicializar a página: AnalyzerPage.init()
+ *     Para destruir a página: AnalyzerPage.destroy()
+ *
+ * Variável Global:
+ *     window.AnalyzerPage - Objeto público com métodos init() e destroy()
+ * =============================================================================
+ */
+
 'use strict';
 (function () {
     var pm = createPageModule();

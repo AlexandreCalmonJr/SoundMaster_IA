@@ -1,3 +1,48 @@
+/**
+ * @fileoverview Página de Acústica — Análise acústica completa de ambientes
+ * com curva de Schroeder, tabela de bandas, calculadora de RT60 e mapeamento.
+ *
+ * Esta página é o hub central de análise acústica, exibindo a curva de
+ * Schroeder interativa (ETC), tabela detalhada de métricas por banda de
+ * oitava/terço de oitava, calculadora de RT60 teórico (Eyring/Sabine),
+ * e integração com mapeamento de cobertura sonora.
+ *
+ * ## Funcionalidades Principais
+ * - Canvas interativo da curva de Schroeder com crosshair e readout
+ * - Marcadores visuais de T20 e T30 na curva
+ * - Tabela completa de métricas por banda (31.5Hz a 16kHz):
+ *   SPL, RT60, T20, T30, EDT, C50, C80, STI
+ * - Calculadora de RT60 teórico (Eyring) com dimensões da sala
+ * - Validação inline dos inputs de dimensões
+ * - Cálculo de delay auxiliar baseado na distância
+ * - Exportação da tabela de bandas em formato TXT
+ * - Integração com mapeamento de cobertura (SoundMasterMapping)
+ * - Atualização automática ao receber eventos rt60-result
+ * - Suporte a dados multibanda reais ou estimados
+ * - Badge indicando dados medidos vs. simulados
+ *
+ * ## Como Usar
+ * 1. A curva de Schroeder é exibida automaticamente ao medir RT60
+ * 2. Mova o mouse sobre o canvas para ver valores de tempo/dB
+ * 3. Selecione banda e faixa de tempo nos seletores
+ * 4. Use a calculadora para estimar RT60 teórico da sala
+ * 5. Exporte a tabela de bandas com o botão de exportar
+ * 6. Integra com o mapeamento de cobertura para visualização espacial
+ *
+ * ## Dependências e Integrações
+ * - **createPageModule()**: Módulo base para páginas
+ * - **SoundMasterAnalyzer**: Analisador de áudio
+ *   - `getLastRt60()` — Obtém último resultado RT60
+ * - **AIService**: Cálculo acústico via IA
+ *   - `calculateAcoustics(volume, surfaceArea, absorption)` — RT60 via IA
+ * - **SoundMasterMapping**: Mapeamento de cobertura sonora
+ *   - `updateDimensions(width, length)` — Atualiza dimensões do mapa
+ * - **Eventos DOM**: `rt60-result` — Resultado de medição RT60
+ *
+ * @module AcusticaPage
+ * @version 1.0.0
+ */
+
 'use strict';
 (function () {
     var pm = createPageModule();

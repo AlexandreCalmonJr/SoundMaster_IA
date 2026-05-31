@@ -1,6 +1,37 @@
 /**
- * SoundMaster — Voice Presets Page Module
- * Manages the application of vocal presets to channels 1-24.
+ * @fileoverview Módulo de Página de Presets de Voz
+ * @module VoicePresetsPage
+ * @description Página responsável por gerenciar e aplicar presets de voz nos canais 1-24.
+ * Oferece presets pré-configurados para diferentes tipos de voz e cenários de uso.
+ *
+ * ## Funcionalidades Principais
+ * - Seleção de canal de destino (1-24) via dropdown
+ * - Aplicação de presets com configurações específicas por tipo
+ * - Feedback visual de confirmação (botão verde "APLICADO ✓" por 2 segundos)
+ * - Configurações automáticas: HPF, EQ, compressor, deesser, gate, denoise, etc.
+ *
+ * ## Presets Disponíveis
+ * - **Barítono**: HPF 120Hz, Low -2dB
+ * - **Soprano**: HPF 150Hz, High +2dB
+ * - **Pregador**: Compressor agressivo, AFS ativado
+ * - **Smart Clean**: Deesser, gate adaptativo, air, denoise
+ * - **Infantil**: HPF 200Hz, Presence +3dB
+ * - **Tenor**: HPF 100Hz, Mud -2dB
+ * - **Coro**: HPF 130Hz, Presence +1.5dB
+ * - **Podcast**: Compressor leve, deesser, HPF 80Hz, Presence +2dB
+ *
+ * ## Como Usar
+ * 1. Inicializar a página chamando `VoicePresetsPage.init()`
+ * 2. Selecionar o canal de destino no dropdown "Canal"
+ * 3. Clicar no botão do preset desejado na grid de cards
+ * 4. Aguardar confirmação visual (verde) de 2 segundos
+ * 5. O preset é aplicado automaticamente ao canal selecionado
+ *
+ * ## Dependências e Integrações
+ * - **MixerService**: Serviço de comunicação (runCleanSoundPreset para aplicar configurações)
+ * - **AppStore**: Armazenamento global (addLog para registro de ações)
+ * - **createPageModule()**: Factory de módulo de página para gerenciamento de lifecycle
+ * - Evento: `stage-plot-channel-open` (abrir canal via Stage Plot)
  */
 
 'use strict';
