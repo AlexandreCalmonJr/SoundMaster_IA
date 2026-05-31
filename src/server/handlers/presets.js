@@ -46,7 +46,7 @@ function registerPresetHandlers(io, socket, deps) {
                             const ch = idx + 1;
                             if (ch > 24) return;
                             const mixer = mixerSingleton.getMixer();
-                            const input = mixer.input(ch);
+                            const input = mixer.master.input(ch);
                             if (!input) return;
                             if (inputState.level !== undefined) input.setFaderLevel(inputState.level);
                             if (inputState.mute !== undefined) {

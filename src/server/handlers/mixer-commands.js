@@ -320,7 +320,7 @@ function registerMixerCommandHandlers(io, socket, deps) {
         try {
             const validated = schemas.channelLevel.parse(data);
             const mixer = mixerSingleton.getMixer();
-            mixer.input(validated.channel).setFaderLevel(validated.level);
+            mixer.master.input(validated.channel).setFaderLevel(validated.level);
             mixerSingleton.updateChannelState(validated.channel, { level: validated.level });
             logger.info(socket.id, 'SET_CHANNEL_LEVEL', { channel: validated.channel, level: validated.level });
         } catch (error) {
@@ -334,7 +334,7 @@ function registerMixerCommandHandlers(io, socket, deps) {
         try {
             const validated = schemas.channelMute.parse(data);
             const mixer = mixerSingleton.getMixer();
-            const input = mixer.input(validated.channel);
+            const input = mixer.master.input(validated.channel);
             if (validated.mute) {
                 input.mute();
                 mixerSingleton.updateChannelState(validated.channel, { mute: 1 });

@@ -17,7 +17,7 @@ function createMixerActions(getMixer) {
 
     function applyChannelHpf(channel, hz) {
         const mixer = getMixer();
-        const input = mixer.input(channel);
+        const input = mixer.master.input(channel);
         const frequency = clamp(hz || 100, 20, 400);
         
         input.eq().setHpfFreq(frequency);
@@ -34,7 +34,7 @@ function createMixerActions(getMixer) {
     }
 
     function applyChannelGate(channel, enabled, threshold = -52) {
-        const input = getMixer().input(channel);
+        const input = getMixer().master.input(channel);
         if (enabled) {
             input.gate().enable();
         } else {
@@ -46,7 +46,7 @@ function createMixerActions(getMixer) {
     }
 
     function applyChannelCompressor(channel, ratio = 2.5, threshold = -18) {
-        const input = getMixer().input(channel);
+        const input = getMixer().master.input(channel);
         input.compressor().enable();
         input.compressor().setRatio(clamp(ratio, 1, 20));
         input.compressor().setThreshold(clamp(threshold, -60, 0));
@@ -63,7 +63,7 @@ function createMixerActions(getMixer) {
         const qValue = clamp(q, 0.2, 10);
         const bandIndex = clamp(band, 1, 4);
 
-        const eq = target === 'master' ? mixer.master.eq() : mixer.input(channel).eq();
+        const eq = target === 'master' ? mixer.master.eq() : mixer.master.input(channel).eq();
         
         eq.band(bandIndex).setFreq(frequency);
         eq.band(bandIndex).setGain(cutGain);
@@ -97,7 +97,7 @@ function createMixerActions(getMixer) {
     }
 
     function setAuxLevel(channel, aux, level) {
-        const input = getMixer().input(channel);
+        const input = getMixer().master.input(channel);
         const faderVal = clamp(level, 0, 1);
         input.aux(aux).setFaderLevel(faderVal);
         mixerSingleton.updateAuxState(aux, { level: faderVal, channel });
@@ -105,24 +105,24 @@ function createMixerActions(getMixer) {
     }
 
     function setAuxPost(channel, aux, isPost) {
-        getMixer().input(channel).aux(aux).setPost(isPost ? 1 : 0);
+        getMixer().master.input(channel).aux(aux).setPost(isPost ? 1 : 0);
         return `AUX ${aux} do canal ${channel} configurado como ${isPost ? 'POST' : 'PRE'}-Fader.`;
     }
 
     function setAuxPostProc(channel, aux, isPostProc) {
-        getMixer().input(channel).aux(aux).setPostProc(isPostProc ? 1 : 0);
+        getMixer().master.input(channel).aux(aux).setPostProc(isPostProc ? 1 : 0);
         return `AUX ${aux} do canal ${channel} configurado como ${isPostProc ? 'POST' : 'PRE'}-PROC.`;
     }
 
     function setFxLevel(channel, fx, level) {
-        const input = getMixer().input(channel);
+        const input = getMixer().master.input(channel);
         const faderVal = clamp(level, 0, 1);
         input.fx(fx).setFaderLevel(faderVal);
         return `FX ${fx} do canal ${channel} ajustado para ${Math.round(faderVal * 100)}%.`;
     }
 
     function setFxPost(channel, fx, isPost) {
-        getMixer().input(channel).fx(fx).setPost(isPost ? 1 : 0);
+        getMixer().master.input(channel).fx(fx).setPost(isPost ? 1 : 0);
         return `FX ${fx} do canal ${channel} configurado como ${isPost ? 'POST' : 'PRE'}-Fader.`;
     }
 
@@ -134,7 +134,7 @@ function createMixerActions(getMixer) {
 
     function fadeChannel(channel, level, time) {
         // ✅ Correção Auditoria: fadeTo aceita apenas 2 argumentos
-        getMixer().input(channel).fadeTo(clamp(level, 0, 1), time);
+        getMixer().master.input(channel).fadeTo(clamp(level, 0, 1), time);
         return `Fade do canal ${channel} para ${Math.round(level * 100)}% em ${time}ms iniciado.`;
     }
 
@@ -165,7 +165,7 @@ function createMixerActions(getMixer) {
     }
 
     function setChannelName(channel, name) {
-        const input = getMixer().input(channel);
+        const input = getMixer().master.input(channel);
         const cleanName = String(name || '').substring(0, 20);
         input.setName(cleanName);
         mixerSingleton.updateChannelState(channel, { name: cleanName });
@@ -251,7 +251,7 @@ function createMixerActions(getMixer) {
     }
 
     function mtkSelectChannel(channel, selected) {
-        const input = getMixer().input(channel);
+        const input = getMixer().master.input(channel);
         if (selected) input.multiTrackSelect();
         else input.multiTrackUnselect();
         return `Canal ${channel} ${selected ? 'ADICIONADO ao' : 'REMOVIDO do'} Multitrack.`;
@@ -293,7 +293,7 @@ function createMixerActions(getMixer) {
         else if (action === 'reset_weights') {
             const mixer = getMixer();
             for (let i = 1; i <= 24; i++) {
-                const input = mixer.input(i);
+                const input = mixer.master.input(i);
                 if (input) input.automixSetWeight(0.5);
             }
         }
@@ -304,7 +304,7 @@ function createMixerActions(getMixer) {
     function automixAssignChannel(channel, group, weight = 0.5) {
         const mixer = getMixer();
         if (!mixer) return 'Mesa não conectada.';
-        const input = mixer.input(channel);
+        const input = mixer.master.input(channel);
         if (!input) return `Canal ${channel} inválido.`;
         input.automixAssignGroup(group); // 'a', 'b', ou 'none'
         input.automixSetWeight(clamp(weight, 0, 1));
@@ -315,7 +315,7 @@ function createMixerActions(getMixer) {
         const mixer = getMixer();
         const info = mixer.deviceInfo;
         return {
-            model: info.model,
+            model: mixer.model || 'Soundcraft Ui',
             firmware: 'Verificando...', // Firmware é via Observable, simplificamos para o retorno imediato
             capabilities: 'Consultando...'
         };
@@ -369,7 +369,7 @@ function createMixerActions(getMixer) {
             mixer.aux(id).setDelay(delayValue);
         } else if (target === 'channel' || target === 'input') {
             const chDelay = clamp(ms, 0, 250);
-            mixer.input(id || 1).setDelay(chDelay);
+            mixer.master.input(id || 1).setDelay(chDelay);
         }
         return `Delay de ${ms}ms solicitado para ${target} ${id || ''}.`;
     }
@@ -384,13 +384,13 @@ function createMixerActions(getMixer) {
         const actionsMap = {
             'volume_up': (c) => {
                 const delta = Number(c.val) || 1;
-                const target = c.target === 'master' ? mixer.master : mixer.input(c.ch || c.channel || 1);
+                const target = c.target === 'master' ? mixer.master : mixer.master.input(c.ch || c.channel || 1);
                 target.changeFaderLevelDB(delta);
                 return `${c.target} ajustado em ${delta}dB.`;
             },
             'volume_down': (c) => {
                 const delta = Number(c.val) || -1;
-                const target = c.target === 'master' ? mixer.master : mixer.input(c.ch || c.channel || 1);
+                const target = c.target === 'master' ? mixer.master : mixer.master.input(c.ch || c.channel || 1);
                 target.changeFaderLevelDB(delta);
                 return `${c.target} ajustado em ${delta}dB.`;
             },
@@ -403,20 +403,20 @@ function createMixerActions(getMixer) {
             'run_master_ideal_curve': () => { const steps = [applyEqCut('master', null, 60, 3, 1.0, 1), applyEqCut('master', null, 400, -2, 1.2, 2), applyEqCut('master', null, 3000, 1, 1.0, 3)]; return `Curva ideal aplicada no Master: ${steps.join(' ')}`; },
             'set_master_level': (c) => { mixer.master.setFaderLevel(clamp(c.level || 0.7, 0, 1)); return `Master ajustado para ${Math.round((c.level || 0.7) * 100)}%`; },
             'master_mute': (c) => { if (c.enabled) mixer.master.mute(); else mixer.master.unmute(); return `Master ${c.enabled ? 'MUTADO' : 'DESMUTADO'}.`; },
-            'set_channel_level': (c) => { const ch = c.channel || c.ch || 1; mixer.input(ch).setFaderLevel(clamp(c.level || 0.7, 0, 1)); return `Canal ${ch} ajustado para ${Math.round((c.level || 0.7) * 100)}%`; },
-            'channel_fader': (c) => { const ch = c.channel || c.ch || 1; mixer.input(ch).setFaderLevel(clamp(c.level || 0.7, 0, 1)); return `Canal ${ch} ajustado para ${Math.round((c.level || 0.7) * 100)}%`; },
-            'channel_mute': (c) => { const ch = c.channel || c.ch || 1; if (c.enabled) mixer.input(ch).mute(); else mixer.input(ch).unmute(); return `Canal ${ch} ${c.enabled ? 'MUTADO' : 'DESMUTADO'}.`; },
+            'set_channel_level': (c) => { const ch = c.channel || c.ch || 1; mixer.master.input(ch).setFaderLevel(clamp(c.level || 0.7, 0, 1)); return `Canal ${ch} ajustado para ${Math.round((c.level || 0.7) * 100)}%`; },
+            'channel_fader': (c) => { const ch = c.channel || c.ch || 1; mixer.master.input(ch).setFaderLevel(clamp(c.level || 0.7, 0, 1)); return `Canal ${ch} ajustado para ${Math.round((c.level || 0.7) * 100)}%`; },
+            'channel_mute': (c) => { const ch = c.channel || c.ch || 1; if (c.enabled) mixer.master.input(ch).mute(); else mixer.master.input(ch).unmute(); return `Canal ${ch} ${c.enabled ? 'MUTADO' : 'DESMUTADO'}.`; },
             'toggle_dim': () => { mixer.master.toggleDim(); return 'Função DIM alternada no Master.'; },
             'set_master_pan': (c) => { mixer.master.setPan(clamp(c.val || 0.5, 0, 1)); return `Pan do Master ajustado para ${c.val}`; },
-            'set_channel_pan': (c) => { const ch = c.channel || c.ch || 1; mixer.input(ch).setPan(clamp(c.val || 0.5, 0, 1)); return `Pan do Canal ${ch} ajustado para ${c.val}`; },
-            'toggle_solo': (c) => { const ch = c.channel || c.ch || 1; mixer.input(ch).toggleSolo(); return `Solo do Canal ${ch} alternado.`; },
+            'set_channel_pan': (c) => { const ch = c.channel || c.ch || 1; mixer.master.input(ch).setPan(clamp(c.val || 0.5, 0, 1)); return `Pan do Canal ${ch} ajustado para ${c.val}`; },
+            'toggle_solo': (c) => { const ch = c.channel || c.ch || 1; mixer.master.input(ch).toggleSolo(); return `Solo do Canal ${ch} alternado.`; },
             'fade_master': (c) => fadeMaster(c.level || 0, c.time || 2000),
             'fade_channel': (c) => fadeChannel(c.channel || 1, c.level || 0, c.time || 2000),
             'set_oscillator': (c) => applyOscillator(c.enabled !== 0, c.type, c.level),
             'set_aux_level': (c) => setAuxLevel(c.channel || 1, c.aux || 1, c.level || 0),
             'set_aux_post': (c) => setAuxPost(c.channel || 1, c.aux || 1, c.enabled !== 0),
             'set_aux_post_proc': (c) => setAuxPostProc(c.channel || 1, c.aux || 1, c.enabled !== 0),
-            'set_aux_pan': (c) => { const ch = c.channel || c.ch || 1; getMixer().input(ch).aux(c.aux || 1).setPan(clamp(c.val || 0.5, 0, 1)); return `Pan do AUX ${c.aux} (Canal ${ch}) ajustado para ${c.val}`; },
+            'set_aux_pan': (c) => { const ch = c.channel || c.ch || 1; getMixer().master.input(ch).aux(c.aux || 1).setPan(clamp(c.val || 0.5, 0, 1)); return `Pan do AUX ${c.aux} (Canal ${ch}) ajustado para ${c.val}`; },
             'set_channel_name': (c) => setChannelName(c.channel || 1, c.name || ''),
             'set_fx_level': (c) => setFxLevel(c.channel || 1, c.fx || 1, c.level || 0),
             'set_fx_post': (c) => setFxPost(c.channel || 1, c.fx || 1, c.enabled !== 0),
@@ -482,7 +482,7 @@ function createMixerActions(getMixer) {
 
     function _applyBands(target, channel, bands, snapshot) {
         const mixer = getMixer();
-        const eq = target === 'master' ? mixer.master.eq() : mixer.input(channel).eq();
+        const eq = target === 'master' ? mixer.master.eq() : mixer.master.input(channel).eq();
         const applied = [];
         for (const f of bands) {
             const frequency = clamp(f.hz || 250, 20, 20000);

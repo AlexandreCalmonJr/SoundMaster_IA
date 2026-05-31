@@ -103,9 +103,16 @@ function registerMixerConnectionHandlers(io, socket, deps) {
                 });
 
                 newMixer.deviceInfo.firmware$.subscribe(fw => io.emit('device_info', { firmware: fw }));
+
+                let cachedModel = newMixer.brand === 'soundcraft' ? 'Soundcraft Ui' : undefined;
+                newMixer.deviceInfo.model$.subscribe(model => {
+                    cachedModel = model;
+                    io.emit('device_info', { model });
+                });
+
                 newMixer.deviceInfo.capabilities$.subscribe(caps => {
                     io.emit('device_info', {
-                        model: newMixer.deviceInfo.model,
+                        model: cachedModel,
                         caps: { inputs: caps.inputChannels, aux: caps.auxBusses, fx: caps.fxChannels, sub: caps.subGroups, vca: caps.vcaGroups }
                     });
                 });
@@ -125,7 +132,7 @@ function registerMixerConnectionHandlers(io, socket, deps) {
                 newMixer.shows.currentCue$.subscribe(cue => io.emit('cue_status', { cue }));
 
                 for (let i = 1; i <= 24; i++) {
-                    const input = newMixer.input(i);
+                    const input = newMixer.master.input(i);
                     input.name$.subscribe(name => io.emit('channel_name_update', { channel: i, name }));
                     input.faderLevel$.subscribe(level => {
                         mixerSingleton.updateChannelState(i, { level });
