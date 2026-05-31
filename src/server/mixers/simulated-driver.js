@@ -113,7 +113,9 @@ function buildSimulatedMixer(socket, mixerSingleton) {
                 b: { state$: { subscribe: () => {} } }
             },
             responseTimeMs$: { subscribe: () => {} },
-            responseTime$: { subscribe: () => {} }
+            responseTime$: { subscribe: () => {} },
+            setResponseTime: (v) => log(`[Sim] Automix Response Time -> ${v}`),
+            setResponseTimeMs: (ms) => log(`[Sim] Automix Response Time Ms -> ${ms}`)
         },
         deviceInfo: {
             model: 'Soundcraft Ui (Simulada)',
@@ -133,7 +135,16 @@ function buildSimulatedMixer(socket, mixerSingleton) {
             updateCurrentSnapshot: () => log('[Sim] Update Current Snapshot'),
             updateCurrentCue: () => log('[Sim] Update Current Cue')
         },
-        vuProcessor: { vuData$: { subscribe: () => {} } },
+        vuProcessor: {
+            vuData$: { subscribe: () => {} },
+            input: (id) => ({ subscribe: () => {} }),
+            line: (id) => ({ subscribe: () => {} }),
+            player: (id) => ({ subscribe: () => {} }),
+            aux: (id) => ({ subscribe: () => {} }),
+            fx: (id) => ({ subscribe: () => {} }),
+            sub: (id) => ({ subscribe: () => {} }),
+            master: () => ({ subscribe: () => {} })
+        },
         channelSync: { getSelectedChannel: () => ({ subscribe: () => {} }), selectChannel: () => {} },
         player: {
             state$: { subscribe: () => {} },

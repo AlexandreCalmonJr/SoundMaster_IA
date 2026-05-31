@@ -186,6 +186,9 @@ module.exports = {
     updateMasterState: (patch) => {
         Object.assign(stateTree.master, patch);
     },
+    updateMetaState: (patch) => {
+        Object.assign(stateTree.meta, patch);
+    },
     updateChannelState: (ch, patch) => {
         if (!stateTree.inputs[ch - 1]) return null;
         Object.assign(stateTree.inputs[ch - 1], patch);

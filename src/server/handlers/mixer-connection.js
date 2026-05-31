@@ -160,11 +160,51 @@ function registerMixerConnectionHandlers(io, socket, deps) {
                     }
                 }
 
+                // VUs para barramentos não-input
+                for (let i = 1; i <= 2; i++) {
+                    try {
+                        safeSubscribe(newMixer.vuProcessor.line(i), vu => {
+                            io.emit(`vu_line_${i}`, vu);
+                        }, `vuProcessor.line(${i})`);
+                    } catch (e) {}
+
+                    try {
+                        safeSubscribe(newMixer.vuProcessor.player(i), vu => {
+                            io.emit(`vu_player_${i}`, vu);
+                        }, `vuProcessor.player(${i})`);
+                    } catch (e) {}
+                }
+
+                for (let i = 1; i <= 10; i++) {
+                    try {
+                        safeSubscribe(newMixer.vuProcessor.aux(i), vu => {
+                            io.emit(`vu_aux_${i}`, vu);
+                        }, `vuProcessor.aux(${i})`);
+                    } catch (e) {}
+                }
+
+                for (let i = 1; i <= 4; i++) {
+                    try {
+                        safeSubscribe(newMixer.vuProcessor.fx(i), vu => {
+                            io.emit(`vu_fx_${i}`, vu);
+                        }, `vuProcessor.fx(${i})`);
+                    } catch (e) {}
+                }
+
+                for (let i = 1; i <= 6; i++) {
+                    try {
+                        safeSubscribe(newMixer.vuProcessor.sub(i), vu => {
+                            io.emit(`vu_sub_${i}`, vu);
+                        }, `vuProcessor.sub(${i})`);
+                    } catch (e) {}
+                }
+
                 safeSubscribe(newMixer.deviceInfo.firmware$, fw => io.emit('device_info', { firmware: fw }), 'deviceInfo.firmware$');
 
                 let cachedModel = newMixer.brand === 'soundcraft' ? 'Soundcraft Ui' : undefined;
                 safeSubscribe(newMixer.deviceInfo.model$, model => {
                     cachedModel = model;
+                    mixerSingleton.updateMetaState({ model: model || 'Soundcraft Ui' });
                     io.emit('device_info', { model });
                 }, 'deviceInfo.model$');
 

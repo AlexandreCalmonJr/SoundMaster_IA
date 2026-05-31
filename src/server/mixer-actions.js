@@ -313,7 +313,10 @@ function createMixerActions(getMixer) {
 
         if (action.startsWith('enable')) group.enable();
         else if (action.startsWith('disable')) group.disable();
-        else if (action === 'set_response') am.setResponseTimeMs(clamp(value, 20, 4000));
+        else if (action === 'set_response') {
+            if (value <= 1.0) am.setResponseTime(clamp(value, 0, 1));
+            else am.setResponseTimeMs(clamp(value, 20, 4000));
+        }
         else if (action === 'reset_weights') {
             const mixer = getMixer();
             for (let i = 1; i <= 24; i++) {
@@ -488,8 +491,7 @@ function createMixerActions(getMixer) {
             },
             'set_master_dim': (c) => {
                 const dVal = c.enabled !== false && c.val !== 0;
-                if (dVal) mixer.master.dim();
-                else mixer.master.undim();
+                mixer.master.setDim(dVal ? 1 : 0);
                 return `Dim do Master ${dVal ? 'ativado' : 'desativado'}.`;
             },
             'set_master_delay': (c) => {
