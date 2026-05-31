@@ -111,6 +111,31 @@ function registerMixerConnectionHandlers(io, socket, deps) {
                     io.emit('master_level_db', encodeMasterLevelDb(levelDb));
                 }, 'master.faderLevelDB$');
 
+                safeSubscribe(newMixer.master.pan$, pan => {
+                    mixerSingleton.updateMasterState({ pan });
+                    io.emit('master_pan', { pan });
+                }, 'master.pan$');
+
+                safeSubscribe(newMixer.master.dim$, dim => {
+                    mixerSingleton.updateMasterState({ dim });
+                    io.emit('master_dim', { dim });
+                }, 'master.dim$');
+
+                safeSubscribe(newMixer.master.delayL$, delayL => {
+                    mixerSingleton.updateMasterState({ delayL });
+                    io.emit('master_delay_l', { delayL });
+                }, 'master.delayL$');
+
+                safeSubscribe(newMixer.master.delayR$, delayR => {
+                    mixerSingleton.updateMasterState({ delayR });
+                    io.emit('master_delay_r', { delayR });
+                }, 'master.delayR$');
+
+                safeSubscribe(newMixer.master.name$, name => {
+                    mixerSingleton.updateMasterState({ name });
+                    io.emit('master_name', { name });
+                }, 'master.name$');
+
                 safeSubscribe(newMixer.vuProcessor.vuData$, vuData => {
                     const mapped = { master: null, channels: {} };
                     if (vuData['master']) mapped.master = vuData['master'];
@@ -119,6 +144,21 @@ function registerMixerConnectionHandlers(io, socket, deps) {
                     }
                     io.emit('vu_data', encodeVuData(mapped));
                 }, 'vuProcessor.vuData$');
+
+                safeSubscribe(newMixer.vuProcessor.master(), vuMaster => {
+                    io.emit('vu_master_individual', vuMaster);
+                }, 'vuProcessor.master()');
+
+                for (let i = 1; i <= 24; i++) {
+                    try {
+                        const vuStream$ = newMixer.vuProcessor.input(i);
+                        safeSubscribe(vuStream$, vuInput => {
+                            io.emit(`vu_channel_${i}`, vuInput);
+                        }, `vuProcessor.input(${i})`);
+                    } catch (err) {
+                        // Omissão silenciosa se o canal de VU não existir
+                    }
+                }
 
                 safeSubscribe(newMixer.deviceInfo.firmware$, fw => io.emit('device_info', { firmware: fw }), 'deviceInfo.firmware$');
 
@@ -143,7 +183,12 @@ function registerMixerConnectionHandlers(io, socket, deps) {
                 safeSubscribe(newMixer.recorderMultiTrack.recording$, isMtkRec => io.emit('recorder_status', { recording: false, mtkRecording: !!isMtkRec }), 'recorderMultiTrack.recording$');
 
                 safeSubscribe(newMixer.player.state$, state => io.emit('player_status', { state }), 'player.state$');
+                safeSubscribe(newMixer.player.playlist$, playlist => io.emit('player_playlist', { playlist }), 'player.playlist$');
                 safeSubscribe(newMixer.player.track$, track => io.emit('player_track', { track }), 'player.track$');
+                safeSubscribe(newMixer.player.length$, length => io.emit('player_length', { length }), 'player.length$');
+                safeSubscribe(newMixer.player.elapsedTime$, elapsed => io.emit('player_elapsed', { elapsed }), 'player.elapsedTime$');
+                safeSubscribe(newMixer.player.remainingTime$, remaining => io.emit('player_remaining', { remaining }), 'player.remainingTime$');
+                safeSubscribe(newMixer.player.shuffle$, shuffle => io.emit('player_shuffle', { shuffle: !!shuffle }), 'player.shuffle$');
 
                 safeSubscribe(newMixer.shows.currentShow$, show => io.emit('show_status', { show }), 'shows.currentShow$');
                 safeSubscribe(newMixer.shows.currentSnapshot$, snapshot => io.emit('snapshot_status', { snapshot }), 'shows.currentSnapshot$');
@@ -162,9 +207,61 @@ function registerMixerConnectionHandlers(io, socket, deps) {
                                 mixerSingleton.updateChannelState(i, { mute });
                                 io.emit('channel_mute', { channel: i, mute });
                             }, `input(${i}).mute$`);
+                            safeSubscribe(input.solo$, solo => {
+                                mixerSingleton.updateChannelState(i, { solo });
+                                io.emit('channel_solo', { channel: i, solo });
+                            }, `input(${i}).solo$`);
+                            safeSubscribe(input.delay$, delay => {
+                                mixerSingleton.updateChannelState(i, { delay });
+                                io.emit('channel_delay_feedback', { channel: i, delay });
+                            }, `input(${i}).delay$`);
+                            safeSubscribe(input.automixGroup$, automixGroup => {
+                                mixerSingleton.updateChannelState(i, { automixGroup });
+                                io.emit('channel_automix_group', { channel: i, group: automixGroup });
+                            }, `input(${i}).automixGroup$`);
+                            safeSubscribe(input.automixWeight$, automixWeight => {
+                                mixerSingleton.updateChannelState(i, { automixWeight });
+                                io.emit('channel_automix_weight', { channel: i, weight: automixWeight });
+                            }, `input(${i}).automixWeight$`);
+                            safeSubscribe(input.automixWeightDB$, automixWeightDB => {
+                                mixerSingleton.updateChannelState(i, { automixWeightDB });
+                                io.emit('channel_automix_weight_db', { channel: i, weightDb: automixWeightDB });
+                            }, `input(${i}).automixWeightDB$`);
+                            safeSubscribe(input.multiTrackSelected$, multiTrackSelected => {
+                                mixerSingleton.updateChannelState(i, { multiTrackSelected });
+                                io.emit('channel_multitrack_selected', { channel: i, selected: !!multiTrackSelected });
+                            }, `input(${i}).multiTrackSelected$`);
                         }
                     } catch (err) {
                         logger.warn(socket.id, `FALHA_OBTER_CANAL_${i}`, { error: err.message });
+                    }
+                }
+
+                for (let f = 1; f <= 4; f++) {
+                    try {
+                        const fxBus = newMixer.fx(f);
+                        if (fxBus) {
+                            safeSubscribe(fxBus.fxType$, fxType => io.emit('fx_type', { fx: f, type: fxType }), `fx(${f}).fxType$`);
+                            safeSubscribe(fxBus.bpm$, bpm => io.emit('fx_bpm_feedback', { fx: f, bpm }), `fx(${f}).bpm$`);
+                            for (let p = 1; p <= 6; p++) {
+                                safeSubscribe(fxBus.getParam(p), val => io.emit('fx_param_feedback', { fx: f, param: p, val }), `fx(${f}).getParam(${p})`);
+                            }
+                        }
+                    } catch (err) {
+                        logger.warn(socket.id, `FALHA_OBTER_FX_${f}`, { error: err.message });
+                    }
+                }
+
+                for (let h = 1; h <= 24; h++) {
+                    try {
+                        const hw = newMixer.hw(h);
+                        if (hw) {
+                            safeSubscribe(hw.phantom$, phantom => io.emit('hw_phantom', { input: h, phantom: !!phantom }), `hw(${h}).phantom$`);
+                            safeSubscribe(hw.gain$, gain => io.emit('hw_gain_feedback', { input: h, gain }), `hw(${h}).gain$`);
+                            safeSubscribe(hw.gainDB$, gainDb => io.emit('hw_gain_db_feedback', { input: h, gainDb }), `hw(${h}).gainDB$`);
+                        }
+                    } catch (err) {
+                        // Omissão silenciosa
                     }
                 }
 

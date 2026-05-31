@@ -222,9 +222,18 @@ function createMixerActions(getMixer) {
             case 'next': p.next(); break;
             case 'prev': p.prev(); break;
             case 'shuffle': p.setShuffle(value ? 1 : 0); break;
+            case 'toggle_shuffle': p.toggleShuffle(); break;
             case 'auto': p.setAuto(); break;
             case 'manual': p.setManual(); break;
             case 'load_playlist': p.loadPlaylist(value); break;
+            case 'load_track': 
+                if (typeof value === 'object' && value !== null) {
+                    p.loadTrack(value.playlist || '', value.track || '');
+                } else if (typeof value === 'string') {
+                    const parts = value.split(':');
+                    p.loadTrack(parts[0] || '', parts[1] || '');
+                }
+                break;
             default: return `Ação do player desconhecida: ${action}`;
         }
         return `Player: comando ${action} executado.`;
@@ -248,10 +257,12 @@ function createMixerActions(getMixer) {
         switch (action) {
             case 'start': mtk.recordStart(); break;
             case 'stop': mtk.recordStop(); break;
+            case 'toggle': mtk.recordToggle(); break;
             case 'play': mtk.play(); break;
             case 'pause': mtk.pause(); break;
             case 'soundcheck_on': mtk.activateSoundcheck(); break;
             case 'soundcheck_off': mtk.deactivateSoundcheck(); break;
+            case 'toggle_soundcheck': mtk.toggleSoundcheck(); break;
             default: return `Ação MTK desconhecida: ${action}`;
         }
         return `Multitrack: comando ${action} executado.`;
@@ -271,14 +282,20 @@ function createMixerActions(getMixer) {
             case 'load_snapshot': s.loadSnapshot(showName, targetName); break;
             case 'load_cue': s.loadCue(showName, targetName); break;
             case 'save_snapshot': s.saveSnapshot(showName, targetName); break;
+            case 'save_cue': s.saveCue(showName, targetName); break;
             case 'update_snapshot': s.updateCurrentSnapshot(); break;
+            case 'update_cue': s.updateCurrentCue(); break;
             default: return `Ação de Show desconhecida: ${action}`;
         }
         return `Show/Snapshot: comando ${action} executado (${showName}${targetName ? ' > ' + targetName : ''}).`;
     }
 
-    function muteGroupControl(groupId, mute) {
+    function muteGroupControl(groupId, action, mute = false) {
         const mg = getMixer().muteGroup(groupId);
+        if (action === 'toggle') {
+            mg.toggle();
+            return `Mute Group ${groupId} alternado.`;
+        }
         if (mute) mg.mute();
         else mg.unmute();
         return `Mute Group ${groupId} ${mute ? 'MUTADO' : 'ATIVADO'}.`;
@@ -401,6 +418,65 @@ function createMixerActions(getMixer) {
                 target.changeFaderLevelDB(delta);
                 return `${c.target} ajustado em ${delta}dB.`;
             },
+            'set_fader_level_db': (c) => {
+                const target = c.target === 'master' ? mixer.master : mixer.master.input(c.ch || c.channel || 1);
+                const dbVal = clamp(c.levelDb || c.val || 0, -Infinity, 10);
+                target.setFaderLevelDB(dbVal);
+                return `${c.target} fader ajustado para ${dbVal}dB.`;
+            },
+            'change_fader_level': (c) => {
+                const target = c.target === 'master' ? mixer.master : mixer.master.input(c.ch || c.channel || 1);
+                const offset = clamp(c.offset || c.val || 0, -1, 1);
+                target.changeFaderLevel(offset);
+                return `${c.target} fader ajustado relativamente em ${offset} linear.`;
+            },
+            'change_fader_level_db': (c) => {
+                const target = c.target === 'master' ? mixer.master : mixer.master.input(c.ch || c.channel || 1);
+                const offsetDb = clamp(c.offsetDb || c.val || 0, -100, 100);
+                target.changeFaderLevelDB(offsetDb);
+                return `${c.target} fader ajustado relativamente em ${offsetDb}dB.`;
+            },
+            'fade_master_db': (c) => {
+                const dbVal = clamp(c.levelDb || c.val || 0, -Infinity, 10);
+                const time = c.time || 2000;
+                mixer.master.fadeToDB(dbVal, time);
+                return `Fade do Master para ${dbVal}dB em ${time}ms iniciado.`;
+            },
+            'fade_channel_db': (c) => {
+                const ch = c.channel || c.ch || 1;
+                const dbVal = clamp(c.levelDb || c.val || 0, -Infinity, 10);
+                const time = c.time || 2000;
+                mixer.master.input(ch).fadeToDB(dbVal, time);
+                return `Fade do canal ${ch} para ${dbVal}dB em ${time}ms iniciado.`;
+            },
+            'set_master_dim': (c) => {
+                if (c.enabled) mixer.master.dim();
+                else mixer.master.undim();
+                return `Dim do Master ${c.enabled ? 'ativado' : 'desativado'}.`;
+            },
+            'set_master_delay': (c) => {
+                const ms = clamp(c.ms || c.val || 0, 0, 500);
+                mixer.master.setDelayL(ms);
+                mixer.master.setDelayR(ms);
+                return `Delay do Master L/R configurado para ${ms}ms.`;
+            },
+            'change_master_delay': (c) => {
+                const offset = clamp(c.offset || c.val || 0, -500, 500);
+                mixer.master.changeDelayL(offset);
+                mixer.master.changeDelayR(offset);
+                return `Delay do Master L/R ajustado relativamente em ${offset}ms.`;
+            },
+            'change_master_pan': (c) => {
+                const offset = clamp(c.offset || c.val || 0, -1, 1);
+                mixer.master.changePan(offset);
+                return `Pan do Master ajustado relativamente em ${offset}.`;
+            },
+            'change_channel_pan': (c) => {
+                const ch = c.channel || c.ch || 1;
+                const offset = clamp(c.offset || c.val || 0, -1, 1);
+                mixer.master.input(ch).changePan(offset);
+                return `Pan do Canal ${ch} ajustado relativamente em ${offset}.`;
+            },
             'eq_cut': (c) => applyEqCut(c.target, c.channel, c.hz, c.gain, c.q, c.band),
             'apply_channel_hpf': (c) => applyChannelHpf(c.channel || 1, c.hz || 100),
             'apply_channel_gate': (c) => applyChannelGate(c.channel || 1, c.enabled !== 0, c.threshold),
@@ -434,12 +510,12 @@ function createMixerActions(getMixer) {
             'set_phantom_power': (c) => setPhantom(c.input || c.channel || 1, c.enabled !== 0),
             'set_monitor_volume': (c) => setMonitorVolume(c.target || 'hp1', c.val || 0.5),
             'select_channel': (c) => selectChannelSync(c.type || 'input', c.channel || c.ch || 1, c.syncId || 'SYNC_ID'),
-            'player_cmd': (c) => playerControl(c.action_type, c.val),
+            'player_cmd': (c) => playerControl(c.action_type || c.action, c.val),
             'recorder_cmd': (c) => recorderControl(c.action_type),
             'mtk_cmd': (c) => mtkControl(c.action_type),
             'mtk_select': (c) => mtkSelectChannel(c.channel || c.ch || 1, c.enabled !== 0),
             'show_cmd': (c) => showControl(c.action_type, c.show, c.target),
-            'mute_group_cmd': (c) => muteGroupControl(c.id || 'all', c.enabled !== 0),
+            'mute_group_cmd': (c) => muteGroupControl(c.id || 'all', c.action_type || c.action, c.enabled !== 0),
             'clear_mute_groups': () => clearMuteGroups(),
             'automix_cmd': (c) => automixControl(c.action_type, c.val),
             'assign_channel': (c) => automixAssignChannel(c.channel || 1, c.group || 'none', c.weight || 0.5),
