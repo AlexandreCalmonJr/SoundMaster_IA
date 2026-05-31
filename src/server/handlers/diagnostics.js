@@ -95,9 +95,12 @@ function registerDiagnosticHandlers(io, socket, deps) {
         const recWav = path.join(tmpDir, `sweep_rec_${ts}.wav`);
         const refWav = path.join(tmpDir, `sweep_ref_${ts}.wav`);
 
-        const sampleRate = (sweepParams?.sampleRate && Number.isFinite(sweepParams.sampleRate))
-            ? sweepParams.sampleRate
-            : 44100;
+        // Prioriza sampleRate enviado no top-level do payload (fix: antes faltava e usava 44100)
+        const sampleRate = (data.sampleRate && Number.isFinite(data.sampleRate))
+            ? data.sampleRate
+            : (sweepParams?.sampleRate && Number.isFinite(sweepParams.sampleRate))
+                ? sweepParams.sampleRate
+                : 44100;
 
         try {
             _writeWav(recWav, recording, sampleRate);

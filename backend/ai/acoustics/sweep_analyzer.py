@@ -18,6 +18,8 @@ _script_dir = os.path.dirname(os.path.abspath(__file__))
 _parent_dir = os.path.dirname(_script_dir)
 if _parent_dir not in sys.path:
     sys.path.insert(0, _parent_dir)
+if _script_dir not in sys.path:
+    sys.path.insert(0, _script_dir)
 
 import acoustic_analysis
 
@@ -99,7 +101,7 @@ class SweepAnalyzer:
         schroeder_downsampled = ir_data["schroeder"][::downsample_factor].tolist()
 
         # Calculate STI from RT60 and SNR
-        from .processor import AcousticProcessor
+        from processor import AcousticProcessor
         sti_value = AcousticProcessor.estimate_sti(rt60_est, snr_db)
         if sti_value >= 0.6:
             sti_category = 'Bom'

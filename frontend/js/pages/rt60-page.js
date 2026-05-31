@@ -258,13 +258,9 @@
             pm._call('AppStore', 'addLog', 'MTK: Gravação de Multitrack finalizada.');
         });
 
-        // Listen for new RT60 results dispatched on parent document
+        // Listen for new RT60 results dispatched into this page document
         rt60Listener = handleRt60Result;
         console.log('[Rt60Page] Vinculando ouvintes do evento rt60-result. SchroederRenderer disponível:', typeof window.SchroederRenderer !== 'undefined');
-        if (window.parent && window.parent.document) {
-            window.parent.document.removeEventListener('rt60-result', rt60Listener);
-            window.parent.document.addEventListener('rt60-result', rt60Listener);
-        }
         document.removeEventListener('rt60-result', rt60Listener);
         document.addEventListener('rt60-result', rt60Listener);
     }
@@ -273,9 +269,6 @@
         var socket = pm._call('SocketService', 'raw');
         if (socket) {
             socket.off('acoustic_history_data', handleAcousticHistory);
-        }
-        if (window.parent && window.parent.document && rt60Listener) {
-            window.parent.document.removeEventListener('rt60-result', rt60Listener);
         }
         document.removeEventListener('rt60-result', rt60Listener);
         pm.destroy();

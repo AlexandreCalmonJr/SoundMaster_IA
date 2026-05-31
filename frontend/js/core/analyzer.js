@@ -1949,12 +1949,26 @@
         const summaryEl = _el('pink-measure-summary');
         if (summaryEl) summaryEl.innerText = '⚙️ Deconvoluindo IR...';
 
+        // ── Downsample para reduzir payload (evitar exceder maxHttpBufferSize) ──
+        var targetSr = sampleRate;
+        var recArr = Array.from(recording);
+        var refArr = reference ? Array.from(reference) : [];
+
+        // Se > 24kHz, downsample por 2 para reduzir payload ~50%
+        if (sampleRate > 24000) {
+            var factor = 2;
+            targetSr = Math.round(sampleRate / factor);
+            recArr = _downsample(recArr, factor);
+            refArr = refArr.length > 0 ? _downsample(refArr, factor) : [];
+            console.log('[Sweep] Downsample ' + sampleRate + 'Hz → ' + targetSr + 'Hz (rec: ' + recArr.length + ' samples)');
+        }
+
         var _ss = window.SocketService;
         var payload = {
-            recording: Array.from(recording),
-            reference: Array.from(reference),
-            sampleRate,
-            sweepParams: { f0: 20, f1: 20000, duration: 10, amplitude: 0.85, silencePre: 0.5 }
+            recording: recArr,
+            reference: refArr,
+            sampleRate: targetSr,
+            sweepParams: { f0: 20, f1: 20000, duration: 10, amplitude: 0.85, silencePre: 0.5, sampleRate: targetSr }
         };
 
         var _sweepResultTimeout = setTimeout(function () {
@@ -1976,6 +1990,21 @@
         _trySend(5);
     }
 
+    // Downsample simples por fator inteiro (média de amostras vizinhas)
+    function _downsample(samples, factor) {
+        var out = [];
+        for (var i = 0; i < samples.length; i += factor) {
+            var sum = 0;
+            var count = 0;
+            for (var j = 0; j < factor && (i + j) < samples.length; j++) {
+                sum += samples[i + j];
+                count++;
+            }
+            out.push(sum / count);
+        }
+        return out;
+    }
+
     async function finishSweepMeasurement() {
         if (!isSweepActive) return;
         isSweepActive = false;
@@ -1989,20 +2018,42 @@
         }
     }
 
+    function _dispatchRt60Result(detail) {
+        var eventInit = { detail: detail };
+        document.dispatchEvent(new CustomEvent('rt60-result', eventInit));
+
+        var iframe = document.getElementById('agent-workspace-iframe');
+        var iframeDoc = iframe && iframe.contentDocument;
+        if (iframeDoc && iframeDoc !== document) {
+            iframeDoc.dispatchEvent(new CustomEvent('rt60-result', eventInit));
+        }
+    }
+
+    function _normalizeSweepRt60Result(result) {
+        var rt60 = result.rt60 || result.t30 || result.t20 || result.rt60_est || 0;
+        var curve = result.curve || result.schroeder_curve || [];
+        return Object.assign({}, result, {
+            rt60: rt60,
+            curve: curve,
+            schroeder_curve: result.schroeder_curve || curve,
+            snr: result.snr || result.snr_db,
+            multiband: result.multiband || {}
+        });
+    }
+
     function _handleSweepAnalysisResult(result) {
         console.log('[Analyzer] _handleSweepAnalysisResult recebido no client:', result);
         if (result.error) {
             console.error('[Analyzer] Erro retornado na análise de sweep:', result.error);
             const summaryEl = _el('pink-measure-summary');
             if (summaryEl) summaryEl.innerHTML = `<span class="text-red-400">Erro: ${result.error}</span>`;
-            document.dispatchEvent(new CustomEvent('rt60-result', {
-                detail: { error: result.error }
-            }));
+            _dispatchRt60Result({ error: result.error });
             return;
         }
 
+        result = _normalizeSweepRt60Result(result);
         lastRt60Result = result;
-        lastRt60 = result.t30 || result.t20 || 0;
+        lastRt60 = result.rt60 || 0;
 
         // Auto-save sweep measurement to history for benchmarking
         try {
@@ -2069,23 +2120,21 @@
             `;
         }
 
-        document.dispatchEvent(new CustomEvent('rt60-result', {
-            detail: {
-                curve: result.schroeder_curve || [],
-                rt60: result.t30 || result.t20 || result.rt60_est,
-                t20: result.t20,
-                t30: result.t30,
-                edt: result.edt,
-                snr: result.snr_db,
-                c50: result.c50,
-                c80: result.c80,
-                d50: result.d50,
-                sti: result.sti,
-                sti_category: result.sti_category,
-                multiband: result.multiband || {},
-                fullResult: result,
-            }
-        }));
+        _dispatchRt60Result({
+            curve: result.curve || [],
+            rt60: result.rt60,
+            t20: result.t20,
+            t30: result.t30,
+            edt: result.edt,
+            snr: result.snr,
+            c50: result.c50,
+            c80: result.c80,
+            d50: result.d50,
+            sti: result.sti,
+            sti_category: result.sti_category,
+            multiband: result.multiband || {},
+            fullResult: result,
+        });
     }
 
     function _handleRT60Result(result) {
@@ -2110,23 +2159,21 @@
             `;
         }
 
-        document.dispatchEvent(new CustomEvent('rt60-result', {
-            detail: {
-                curve: result.curve || [],
-                rt60: result.rt60,
-                t20: result.t20,
-                t30: result.t30,
-                edt: result.edt,
-                snr: result.snr,
-                c50: result.c50,
-                c80: result.c80,
-                d50: result.d50,
-                sti: result.sti,
-                sti_category: result.sti_category,
-                multiband: result.multiband || {},
-                fullResult: result,
-            }
-        }));
+        _dispatchRt60Result({
+            curve: result.curve || [],
+            rt60: result.rt60,
+            t20: result.t20,
+            t30: result.t30,
+            edt: result.edt,
+            snr: result.snr,
+            c50: result.c50,
+            c80: result.c80,
+            d50: result.d50,
+            sti: result.sti,
+            sti_category: result.sti_category,
+            multiband: result.multiband || {},
+            fullResult: result,
+        });
     }
 
     function getFreqDataSnapshot() {

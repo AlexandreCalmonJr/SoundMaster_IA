@@ -678,7 +678,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
             methods: ['GET', 'POST'],
             credentials: true
         },
-        maxHttpBufferSize: 1e7, // 10MB (reduzido de 100MB para prevenir memory exhaustion)
+        maxHttpBufferSize: 5e7, // 50MB — sweep RT60 envia ~10-15MB de amostras (recording + reference)
         pingTimeout: 60000,
         pingInterval: 25000
     });
