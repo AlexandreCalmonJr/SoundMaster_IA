@@ -12,20 +12,24 @@
     }
 
     async function _loadCommits() {
-        _commits = await _api('GET', '/api/git/commits');
-        pm._setText('git-count-badge', _commits.length);
-        _renderCommitList(); _populateCompareSelects();
+        try {
+            _commits = await _api('GET', '/api/git/commits');
+            pm._setText('git-count-badge', _commits.length);
+            _renderCommitList(); _populateCompareSelects();
+        } catch (e) {
+            _showToast('\u274C Erro ao carregar commits: ' + e.message, true);
+        }
     }
 
     function _renderCommitList() {
         var commitList = pm._el('git-commit-list');
         if (!commitList) return;
-        if (_commits.length === 0) { pm._setHTML('git-commit-list', '<div class="git-empty-state"><div class="icon">\uD83D\uDEC2</div>Sem commits ainda.<br>Clique em "Commit" para guardar o estado atual da mesa.</div>'); return; }
+        if (_commits.length === 0) { pm._setHTML('git-commit-list', '<div class="empty-state"><div class="icon">\uD83D\uDEC2</div>Sem commits ainda.<br>Clique em "Commit" para guardar o estado atual da mesa.</div>'); return; }
         commitList.innerHTML = _commits.map(function (c) {
             var date = new Date(c.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-            return '<div class="git-commit-item ' + (c._id === _selectedId ? 'active' : '') + ' ' + (c.auto ? 'auto-badge' : '') + '" data-id="' + c._id + '">' + '<span class="git-commit-hash">' + pm._esc(c.hash) + '</span>' + '<span class="git-commit-label">' + pm._esc(c.label) + '</span>' + '<span class="git-commit-ts">' + date + '</span></div>';
+            return '<div class="commit-item ' + (c._id === _selectedId ? 'active' : '') + ' ' + (c.auto ? 'auto-badge' : '') + '" data-id="' + c._id + '">' + '<span class="commit-hash">' + pm._esc(c.hash) + '</span>' + '<span class="commit-label">' + pm._esc(c.label) + '</span>' + '<span class="commit-ts">' + date + '</span></div>';
         }).join('');
-        commitList.querySelectorAll('.git-commit-item').forEach(function (el) { pm._on(el, 'click', function () { _selectCommit(el.dataset.id); }); });
+        commitList.querySelectorAll('.commit-item').forEach(function (el) { pm._on(el, 'click', function () { _selectCommit(el.dataset.id); }); });
     }
 
     function _populateCompareSelects() {
@@ -59,14 +63,14 @@
         var diffContent = pm._el('git-diff-content'), diffBadge = pm._el('git-diff-badge'), rollbackCard = pm._el('git-rollback-card');
         if (!diffContent) return;
         if (diffBadge) { diffBadge.textContent = diffs.length; diffBadge.className = 'badge ' + (diffs.length > 0 ? 'badge-red' : 'badge-green'); }
-        if (diffs.length === 0) { pm._setHTML('git-diff-content', '<div class="git-diff-empty">\u2705 Sem diferen\u00E7as \u2014 o estado atual \u00E9 igual ao commit selecionado.</div>'); if (rollbackCard) rollbackCard.style.display = 'none'; return; }
+        if (diffs.length === 0) { pm._setHTML('git-diff-content', '<div class="diff-empty">\u2705 Sem diferen\u00E7as \u2014 o estado atual \u00E9 igual ao commit selecionado.</div>'); if (rollbackCard) rollbackCard.style.display = 'none'; return; }
         var groups = {};
         diffs.forEach(function (d) { if (!groups[d.category]) groups[d.category] = []; groups[d.category].push(d); });
         var html = '';
         Object.entries(groups).sort(function (a, b) { return a[0].localeCompare(b[0]); }).forEach(function (entry) {
             var cat = entry[0], items = entry[1];
-            html += '<div class="git-diff-group"><div class="git-diff-group-title">' + pm._esc(cat) + ' <span style="color:var(--accent);font-weight:400">(' + items.length + ')</span></div>';
-            items.forEach(function (d) { html += '<div class="git-diff-row"><span class="git-diff-param">' + pm._esc(d.label) + '</span><span class="git-diff-from">' + pm._esc(d.fromFmt) + '</span><span class="git-diff-arrow">\u2192</span><span class="git-diff-to">' + pm._esc(d.toFmt) + '</span></div>'; });
+            html += '<div class="diff-group"><div class="diff-group-title">' + pm._esc(cat) + ' <span style="color:var(--accent);font-weight:400">(' + items.length + ')</span></div>';
+            items.forEach(function (d) { html += '<div class="diff-row"><span class="diff-param">' + pm._esc(d.label) + '</span><span class="diff-from">' + pm._esc(d.fromFmt) + '</span><span class="diff-arrow">\u2192</span><span class="diff-to">' + pm._esc(d.toFmt) + '</span></div>'; });
             html += '</div>';
         });
         diffContent.innerHTML = html; if (rollbackCard) rollbackCard.style.display = '';
@@ -77,8 +81,8 @@
         if (!scopeGrid) return;
         var cats = Array.from(new Set(diffs.map(function (d) { return d.category; }))).sort();
         _selectedScope.clear();
-        scopeGrid.innerHTML = cats.map(function (c) { return '<span class="git-scope-tag" data-cat="' + pm._esc(c) + '">' + pm._esc(c) + '</span>'; }).join('');
-        scopeGrid.querySelectorAll('.git-scope-tag').forEach(function (tag) { pm._on(tag, 'click', function () { var cat = tag.dataset.cat; if (_selectedScope.has(cat)) { _selectedScope.delete(cat); tag.classList.remove('selected'); } else { _selectedScope.add(cat); tag.classList.add('selected'); } }); });
+        scopeGrid.innerHTML = cats.map(function (c) { return '<span class="scope-tag" data-cat="' + pm._esc(c) + '">' + pm._esc(c) + '</span>'; }).join('');
+        scopeGrid.querySelectorAll('.scope-tag').forEach(function (tag) { pm._on(tag, 'click', function () { var cat = tag.dataset.cat; if (_selectedScope.has(cat)) { _selectedScope.delete(cat); tag.classList.remove('selected'); } else { _selectedScope.add(cat); tag.classList.add('selected'); } }); });
         if (rollbackResult) rollbackResult.textContent = '';
     }
 
@@ -93,7 +97,20 @@
 
         pm._on(commitBtn, 'click', async function () { commitBtn.disabled = true; try { await _api('POST', '/api/git/commits', { label: labelInput ? labelInput.value.trim() || undefined : undefined }); if (labelInput) labelInput.value = ''; await _loadCommits(); _showToast('\u2705 Commit guardado!'); } catch (e) { _showToast('\u274C ' + e.message, true); } finally { commitBtn.disabled = false; } });
         pm._on(refreshBtn, 'click', _loadCommits);
-        pm._on(deleteBtn, 'click', async function () { if (!_selectedId || !confirm('Apagar este commit?')) return; await _api('DELETE', '/api/git/commits/' + _selectedId); _selectedId = null; deleteBtn.disabled = true; pm._setHTML('git-diff-content', '<div class="git-diff-empty">Commit apagado.</div>'); var rc = pm._el('git-rollback-card'); if (rc) rc.style.display = 'none'; await _loadCommits(); });
+        pm._on(deleteBtn, 'click', async function () { 
+            if (!_selectedId || !confirm('Apagar este commit?')) return; 
+            try {
+                await _api('DELETE', '/api/git/commits/' + _selectedId); 
+                _selectedId = null; 
+                deleteBtn.disabled = true; 
+                pm._setHTML('git-diff-content', '<div class="diff-empty">Commit apagado.</div>'); 
+                var rc = pm._el('git-rollback-card'); 
+                if (rc) rc.style.display = 'none'; 
+                await _loadCommits(); 
+            } catch (e) {
+                _showToast('\u274C ' + e.message, true);
+            }
+        });
         pm._on(compareToggle, 'click', function () { _compareMode = !_compareMode; if (compareToolbar) compareToolbar.style.display = _compareMode ? '' : 'none'; compareToggle.textContent = _compareMode ? '\u2715 Fechar Compara\u00E7\u00E3o' : '\u26A1 Modo Compara\u00E7\u00E3o'; });
         pm._on(doCompareBtn, 'click', async function () { var idA = compareA ? compareA.value : '', idB = compareB ? compareB.value : ''; if (!idA || !idB || idA === idB) { _showToast('Selecione dois commits diferentes.', true); return; } try { var diffs = await _api('GET', '/api/git/diff/' + idA + '/' + idB); _diffData = diffs; _renderDiff(diffs); _renderRollbackScope(diffs); _selectedId = idA; if (deleteBtn) deleteBtn.disabled = false; } catch (e) { _showToast('\u274C ' + e.message, true); } });
         pm._on(rollbackClear, 'click', function () { _selectedScope.clear(); document.querySelectorAll('.git-scope-tag').forEach(function (t) { t.classList.remove('selected'); }); });

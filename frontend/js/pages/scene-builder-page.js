@@ -40,7 +40,23 @@
         pm._on(pm._el('sb-cancel-new'), 'click', function () { _hideModal('sb-new-scene-modal'); });
         pm._on(pm._el('sb-cancel-ai'), 'click', function () { _hideModal('sb-ai-modal'); });
         pm._on(pm._el('sb-save-new'), 'click', function () { var name = pm._el('sb-new-name') ? pm._el('sb-new-name').value.trim() : ''; if (!name) return; pm._safeCall('SceneBuilderService', 'createScene', { name: name, genre: pm._el('sb-new-genre') ? pm._el('sb-new-genre').value : 'geral', description: pm._el('sb-new-desc') ? pm._el('sb-new-desc').value.trim() : '' }); _hideModal('sb-new-scene-modal'); _renderSceneList(); _renderThumbnails(); });
-        pm._on(pm._el('sb-generate-ai'), 'click', async function () { var prompt = pm._el('sb-ai-prompt') ? pm._el('sb-ai-prompt').value.trim() : ''; if (!prompt) return; var result = pm._el('sb-ai-result'); if (result) { result.classList.remove('hidden'); result.innerHTML = '<span class="text-cyan-400 animate-pulse">Gerando com IA...</span>'; } try { pm._safeCall('SceneBuilderService', 'generateWithAI', prompt, _selectedInstruments); if (result) result.innerHTML = '<span class="text-green-400">Cena gerada com sucesso!</span>'; } catch (err) { if (result) result.innerHTML = '<span class="text-red-400">Erro: ' + _escapeHtml(err.message) + '</span>'; } _renderSceneList(); _renderThumbnails(); });
+        pm._on(pm._el('sb-generate-ai'), 'click', async function () { 
+            var prompt = pm._el('sb-ai-prompt') ? pm._el('sb-ai-prompt').value.trim() : ''; 
+            if (!prompt) return; 
+            var result = pm._el('sb-ai-result'); 
+            if (result) { result.classList.remove('hidden'); result.innerHTML = '<span class="text-cyan-400 animate-pulse">Gerando com IA...</span>'; } 
+            try { 
+                var instArray = Array.from(_selectedInstruments);
+                var scene = null;
+                if (window.SceneBuilderService && typeof SceneBuilderService.generateWithAI === 'function') {
+                    scene = await SceneBuilderService.generateWithAI(prompt, instArray);
+                }
+                if (result) result.innerHTML = '<span class="text-green-400">Cena gerada com sucesso!</span>'; 
+                _renderSceneList(); _renderThumbnails();
+            } catch (err) { 
+                if (result) result.innerHTML = '<span class="text-red-400">Erro: ' + _escapeHtml(err.message) + '</span>'; 
+            } 
+        });
         pm._on(pm._el('sb-apply-scene'), 'click', function () { if (_selectedScene) pm._safeCall('SceneBuilderService', 'applyScene', _selectedScene); });
         pm._on(pm._el('sb-delete-scene'), 'click', function () { if (!_selectedScene) return; pm._safeCall('SceneBuilderService', 'deleteScene', _selectedScene.id); _selectedScene = null; pm._setText('sb-preview-name', 'Selecione uma cena'); pm._setHTML('sb-preview-content', '<p class="text-sm">Clique em uma cena para visualizar</p>'); pm._toggleClasses('sb-preview-actions', ['hidden'], []); _renderSceneList(); _renderThumbnails(); });
         document.querySelectorAll('.sb-quick-preset').forEach(function (btn) { pm._on(btn, 'click', function () { var preset = this.getAttribute('data-preset'), presets = { louvor: { name: 'Louvor', genre: 'louvor', description: 'Mix completo com energia', channels: 16, mixType: 'Estereo' }, pregacao: { name: 'Prega\u00E7\u00E3o', genre: 'pregacao', description: 'Foco em voz e monitor', channels: 8, mixType: 'Estereo' }, silencio: { name: 'Sil\u00EAncio', genre: 'intervalo', description: 'Sem som', channels: 16, mixType: 'Mute' }, transicao: { name: 'Transi\u00E7\u00E3o', genre: 'transicao', description: 'Fade e preparo', channels: 16, mixType: 'Estereo' } }, p = presets[preset]; if (p) pm._safeCall('SceneBuilderService', 'createScene', p); _renderSceneList(); _renderThumbnails(); }); });

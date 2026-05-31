@@ -2,13 +2,30 @@
     'use strict';
 
     const STORAGE_KEY = 'soundmaster_scenes';
+    let _scenesCache = null;
+    let _cacheValid = false;
+
+    function _invalidateCache() { _cacheValid = false; }
 
     function loadScenes() {
-        try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch (_) { return []; }
+        if (_cacheValid && _scenesCache) return _scenesCache;
+        try { 
+            _scenesCache = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; 
+            _cacheValid = true;
+            return _scenesCache; 
+        } catch (_) { 
+            _scenesCache = []; 
+            _cacheValid = true;
+            return _scenesCache; 
+        }
     }
 
     function saveScenes(scenes) {
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(scenes)); }
+        try { 
+            _scenesCache = scenes;
+            _cacheValid = true;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(scenes)); 
+        }
         catch (e) { AppStore.addLog('⚠️ Falha ao salvar cenas: ' + e.message); }
     }
 
@@ -21,7 +38,7 @@
             mixType: 'Estereo',
             channels: 16,
             timestamp: Date.now(),
-            id: Date.now().toString(36)
+            id: Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6)
         }, data);
         scenes.push(scene);
         saveScenes(scenes);
@@ -49,7 +66,8 @@
         if (!window.AIService) {
             throw new Error('AIService não disponível');
         }
-        const instList = (instruments || []).join(', ');
+        const instArray = Array.isArray(instruments) ? instruments : Array.from(instruments || []);
+        const instList = instArray.join(', ');
         const fullPrompt = 'Gere uma cena de mixer completa para: ' + prompt + '. Instrumentos presentes: ' + instList + '. Retorne o nome da cena, genre, descrição e comandos de mixer.';
         let result;
         try {

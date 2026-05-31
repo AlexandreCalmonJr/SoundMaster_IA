@@ -290,6 +290,13 @@ function createMixerActions(getMixer) {
         if (action.startsWith('enable')) group.enable();
         else if (action.startsWith('disable')) group.disable();
         else if (action === 'set_response') am.setResponseTimeMs(clamp(value, 20, 4000));
+        else if (action === 'reset_weights') {
+            const mixer = getMixer();
+            for (let i = 1; i <= 24; i++) {
+                const input = mixer.input(i);
+                if (input) input.automixSetWeight(0.5);
+            }
+        }
         
         return `Automix: comando ${action} executado.`;
     }

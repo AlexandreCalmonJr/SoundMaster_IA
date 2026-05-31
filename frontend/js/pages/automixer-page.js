@@ -5,6 +5,9 @@
     var NUM_CHANNELS = 16;
     var channelState = {};
     var groupAssignments = { a: new Set(), b: new Set() };
+    var _lastSentState = {};
+    var _sendThrottleTimer = null;
+    var _lastResponseTime = null;
 
     function _buildChannelGrid() {
         var grid = pm._el('am-channels-grid');
@@ -42,17 +45,17 @@
                 var enabled = groupAssignments[g].size > 0;
                 groupAssignments[g].forEach(function (ch) { channelState[ch].enabled = !enabled; });
                 _updateChannelStates();
-                _sendAutomixUpdate();
+                _queueSendUpdate();
             });
         });
     }
 
-    function _toggleChannel(ch) { channelState[ch].enabled = !channelState[ch].enabled; _updateChannelStates(); _sendAutomixUpdate(); }
+    function _toggleChannel(ch) { channelState[ch].enabled = !channelState[ch].enabled; _updateChannelStates(); _queueSendUpdate(); }
 
     function _assignChannelGroup(ch, group) {
         if (channelState[ch].group === group) { channelState[ch].group = 'none'; groupAssignments.a.delete(ch); groupAssignments.b.delete(ch); }
         else { channelState[ch].group = group; groupAssignments.a.delete(ch); groupAssignments.b.delete(ch); groupAssignments[group].add(ch); }
-        _updateChannelStates(); _sendAutomixUpdate();
+        _updateChannelStates(); _queueSendUpdate();
     }
 
     function _updateChannelStates() {
@@ -87,16 +90,26 @@
         });
     }
 
-    function _sendAutomixUpdate() {
+    function _sendDeltasOnly() {
         if (!window.MixerService) return;
-        var response = parseInt(pm._el('am-response') ? pm._el('am-response').value : 500);
-        pm._safeCall('MixerService', 'automixControl', 'set_response', response);
         for (var i = 1; i <= NUM_CHANNELS; i++) {
             var s = channelState[i];
             var grp = (s.group !== 'none' && s.enabled) ? s.group : 'none';
             var w = (s.group !== 'none' && s.enabled) ? s.weight : 0.5;
-            pm._safeCall('SocketService', 'emit', 'automix_assign', { channel: i, group: grp, weight: w });
+            var key = grp + '|' + w;
+            if (_lastSentState[i] !== key) {
+                _lastSentState[i] = key;
+                pm._safeCall('SocketService', 'emit', 'automix_assign', { channel: i, group: grp, weight: w });
+            }
         }
+    }
+
+    function _queueSendUpdate() {
+        if (_sendThrottleTimer) return;
+        _sendThrottleTimer = setTimeout(function () {
+            _sendThrottleTimer = null;
+            _sendDeltasOnly();
+        }, 100);
     }
 
     function _toggleGroup(group) {
@@ -109,21 +122,53 @@
         pm._safeCall('MixerService', 'automixControl', isActive ? 'disable_' + group : 'enable_' + group, null);
     }
 
+    function _applyMasterWeight() {
+        var slider = pm._el('am-master-weight');
+        if (!slider) return;
+        var masterPct = parseInt(slider.value);
+        var masterWeight = masterPct / 100;
+        for (var i = 1; i <= NUM_CHANNELS; i++) {
+            channelState[i].weight = masterWeight;
+            var sliderEl = document.querySelector('.am-weight-slider[data-ch="' + i + '"]');
+            if (sliderEl) sliderEl.value = masterPct;
+        }
+        _updateChannelStates();
+        _queueSendUpdate();
+    }
+
     function init() {
         _buildChannelGrid(); _buildGroups();
+        _lastSentState = {};
         pm._on(pm._el('am-toggle-a'), 'click', function () { _toggleGroup('a'); });
         pm._on(pm._el('am-toggle-b'), 'click', function () { _toggleGroup('b'); });
-        pm._on(pm._el('am-response'), 'input', function () { pm._setText('am-response-val', parseInt(this.value) + 'ms'); _sendAutomixUpdate(); });
-        pm._on(pm._el('am-master-weight'), 'input', function () { pm._setText('am-master-weight-val', this.value + '%'); });
+        pm._on(pm._el('am-response'), 'input', function () { 
+            pm._setText('am-response-val', parseInt(this.value) + 'ms'); 
+            var newResponse = parseInt(this.value);
+            if (_lastResponseTime !== newResponse) {
+                _lastResponseTime = newResponse;
+                pm._safeCall('MixerService', 'automixControl', 'set_response', newResponse);
+            }
+        });
+        pm._on(pm._el('am-master-weight'), 'input', function () { 
+            pm._setText('am-master-weight-val', this.value + '%'); 
+            _applyMasterWeight();
+        });
         document.querySelectorAll('.am-group-btn').forEach(function (btn) { pm._on(btn, 'click', function () { _assignChannelGroup(parseInt(this.getAttribute('data-ch')), this.getAttribute('data-group')); }); });
-        document.querySelectorAll('.am-weight-slider').forEach(function (slider) { pm._on(slider, 'input', function () { channelState[parseInt(this.getAttribute('data-ch'))].weight = parseInt(this.value) / 100; _updateChannelStates(); _sendAutomixUpdate(); }); });
-        pm._on(pm._el('am-activate-all'), 'click', function () { for (var i = 1; i <= NUM_CHANNELS; i++) channelState[i].enabled = true; _updateChannelStates(); _sendAutomixUpdate(); });
-        pm._on(pm._el('am-deactivate-all'), 'click', function () { for (var i = 1; i <= NUM_CHANNELS; i++) channelState[i].enabled = false; _updateChannelStates(); _sendAutomixUpdate(); });
-        pm._on(pm._el('am-reset'), 'click', function () { for (var i = 1; i <= NUM_CHANNELS; i++) { channelState[i].weight = 0.5; channelState[i].reduction = 0; var slider = document.querySelector('.am-weight-slider[data-ch="' + i + '"]'); if (slider) slider.value = 50; } _updateChannelStates(); _sendAutomixUpdate(); });
+        document.querySelectorAll('.am-weight-slider').forEach(function (slider) { pm._on(slider, 'input', function () { channelState[parseInt(this.getAttribute('data-ch'))].weight = parseInt(this.value) / 100; _updateChannelStates(); _queueSendUpdate(); }); });
+        pm._on(pm._el('am-activate-all'), 'click', function () { for (var i = 1; i <= NUM_CHANNELS; i++) channelState[i].enabled = true; _updateChannelStates(); _queueSendUpdate(); });
+        pm._on(pm._el('am-deactivate-all'), 'click', function () { for (var i = 1; i <= NUM_CHANNELS; i++) channelState[i].enabled = false; _updateChannelStates(); _queueSendUpdate(); });
+        pm._on(pm._el('am-reset'), 'click', function () { for (var i = 1; i <= NUM_CHANNELS; i++) { channelState[i].weight = 0.5; channelState[i].reduction = 0; var slider = document.querySelector('.am-weight-slider[data-ch="' + i + '"]'); if (slider) slider.value = 50; } var masterSlider = pm._el('am-master-weight'); if (masterSlider) { masterSlider.value = 50; pm._setText('am-master-weight-val', '50%'); } _updateChannelStates(); _queueSendUpdate(); });
         _updateChannelStates();
     }
 
-    function destroy() { pm.destroy(); channelState = {}; groupAssignments = { a: new Set(), b: new Set() }; }
+    function destroy() { 
+        if (_sendThrottleTimer) { clearTimeout(_sendThrottleTimer); _sendThrottleTimer = null; }
+        pm.destroy(); 
+        channelState = {}; 
+        groupAssignments = { a: new Set(), b: new Set() }; 
+        _lastSentState = {};
+        _lastResponseTime = null;
+    }
 
     window.AutomixerPage = { init: init, destroy: destroy };
 })();
