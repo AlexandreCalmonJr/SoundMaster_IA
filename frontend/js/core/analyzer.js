@@ -1935,13 +1935,21 @@
 
         sweepSource.start();
 
-        setTimeout(() => finishSweepMeasurement(), (sweepDuration + 5) * 1000);
         setTimeout(() => {
             sweepSource.stop();
+        }, sweepDuration * 1000);
+
+        setTimeout(() => {
             captureNode.port.postMessage({ type: 'set-active', value: false });
             captureNode.disconnect();
             captureSilent.disconnect();
-        }, sweepDuration * 1000);
+            
+            finishSweepMeasurement();
+            
+            // Envia os dados para processamento
+            const validData = sweepRecordingBuffer.slice(0, sweepRecordingIdx);
+            _onSweepWorkletDone(validData, null, sampleRate);
+        }, captureDuration * 1000);
     }
 
     function _onSweepWorkletDone(recording, reference, sampleRate) {

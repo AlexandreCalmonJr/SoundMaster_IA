@@ -59,12 +59,14 @@ describe('Nossos Handlers Adicionais - Socket Handlers', () => {
 
     it('deve lidar com set_master_mute de forma correta', async () => {
         const handler = registeredHandlers['set_master_mute'];
-        
+
+        // v6.0.3: master.mute() nao existe — o handler agora envia SETD^m.mute^... cru.
+        // O simulated driver loga RAW: SETD^m.mute^1 e emite feedback_cut_success.
         await handler({ mute: true });
-        expect(mockSocket.emit).toHaveBeenCalledWith('mixer_log', expect.stringContaining('[Sim] Master MUTADO'));
-        
+        expect(mockSocket.emit).toHaveBeenCalledWith('mixer_log', expect.stringContaining('RAW: SETD^m.mute^1'));
+
         await handler({ mute: false });
-        expect(mockSocket.emit).toHaveBeenCalledWith('mixer_log', expect.stringContaining('[Sim] Master ATIVADO'));
+        expect(mockSocket.emit).toHaveBeenCalledWith('mixer_log', expect.stringContaining('RAW: SETD^m.mute^0'));
     });
 
     it('deve lidar com set_channel_level de forma correta', async () => {
@@ -86,22 +88,35 @@ describe('Nossos Handlers Adicionais - Socket Handlers', () => {
 
     it('deve lidar com set_aux_delay de forma correta', async () => {
         const handler = registeredHandlers['set_aux_delay'];
-        
+
+        // v6.0.3: setDelay('aux') agora usa master.aux(id).setDelay (mockChannel do driver simulado
+        // imprime "[Sim] aux N Delay -> Nms" com o type 'aux' em minusculas).
         await handler({ aux: 2, ms: 120 });
-        expect(mockSocket.emit).toHaveBeenCalledWith('mixer_log', expect.stringContaining('[Sim] Aux 2 Delay -> 120ms'));
+        expect(mockSocket.emit).toHaveBeenCalledWith('mixer_log', expect.stringContaining('aux 2 Delay -> 120ms'));
     });
 
     it('deve lidar com apply_parametric_eq de forma correta', async () => {
         const handler = registeredHandlers['apply_parametric_eq'];
-        
+
+        // v6.0.3: input.eq() nao existe. O handler chama actions.applyEqCut (que envia OSC cru)
+        // e emite feedback_cut_success com a mensagem "EQ aplicado no canal N: ...".
         await handler({ channel: 2, freq: 1000, gain: -3, q: 1.0 });
-        expect(mockSocket.emit).toHaveBeenCalledWith('mixer_log', expect.stringContaining('[Sim] Canal 2 EQ B2 Gain -> -3dB'));
+        expect(mockSocket.emit).toHaveBeenCalledWith(
+            'feedback_cut_success',
+            expect.objectContaining({ msg: expect.stringContaining('EQ aplicado no canal 2') })
+        );
+        expect(mockSocket.emit).toHaveBeenCalledWith('mixer_log', expect.stringContaining('SETD^i.1.eq.band.1.gain^-3'));
     });
 
     it('deve lidar com apply_notch_filter de forma correta', async () => {
         const handler = registeredHandlers['apply_notch_filter'];
-        
+
+        // v6.0.3: apply_notch_filter chama applyEqCut (OSC cru). Band 4 fixo no handler.
         await handler({ channel: 4, freq: 500, gain: -6, q: 8.0 });
-        expect(mockSocket.emit).toHaveBeenCalledWith('mixer_log', expect.stringContaining('[Sim] Canal 4 EQ B4 Gain -> -6dB'));
+        expect(mockSocket.emit).toHaveBeenCalledWith(
+            'feedback_cut_success',
+            expect.objectContaining({ msg: expect.stringContaining('EQ aplicado no canal 4') })
+        );
+        expect(mockSocket.emit).toHaveBeenCalledWith('mixer_log', expect.stringContaining('SETD^i.3.eq.band.3.gain^-6'));
     });
 });

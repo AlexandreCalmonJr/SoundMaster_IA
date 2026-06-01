@@ -1,6 +1,18 @@
 const mixerSingleton = require('./mixer-singleton');
 const database = require('./database');
 
+/**
+ * Erro lançado quando a mesa não está ligada ou a conexão OSC foi perdida.
+ * Capturado no handler de comando e re-emitido como `mixer_status` ao cliente.
+ */
+class MixerOfflineError extends Error {
+    constructor(reason) {
+        super(reason || 'Mesa offline ou sem conexão OSC');
+        this.name = 'MixerOfflineError';
+        this.code = 'MIXER_OFFLINE';
+    }
+}
+
 function createMixerActions(getMixer) {
     function clamp(value, min, max) {
         return Math.min(max, Math.max(min, Number(value)));
@@ -15,44 +27,97 @@ function createMixerActions(getMixer) {
         return true;
     }
 
+    /**
+     * Envia mensagem OSC cru pela conexão WebSocket da Ui24R.
+     * Lança `MixerOfflineError` com mensagem clara se a mesa estiver desligada
+     * ou a conexão estiver fechada (em vez de `Cannot read property 'sendMessage'
+     * of undefined` ou `WebSocket is not open`).
+     */
+    function safeOscSend(mixer, address, value) {
+        if (!mixer) {
+            throw new MixerOfflineError('Mesa não inicializada');
+        }
+        const conn = mixer.conn;
+        if (!conn || typeof conn.sendMessage !== 'function') {
+            throw new MixerOfflineError('Conexão OSC indisponível (mesa offline)');
+        }
+        const status = conn.status || conn.readyState;
+        if (status === 'CLOSED' || status === 'CLOSING' || status === 3 /* CLOSED */ || status === 2 /* CLOSING */) {
+            throw new MixerOfflineError(`Mesa desconectada (status=${status})`);
+        }
+        try {
+            conn.sendMessage(`${address}^${value}`);
+        } catch (err) {
+            if (/not open|closed|is not a function/i.test(err.message)) {
+                throw new MixerOfflineError(`Falha ao enviar OSC: ${err.message}`);
+            }
+            throw err;
+        }
+    }
+
+    /**
+     * Variante para mensagens OSC pré-formatadas (já contendo o separador '^').
+     * Usada por `sendRawCommand` e pelo fallback de delay de aux.
+     */
+    function safeOscSendRaw(mixer, fullMessage) {
+        if (!mixer) {
+            throw new MixerOfflineError('Mesa não inicializada');
+        }
+        const conn = mixer.conn;
+        if (!conn || typeof conn.sendMessage !== 'function') {
+            throw new MixerOfflineError('Conexão OSC indisponível (mesa offline)');
+        }
+        try {
+            conn.sendMessage(fullMessage);
+        } catch (err) {
+            if (/not open|closed|is not a function/i.test(err.message)) {
+                throw new MixerOfflineError(`Falha ao enviar OSC: ${err.message}`);
+            }
+            throw err;
+        }
+    }
+
     function applyChannelHpf(channel, hz) {
         const mixer = getMixer();
-        const input = mixer.master.input(channel);
         const frequency = clamp(hz || 100, 20, 400);
-        
-        input.eq().setHpfFreq(frequency);
-        // Slope is often not directly exposed as a simple setter in all versions, 
-        // using raw as fallback if method not found, but trying high-level first.
-        if (input.eq().setHpfSlope) {
-            input.eq().setHpfSlope(2);
-        } else {
-            mixer.conn.sendMessage(`SETD^i.${channel-1}.eq.hpf.slope^2`);
-        }
+        const idx = channel - 1;
+
+        safeOscSend(mixer, `SETD^i.${idx}.eq.hpf.freq`, frequency);
+        safeOscSend(mixer, `SETD^i.${idx}.eq.hpf.slope`, 2);
+        safeOscSend(mixer, `SETD^i.${idx}.eq.hpf.on`, 1);
+
         mixerSingleton.updateChannelState(channel, { hpf: frequency });
-        
+
         return `HPF ${frequency}Hz aplicado no canal ${channel}.`;
     }
 
     function applyChannelGate(channel, enabled, threshold = -52) {
-        const input = getMixer().master.input(channel);
-        if (enabled) {
-            input.gate().enable();
-        } else {
-            input.gate().disable();
-        }
-        input.gate().setThreshold(clamp(threshold, -80, 0));
-        mixerSingleton.updateChannelState(channel, { gate: enabled ? 1 : 0 });
+        const mixer = getMixer();
+        const idx = channel - 1;
+        const thr = clamp(threshold, -80, 0);
+
+        safeOscSend(mixer, `SETD^i.${idx}.gate.on`, enabled ? 1 : 0);
+        safeOscSend(mixer, `SETD^i.${idx}.gate.thr`, thr);
+
+        mixerSingleton.updateChannelState(channel, { gate: enabled ? 1 : 0, gateThr: thr });
         return `Gate ${enabled ? 'ativado' : 'desativado'} no canal ${channel}.`;
     }
 
     function applyChannelCompressor(channel, ratio = 2.5, threshold = -18) {
-        const input = getMixer().master.input(channel);
-        input.compressor().enable();
-        input.compressor().setRatio(clamp(ratio, 1, 20));
-        input.compressor().setThreshold(clamp(threshold, -60, 0));
-        input.compressor().setAttack(25);
-        input.compressor().setRelease(220);
-        mixerSingleton.updateChannelState(channel, { comp: 1 });
+        const mixer = getMixer();
+        const idx = channel - 1;
+        const ratioClamped = clamp(ratio, 1, 20);
+        const thrClamped = clamp(threshold, -60, 0);
+        const attack = 25;
+        const release = 220;
+
+        safeOscSend(mixer, `SETD^i.${idx}.comp.on`, 1);
+        safeOscSend(mixer, `SETD^i.${idx}.comp.ratio`, ratioClamped);
+        safeOscSend(mixer, `SETD^i.${idx}.comp.thr`, thrClamped);
+        safeOscSend(mixer, `SETD^i.${idx}.comp.attack`, attack);
+        safeOscSend(mixer, `SETD^i.${idx}.comp.release`, release);
+
+        mixerSingleton.updateChannelState(channel, { comp: 1, compRatio: ratioClamped, compThr: thrClamped });
         return `Compressor leve aplicado no canal ${channel}.`;
     }
 
@@ -65,16 +130,18 @@ function createMixerActions(getMixer) {
 
         if (target === 'master') {
             const rawIndex = bandIndex - 1;
-            mixer.conn.sendMessage(`SETD^m.eq.band.${rawIndex}.freq^${frequency}`);
-            mixer.conn.sendMessage(`SETD^m.eq.band.${rawIndex}.gain^${cutGain}`);
-            mixer.conn.sendMessage(`SETD^m.eq.band.${rawIndex}.q^${qValue}`);
-            mixer.conn.sendMessage(`SETD^m.eq.band.${rawIndex}.type^0`);
+            safeOscSend(mixer, `SETD^m.eq.band.${rawIndex}.freq`, frequency);
+            safeOscSend(mixer, `SETD^m.eq.band.${rawIndex}.gain`, cutGain);
+            safeOscSend(mixer, `SETD^m.eq.band.${rawIndex}.q`, qValue);
+            safeOscSend(mixer, `SETD^m.eq.band.${rawIndex}.type`, 0);
         } else {
-            const eq = mixer.master.input(channel).eq();
-            eq.band(bandIndex).setFreq(frequency);
-            eq.band(bandIndex).setGain(cutGain);
-            eq.band(bandIndex).setQ(qValue);
-            if (eq.band(bandIndex).setType) eq.band(bandIndex).setType(0);
+            const idx = channel - 1;
+            const rawIndex = bandIndex - 1;
+            safeOscSend(mixer, `SETD^i.${idx}.eq.band.${rawIndex}.freq`, frequency);
+            safeOscSend(mixer, `SETD^i.${idx}.eq.band.${rawIndex}.gain`, cutGain);
+            safeOscSend(mixer, `SETD^i.${idx}.eq.band.${rawIndex}.q`, qValue);
+            safeOscSend(mixer, `SETD^i.${idx}.eq.band.${rawIndex}.type`, 0);
+            safeOscSend(mixer, `SETD^i.${idx}.eq.band.${rawIndex}.on`, 1);
         }
 
         if (target === 'master') {
@@ -94,7 +161,7 @@ function createMixerActions(getMixer) {
             if (enabled) mixer.master.afs().enable();
             else mixer.master.afs().disable();
         } else {
-            mixer.conn.sendMessage(`SETD^afs^${enabled ? 1 : 0}`);
+            safeOscSend(mixer, `SETD^afs`, enabled ? 1 : 0);
         }
         return `AFS2 ${enabled ? 'ativado' : 'desativado'} globalmente.`;
     }
@@ -382,12 +449,11 @@ function createMixerActions(getMixer) {
 
     function sendRawCommand(msg) {
         const mixer = getMixer();
-        if (mixer.isSimulated) {
-            mixer.conn.sendMessage(msg);
-            return `[SIM] Raw: ${msg} enviado.`;
-        }
-        mixer.conn.sendMessage(msg);
-        return `Mensagem bruta enviada: ${msg}`;
+        const prefix = mixer.isSimulated ? '[SIM] Raw: ' : '';
+        safeOscSendRaw(mixer, msg);
+        return mixer.isSimulated
+            ? `${prefix}${msg} enviado.`
+            : `Mensagem bruta enviada: ${msg}`;
     }
 
     function runCleanSoundPreset(channel, opts = {}) {
@@ -420,12 +486,15 @@ function createMixerActions(getMixer) {
     function setDelay(target, id, ms) {
         const mixer = getMixer();
         const delayValue = clamp(ms, 0, 500); // Master/Aux 500ms, Input 250ms
-        
+
         if (target === 'master') {
             mixer.master.setDelayL(delayValue);
             mixer.master.setDelayR(delayValue);
         } else if (target === 'aux') {
-            mixer.aux(id).setDelay(delayValue);
+            // mixer.aux(id) retorna AuxBus (sem setDelay). Usar master.aux(id) que e DelayableMasterChannel.
+            const auxCh = mixer.master.aux(id || 1);
+            if (auxCh && auxCh.setDelay) auxCh.setDelay(delayValue);
+            else safeOscSend(mixer, `SETD^a.${(id || 1) - 1}.delay`, delayValue / 1000);
         } else if (target === 'channel' || target === 'input') {
             const chDelay = clamp(ms, 0, 250);
             mixer.master.input(id || 1).setDelay(chDelay);
@@ -568,10 +637,20 @@ function createMixerActions(getMixer) {
             'apply_channel_gate': (c) => applyChannelGate(c.channel || 1, c.enabled !== 0, c.threshold),
             'apply_channel_compressor': (c) => applyChannelCompressor(c.channel || 1, c.ratio, c.threshold),
             'set_afs_enabled': (c) => setAfs(c.enabled !== 0),
-            'mute_master': (c) => { if (c.enabled) mixer.master.mute(); else mixer.master.unmute(); return `Mute do master ${c.enabled ? 'ativado' : 'desativado'}.`; },
+            'mute_master': (c) => {
+                // master.mute()/unmute() nao existem em soundcraft-ui-connection v6 (MasterBus nao implementa mute). Enviar OSC cru.
+                const on = c.enabled !== false && c.enabled !== 0;
+                safeOscSend(mixer, `SETD^m.mute`, on ? 1 : 0);
+                return `Mute do master ${on ? 'ativado' : 'desativado'}.`;
+            },
             'run_master_ideal_curve': () => { const steps = [applyEqCut('master', null, 60, 3, 1.0, 1), applyEqCut('master', null, 400, -2, 1.2, 2), applyEqCut('master', null, 3000, 1, 1.0, 3)]; return `Curva ideal aplicada no Master: ${steps.join(' ')}`; },
             'set_master_level': (c) => { mixer.master.setFaderLevel(clamp(c.level || 0.7, 0, 1)); return `Master ajustado para ${Math.round((c.level || 0.7) * 100)}%`; },
-            'master_mute': (c) => { if (c.enabled) mixer.master.mute(); else mixer.master.unmute(); return `Master ${c.enabled ? 'MUTADO' : 'DESMUTADO'}.`; },
+            'master_mute': (c) => {
+                // master.mute()/unmute() nao existem em soundcraft-ui-connection v6 (MasterBus nao implementa mute). Enviar OSC cru.
+                const on = c.enabled !== false && c.enabled !== 0;
+                safeOscSend(mixer, `SETD^m.mute`, on ? 1 : 0);
+                return `Master ${on ? 'MUTADO' : 'DESMUTADO'}.`;
+            },
             'set_channel_level': (c) => {
                 const target = resolveTarget(c);
                 const lvl = clamp(c.level || c.val || 0.7, 0, 1);
@@ -722,8 +801,13 @@ function createMixerActions(getMixer) {
             'select_channel': (c) => selectChannelSync(c.type || 'input', c.channel || c.ch || 1, c.syncId || 'SYNC_ID'),
             'player_cmd': (c) => playerControl(c.action_type || c.action, c.val),
             'set_play_mode': (c) => {
-                mixer.player.setPlayMode(c.mode || c.val || 'manual');
-                return `Modo do Player configurado para ${c.mode || c.val}.`;
+                // soundcraft-ui-connection v6: setPlayMode espera numero (manual=0, auto=3).
+                const modeMap = { manual: 0, auto: 3 };
+                const raw = c.mode !== undefined ? c.mode : c.val;
+                const numeric = (typeof raw === 'string') ? (modeMap[raw.toLowerCase()] ?? 0) : Number(raw);
+                const playMode = Number.isFinite(numeric) ? numeric : 0;
+                mixer.player.setPlayMode(playMode);
+                return `Modo do Player configurado para ${playMode}.`;
             },
             'recorder_cmd': (c) => recorderControl(c.action_type),
             'mtk_cmd': (c) => mtkControl(c.action_type || c.action, c.val !== undefined ? c.val : (c.value !== undefined ? c.value : c.enabled)),
@@ -788,16 +872,19 @@ function createMixerActions(getMixer) {
 
             if (target === 'master') {
                 const rawIndex = bandIndex - 1;
-                mixer.conn.sendMessage(`SETD^m.eq.band.${rawIndex}.freq^${frequency}`);
-                mixer.conn.sendMessage(`SETD^m.eq.band.${rawIndex}.gain^${cutGain}`);
-                mixer.conn.sendMessage(`SETD^m.eq.band.${rawIndex}.q^${qValue}`);
-                mixer.conn.sendMessage(`SETD^m.eq.band.${rawIndex}.type^0`);
+                safeOscSend(mixer, `SETD^m.eq.band.${rawIndex}.freq`, frequency);
+                safeOscSend(mixer, `SETD^m.eq.band.${rawIndex}.gain`, cutGain);
+                safeOscSend(mixer, `SETD^m.eq.band.${rawIndex}.q`, qValue);
+                safeOscSend(mixer, `SETD^m.eq.band.${rawIndex}.type`, 0);
             } else {
-                const eq = mixer.master.input(channel).eq();
-                eq.band(bandIndex).setFreq(frequency);
-                eq.band(bandIndex).setGain(cutGain);
-                eq.band(bandIndex).setQ(qValue);
-                if (eq.band(bandIndex).setType) eq.band(bandIndex).setType(0);
+                // input.eq().band() nao existe em soundcraft-ui-connection v6 — OSC cru.
+                const idx = channel - 1;
+                const rawIndex = bandIndex - 1;
+                safeOscSend(mixer, `SETD^i.${idx}.eq.band.${rawIndex}.freq`, frequency);
+                safeOscSend(mixer, `SETD^i.${idx}.eq.band.${rawIndex}.gain`, cutGain);
+                safeOscSend(mixer, `SETD^i.${idx}.eq.band.${rawIndex}.q`, qValue);
+                safeOscSend(mixer, `SETD^i.${idx}.eq.band.${rawIndex}.type`, 0);
+                safeOscSend(mixer, `SETD^i.${idx}.eq.band.${rawIndex}.on`, 1);
             }
 
             const patch = { [bandIndex]: { hz: frequency, gain: cutGain, q: qValue } };

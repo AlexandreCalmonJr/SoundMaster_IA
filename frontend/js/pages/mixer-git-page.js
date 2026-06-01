@@ -65,7 +65,7 @@
         if (_commits.length === 0) { pm._setHTML('git-commit-list', '<div class="empty-state"><div class="icon">\uD83D\uDEC2</div>Sem commits ainda.<br>Clique em "Commit" para guardar o estado atual da mesa.</div>'); return; }
         commitList.innerHTML = _commits.map(function (c) {
             var date = new Date(c.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-            return '<div class="commit-item ' + (c._id === _selectedId ? 'active' : '') + ' ' + (c.auto ? 'auto-badge' : '') + '" data-id="' + c._id + '">' + '<span class="commit-hash">' + pm._esc(c.hash) + '</span>' + '<span class="commit-label">' + pm._esc(c.label) + '</span>' + '<span class="commit-ts">' + date + '</span></div>';
+            return '<div class="commit-item ' + (c._id === _selectedId ? 'active' : '') + ' ' + (c.auto ? 'auto-badge' : '') + '" data-id="' + pm._esc(c._id) + '">' + '<span class="commit-hash">' + pm._esc(c.hash) + '</span>' + '<span class="commit-label">' + pm._esc(c.label) + '</span>' + '<span class="commit-ts">' + date + '</span></div>';
         }).join('');
         commitList.querySelectorAll('.commit-item').forEach(function (el) { pm._on(el, 'click', function () { _selectCommit(el.dataset.id); }); });
     }
@@ -73,7 +73,7 @@
     function _populateCompareSelects() {
         var compareA = pm._el('git-compare-a'), compareB = pm._el('git-compare-b');
         if (!compareA || !compareB) return;
-        var opts = _commits.map(function (c) { return '<option value="' + c._id + '">' + pm._esc(c.hash) + ' \u2014 ' + pm._esc(c.label) + '</option>'; }).join('');
+        var opts = _commits.map(function (c) { return '<option value="' + pm._esc(c._id) + '">' + pm._esc(c.hash) + ' \u2014 ' + pm._esc(c.label) + '</option>'; }).join('');
         compareA.innerHTML = opts; compareB.innerHTML = opts;
         if (_commits.length > 1) compareB.selectedIndex = 1;
     }

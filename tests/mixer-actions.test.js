@@ -126,13 +126,15 @@ describe('Mixer Actions', () => {
     it('should clamp values correctly', () => {
         const mockMixer = createMockMixer();
         const actions = createMixerActions(() => mockMixer);
-        
-        // Testando HPF clamp (20-400)
+
+        // HPF clamp (20-400). v6.0.3: input.eq() nao existe — verifica OSC cru no conn.sendMessage.
         actions.applyChannelHpf(1, 10); // Abaixo do min
-        expect(mockMixer.master.input).toHaveBeenCalledWith(1);
-        
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^i.0.eq.hpf.freq^20');
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^i.0.eq.hpf.slope^2');
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^i.0.eq.hpf.on^1');
+
         actions.applyChannelHpf(1, 500); // Acima do max
-        expect(mockMixer.master.input).toHaveBeenCalledWith(1);
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^i.0.eq.hpf.freq^400');
     });
 
     it('should throw error for invalid channel', () => {
@@ -143,9 +145,80 @@ describe('Mixer Actions', () => {
     it('should apply channel gate correctly', () => {
         const mockMixer = createMockMixer();
         const actions = createMixerActions(() => mockMixer);
-        
+
+        // v6.0.3: input.gate() nao existe — verifica OSC cru.
         actions.applyChannelGate(5, true, -40);
-        expect(mockMixer.master.input).toHaveBeenCalledWith(5);
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^i.4.gate.on^1');
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^i.4.gate.thr^-40');
+
+        actions.applyChannelGate(5, false);
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^i.4.gate.on^0');
+    });
+
+    it('should apply channel compressor via raw OSC', () => {
+        const mockMixer = createMockMixer();
+        const actions = createMixerActions(() => mockMixer);
+
+        actions.applyChannelCompressor(7, 3, -12);
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^i.6.comp.on^1');
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^i.6.comp.ratio^3');
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^i.6.comp.thr^-12');
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^i.6.comp.attack^25');
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^i.6.comp.release^220');
+    });
+
+    it('should apply channel EQ cut via raw OSC', () => {
+        const mockMixer = createMockMixer();
+        const actions = createMixerActions(() => mockMixer);
+
+        // v6.0.3: input.eq().band() nao existe — verifica OSC cru.
+        actions.applyEqCut('channel', 9, 800, -2.5, 2, 1);
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^i.8.eq.band.0.freq^800');
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^i.8.eq.band.0.gain^-2.5');
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^i.8.eq.band.0.q^2');
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^i.8.eq.band.0.type^0');
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^i.8.eq.band.0.on^1');
+    });
+
+    it('should mute master via raw OSC (master.mute nao existe em v6)', () => {
+        const mockMixer = createMockMixer();
+        const actions = createMixerActions(() => mockMixer);
+
+        const r1 = actions.executeMixerCommand({ action: 'master_mute', enabled: true });
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^m.mute^1');
+        expect(r1).toContain('MUTADO');
+
+        const r2 = actions.executeMixerCommand({ action: 'mute_master', enabled: false });
+        expect(mockMixer.conn.sendMessage).toHaveBeenCalledWith('SETD^m.mute^0');
+        expect(r2).toContain('desativado');
+    });
+
+    it('should set aux delay via master.aux(id).setDelay', () => {
+        const mockMixer = createMockMixer();
+        const actions = createMixerActions(() => mockMixer);
+
+        // mixer.aux(id) e AuxBus (sem setDelay). O caminho correto e master.aux(id).
+        const auxCh = mockMixer.master.aux(3);
+        auxCh.setDelay = vi.fn();
+
+        const r = actions.executeMixerCommand({ action: 'set_delay', target: 'aux', aux: 3, ms: 200 });
+        expect(auxCh.setDelay).toHaveBeenCalledWith(200);
+        expect(r).toContain('Delay de 200ms');
+    });
+
+    it('should map player setPlayMode string to number', () => {
+        const mockMixer = createMockMixer();
+        mockMixer.player = { setPlayMode: vi.fn() };
+        const actions = createMixerActions(() => mockMixer);
+
+        actions.executeMixerCommand({ action: 'set_play_mode', mode: 'manual' });
+        expect(mockMixer.player.setPlayMode).toHaveBeenCalledWith(0);
+
+        actions.executeMixerCommand({ action: 'set_play_mode', mode: 'auto' });
+        expect(mockMixer.player.setPlayMode).toHaveBeenCalledWith(3);
+
+        actions.executeMixerCommand({ action: 'set_play_mode', val: 1 });
+        expect(mockMixer.player.setPlayMode).toHaveBeenCalledWith(1);
     });
 
     it('should execute aux and fx commands from AI contract', () => {
@@ -300,6 +373,68 @@ describe('Mixer Actions', () => {
         const reconnectRes = actions.executeMixerCommand({ action: 'reconnect_mixer' });
         expect(mockMixer.reconnect).toHaveBeenCalled();
         expect(reconnectRes).toContain('Tentando reconectar');
+    });
+});
+
+describe('Mixer Actions — Offline / OSC error handling', () => {
+    function mixerWithConnStatus(status) {
+        return {
+            conn: { sendMessage: vi.fn(), reconnect: vi.fn(), status },
+            master: { afs: vi.fn(() => ({ enable: vi.fn(), disable: vi.fn() })) }
+        };
+    }
+
+    it('throws MixerOfflineError when conn is missing (mesa não ligada)', () => {
+        const actions = createMixerActions(() => ({ conn: null }));
+        expect(() => actions.applyChannelHpf(1, 100)).toThrow(/offline/i);
+    });
+
+    it('throws MixerOfflineError when WebSocket status is CLOSED', () => {
+        const mixer = mixerWithConnStatus('CLOSED');
+        const actions = createMixerActions(() => mixer);
+        expect(() => actions.applyChannelGate(1, true)).toThrow(/Mesa desconectada/);
+    });
+
+    it('throws MixerOfflineError when WebSocket status is CLOSING (numeric)', () => {
+        const mixer = mixerWithConnStatus(2);
+        mixer.master.afs = null;
+        const actions = createMixerActions(() => mixer);
+        expect(() => actions.setAfs(true)).toThrow(/Mesa desconectada/);
+    });
+
+    it('translates native "not open" WebSocket error into MixerOfflineError', () => {
+        const mixer = mixerWithConnStatus('OPEN');
+        mixer.conn.sendMessage.mockImplementation(() => {
+            const err = new Error('WebSocket is not open');
+            throw err;
+        });
+        const actions = createMixerActions(() => mixer);
+        expect(() => actions.applyChannelHpf(1, 100)).toThrow(/Falha ao enviar OSC/);
+    });
+
+    it('re-throws unrelated errors from sendMessage as-is', () => {
+        const mixer = mixerWithConnStatus('OPEN');
+        mixer.conn.sendMessage.mockImplementation(() => {
+            throw new Error('algum bug bizarro no driver');
+        });
+        const actions = createMixerActions(() => mixer);
+        expect(() => actions.applyChannelHpf(1, 100)).toThrow('algum bug bizarro no driver');
+    });
+
+    it('safeOscSendRaw falha limpo quando mesa offline', () => {
+        const actions = createMixerActions(() => ({ conn: null }));
+        // sendRawCommand é interno — testamos via action pública que também usa sendMessage cru
+        const mixer = mixerWithConnStatus('CLOSED');
+        const actions2 = createMixerActions(() => mixer);
+        expect(() => actions2.applyChannelHpf(1, 100)).toThrow(/desconectada/i);
+    });
+
+    it('executeMixerCommand lança erro amigável quando conn=null', () => {
+        const mixer = { conn: null, master: {} };
+        const actions = createMixerActions(() => mixer);
+        // ensureMixer dispara antes — verificamos que lança mensagem clara
+        expect(() => actions.executeMixerCommand({ action: 'mute_master', enabled: true }))
+            .toThrow(/Conecte-se/);
     });
 });
 

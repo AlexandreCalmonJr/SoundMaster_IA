@@ -3,6 +3,7 @@ const path = require('path');
 
 class Logger {
     static instance = null;
+    static _consoleProxyInstalled = false;
 
     static getInstance(logDir = './logs') {
         if (!Logger.instance) {
@@ -11,10 +12,58 @@ class Logger {
         return Logger.instance;
     }
 
+    /**
+     * Redireciona console.log/warn/error para o Logger estruturado.
+     * Idempotente. Útil para capturar saída de código legacy ou de
+     * bibliotecas que ainda usam `console.*` directamente, sem ter
+     * que tocar em cada call site.
+     */
+    static installConsoleProxy() {
+        if (Logger._consoleProxyInstalled) return;
+        const self = Logger.getInstance();
+        const _origLog   = console.log.bind(console);
+        const _origWarn  = console.warn.bind(console);
+        const _origError = console.error.bind(console);
+
+        console.log = (...args) => {
+            _origLog(...args);
+            self._mirror('info', 'CONSOLE', args);
+        };
+        console.warn = (...args) => {
+            _origWarn(...args);
+            self._mirror('warn', 'CONSOLE', args);
+        };
+        console.error = (...args) => {
+            _origError(...args);
+            self._mirror('error', 'CONSOLE', args);
+        };
+        Logger._consoleProxyInstalled = true;
+    }
+
+    _mirror(level, event, args) {
+        try {
+            const data = args
+                .map(a => (typeof a === 'string' ? a : (() => { try { return JSON.stringify(a); } catch { return String(a); } })()))
+                .join(' ');
+            const entry = {
+                timestamp: new Date().toISOString(),
+                level: level.toUpperCase(),
+                socketId: 'CONSOLE',
+                event,
+                data: { msg: data.slice(0, 1000) },
+            };
+            this._buffer.push(JSON.stringify(entry));
+            if (this._buffer.length >= this._bufferSize) this._flush();
+            if (this.onLog) this.onLog(entry);
+        } catch {
+            // Falha silenciosa — nunca quebrar console por causa do logger
+        }
+    }
+
     constructor(logDir) {
         this.logFile = path.join(logDir, `audit_${new Date().toISOString().split('T')[0]}.log`);
         if (!fs.existsSync(logDir)) {
-            try { fs.mkdirSync(logDir, { recursive: true }); } catch(e) {}
+            try { fs.mkdirSync(logDir, { recursive: true }); } catch (e) { /* ignore */ }
         }
         this.onLog = null;
         this._buffer = [];

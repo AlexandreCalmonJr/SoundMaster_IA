@@ -301,13 +301,9 @@ function registerMixerCommandHandlers(io, socket, deps) {
         try {
             const validated = schemas.masterMute.parse(data);
             const mixer = mixerSingleton.getMixer();
-            if (validated.mute) {
-                mixer.master.mute();
-                mixerSingleton.updateMasterState({ mute: 1 });
-            } else {
-                mixer.master.unmute();
-                mixerSingleton.updateMasterState({ mute: 0 });
-            }
+            // master.mute()/unmute() nao existem em soundcraft-ui-connection v6 (MasterBus nao implementa mute). Enviar OSC cru.
+            mixer.conn.sendMessage(`SETD^m.mute^${validated.mute ? 1 : 0}`);
+            mixerSingleton.updateMasterState({ mute: validated.mute ? 1 : 0 });
             logger.info(socket.id, 'SET_MASTER_MUTE', { mute: validated.mute });
         } catch (error) {
             logger.error(socket.id, 'SET_MASTER_MUTE_ERROR', { error: error.message });

@@ -26,6 +26,7 @@ from engine.ai_logic import AIEngine, SessionContext
 from engine.classifier import AudioClassifier
 from acoustics.processor import AcousticProcessor
 from predictive_maintenance import PredictiveMaintenanceEngine
+from acoustic_analysis import calculate_reverberation_params, calculate_sti
 
 _maintenance_engine = PredictiveMaintenanceEngine()
 _classifier = AudioClassifier()
@@ -603,11 +604,42 @@ async def auto_eq_endpoint(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def _estimate_snr_from_ir(ir: np.ndarray) -> float:
+    """
+    Estima a relação sinal-ruído (dB) a partir de uma IR isolada.
+    Usa a energia pré-pico (50 ms antes do |peak|) como proxy do ruído de fundo.
+    Retorna 60.0 (otimista) se não houver samples suficientes antes do pico.
+    """
+    ir = np.asarray(ir, dtype=np.float64)
+    n = len(ir)
+    if n < 16:
+        return 60.0
+    peak_idx = int(np.argmax(np.abs(ir)))
+    noise_window = min(peak_idx, max(16, int(0.050 * 48000)))
+    if noise_window < 4:
+        return 60.0
+    noise_floor = float(np.mean(ir[:noise_window] ** 2))
+    signal_peak = float(ir[peak_idx] ** 2)
+    if noise_floor <= 0 or signal_peak <= 0:
+        return 60.0
+    return round(10 * float(np.log10(signal_peak / (noise_floor + 1e-30))), 1)
+
+
 @app.post("/api/calculate/rt60")
 async def rt60_endpoint(
     request: Rt60Request,
     authenticated: bool = Depends(verify_api_key)
 ):
+    """
+    Calcula parâmetros de reverberação (EDT, T20, T30, RT60, C50, C80, D50)
+    e STI (IEC 60268-16) a partir de uma Resposta ao Impulso pré-computada.
+
+    Algoritmo (ISO 3382-1 + IEC 60268-16:2011):
+        - Schroeder backward integration → curva em dB
+        - Regressão linear (linregress) nos trechos [0..-10], [-5..-25], [-5..-35] dB
+        - RT60 = T30 quando SNR ≥ 45 dB, senão T20, senão EDT×6
+        - STI: Modulation Transfer Function por banda de oitava e correção de redundância
+    """
     try:
         sr = request.sampleRate or 48000
         ir = np.array(request.impulseResponse, dtype=np.float64)
@@ -616,80 +648,51 @@ async def rt60_endpoint(
         if n < 100:
             raise HTTPException(status_code=400, detail="impulseResponse mínimo 100 samples")
 
-        energy = ir ** 2
-        sch_raw = np.cumsum(energy[::-1])[::-1]
-        max_e = sch_raw[0] if sch_raw[0] > 0 else 1
+        # Schroeder backward integration (mesma definição usada em calculate_reverberation_params)
+        ir_sq = ir ** 2
+        sch_raw = np.cumsum(ir_sq[::-1])[::-1]
+        max_e = sch_raw[0] if sch_raw[0] > 0 else 1.0
         sch_db = 10 * np.log10(sch_raw / max_e + 1e-30)
 
-        peak_idx = 0
-        for i in range(n):
-            if sch_db[i] > -5:
-                peak_idx = i
-                break
+        # SNR estimado a partir da IR isolada (energia pré-pico vs. pico)
+        snr_db = _estimate_snr_from_ir(ir)
 
-        rt60_idx = n - 1
-        for i in range(peak_idx, n):
-            if sch_db[i] <= -60:
-                rt60_idx = i
-                break
-        rt60 = (rt60_idx - peak_idx) / sr
+        ir_data = {
+            "ir":          ir,
+            "schroeder":   sch_db,
+            "sample_rate": sr,
+            "snr_db":      snr_db,
+        }
+        rev = calculate_reverberation_params(ir_data)
 
-        def find_decay(start_db, end_db):
-            si = ei = -1
-            for i in range(peak_idx, n):
-                if si == -1 and sch_db[i] <= start_db:
-                    si = i
-                if si != -1 and ei == -1 and sch_db[i] <= end_db:
-                    ei = i
-                    break
-            if si == -1 or ei == -1:
-                return None
-            span = start_db - end_db
-            return (ei - si) / sr * (60 / span)
+        # STI (IEC 60268-16:2011) — protecção defensiva caso o sample rate seja
+        # demasiado baixo para os filtros de oitava
+        sti_payload = {"sti": None, "sti_label": "Indisponível"}
+        try:
+            if sr >= 8000 and n >= int(0.5 * sr):
+                sti_payload = calculate_sti(ir, sr, gender="male")
+        except Exception as sti_err:
+            logger.warning(f"[RT60] STI indisponível: {sti_err}")
 
-        edt = find_decay(0, -10)
-        t20 = find_decay(-5, -25)
-        t30 = find_decay(-5, -35)
-
-        def calc_clarity(early, late):
-            if late <= 0 and early <= 0:
-                return 0
-            if late <= 0:
-                return 100
-            if early <= 0:
-                return -100
-            ratio = early / late
-            return 10 * math.log10(max(ratio, 1e-30))
-
-        c50ms = round(0.050 * sr)
-        e50 = energy[:c50ms].sum() if c50ms < n else energy.sum()
-        l50 = energy[c50ms:].sum() if c50ms < n else 0
-        c50 = calc_clarity(e50, l50)
-
-        c80ms = round(0.080 * sr)
-        e80 = energy[:c80ms].sum() if c80ms < n else energy.sum()
-        l80 = energy[c80ms:].sum() if c80ms < n else 0
-        c80 = calc_clarity(e80, l80)
-
-        d50 = (e50 / (energy.sum() + 1e-30)) * 100
-
-        sti = max(0, min(1, 1 - rt60 / 4))
-        sti_cat = 'Excelente' if sti >= 0.75 else 'Bom' if sti >= 0.6 else 'Razoável' if sti >= 0.45 else 'Ruim'
-
+        # Curva de Schroeder downsampleada p/ transmissão ao frontend (≤ 2000 pontos)
         step = max(1, n // 2000)
         curve = [round(float(sch_db[i]), 2) for i in range(0, n, step)]
 
         return {
-            "rt60": round(rt60, 3),
-            "edt": round(edt, 3) if edt is not None else None,
-            "t20": round(t20, 3) if t20 is not None else None,
-            "t30": round(t30, 3) if t30 is not None else None,
-            "c50": round(c50, 1),
-            "c80": round(c80, 1),
-            "d50": round(d50, 1),
-            "sti": round(sti, 2),
-            "sti_category": sti_cat,
-            "curve": curve,
+            "rt60":         rev.get("rt60_est"),
+            "edt":          rev.get("edt"),
+            "t20":          rev.get("t20"),
+            "t30":          rev.get("t30"),
+            "c50":          rev.get("c50"),
+            "c80":          rev.get("c80"),
+            "d50":          rev.get("d50"),
+            "d80":          rev.get("d80"),
+            "snr_db":       rev.get("snr_db"),
+            "warning":      rev.get("warning"),
+            "sti":          sti_payload.get("sti"),
+            "sti_category": sti_payload.get("sti_label"),
+            "method":       "ISO 3382-1 (Schroeder + linear regression)",
+            "curve":        curve,
         }
     except HTTPException:
         raise

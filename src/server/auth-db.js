@@ -90,8 +90,22 @@ function findUserById(id) {
     return stmt.get(id) || null;
 }
 
+function findUserByIdWithHash(id) {
+    const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
+    return stmt.get(id) || null;
+}
+
 function verifyPassword(password, hash) {
     return bcrypt.compareSync(password, hash);
+}
+
+function updatePassword(userId, newPassword) {
+    const passwordHash = bcrypt.hashSync(newPassword, 10);
+    const stmt = db.prepare(
+        "UPDATE users SET password_hash = ?, must_change_password = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+    );
+    const result = stmt.run(passwordHash, userId);
+    return result.changes > 0;
 }
 
 function getDb() {
@@ -104,6 +118,8 @@ module.exports = {
     findUserByUsername,
     findUserByEmail,
     findUserById,
+    findUserByIdWithHash,
     verifyPassword,
+    updatePassword,
     getDb,
 };

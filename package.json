@@ -85,5 +85,12 @@
     "esbuild": "^0.28.0",
     "tailwindcss": "^4.2.4",
     "vitest": "^4.1.5"
+  },
+  "overrides": {
+    "ws": "^8.21.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
   }
 }

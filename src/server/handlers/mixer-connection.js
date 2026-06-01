@@ -297,16 +297,9 @@ function registerMixerConnectionHandlers(io, socket, deps) {
                                 io.emit('channel_multitrack_selected', { channel: i, selected: !!multiTrackSelected });
                             }, `input(${i}).multiTrackSelected$`);
 
-                            for (let b = 1; b <= 4; b++) {
-                                try {
-                                    const eqBand = input.eq().band(b);
-                                    if (eqBand && eqBand.type$) {
-                                        safeSubscribe(eqBand.type$, type => {
-                                            io.emit('channel_eq_band_type', { channel: i, band: b, type });
-                                        }, `input(${i}).eq().band(${b}).type$`);
-                                    }
-                                } catch (e) {}
-                            }
+                            // EQ nao tem facade publica em soundcraft-ui-connection v6.
+                            // Removido o loop de subscribe a input.eq().band(b).type$ (TypeError silencioso).
+                            // O tipo de banda por canal deve ser obtido via mixer.state se necessario no futuro.
                         }
                     } catch (err) {
                         logger.warn(socket.id, `FALHA_OBTER_CANAL_${i}`, { error: err.message });

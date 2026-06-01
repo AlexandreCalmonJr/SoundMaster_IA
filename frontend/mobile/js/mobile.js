@@ -859,11 +859,10 @@ async function askAI(text, includeAnalysis = false) {
     // Bubble Usuário
     const userRow = document.createElement('div');
     userRow.className = 'flex justify-end mb-4';
-    userRow.innerHTML = `
-        <div class="bg-cyan-600/90 backdrop-blur-md p-3.5 rounded-3xl rounded-tr-none text-xs text-white border border-cyan-500/30 max-w-[85%] shadow-lg shadow-cyan-900/20">
-            ${text || '📊 Enviando análise acústica...'}
-        </div>
-    `;
+    const userBubble = document.createElement('div');
+    userBubble.className = 'bg-cyan-600/90 backdrop-blur-md p-3.5 rounded-3xl rounded-tr-none text-xs text-white border border-cyan-500/30 max-w-[85%] shadow-lg shadow-cyan-900/20';
+    userBubble.textContent = text || '📊 Enviando análise acústica...';
+    userRow.appendChild(userBubble);
     aiChatBox.appendChild(userRow);
     aiChatBox.scrollTop = aiChatBox.scrollHeight;
 

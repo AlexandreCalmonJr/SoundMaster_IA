@@ -337,22 +337,36 @@
         }
         
         if (listEl) {
-            let html = '<div class="text-[10px] text-slate-500 uppercase font-bold mb-2">Perfis de Calibração Salvos</div>';
+            listEl.innerHTML = '<div class="text-[10px] text-slate-500 uppercase font-bold mb-2">Perfis de Calibração Salvos</div>';
+            const escape = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
             for (const [name, profile] of Object.entries(profiles)) {
-                html += `
-                    <div class="flex items-center justify-between bg-black/30 p-2 rounded mb-1">
-                        <div>
-                            <div class="text-xs font-bold text-white">${name}</div>
-                            <div class="text-[9px] text-slate-500">RT60: ${profile.rt60.toFixed(2)}s | ${profile.points} pts</div>
-                        </div>
-                        <div class="flex gap-1">
-                            <button class="text-[9px] px-2 py-1 bg-emerald-600 rounded text-white" onclick="RT60Mapping.applyProfile('${name}')">Apply</button>
-                            <button class="text-[9px] px-2 py-1 bg-red-600 rounded text-white" onclick="RT60Mapping.deleteProfile('${name}')">X</button>
-                        </div>
-                    </div>
-                `;
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between bg-black/30 p-2 rounded mb-1';
+                const info = document.createElement('div');
+                const nameEl = document.createElement('div');
+                nameEl.className = 'text-xs font-bold text-white';
+                nameEl.textContent = name;
+                const metaEl = document.createElement('div');
+                metaEl.className = 'text-[9px] text-slate-500';
+                metaEl.textContent = `RT60: ${profile.rt60.toFixed(2)}s | ${profile.points} pts`;
+                info.appendChild(nameEl);
+                info.appendChild(metaEl);
+                const actions = document.createElement('div');
+                actions.className = 'flex gap-1';
+                const applyBtn = document.createElement('button');
+                applyBtn.className = 'text-[9px] px-2 py-1 bg-emerald-600 rounded text-white';
+                applyBtn.textContent = 'Apply';
+                applyBtn.addEventListener('click', () => RT60Mapping.applyProfile(name));
+                const delBtn = document.createElement('button');
+                delBtn.className = 'text-[9px] px-2 py-1 bg-red-600 rounded text-white';
+                delBtn.textContent = 'X';
+                delBtn.addEventListener('click', () => RT60Mapping.deleteProfile(name));
+                actions.appendChild(applyBtn);
+                actions.appendChild(delBtn);
+                item.appendChild(info);
+                item.appendChild(actions);
+                listEl.appendChild(item);
             }
-            listEl.innerHTML = html;
         }
     }
     

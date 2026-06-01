@@ -24,6 +24,7 @@ const multer = require('multer');
 
 function createAppServer({ rootDir, localIp, port, dbDir }) {
     const logger = Logger.getInstance(dbDir);
+    Logger.installConsoleProxy();
     const expressApp = express();
     const server = http.createServer(expressApp);
     const PYTHON_PORT = parseInt(process.env.PYTHON_PORT || '3002', 10);
@@ -59,7 +60,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
                 defaultSrc: ["'self'"],
                 styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
                 fontSrc: ["'self'", "https://fonts.gstatic.com"],
-                scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+                scriptSrc: ["'self'", "https://cdnjs.cloudflare.com"],
                 scriptSrcAttr: ["'unsafe-inline'"],
                 imgSrc: ["'self'", "data:", "blob:"],
                 connectSrc: ["'self'", "ws:", "wss:"],
@@ -92,21 +93,8 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     expressApp.use(express.json({ limit: '50mb' }));
     expressApp.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-    // Middleware de autenticação JWT para rotas REST protegidas
-    const { JWT_SECRET } = require('./jwt-config');
-    function authenticateToken(req, res, next) {
-        const authHeader = req.headers['authorization'];
-        const token = authHeader && authHeader.split(' ')[1];
-        if (!token) {
-            return res.status(401).json({ error: 'Token não fornecido' });
-        }
-        try {
-            req.user = jwt.verify(token, JWT_SECRET);
-            next();
-        } catch (err) {
-            return res.status(403).json({ error: 'Token inválido ou expirado' });
-        }
-    }
+    // Middleware de autenticação JWT (lê do header Authorization OU do cookie httpOnly)
+    const { authenticateToken } = require('./auth.routes');
 
     // Inicializa banco centralizado IMEDIATAMENTE (presets + mappings no mesmo diretório)
     db.initDatabase(dbDir);
