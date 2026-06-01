@@ -11,8 +11,10 @@
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
     "prepare-wincodesign": "node scripts/prepare-wincodesign.js",
-    "postinstall": "node scripts/install-python-deps.js",
+    "postinstall": "node scripts/install-python-deps.js && electron-rebuild -f -w better-sqlite3",
     "test": "vitest run",
+    "pretest": "npm rebuild better-sqlite3 --runtime=node --update-binary",
+    "prestart": "electron-rebuild -f -w better-sqlite3",
     "testbed": "node tests/testbed.js",
     "audit": "vitest run tests/audit.test.js",
     "audit:quick": "echo 'Use: npm run audit para rodar auditoria completa' && echo 'Abra AUDIT_INTERACTIVE.html para teste visual interativo' && echo 'Consulte AUDIT_GUIDE.md para instruções detalhadas'"
@@ -79,6 +81,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
     "@tailwindcss/cli": "^4.2.4",
     "electron": "^41.5.0",
     "electron-builder": "^26.8.1",
