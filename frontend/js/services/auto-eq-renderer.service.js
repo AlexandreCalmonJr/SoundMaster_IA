@@ -29,8 +29,14 @@
         if (!canvas || !result) return;
 
         const ctx = canvas.getContext('2d');
-        const W = canvas.width;
-        const H = canvas.height;
+        const dpr = window.devicePixelRatio || 1;
+        const W = canvas.clientWidth || canvas.width;
+        const H = canvas.clientHeight || canvas.height;
+        if (canvas.width !== W * dpr || canvas.height !== H * dpr) {
+            canvas.width = W * dpr;
+            canvas.height = H * dpr;
+        }
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         const PAD = { l: 48, r: 16, t: 16, b: 36 };
         const iW = W - PAD.l - PAD.r;
         const iH = H - PAD.t - PAD.b;

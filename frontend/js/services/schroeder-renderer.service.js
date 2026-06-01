@@ -102,12 +102,13 @@
         ctx.stroke();
         ctx.shadowBlur = 0;
 
-        // Eixo X — rótulos de tempo
+        // Eixo X — rótulos de tempo (derivado do comprimento real dos dados)
         ctx.fillStyle = '#64748b';
         ctx.textAlign = 'center';
         ctx.font = '9px monospace';
-        const rt = parseFloat(params?.rt60) || 1.5;
-        [[0, '0s'], [0.5, `${(rt / 2).toFixed(1)}s`], [1, `${rt.toFixed(1)}s`]].forEach(([pct, lbl]) => {
+        const timeSpan = params?.timeSpan || (curveDb.length / 48000);
+        const totalTime = parseFloat(timeSpan) || parseFloat(params?.rt60) || 1.5;
+        [[0, '0s'], [0.5, `${(totalTime / 2).toFixed(2)}s`], [1, `${totalTime.toFixed(2)}s`]].forEach(([pct, lbl]) => {
             const x = PAD.left + pct * plotW;
             ctx.fillText(lbl, x, H - 6);
         });

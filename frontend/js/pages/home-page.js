@@ -160,12 +160,10 @@
 
     function _saveMessageToHistory(text, isUser, command, id, executed = false) {
         try {
-            const currentHistory = AppStore.getState().aiChatHistory || [];
-            const filtered = currentHistory.filter(msg => msg.id !== id);
-            const updatedHistory = filtered.concat({
-                text, isUser, command, id, executed, ts: Date.now()
-            });
-            AppStore.setState({ aiChatHistory: updatedHistory });
+            var history = AppStore.getState().aiChatHistory || [];
+            var filtered = history.filter(function (msg) { return msg.id !== id; });
+            filtered.push({ text: text, isUser: isUser, command: command, id: id, executed: executed, ts: Date.now() });
+            AppStore.setState({ aiChatHistory: filtered });
         } catch (e) {
             console.error('[HomePage] Error saving message to history:', e);
         }

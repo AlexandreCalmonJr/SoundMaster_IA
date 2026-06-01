@@ -168,7 +168,7 @@ socket.on('vu_data', (data) => {
         if (vuMaster) {
             // ✅ Correção Auditoria: Usar escala logarítmica (dB)
             const height = vuToHeight(data.master.vuPostFader || 0);
-            vuMaster.style.height = `${height}%`;
+            vuMaster.style.transform = `scaleY(${height / 100})`;
         }
     }
 });
@@ -355,6 +355,19 @@ function setupMobileTouchFader() {
     const container = document.querySelector('.fader-container');
     if (!container) return;
 
+    let _touchTimer = null;
+
+    function _finalizeTouch() {
+        if (_touchTimer) clearTimeout(_touchTimer);
+        // Debounce: enviar valor final com um pequeno delay
+        _touchTimer = setTimeout(function () {
+            var level = (masterSlider ? masterSlider.value : 0) / 100;
+            setMasterLevel(level);
+            triggerHaptic('medium');
+            _touchTimer = null;
+        }, 150);
+    }
+
     const handleTouch = (e) => {
         e.preventDefault();
         const rect = container.getBoundingClientRect();
@@ -370,10 +383,15 @@ function setupMobileTouchFader() {
         if (Math.abs(percent - latestMasterPercent) > 2) {
             triggerHaptic('light');
         }
+        
+        // Cancel pending finalization while still touching
+        if (_touchTimer) { clearTimeout(_touchTimer); _touchTimer = null; }
     };
 
     container.addEventListener('touchstart', handleTouch, { passive: false });
     container.addEventListener('touchmove', handleTouch, { passive: false });
+    container.addEventListener('touchend', _finalizeTouch, { passive: true });
+    container.addEventListener('touchcancel', _finalizeTouch, { passive: true });
 }
 
 function resizeCanvasForDisplay() {
@@ -887,22 +905,31 @@ async function askAI(text, includeAnalysis = false) {
         const aiRow = document.createElement('div');
         aiRow.className = 'flex justify-start mb-4';
         
-        let commandHtml = '';
+        var _cmdDesc = data.command ? _sanitizeMobile(data.command.desc) : '';
+        var commandHtml = '';
         if (data.command) {
-            commandHtml = `
-                <button class="mt-3 w-full py-2 bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded-xl text-[10px] font-black uppercase tracking-widest active:bg-cyan-500 active:text-black transition-all">
-                    Executar: ${data.command.desc}
-                </button>
-            `;
+            commandHtml = [
+                '<button class="mt-3 w-full py-2 bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded-xl text-[10px] font-black uppercase tracking-widest active:bg-cyan-500 active:text-black transition-all">',
+                'Executar: ', _cmdDesc,
+                '</button>'
+            ].join('');
         }
 
-        aiRow.innerHTML = `
-            <div class="bg-slate-800/60 backdrop-blur-md p-3.5 rounded-3xl rounded-tl-none text-xs text-slate-200 border border-white/5 max-w-[85%] shadow-xl">
-                <div class="font-black text-[9px] text-cyan-500 uppercase tracking-widest mb-1">SoundMaster IA</div>
-                <div class="leading-relaxed">${data.text}</div>
-                ${commandHtml}
-            </div>
-        `;
+        var _sanitizeMobile = function _sanitizeMobile(str) {
+            if (window.DOMPurify && typeof DOMPurify.sanitize === 'function') {
+                return DOMPurify.sanitize(str, { ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'code', 'br'] });
+            }
+            return String(str).replace(/[&<>"']/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
+        };
+        aiRow.innerHTML = [
+            '<div class="bg-slate-800/60 backdrop-blur-md p-3.5 rounded-3xl rounded-tl-none text-xs text-slate-200 border border-white/5 max-w-[85%] shadow-xl">',
+            '<div class="font-black text-[9px] text-cyan-500 uppercase tracking-widest mb-1">SoundMaster IA</div>',
+            '<div class="leading-relaxed">', _sanitizeMobile(data.text), '</div>',
+            commandHtml,
+            '</div>'
+        ].join('');
 
         if (data.command) {
             const btnCmd = aiRow.querySelector('button');

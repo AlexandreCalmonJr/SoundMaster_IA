@@ -37,6 +37,7 @@
     gap: 2px;
     align-items: end;
     height: 120px;
+    overflow-x: auto;
 }
 
 .geq-bar-wrap {
@@ -132,4 +133,28 @@
     border-radius: 2px;
     margin-right: 6px;
     vertical-align: middle;
+}
+
+/* Responsivo: GEQ grid */
+@media (max-width: 768px) {
+    .geq-grid {
+        gap: 3px;
+        height: 100px;
+    }
+    .geq-label {
+        font-size: 0.55rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .geq-grid {
+        gap: 4px;
+        height: 80px;
+    }
+    .geq-label {
+        font-size: 0.6rem;
+    }
+    .geq-bar-track {
+        border-radius: 2px;
+    }
 }

@@ -344,12 +344,13 @@ body {
 /* ============================================================
    SPA CONTENT AREA
    ============================================================ */
+#mobile-app-root,
 .mobile-app-root {
     flex: 1;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    /* Espaço: header ~52px + nav ~60px + safe areas */
+    /* Espaço: nav ~60px + safe areas */
     padding-bottom: calc(72px + env(safe-area-inset-bottom));
     padding-top: var(--s2);
 }

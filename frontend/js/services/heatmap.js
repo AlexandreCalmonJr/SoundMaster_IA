@@ -520,6 +520,45 @@
         if (rulerMode && rulerStart && rulerEnd) {
             renderRulerLine();
         }
+        
+        // Legenda de escala dB
+        drawLegend(ctx, canvas.width, canvas.height);
+    }
+    
+    function drawLegend(ctx, W, H) {
+        var legendW = 20, legendH = 100;
+        var pad = 12;
+        var x = W - legendW - pad;
+        var y = pad;
+        var minDb = 75, maxDb = 105;
+        var steps = 7;
+        
+        ctx.save();
+        ctx.globalAlpha = 0.85;
+        
+        // Fundo da legenda
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(x - 4, y - 4, legendW + 40, legendH + 8);
+        
+        // Barra de gradiente
+        for (var i = 0; i < legendH; i++) {
+            var pct = 1 - (i / legendH);
+            var db = minDb + pct * (maxDb - minDb);
+            ctx.fillStyle = getColorForDb(db);
+            ctx.fillRect(x, y + i, legendW, 1);
+        }
+        
+        // Labels
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = '9px monospace';
+        ctx.textAlign = 'left';
+        for (var i = 0; i < steps; i++) {
+            var db = minDb + (i / (steps - 1)) * (maxDb - minDb);
+            var ly = y + legendH - (i / (steps - 1)) * legendH;
+            ctx.fillText(Math.round(db) + 'dB', x + legendW + 6, ly + 3);
+        }
+        
+        ctx.restore();
     }
     
     // ═══════════════════════════════════════════════════════════════════════════
@@ -613,32 +652,37 @@
     }
     
     function drawIsoSegment(ctx, caseId, x, y, cw, ch, grid, targetDb) {
-        // Simplified marching squares - draw based on case
-        // This is a simplified version; full implementation would calculate exact intersection points
-        const midX = x + cw / 2;
-        const midY = y + ch / 2;
-        
-        // Very simplified: just mark cell centers for visual indication
         const tl = grid[y][x];
         const tr = grid[y][x+1];
         const br = grid[y+1][x+1];
         const bl = grid[y+1][x];
         
-        if ((tl >= targetDb) !== (tr >= targetDb)) {
-            ctx.moveTo(midX, y);
-            ctx.lineTo(midX, midY);
+        function _lerp(a, b, t) { return a + (b - a) * t; }
+
+        function _intersect(valA, valB, posA, posB) {
+            if ((valA >= targetDb) === (valB >= targetDb)) return null;
+            const t = (targetDb - valA) / (valB - valA);
+            if (t < 0 || t > 1) return null;
+            return { x: _lerp(posA.x, posB.x, t), y: _lerp(posA.y, posB.y, t) };
         }
-        if ((tr >= targetDb) !== (br >= targetDb)) {
-            ctx.lineTo(x + cw, midY);
-            ctx.moveTo(midX, midY);
-        }
-        if ((br >= targetDb) !== (bl >= targetDb)) {
-            ctx.lineTo(midX, y + ch);
-            ctx.moveTo(midX, midY);
-        }
-        if ((bl >= targetDb) !== (tl >= targetDb)) {
-            ctx.lineTo(x, midY);
-            ctx.moveTo(midX, midY);
+
+        const top = _intersect(tl, tr, { x: x, y: y }, { x: x + cw, y: y });
+        const right = _intersect(tr, br, { x: x + cw, y: y }, { x: x + cw, y: y + ch });
+        const bottom = _intersect(bl, br, { x: x, y: y + ch }, { x: x + cw, y: y + ch });
+        const left = _intersect(tl, bl, { x: x, y: y }, { x: x, y: y + ch });
+
+        var pts = [];
+        if (top) pts.push(top);
+        if (right) pts.push(right);
+        if (bottom) pts.push(bottom);
+        if (left) pts.push(left);
+
+        if (pts.length < 2) return;
+        ctx.moveTo(pts[0].x, pts[0].y);
+        ctx.lineTo(pts[1].x, pts[1].y);
+        if (pts.length === 4) {
+            ctx.moveTo(pts[2].x, pts[2].y);
+            ctx.lineTo(pts[3].x, pts[3].y);
         }
     }
     

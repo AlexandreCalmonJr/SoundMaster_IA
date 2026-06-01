@@ -1146,6 +1146,19 @@
             ctx.shadowBlur = 3;
         }
 
+        // Centralizar magnitude ao redor da média visível (evita clipping por DC offset)
+        var magCenter = plotT + plotH / 2;
+        if (type === 'magnitude') {
+            var sum = 0, cnt = 0;
+            for (var j = 0; j < plotData.length; j++) {
+                var fj = j * hzPerBin;
+                if (fj < minFreq || fj > maxFreq) continue;
+                sum += plotData[j];
+                cnt++;
+            }
+            magCenter += (cnt > 0 ? sum / cnt : 0) * (plotH / zoomMag);
+        }
+
         let started = false;
         for (let i = 0; i < plotData.length; i++) {
             const freq = i * hzPerBin;
@@ -1155,7 +1168,7 @@
             let val = plotData[i];
             if (type === 'phase') val *= 180 / Math.PI;
             const y = type === 'magnitude'
-                ? plotT + plotH / 2 - (plotData[i] * (plotH / zoomMag))
+                ? magCenter - (plotData[i] * (plotH / zoomMag))
                 : type === 'groupdelay'
                     ? plotT + plotH - (Math.max(0, val) * (plotH / zoomPhase))
                     : plotT + plotH / 2 - (val * (plotH / zoomPhase));

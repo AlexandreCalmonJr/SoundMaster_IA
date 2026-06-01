@@ -679,6 +679,50 @@
   }
 }
 
+@media (max-width: 640px) {
+  .icon-rail {
+    width: 0;
+    padding: 0;
+    overflow: hidden;
+    opacity: 0;
+    border-right: none;
+  }
+  .category-panel {
+    left: 0 !important;
+    width: 100vw !important;
+    max-width: none !important;
+  }
+  .category-panel.open {
+    width: 100vw !important;
+  }
+  .header-left {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .header-right {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .app-header {
+    padding: 0 12px;
+  }
+  #lite-badge {
+    display: none !important;
+  }
+  #btn-help {
+    display: none !important;
+  }
+  #btn-toggle-main {
+    display: none !important;
+  }
+  .header-status .status-text {
+    display: none;
+  }
+  .header-toggle-mixer #txt-toggle-mixer {
+    display: none;
+  }
+}
+
 @media (max-height: 750px) {
   .mixer-scroll-container {
     padding-bottom: 8px;

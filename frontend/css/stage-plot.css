@@ -34,3 +34,59 @@
 #sp-popup-open-ch { background:color-mix(in srgb, #22c55e 20%, transparent); color:#4ade80; border:1px solid color-mix(in srgb, #22c55e 40%, transparent) !important; }
 #sp-popup-cancel  { background:rgba(255,255,255,.07); color:var(--text-secondary, #94a3b8); border:1px solid rgba(255,255,255,.15) !important; }
 .sp-spatial-badge { position:absolute; top:10px; right:10px; background:color-mix(in srgb, #a855f7 20%, transparent); border:1px solid color-mix(in srgb, #a855f7 40%, transparent); border-radius:8px; padding:4px 10px; font-size:9px; color:#c084fc; font-weight:700; display:none; }
+
+/* Responsivo: telas médias */
+@media (max-width: 768px) {
+  .stage-plot-page {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    height: auto;
+    min-height: calc(100vh - 80px);
+  }
+  #sp-palette {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 6px;
+    padding-bottom: 4px;
+  }
+  #sp-palette h4 {
+    flex-shrink: 0;
+    writing-mode: unset;
+    margin: 0 4px 0 0;
+    line-height: 32px;
+  }
+  .sp-palette-item {
+    flex-shrink: 0;
+    padding: 6px 8px;
+    flex-direction: row;
+    gap: 6px;
+    font-size: 9px;
+  }
+  #sp-canvas-wrap {
+    min-height: 300px;
+  }
+}
+
+/* Responsivo: telas pequenas */
+@media (max-width: 480px) {
+  .stage-plot-page {
+    padding: 8px;
+    gap: 8px;
+  }
+  #sp-palette {
+    padding: 6px;
+  }
+  .sp-palette-item {
+    padding: 4px 6px;
+    font-size: 8px;
+  }
+  #sp-canvas-wrap {
+    min-height: 220px;
+  }
+  #sp-toolbar button {
+    font-size: 9px;
+    padding: 4px 8px;
+  }
+}

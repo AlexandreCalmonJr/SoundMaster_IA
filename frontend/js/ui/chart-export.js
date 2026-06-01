@@ -56,6 +56,12 @@
         return tempCanvas.toDataURL('image/png', DEFAULT_OPTIONS.quality);
     }
 
+    function _getCanvasAspect(canvasId) {
+        const canvas = _el(canvasId);
+        if (!canvas || !canvas.width || !canvas.height) return 1.5;
+        return canvas.width / canvas.height;
+    }
+
     function generateReportMeta() {
         const now = new Date();
         const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -148,11 +154,11 @@
             yPos += 10;
 
             const chartConfigs = [
-                { name: 'Transfer Function (Magnitude)', id: CHART_CANVAS_IDS.tfMagnitude, aspect: 1.8 },
-                { name: 'Transfer Function (Fase)', id: CHART_CANVAS_IDS.tfPhase, aspect: 1.8 },
-                { name: 'RTA - Resposta em Frequência', id: CHART_CANVAS_IDS.rta, aspect: 1.5 },
-                { name: 'Curva de Schroeder (RT60)', id: CHART_CANVAS_IDS.schroeder, aspect: 1.5 },
-                { name: 'Mapa de Calor (SPL)', id: CHART_CANVAS_IDS.heatmap, aspect: 1.2 }
+                { name: 'Transfer Function (Magnitude)', id: CHART_CANVAS_IDS.tfMagnitude },
+                { name: 'Transfer Function (Fase)', id: CHART_CANVAS_IDS.tfPhase },
+                { name: 'RTA - Resposta em Frequência', id: CHART_CANVAS_IDS.rta },
+                { name: 'Curva de Schroeder (RT60)', id: CHART_CANVAS_IDS.schroeder },
+                { name: 'Mapa de Calor (SPL)', id: CHART_CANVAS_IDS.heatmap }
             ];
 
             for (const config of chartConfigs) {
@@ -160,7 +166,8 @@
                 if (!dataUrl) continue;
 
                 const maxWidth = pageWidth - margin * 2;
-                const imgHeight = maxWidth / config.aspect;
+                const aspect = _getCanvasAspect(config.id);
+                const imgHeight = maxWidth / aspect;
                 
                 if (yPos + imgHeight > pageHeight - margin) {
                     doc.addPage();

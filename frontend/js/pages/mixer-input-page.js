@@ -241,6 +241,13 @@
                 currentTarget = e.target.value;
                 AppStore.addLog(`Console alterado para mixagem de: ${currentTarget.toUpperCase()}`);
                 syncFadersToTarget();
+                // Solicitar dados atualizados do mixer para o novo target
+                if (currentTarget === 'master') {
+                    MixerService.sendRaw('GETD|all|levels');
+                } else if (currentTarget.startsWith('aux')) {
+                    var auxIdx = parseInt(currentTarget.replace('aux', ''));
+                    MixerService.sendRaw('GETD|aux' + auxIdx + '|levels');
+                }
             });
         }
 

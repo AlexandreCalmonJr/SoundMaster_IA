@@ -2,12 +2,13 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SoundMaster Pro - Acoustic Intelligence</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <meta name="description" content="SoundMaster Pro - Acoustic Intelligence and Real-Time Sound Analysis Shell.">
     <meta property="og:title" content="SoundMaster Pro">
     <meta property="og:description" content="Acoustic Intelligence and Real-Time Sound Analysis Shell.">
     <meta property="og:type" content="website">
+    <meta name="theme-color" content="#08080a">
+    <link rel="manifest" href="manifest.json">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400&display=swap" rel="stylesheet">
@@ -146,5 +147,12 @@
 
     <!-- App Entry Point -->
     <script src="js/core/app.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(function(e) {
+          console.warn('[SW] Registration failed:', e);
+        });
+      }
+    </script>
 </body>
 </html>

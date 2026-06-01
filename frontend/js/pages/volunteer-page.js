@@ -45,7 +45,7 @@
     var _vuUnsub = null;
 
     function _vuToPercent(db) {
-        return Math.max(0, Math.min(100, ((db - (-60)) / (6 - (-60))) * 100));
+        return Math.max(0, Math.min(100, ((db + 60) / 60) * 100));
     }
 
     function _updateVUMeters() {
@@ -57,8 +57,8 @@
         var paVuFill = pm._el('vol-pa-fill');
 
         if (ch1 != null && vocalVuFill) {
-            var pct = _vuToPercent((ch1 < 0 ? Math.log(ch1 + 0.0001) / Math.log(10) * 20 : ch1 * 80) - 80);
-            vocalVuFill.style.height = Math.max(0, Math.min(100, pct)) + '%';
+            var db = ch1 < 0.001 ? -80 : 20 * Math.log10(ch1);
+            vocalVuFill.style.height = Math.max(0, Math.min(100, _vuToPercent(db))) + '%';
         }
         if (master !== null && paVuFill) {
             var db = master < 0.001 ? -80 : 20 * Math.log10(master);

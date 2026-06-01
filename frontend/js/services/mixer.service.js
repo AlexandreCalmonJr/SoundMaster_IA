@@ -35,12 +35,8 @@
      */
     function vuToHeight(linearValue) {
         const val = Number(linearValue) || 0;
-        const db = -80 + (val * 80); // Mapeia 0..1 para -80..0 dB
-        const minDb = -60; // Piso visual do medidor
-        const maxDb = 0;   // Teto visual
-        
-        const percent = ((db - minDb) / (maxDb - minDb)) * 100;
-        return _clamp(percent, 0, 100);
+        const db = val < 0.001 ? -80 : 20 * Math.log10(val);
+        return _clamp(((db + 60) / 60) * 100, 0, 100);
     }
 
     /**

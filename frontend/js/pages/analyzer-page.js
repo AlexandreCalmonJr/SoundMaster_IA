@@ -61,7 +61,7 @@
         pm._on(pm._el('btn-mls-signal'), 'click', function () { _toggleSignal('btn-mls-signal', ['bg-amber-600', 'text-white'], ['bg-amber-900/20'], function () { SignalGeneratorService.startMLS(13, 0.5); }, 'MLS'); });
         pm._on(pm._el('btn-chirp-signal'), 'click', function () { _toggleSignal('btn-chirp-signal', ['bg-amber-600', 'text-white'], ['bg-amber-900/20'], function () { SignalGeneratorService.startChirp(20, 20000, 2.0, 0.5); }, 'Chirp'); });
         pm._on(pm._el('btn-dual-tone'), 'click', function () { _toggleSignal('btn-dual-tone', ['bg-cyan-600', 'text-white'], ['bg-cyan-900/20'], function () { SignalGeneratorService.startDualTone(1000, 1500, 0.3); }, 'Dual-Tone'); });
-        pm._on(pm._el('btn-pink-noise'), 'click', function () { pm._safeCall('SoundMasterAnalyzer', 'toggle'); });
+        pm._on(pm._el('btn-pink-noise'), 'click', function () { _toggleSignal('btn-pink-noise', ['bg-amber-600', 'text-white'], ['bg-amber-900/20'], function () { SignalGeneratorService.startPinkNoise(0.3); }, 'Rosa'); });
         pm._on(pm._el('btn-start-audio'), 'click', function () { pm._safeCall('SoundMasterAnalyzer', 'toggle'); });
         pm._on(pm._el('btn-stop-audio'), 'click', function () { pm._safeCall('SoundMasterAnalyzer', 'toggle'); });
         pm._on(pm._el('btn-measure-pink'), 'click', function () { pm._safeCall('SoundMasterAnalyzer', 'startPinkNoiseMeasurement'); });

@@ -327,17 +327,22 @@
             MixerService.setAfs(false);
         }, { signal: _panelController.signal });
 
-        // Ruído Rosa
-        let isPinkActive = false;
+        // Ruído Rosa (state sincronizado via AppStore)
+        var pinkState = AppStore.getState().mixerOscillatorActive || false;
+        _updatePinkUI(pinkState);
         els.btnPinkNoiseMain && els.btnPinkNoiseMain.addEventListener('click', function () {
-            isPinkActive = !isPinkActive;
-            MixerService.setOscillator(isPinkActive);
-            els.btnPinkNoiseMain.classList.toggle('active', isPinkActive);
-            if (els.pinkNoiseStatus) {
-                els.pinkNoiseStatus.innerText = isPinkActive ? 'LIGADO' : 'Desligado';
-                els.pinkNoiseStatus.style.color = isPinkActive ? 'var(--accent-primary)' : 'var(--text-muted)';
-            }
+            var next = !AppStore.getState().mixerOscillatorActive;
+            AppStore.setState({ mixerOscillatorActive: next });
+            MixerService.setOscillator(next);
+            _updatePinkUI(next);
         }, { signal: _panelController.signal });
+        function _updatePinkUI(active) {
+            if (els.btnPinkNoiseMain) els.btnPinkNoiseMain.classList.toggle('active', active);
+            if (els.pinkNoiseStatus) {
+                els.pinkNoiseStatus.innerText = active ? 'LIGADO' : 'Desligado';
+                els.pinkNoiseStatus.style.color = active ? 'var(--accent-primary)' : 'var(--text-muted)';
+            }
+        }
 
         // Undo / Redo
         els.btnUndo && els.btnUndo.addEventListener('click', () => MixerService.undo(), { signal: _panelController.signal });

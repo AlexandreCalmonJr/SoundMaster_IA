@@ -33,6 +33,8 @@
     let freqData = null;
     let timeData = null;
     let bufferLength = 0;
+    let _fastFreqDataCache = null;
+    let _aeqAcc = null;
 
     // Refs de elementos do DOM
     let canvas, canvasCtx, rmsBar, feedbackAlert, analysisSummaryText, analysisDetailList, btnSendAnalysis, btnMeasurePink, pinkMeasureSummary, micSelect;
@@ -1304,10 +1306,10 @@
             }
 
             const fastBufferLength = analyserFast.frequencyBinCount;
-            if (!window._fastFreqDataCache || window._fastFreqDataCache.length !== fastBufferLength) {
-                window._fastFreqDataCache = new Float32Array(fastBufferLength);
+            if (!_fastFreqDataCache || _fastFreqDataCache.length !== fastBufferLength) {
+                _fastFreqDataCache = new Float32Array(fastBufferLength);
             }
-            const fastFreqData = window._fastFreqDataCache;
+            const fastFreqData = _fastFreqDataCache;
             analyserFast.getFloatFrequencyData(fastFreqData);
 
             if (window.AcousticCalibration) {
@@ -1321,10 +1323,10 @@
             }
 
             if (window.AutoEQ) {
-                if (!window._aeqAcc) {
-                    window._aeqAcc = { sum: new Float32Array(freqData.length), count: 0 };
+                if (!_aeqAcc) {
+                    _aeqAcc = { sum: new Float32Array(freqData.length), count: 0 };
                 }
-                const acc = window._aeqAcc;
+                const acc = _aeqAcc;
                 for (let i = 0; i < freqData.length; i++) acc.sum[i] += freqData[i];
                 acc.count++;
 

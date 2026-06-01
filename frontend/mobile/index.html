@@ -2,26 +2,30 @@
 <html lang="pt-BR" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#08080a">
-    <title>SoundMaster Mobile</title>
     <meta name="description" content="SoundMaster Mobile - Acoustic Intelligence and Real-Time Sound Analysis Mobile Shell.">
     <meta property="og:title" content="SoundMaster Mobile">
     <meta property="og:description" content="Acoustic Intelligence and Real-Time Sound Analysis Mobile Shell.">
     <meta property="og:type" content="website">
+    <title>SoundMaster Mobile</title>
+    <link rel="manifest" href="../manifest.json">
+    <link rel="icon" href="../icons/icon-192.svg" sizes="192x192" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="../icons/icon-192.svg">
 
     <!-- Tailwind CSS (Gera os estilos da aplicação) -->
     <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="css/mobile.css">
     
     <style>
         /* CSS mínimo para pseudo-elementos e animações específicas (fader, etc) */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+        .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; will-change: opacity, box-shadow; }
         @keyframes pulse-dot {
             0%, 100% { opacity: 1; box-shadow: 0 0 8px #06b6d4; }
             50% { opacity: 0.6; box-shadow: 0 0 3px #06b6d4; }
@@ -77,20 +81,24 @@
             box-shadow: 0 0 12px rgba(6, 182, 212, 0.25) !important;
         }
 
-        /* VU Meter Styles */
+        /* VU Meter Styles - transform: scaleY evita layout thrashing */
         .vu-container {
             width: 4px; height: 180px; background: #111113; border-radius: 2px;
             position: absolute; right: 25px; top: 98px; overflow: hidden;
             border: 1px solid rgba(255,255,255,0.03);
+            will-change: transform;
         }
         .vu-bar {
-            width: 100%; height: 0%; position: absolute; bottom: 0;
+            width: 100%; height: 100%; position: absolute; bottom: 0;
             background: linear-gradient(to top, #10b981 0%, #10b981 70%, #fbbf24 85%, #f43f5e 100%);
             box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
-            transition: height 0.1s linear;
+            transform: scaleY(0);
+            transform-origin: bottom center;
+            transition: transform 0.1s linear;
+            will-change: transform;
         }
         .rec-indicator { display: none; }
-        .rec-active .rec-indicator { display: block; animation: blink 1s steps(1) infinite; }
+        .rec-active .rec-indicator { display: block; animation: blink 1s steps(1) infinite; will-change: opacity; }
         @keyframes blink { 50% { opacity: 0; } }
     </style>
 </head>
@@ -128,7 +136,7 @@
     </div>
 
     <!-- ══ SPA Root ══ -->
-    <main id="mobile-app-root" class="flex-1 overflow-y-auto no-scrollbar pt-2 pb-[80px] px-3">
+    <main id="mobile-app-root" class="flex-1 overflow-y-auto no-scrollbar pt-2 px-3">
 
         <!-- SEÇÃO: MASTER -->
         <section id="mobile-master" class="mobile-page flex-col">
@@ -142,7 +150,7 @@
                 <div class="fader-container relative w-[64px] h-[220px] bg-[#040405] rounded-md border border-white/5 shadow-[inset_0_2px_12px_rgba(0,0,0,0.9),inset_0_0_0_1px_rgba(255,255,255,0.02)]">
                     <!-- VU Meter Master -->
                     <div class="vu-container" style="top: 20px; height: 180px; right: 8px;">
-                        <div id="vu-master" class="vu-bar" style="height: 0%"></div>
+                        <div id="vu-master" class="vu-bar"></div>
                     </div>
                     <input type="range" id="mobile-master-slider" min="0" max="100" value="0" class="vertical-range">
                 </div>
@@ -319,6 +327,23 @@
                     <button id="mobile-afs-off" class="bg-[#1a1a1d] border border-white/5 py-2 rounded-sm text-[#a0a0ab] text-[10px] uppercase active:bg-[#222226]">Desativar</button>
                 </div>
             </div>
+
+            <!-- Gerador Ruído Rosa (elementos referenciados por mobile.js) -->
+            <div class="bg-[#111113] border border-white/5 rounded-md p-3 shadow-[0_2px_16px_rgba(0,0,0,0.5)]">
+                <span class="text-[8px] uppercase tracking-[0.14em] text-[#606068] block mb-2">Gerador de Sinais</span>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="text-[10px] text-[#a0a0ab]" for="mobile-pink-toggle">Ruído Rosa</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="mobile-pink-toggle">
+                        <div class="toggle-track"></div>
+                    </label>
+                </div>
+                <div class="mb-2">
+                    <label class="text-[9px] text-[#606068] block mb-1" for="mobile-pink-level">Nível: <span id="mobile-pink-val">-20</span>dB</label>
+                    <input type="range" id="mobile-pink-level" min="-40" max="0" value="-20" class="range-styled w-full">
+                </div>
+                <button id="mobile-btn-pulse" class="w-full py-2 bg-amber-500/20 border border-amber-500/30 rounded-sm text-amber-400 text-[10px] uppercase font-bold active:bg-amber-500/30 transition-all">Pulso de Medição</button>
+            </div>
         </section>
     </main>
 
@@ -345,7 +370,18 @@
         </button>
     </nav>
 
+    <!-- Mobile Log (invisível, usado por appendMobileLog) -->
+    <div id="mobile-log" class="hidden"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js" integrity="sha512-2Bu+tPEEFSLSCkGMFJFTkGPTCXLzpFtjlAcFGkJHqkzdQ5b1LH+TjmyR2GCEBfhfpOvOnuTe5xNbz0XNFVQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="js/mobile.js" defer></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(function(e) {
+          console.warn('[SW] Registration failed:', e);
+        });
+      }
+    </script>
 </body>
 </html>
