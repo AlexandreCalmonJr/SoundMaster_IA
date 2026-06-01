@@ -374,7 +374,7 @@
         const t = text.toLowerCase();
 
         // RT60 / Medição Acústica / Relatório Técnico (Requer sweep de sinal / pulso acústico)
-        if (/(?:rt60|reverbera|tempo.*decai|eco|vivo|morto|dura[cç][aã]o|medir|med[iç]|mensura|sweep|pulso|relat[oó]rio|resumo|estat[ií]stica|laudo|documento|auditoria|auditar|audit|verifica)/.test(t)) {
+        if (/(?:rt60|reverbera|tempo.*decai|eco|vivo|morto|dura[cç][aã]o|medir|med[iç]|mensura|sweep|pulso|relat[oó]rio|resumo|estat[ií]stica|laudo|documento)/.test(t)) {
             return { type: 'rt60_measurement', prompt: text };
         }
 
