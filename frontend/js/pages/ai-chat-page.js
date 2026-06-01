@@ -374,7 +374,7 @@
         const t = text.toLowerCase();
 
         // RT60 / Medição Acústica / Relatório Técnico (Requer sweep de sinal / pulso acústico)
-        if (/(?:rt60|reverbera|tempo.*decai|eco|vivo|morto|dura[cç][aã]o|medir|med[iç]|mensura|sweep|pulso|relat[oó]rio|resumo|estat[ií]stica|laudo|documento)/.test(t)) {
+        if (/(?:rt60|reverbera|tempo.*decai|eco|vivo|morto|dura[cç][aã]o|medir|med[iç]|mensura|sweep|pulso|relat[oó]rio|resumo|estat[ií]stica|laudo|documento|auditoria|auditar|audit|verifica)/.test(t)) {
             return { type: 'rt60_measurement', prompt: text };
         }
 
@@ -484,9 +484,33 @@
                 await window.SoundMasterAnalyzer.start();
             }
 
-            _updateStep(step, 'Gerando sweep de sinal (5s)...', '🔊');
+            _updateStep(step, 'Gerando sweep de sinal (10s)...', '🔊');
             await window.SoundMasterAnalyzer.triggerImpulse();
-            await new Promise(r => setTimeout(r, 6000));
+            
+            // Aguardamos até 30s pelo evento sweep_analysis_result via SocketService
+            await new Promise((resolve) => {
+                let resolved = false;
+                const timer = setTimeout(() => {
+                    if (!resolved) { resolved = true; resolve(); }
+                }, 30000);
+
+                const handleSweepResult = () => {
+                    if (!resolved) {
+                        resolved = true;
+                        clearTimeout(timer);
+                        if (window.SocketService && window.SocketService.off) {
+                            window.SocketService.off('sweep_analysis_result', handleSweepResult);
+                        }
+                        resolve();
+                    }
+                };
+                
+                if (window.SocketService && window.SocketService.on) {
+                    window.SocketService.on('sweep_analysis_result', handleSweepResult);
+                } else {
+                    setTimeout(handleSweepResult, 15000);
+                }
+            });
 
             const lastRt60 = window.SoundMasterAnalyzer.getLastRt60();
             if (!lastRt60 || !lastRt60.rt60) {
