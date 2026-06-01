@@ -317,6 +317,13 @@
             AppStore.addLog('⚠️ Comando IA inválido recebido.');
             return false;
         }
+        if (command.action === 'trigger_sweep') {
+            if (window.SoundMasterAnalyzer && typeof window.SoundMasterAnalyzer.startSweep === 'function') {
+                window.SoundMasterAnalyzer.startSweep();
+            }
+            _emit('execute_ai_command', command, 'Executando comando IA: ' + (command.desc || command.action));
+            return true;
+        }
         return _emit('execute_ai_command', command,
             'Executando comando IA: ' + (command.desc || command.action));
     }

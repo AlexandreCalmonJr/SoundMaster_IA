@@ -825,6 +825,7 @@ function createMixerActions(getMixer) {
             'set_delay': (c) => { const id = c.channel || c.ch || c.aux || c.id || 1; return setDelay(c.target || 'aux', id, c.ms || 0); },
             'set_room_profile': (c) => `Perfil acústico alterado para: ${c.profile}`,
             'log': (c) => `INFO: ${c.desc}`,
+            'trigger_sweep': (c) => 'Medição de sweep iniciada no cliente.',
             'save_preset': (c) => {
                 const name = c.name || `Preset ${new Date().toLocaleString('pt-BR')}`;
                 database.presets.insert({ name, timestamp: Date.now(), source: 'ai' }, (err) => {

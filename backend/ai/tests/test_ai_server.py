@@ -271,3 +271,12 @@ def test_chat_history():
     assert response.status_code == 200
     data = response.json()
     assert "messages" in data
+
+def test_chat_rt60_intent():
+    response = client.post("/chat", json={"message": "medir o rt60 por favor"})
+    assert response.status_code == 200
+    data = response.json()
+    assert "command" in data
+    assert data["command"] is not None
+    assert data["command"]["action"] == "trigger_sweep"
+

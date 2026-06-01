@@ -978,6 +978,13 @@ Deseja aplicar a correcao recomendada?
                 "command": self.command("log", "Relatório Gerado: Relatório técnico enviado ao usuário")
             }
 
+        # Gatilho de Medição RT60 / Sweep
+        if not re.search(r'(relat[oó]rio|resumo|estat[ií]stica|cen[aá]rio)', text) and re.search(r'(medir|medi[cç][aã]o|disparar|rodar|fazer|executar|iniciar)?\s*(rt60|sweep|reverber|decaimento|eco|impulso)', text):
+            return {
+                "text": "Entendido! Vou iniciar a medição do tempo de reverberação (RT60) na sala agora mesmo. Por favor, faça silêncio enquanto eu emito o sinal de sweep (varredura de frequência) para analisar a acústica do ambiente. 📐🔊",
+                "command": self.command("trigger_sweep", "Disparar Sweep de Medição Acústica")
+            }
+
         # Se o usuário não citar canal, tentamos deduzir pelo contexto ou agir no Master
         channel = self.extract_channel(text)
         has_specific_channel = bool(re.search(r'(canal|ch|ch\s*\d)', text))

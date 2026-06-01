@@ -83,6 +83,7 @@
             btnClear: pm._el('btn-home-clear'),
             btnSendAnalysis: pm._el('btn-home-send-analysis'),
             btnExportChat: pm._el('btn-home-export-chat'),
+            toggleAutonomous: pm._el('home-toggle-autonomous'),
             btnCycleSuggestions: pm._el('btn-cycle-suggestions'),
             suggestionCards: pm._el('home-suggestion-cards'),
             quickActions: pm._el('home-quick-actions'),
@@ -579,6 +580,106 @@
         return ok;
     }
 
+    async function _autoRunSweepAndReport(channel) {
+        var analyzer = _getAnalyzer();
+        if (!analyzer) {
+            _saveMessageToHistory('O analisador de áudio não está disponível.', false, null, 'msg-err-' + Date.now());
+            return;
+        }
+
+        const loadingId = 'ai-auto-sweep-loading-' + Date.now();
+        _saveMessageToHistory('Iniciando medição do RT60... Preparando o microfone. 🎙️', false, null, loadingId);
+
+        try {
+            if (!analyzer.isAnalyzing()) {
+                await analyzer.start();
+            }
+
+            _updateLoaderText(loadingId, 'Disparando sinal de sweep (varredura de 10s)... Faça silêncio na sala. 🔊');
+            await analyzer.triggerImpulse();
+
+            // Aguardamos até 30s pelo evento sweep_analysis_result via SocketService
+            await new Promise((resolve) => {
+                let resolved = false;
+                const timer = setTimeout(() => {
+                    if (!resolved) { resolved = true; resolve(); }
+                }, 30000);
+
+                const handleSweepResult = () => {
+                    if (!resolved) {
+                        resolved = true;
+                        clearTimeout(timer);
+                        if (window.SocketService && window.SocketService.off) {
+                            window.SocketService.off('sweep_analysis_result', handleSweepResult);
+                        }
+                        resolve();
+                    }
+                };
+                
+                if (window.SocketService && window.SocketService.on) {
+                    window.SocketService.on('sweep_analysis_result', handleSweepResult);
+                } else {
+                    setTimeout(handleSweepResult, 15000);
+                }
+            });
+
+            const lastRt60 = analyzer.getLastRt60 ? analyzer.getLastRt60() : null;
+            if (!lastRt60 || !lastRt60.rt60) {
+                _updateLoaderText(loadingId, 'Medição de Sweep indisponível. Tentando estimativa via ruído ambiente... ⚠️');
+                await new Promise(r => setTimeout(r, 2000));
+                const currentHistory = AppStore.getState().aiChatHistory || [];
+                const filtered = currentHistory.filter(msg => msg.id !== loadingId);
+                AppStore.setState({ aiChatHistory: filtered });
+                return await _autoRunLiveAnalysisAndReport(channel);
+            }
+
+            _updateLoaderText(loadingId, `RT60 medido: ${lastRt60.rt60.toFixed(2)}s. Gerando relatório... 📊`);
+
+            const analysis = _getCurrentAnalysis();
+            const rt60Multiband = _buildRt60Multiband(lastRt60);
+            const payload = {
+                schema_version: '1.1',
+                summary: analysis?.text || '',
+                spectrum_db: analysis?.details?.spectrum_v11 || {},
+                rt60_multiband: rt60Multiband,
+                peakHz: analysis?.details?.peakHz,
+                rms: analysis?.details?.rmsDb,
+                rt60_measured: lastRt60.rt60,
+            };
+
+            const result = await AIService.ask('Gerar relatório técnico completo com base no RT60 medido de ' + lastRt60.rt60.toFixed(2) + 's', channel, payload);
+            
+            // Remove o loader
+            const currentHistory = AppStore.getState().aiChatHistory || [];
+            const filtered = currentHistory.filter(msg => msg.id !== loadingId);
+            AppStore.setState({ aiChatHistory: filtered });
+
+            const aiMsgId = 'msg-' + Math.random().toString(36).substr(2, 9);
+            _saveMessageToHistory(result.text, false, result.command, aiMsgId);
+            if (result.report) {
+                const reportMsgId = 'msg-' + Math.random().toString(36).substr(2, 9);
+                _saveMessageToHistory(result.report, false, null, reportMsgId);
+            }
+            _persistHistory();
+        } catch (err) {
+            const currentHistory = AppStore.getState().aiChatHistory || [];
+            const filtered = currentHistory.filter(msg => msg.id !== loadingId);
+            AppStore.setState({ aiChatHistory: filtered });
+            _saveMessageToHistory('Erro na medição automática de RT60: ' + err.message, false, null, 'msg-err-' + Date.now());
+        }
+    }
+
+    function _updateLoaderText(loadingId, newText) {
+        const currentHistory = AppStore.getState().aiChatHistory || [];
+        const filtered = currentHistory.map(msg => {
+            if (msg.id === loadingId) {
+                return Object.assign({}, msg, { text: newText });
+            }
+            return msg;
+        });
+        AppStore.setState({ aiChatHistory: filtered });
+    }
+
     async function _sendMessage(text) {
         if (!text || !text.trim()) return;
         const els = _getEls();
@@ -610,16 +711,28 @@
             const filtered = currentHistory.filter(msg => msg.id !== loadingId);
             AppStore.setState({ aiChatHistory: filtered });
             
+            const isAuto = result.command && result.command.action !== 'start_live_analysis' && result.command.action !== 'trigger_sweep' && AppStore.getState().aiAutonomousMode;
+            if (isAuto) {
+                const ok = MixerService.executeAICommand(result.command);
+                if (ok) {
+                    AppStore.addLog('Automação IA: ' + result.command.desc + ' aplicada automaticamente.');
+                }
+            }
+
             const aiMsgId = 'msg-' + Math.random().toString(36).substr(2, 9);
-            _saveMessageToHistory(result.text, false, result.command, aiMsgId);
+            _saveMessageToHistory(result.text, false, result.command, aiMsgId, isAuto);
             if (result.report) {
                 const reportMsgId = 'msg-' + Math.random().toString(36).substr(2, 9);
                 _saveMessageToHistory(result.report, false, null, reportMsgId);
             }
             _persistHistory();
 
-            if (result.command && result.command.action === 'start_live_analysis') {
-                _autoRunLiveAnalysisAndReport(channel);
+            if (result.command) {
+                if (result.command.action === 'start_live_analysis') {
+                    _autoRunLiveAnalysisAndReport(channel);
+                } else if (result.command.action === 'trigger_sweep') {
+                    _autoRunSweepAndReport(channel);
+                }
             }
         } catch (err) {
             const currentHistory = AppStore.getState().aiChatHistory || [];
@@ -723,6 +836,14 @@
         // Export Chat
         if (els.btnExportChat) {
             pm._on(els.btnExportChat, 'click', _exportChat);
+        }
+
+        // Toggle Autonomous
+        if (els.toggleAutonomous) {
+            pm._on(els.toggleAutonomous, 'change', (e) => {
+                AppStore.setState({ aiAutonomousMode: e.target.checked });
+                AppStore.addLog('Autonomia da IA: ' + (e.target.checked ? 'Ativada' : 'Desativada'));
+            });
         }
 
         // Quick Actions
@@ -899,6 +1020,15 @@
 
         // Render initial suggestion cards
         _renderSuggestionCards(0);
+
+        // Autonomy toggle initialization & sync
+        pm._subscribe('AppStore', 'aiAutonomousMode', (val) => {
+            const toggle = pm._el('home-toggle-autonomous');
+            if (toggle) toggle.checked = !!val;
+        });
+        const initialAuto = AppStore.getState?.().aiAutonomousMode;
+        const toggleEl = pm._el('home-toggle-autonomous');
+        if (toggleEl) toggleEl.checked = !!initialAuto;
 
         // Load persisted history from server
         (function () {

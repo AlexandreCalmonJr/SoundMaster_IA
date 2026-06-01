@@ -78,6 +78,7 @@
             btnEqHarsh:        pm._el('btn-ai-eq-harsh'),
             btnAfsOn:          pm._el('btn-ai-afs-on'),
             btnAfsOff:         pm._el('btn-ai-afs-off'),
+            toggleAutonomous:  pm._el('chat-toggle-autonomous'),
         };
     }
 
@@ -632,11 +633,24 @@
             const result = await AIService.ask(text.trim(), channel);
             _removeTyping(loadingId);
 
-            // Se a IA respondeu com start_live_analysis, executar automaticamente
-            if (result.command && result.command.action === 'start_live_analysis') {
-                await _autoLiveAnalysis(channel, text.trim());
+            if (result.command) {
+                if (result.command.action === 'start_live_analysis') {
+                    await _autoLiveAnalysis(channel, text.trim());
+                } else if (result.command.action === 'trigger_sweep') {
+                    await _autoRT60(channel, text.trim());
+                } else {
+                    const isAuto = AppStore.getState().aiAutonomousMode;
+                    if (isAuto) {
+                        const ok = MixerService.executeAICommand(result.command);
+                        if (ok) {
+                            AppStore.addLog('Automação IA: ' + result.command.desc + ' aplicada automaticamente.');
+                        }
+                    }
+                    _appendBubble(result.text, false, result.command, null, true, isAuto);
+                    if (result.report) _appendBubble(result.report, false, null);
+                }
             } else {
-                _appendBubble(result.text, false, result.command);
+                _appendBubble(result.text, false, null);
                 if (result.report) _appendBubble(result.report, false, null);
             }
         } catch (err) {
@@ -703,6 +717,14 @@
         }
         _quickGlobal(els.btnAfsOn,  () => MixerService.setAfs(true));
         _quickGlobal(els.btnAfsOff, () => MixerService.setAfs(false));
+
+        // Toggle Autonomous
+        if (els.toggleAutonomous) {
+            pm._on(els.toggleAutonomous, 'change', (e) => {
+                AppStore.setState({ aiAutonomousMode: e.target.checked });
+                AppStore.addLog('Autonomia da IA: ' + (e.target.checked ? 'Ativada' : 'Desativada'));
+            });
+        }
     }
 
     // ─── Init ──────────────────────────────────────────────────────────────────
@@ -715,6 +737,14 @@
         pm._subscribe('AppStore', 'aiStatus', _renderAIStatus);
         const initialStatus = AppStore.getState?.().aiStatus || 'online';
         _renderAIStatus(initialStatus);
+
+        pm._subscribe('AppStore', 'aiAutonomousMode', (val) => {
+            const toggle = pm._el('chat-toggle-autonomous');
+            if (toggle) toggle.checked = !!val;
+        });
+        const initialAuto = AppStore.getState?.().aiAutonomousMode;
+        const toggleEl = pm._el('chat-toggle-autonomous');
+        if (toggleEl) toggleEl.checked = !!initialAuto;
 
         const history = AppStore.getState?.().aiChatHistory || [];
         if (history.length > 0) {

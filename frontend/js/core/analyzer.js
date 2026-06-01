@@ -1991,7 +1991,7 @@
             sweepParams: { f0: 20, f1: 20000, duration: 10, amplitude: 0.85, silencePre: 0.5, sampleRate: targetSr }
         };
 
-        var _sweepResultTimeout = setTimeout(function () {
+        _sweepResultTimeout = setTimeout(function () {
             if (summaryEl) summaryEl.innerHTML = '<span class="text-red-400">Timeout: resposta do servidor demorou mais de 60s.</span>';
         }, 65000);
 
