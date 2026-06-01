@@ -30,9 +30,9 @@
     </div>    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-4">
         <!-- Gráfico de Magnitude -->
         <div class="relative bg-slate-900/80 rounded-2xl border border-white/10 p-5 transition-all">
-            <div class="flex justify-between items-center mb-2 px-1">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2 px-1">
                 <h4 class="text-xs font-black uppercase text-slate-400 tracking-widest">Magnitude (Transfer Function)</h4>
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                     <button id="btn-toggle-coherence" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-red-500/20 text-red-300 border-red-500/30">Coherence</button>
                     <button id="btn-multispectrum" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-slate-700 text-slate-500 border-white/10" title="Sobrepor RTA">Σ</button>
                     <button id="btn-autoscale-mag" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-slate-700 text-slate-400 border-white/10 hover:bg-cyan-700/30" title="Auto-Scale Y">↕</button>
@@ -48,9 +48,9 @@
 
         <!-- Gráfico de Fase -->
         <div class="relative bg-slate-900/80 rounded-2xl border border-white/10 p-5 shadow-lg hover:border-amber-500/20 transition-all duration-300">
-            <div class="flex justify-between items-center mb-2 px-1">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2 px-1">
                 <h4 class="text-xs font-black uppercase text-amber-500 tracking-widest">Resposta de Fase</h4>
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                     <button id="btn-toggle-phase-mode" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer" aria-label="Alternar entre fase embrulhada e desembrulhada">Wrapped</button>
                     <button id="btn-toggle-group-delay" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-slate-700 text-slate-500 border-white/10">Group Delay</button>
                     <span id="tf-phase-unit" class="text-[10px] font-mono text-amber-400 font-bold bg-amber-950/40 px-2 py-0.5 rounded border border-amber-500/10">Deg / Hz</span>
