@@ -118,7 +118,7 @@
         const opts = { ...DEFAULT_OPTIONS, ...options };
         
         try {
-            const jsPDFLib = window.jspdf || window.jspdfjsPDF;
+            const jsPDFLib = window.jspdf?.jsPDF || window.jspdf || window.jsPDF;
             if (!jsPDFLib) {
                 throw new Error('jsPDF não está disponível');
             }

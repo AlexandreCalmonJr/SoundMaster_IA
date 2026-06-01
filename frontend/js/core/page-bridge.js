@@ -62,6 +62,7 @@
             'SplDisplayModule',
             'AutomixController',
             'currentGlobalRMS',
+            '_rawFreqRMS_dB',
             'FIRConvolution'
         ];
 

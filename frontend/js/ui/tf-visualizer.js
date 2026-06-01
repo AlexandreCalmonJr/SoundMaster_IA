@@ -146,7 +146,7 @@
         for (let i = 0; i < numBins; i++) {
             const magLin = Math.pow(10, magnitudeDb[i] / 20);
             re[i] = magLin * Math.cos(unwrappedPhase[i]);
-            im[i] = magLin * Math.sin(unwrappedPhase[i]);
+            im[i] = -magLin * Math.sin(unwrappedPhase[i]);
         }
         for (let i = 1; i < numBins; i++) {
             re[n - i] = re[i];
@@ -242,6 +242,7 @@
         if (!sel) return;
         sel.addEventListener('change', function () {
             smoothing = Number(this.value);
+            redraw();
         }, { signal: sig });
     }
 
@@ -250,6 +251,7 @@
         if (!chk) return;
         chk.addEventListener('change', function () {
             coherenceSquared = this.checked;
+            redraw();
         }, { signal: sig });
     }
 
@@ -258,12 +260,21 @@
         if (!slider) return;
         slider.addEventListener('input', function () {
             blankingThreshold = Number(this.value);
+            redraw();
         }, { signal: sig });
     }
 
     let lastMagnitude = null;
     let lastPhase = null;
+    let lastCoherence = null;
+    let lastMeta = null;
     let lastSampleRate = 48000;
+
+    function redraw() {
+        if (lastMagnitude && lastPhase) {
+            drawTransferFunction(lastMagnitude, lastPhase, lastCoherence, lastMeta);
+        }
+    }
 
     function autoScaleMag() {
         if (!lastMagnitude) return;
@@ -314,13 +325,19 @@
         if (minEl) {
             minEl.addEventListener('change', function () {
                 var v = Number(this.value);
-                if (v > 0 && v < zoomFreqMax) zoomFreqMin = v;
+                if (v > 0 && v < zoomFreqMax) {
+                    zoomFreqMin = v;
+                    redraw();
+                }
             }, { signal: sig });
         }
         if (maxEl) {
             maxEl.addEventListener('change', function () {
                 var v = Number(this.value);
-                if (v > zoomFreqMin && v <= 24000) zoomFreqMax = v;
+                if (v > zoomFreqMin && v <= 24000) {
+                    zoomFreqMax = v;
+                    redraw();
+                }
             }, { signal: sig });
         }
     }
@@ -459,6 +476,7 @@
         var btnCap = _el('btn-capture-target');
         var btnToggle = _el('btn-toggle-target');
         var btnClear = _el('btn-clear-target');
+        var offsetEl = _el('target-offset');
         if (btnCap) {
             btnCap.addEventListener('click', function () {
                 if (window.SoundMasterAnalyzer) {
@@ -470,6 +488,7 @@
                             btnToggle.textContent = 'Ocultar';
                             btnToggle.className = 'text-[8px] px-2 py-1 bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded font-bold uppercase hover:bg-amber-500/50 transition-all';
                         }
+                        redraw();
                     }
                 }
             }, { signal: sig });
@@ -481,6 +500,7 @@
                 btnToggle.className = showTarget
                     ? 'text-[8px] px-2 py-1 bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded font-bold uppercase hover:bg-amber-500/50 transition-all'
                     : 'text-[8px] px-2 py-1 bg-slate-700 text-slate-400 border border-white/10 rounded font-bold uppercase hover:bg-slate-600 transition-all';
+                redraw();
             }, { signal: sig });
         }
         if (btnClear) {
@@ -491,6 +511,12 @@
                     btnToggle.textContent = 'Mostrar';
                     btnToggle.className = 'text-[8px] px-2 py-1 bg-slate-700 text-slate-400 border border-white/10 rounded font-bold uppercase hover:bg-slate-600 transition-all';
                 }
+                redraw();
+            }, { signal: sig });
+        }
+        if (offsetEl) {
+            offsetEl.addEventListener('input', function () {
+                redraw();
             }, { signal: sig });
         }
     }
@@ -1086,9 +1112,16 @@
         ctx.shadowColor = TARGET_COLOR;
         ctx.shadowBlur = 4;
 
-        const minDb = -120;
-        const maxDb = -10;
-        const dbRange = maxDb - minDb;
+        // Auto-center e escala baseada no zoomMag do gráfico
+        var targetCenter = plotH / 2;
+        var sum = 0, cnt = 0;
+        for (var j = 0; j < targetCurve.data.length; j++) {
+            var fj = j * hzPerBin;
+            if (fj < minFreq || fj > maxFreq) continue;
+            sum += targetCurve.data[j];
+            cnt++;
+        }
+        targetCenter += (cnt > 0 ? sum / cnt : 0) * (plotH / zoomMag);
 
         ctx.beginPath();
         let started = false;
@@ -1097,9 +1130,9 @@
             if (freq < minFreq) continue;
             if (freq > maxFreq) break;
             const x = freqToX(freq, w, plotL);
-            const dbVal = Math.max(minDb, Math.min(maxDb, targetCurve.data[i] + dbOffset));
-            const normalized = Math.max(0, Math.min(1, (dbVal - minDb) / dbRange));
-            const y = plotH - normalized * plotH;
+            const dbVal = targetCurve.data[i] + dbOffset;
+            const y = targetCenter - (dbVal * (plotH / zoomMag));
+            if (!Number.isFinite(y)) continue;
             if (!started) { ctx.moveTo(x, y); started = true; }
             else { ctx.lineTo(x, y); }
         }
@@ -1488,6 +1521,8 @@
         if (magnitude && phase) {
             lastMagnitude = magnitude;
             lastPhase = phase;
+            lastCoherence = coherence;
+            lastMeta = meta;
             lastSampleRate = meta.sampleRate || 48000;
             
             // Sempre calcula lirData em segundo plano se o analisador estiver ativo,
@@ -1790,7 +1825,7 @@
     }
 
     function bindHotkeys(sig) {
-        document.addEventListener('keydown', function (e) {
+        var handler = function (e) {
             var tag = e.target && e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
             var key = e.key.toLowerCase();
@@ -1862,7 +1897,25 @@
                     lockedCursor2Freq = -1;
                 }
             }
-        }, { signal: sig });
+        };
+
+        document.addEventListener('keydown', handler, { signal: sig });
+
+        try {
+            var iframe = document.getElementById('agent-workspace-iframe');
+            if (iframe) {
+                if (iframe.contentDocument) {
+                    iframe.contentDocument.addEventListener('keydown', handler, { signal: sig });
+                }
+                iframe.addEventListener('load', function () {
+                    try {
+                        if (iframe.contentDocument) {
+                            iframe.contentDocument.addEventListener('keydown', handler, { signal: sig });
+                        }
+                    } catch (_) {}
+                }, { signal: sig });
+            }
+        } catch (_) {}
     }
 
     function _syncFreqRangeInputs() {

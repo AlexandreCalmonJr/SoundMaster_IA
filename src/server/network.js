@@ -120,13 +120,14 @@ function start({ mixerIp, gatewayIp, intervalMs } = {}) {
 
     const mixerSingleton = require('./mixer-singleton');
     const activeMixer = mixerSingleton.getMixer();
+    const isSimulated = !activeMixer || activeMixer.isSimulated;
     
     let resolvedMixerIp = mixerIp;
     if (!resolvedMixerIp && activeMixer && activeMixer.targetIp && !activeMixer.isSimulated) {
         resolvedMixerIp = activeMixer.targetIp;
     }
 
-    _state.mixerIp = resolvedMixerIp || _state.mixerIp || _detectGateway();
+    _state.mixerIp = resolvedMixerIp || _state.mixerIp || (isSimulated ? 'simulado' : _detectGateway());
     
     let resolvedGatewayIp = gatewayIp;
     if (!resolvedGatewayIp && _state.mixerIp && _state.mixerIp !== 'simulado' && _state.mixerIp !== 'offline' && _state.mixerIp !== '127.0.0.1') {
@@ -137,13 +138,21 @@ function start({ mixerIp, gatewayIp, intervalMs } = {}) {
         }
     }
 
-    _state.gatewayIp  = resolvedGatewayIp || _state.gatewayIp || _detectGateway();
+    _state.gatewayIp  = resolvedGatewayIp || _state.gatewayIp || (isSimulated ? 'simulado' : _detectGateway());
     _state.intervalMs = intervalMs || DEFAULT_INTERVAL_MS;
     _state.running    = true;
     _state.rttHistory = [];
     Object.assign(_state.stats, { samples: 0, totalRtt: 0, lossCount: 0, minRtt: Infinity, maxRtt: 0 });
 
     console.log(`[NetDiag] Iniciando monitoramento: mixer=${_state.mixerIp} gateway=${_state.gatewayIp} interval=${_state.intervalMs}ms`);
+
+    // Popular dispositivos fictícios se estiver em modo simulado
+    if (isSimulated && _state.devices.size === 0) {
+        _registerDevice('192.168.1.10', 'ui24r.local', ['Soundcraft', 'HTTP/Mixer']);
+        _registerDevice('192.168.1.15', 'dante-io-1.local', ['Dante']);
+        _registerDevice('192.168.1.20', 'shure-ulxd.local', ['Shure']);
+        _registerDevice('192.168.1.25', 'aes67-stream.local', ['AES67']);
+    }
 
     _emit('net_diag_status', {
         running:   true,
@@ -191,12 +200,24 @@ async function _runProbe() {
         loss:    null,
     };
 
-    // Medições paralelas para eficiência
-    const [mixerRtt, gatewayRtt, udpLoss] = await Promise.all([
-        _state.mixerIp   ? _tcpPing(_state.mixerIp,   MIXER_TCP_PORT) : Promise.resolve(null),
-        _state.gatewayIp ? _tcpPing(_state.gatewayIp,  80)            : Promise.resolve(null),
-        _udpLossProbe(_state.gatewayIp || _state.mixerIp),
-    ]);
+    const mixerSingleton = require('./mixer-singleton');
+    const activeMixer = mixerSingleton.getMixer();
+    const isSimulated = !activeMixer || activeMixer.isSimulated || _state.mixerIp === 'simulado' || _state.mixerIp === '127.0.0.1';
+
+    let mixerRtt, gatewayRtt, udpLoss;
+    if (isSimulated) {
+        // Simular rede extremamente saudável para o modo simulado (latências de clock locais)
+        mixerRtt = _round(1 + Math.random() * 0.4);   // 1.0 - 1.4 ms
+        gatewayRtt = _round(0.8 + Math.random() * 0.3); // 0.8 - 1.1 ms
+        udpLoss = 0; // 0% loss
+    } else {
+        // Medições paralelas para eficiência
+        [mixerRtt, gatewayRtt, udpLoss] = await Promise.all([
+            _state.mixerIp   ? _tcpPing(_state.mixerIp,   MIXER_TCP_PORT) : Promise.resolve(null),
+            _state.gatewayIp ? _tcpPing(_state.gatewayIp,  80)            : Promise.resolve(null),
+            _udpLossProbe(_state.gatewayIp || _state.mixerIp),
+        ]);
+    }
 
     results.mixer   = mixerRtt;
     results.gateway = gatewayRtt;
