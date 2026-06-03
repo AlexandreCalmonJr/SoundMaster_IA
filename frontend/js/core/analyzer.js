@@ -2220,6 +2220,7 @@
         getDelayMs: () => latestTFData ? latestTFData.delayMs : null,
         getTransferFunctionData: () => latestTFData,
         getLastRt60: () => lastRt60Result,
+        clearLastRt60: () => { lastRt60Result = null; },
         getAudioContext: () => audioCtx,
         startPinkNoiseMeasurement: startPinkNoiseMeasurement,
         finishPinkNoiseMeasurement: finishPinkNoiseMeasurement,

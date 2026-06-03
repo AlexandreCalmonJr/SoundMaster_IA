@@ -25,6 +25,56 @@
                 Configure os dispositivos de entrada e saída e defina o canal de áudio da mesa para o envio de ruídos e calibração de sinal.
             </p>
             <audio-source-selector id="signals-audio-selector" show-channel="true" class="block mb-4"></audio-source-selector>
+
+            <!-- Painel de Análise em Tempo Real e Relatório -->
+            <div id="signals-realtime-panel" class="bg-slate-900/40 border border-white/5 rounded-2xl p-4 shadow-xl space-y-4 hidden animate-in fade-in slide-in-from-bottom-4">
+                <h4 class="text-xs font-black uppercase tracking-widest text-cyan-400 flex items-center gap-2">
+                    <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Captura em Tempo Real
+                </h4>
+                
+                <div class="grid grid-cols-2 gap-2 text-center">
+                    <div class="bg-black/35 rounded-xl p-2.5 border border-white/5">
+                        <span class="text-[9px] uppercase text-slate-500 font-bold block">Nível RMS</span>
+                        <div class="text-base font-black text-white mt-1" id="realtime-rms">-- dB</div>
+                    </div>
+                    <div class="bg-black/35 rounded-xl p-2.5 border border-white/5">
+                        <span class="text-[9px] uppercase text-slate-500 font-bold block">Fator de Crista</span>
+                        <div class="text-base font-black text-cyan-400 mt-1" id="realtime-crest">-- dB</div>
+                    </div>
+                </div>
+
+                <div class="bg-black/35 rounded-xl p-3 border border-white/5 space-y-2">
+                    <div class="flex justify-between text-[10px] text-slate-400 font-bold">
+                        <span>Pico Máximo:</span>
+                        <span id="realtime-peak-freq" class="text-white">-- Hz</span>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-slate-400 font-bold">
+                        <span>Nível do Pico:</span>
+                        <span id="realtime-peak-level" class="text-white">-- dB</span>
+                    </div>
+                </div>
+
+                <!-- Resposta de Frequência do Salão (Média) -->
+                <div id="pink-report-card" class="bg-cyan-950/20 border border-cyan-500/20 rounded-xl p-3 space-y-2 hidden">
+                    <span class="text-[9px] uppercase text-cyan-400 font-black tracking-wider block">Relatório de Equilíbrio Tonal</span>
+                    <p id="pink-report-summary" class="text-[11px] text-white leading-tight font-medium">Analisando equilíbrio...</p>
+                    <div class="grid grid-cols-3 gap-1.5 text-center pt-1">
+                        <div class="bg-black/50 rounded-lg p-1.5 border border-white/5">
+                            <span class="text-[8px] text-slate-500 font-bold block">Graves</span>
+                            <span id="pink-report-low" class="text-xs font-black text-white">-- dB</span>
+                        </div>
+                        <div class="bg-black/50 rounded-lg p-1.5 border border-white/5">
+                            <span class="text-[8px] text-slate-500 font-bold block">Médios</span>
+                            <span id="pink-report-mid" class="text-xs font-black text-white">-- dB</span>
+                        </div>
+                        <div class="bg-black/50 rounded-lg p-1.5 border border-white/5">
+                            <span class="text-[8px] text-slate-500 font-bold block">Agudos</span>
+                            <span id="pink-report-high" class="text-xs font-black text-white">-- dB</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="lg:col-span-2">

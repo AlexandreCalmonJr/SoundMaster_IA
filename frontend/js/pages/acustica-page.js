@@ -140,22 +140,137 @@
                 }
 
                 var delayMs = dist > 0 ? (dist / 343) * 1000 : 0;
-                var color = rt60 > 1.6 ? 'text-red-400' : rt60 > 1.4 ? 'text-green-400' : 'text-amber-400';
 
-                var resultHtml = '<div class="bg-slate-800/60 border border-white/10 rounded-2xl p-6">' +
-                    '<h3 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">Resultado Estimado</h3>' +
-                    '<div class="grid grid-cols-2 gap-4">' +
-                    '<div class="bg-black/40 rounded-xl p-4 text-center">' +
-                    '<div class="text-[9px] text-slate-500 uppercase font-bold">Volume</div>' +
-                    '<div class="text-xl font-black text-cyan-400">' + volume.toFixed(0) + ' m³</div>' +
-                    '</div>' +
-                    '<div class="bg-black/40 rounded-xl p-4 text-center">' +
-                    '<div class="text-[9px] text-slate-500 uppercase font-bold">RT60 Estimado</div>' +
-                    '<div class="text-xl font-black ' + color + '">' + rt60.toFixed(2) + 's</div>' +
-                    '</div>' +
-                    '</div>' +
-                    '<p class="text-[10px] text-slate-400 mt-4">Fórmula: ' + formula + '</p>' +
-                    (classification ? '<p class="text-[10px] text-cyan-400 mt-1">' + classification + '</p>' : '') +
+                // 1. Target and Rating Analysis for church/mixed temples (ideal: 1.2s - 1.5s)
+                var ratingColor = '';
+                var ratingTitle = '';
+                var ratingDesc = '';
+                
+                if (rt60 > 1.6) {
+                    ratingColor = 'text-red-400 border-red-500/20 bg-red-950/20';
+                    ratingTitle = 'Crítico (Muito Reverberante)';
+                    ratingDesc = 'O tempo de reverberação está muito alto. Isso provoca séria perda de inteligibilidade da fala (as vozes se "embolam" e perdem clareza no fundo do templo), dificultando a pregação.';
+                } else if (rt60 >= 1.2 && rt60 <= 1.6) {
+                    ratingColor = 'text-emerald-400 border-emerald-500/20 bg-emerald-950/20';
+                    ratingTitle = 'Ideal (Equilibrado para Templos)';
+                    ratingDesc = 'Excelente tempo de decaimento para cultos mistos. Proporciona uma boa acústica tanto para música congregacional viva quanto para a compreensão da palavra falada.';
+                } else if (rt60 >= 0.9 && rt60 < 1.2) {
+                    ratingColor = 'text-cyan-400 border-cyan-500/20 bg-cyan-950/20';
+                    ratingTitle = 'Bom (Foco em Inteligibilidade)';
+                    ratingDesc = 'Tempo ótimo para fala e palestras claras, mas a música congregacional pode soar um pouco seca e sem sustentação. Indicado se o templo for focado principalmente em sermões.';
+                } else {
+                    ratingColor = 'text-amber-400 border-amber-500/20 bg-amber-950/20';
+                    ratingTitle = 'Muito Seco / Amortecido';
+                    ratingDesc = 'A acústica da sala é extremamente seca. Excelente para estúdios ou salas de conferência, mas desagradável e cansativa para canto congregacional ativo.';
+                }
+
+                // 2. STI (Speech Intelligibility) Estimation based on RT60
+                var stiEst = 0;
+                var stiClass = '';
+                var stiColor = '';
+                if (rt60 <= 0.8) {
+                    stiEst = 0.76;
+                    stiClass = 'Excelente';
+                    stiColor = 'text-emerald-400';
+                } else if (rt60 <= 1.1) {
+                    stiEst = 0.68;
+                    stiClass = 'Bom';
+                    stiColor = 'text-emerald-400';
+                } else if (rt60 <= 1.4) {
+                    stiEst = 0.55;
+                    stiClass = 'Razoável';
+                    stiColor = 'text-amber-400';
+                } else if (rt60 <= 1.8) {
+                    stiEst = 0.42;
+                    stiClass = 'Ruim';
+                    stiColor = 'text-red-400';
+                } else {
+                    stiEst = 0.28;
+                    stiClass = 'Muito Ruim';
+                    stiColor = 'text-red-400';
+                }
+
+                // 3. Critical Distance (Dc) where direct sound = reverberant sound
+                var dc = 0.057 * Math.sqrt(volume / rt60);
+
+                // 4. Sabine Absorption Delta to reach target (1.35s mid range)
+                var targetRt60 = 1.35;
+                var currentSabines = 0.161 * volume / rt60;
+                var targetSabines = 0.161 * volume / targetRt60;
+                var sabinesDiff = targetSabines - currentSabines; // positive means we need to add absorption
+
+                // 5. Treatment Suggestions
+                var suggestions = [];
+                if (rt60 > 1.5) {
+                    suggestions.push('Instale painéis acústicos absorvedores (lã de rocha ou espuma acústica de densidade média/alta) nas paredes laterais ou traseira.');
+                    suggestions.push('Substitua forro convencional por placas minerais acústicas ou adicione nuvens acústicas suspensas no teto.');
+                    suggestions.push('Adicione passadeiras ou carpetes nos corredores principais e cortinas de veludo sobre janelas grandes de vidro.');
+                } else if (rt60 < 0.9) {
+                    suggestions.push('Evite carpetes pesados ou cortinas excessivas nas áreas próximas ao altar/palco.');
+                    suggestions.push('Adicione painéis difusores de madeira na parede traseira para manter o brilho e espalhar a energia sonora congregacional.');
+                } else {
+                    suggestions.push('A acústica está equilibrada. Ajuste a angulação das caixas acústicas (PA) para evitar incidência direta em paredes nuas.');
+                    suggestions.push('Use equalização sutil no master para atenuar acúmulos na região de 150-300Hz típicos da geometria da sala.');
+                }
+
+                var suggestionsHtml = suggestions.map(function(sug) {
+                    return '<li class="text-xs text-slate-400 flex items-start gap-2">' +
+                           '  <span class="text-cyan-500 mt-0.5">•</span>' +
+                           '  <span>' + sug + '</span>' +
+                           '</li>';
+                }).join('');
+
+                var resultHtml = '<div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6 space-y-6 text-left animate-in fade-in slide-in-from-bottom-4">' +
+                    '  <div class="flex items-center justify-between border-b border-white/5 pb-4">' +
+                    '    <h3 class="text-xs font-black uppercase tracking-widest text-slate-400">📊 Relatório Acústico Estimado</h3>' +
+                    '    <span class="text-[9px] font-mono px-2 py-0.5 rounded bg-cyan-900/20 text-cyan-400 border border-cyan-500/20">' + formula + '</span>' +
+                    '  </div>' +
+                    
+                    '  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">' +
+                    '    <div class="bg-black/40 rounded-xl p-3 border border-white/5 text-center">' +
+                    '      <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Volume</div>' +
+                    '      <div class="text-lg font-black text-cyan-400 mt-1">' + volume.toFixed(0) + ' m³</div>' +
+                    '    </div>' +
+                    '    <div class="bg-black/40 rounded-xl p-3 border border-white/5 text-center">' +
+                    '      <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">RT60 Estimado</div>' +
+                    '      <div class="text-lg font-black ' + (rt60 > 1.6 ? 'text-red-400' : rt60 >= 1.2 ? 'text-emerald-400' : 'text-amber-400') + ' mt-1">' + rt60.toFixed(2) + 's</div>' +
+                    '    </div>' +
+                    '    <div class="bg-black/40 rounded-xl p-3 border border-white/5 text-center">' +
+                    '      <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">STI Estimado</div>' +
+                    '      <div class="text-lg font-black ' + stiColor + ' mt-1">' + stiEst.toFixed(2) + ' <span class="text-[9px] font-normal">(' + stiClass + ')</span></div>' +
+                    '    </div>' +
+                    '    <div class="bg-black/40 rounded-xl p-3 border border-white/5 text-center">' +
+                    '      <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Dist. Crítica</div>' +
+                    '      <div class="text-lg font-black text-white mt-1">' + dc.toFixed(1) + ' m</div>' +
+                    '    </div>' +
+                    '  </div>' +
+
+                    '  <div class="border border-white/5 rounded-xl p-4 ' + ratingColor + '">' +
+                    '    <div class="font-black text-xs uppercase tracking-wider mb-1">Status: ' + ratingTitle + '</div>' +
+                    '    <p class="text-xs leading-relaxed opacity-90">' + ratingDesc + '</p>' +
+                    '  </div>' +
+
+                    '  <div class="space-y-3">' +
+                    '    <h4 class="text-[10px] font-black uppercase tracking-wider text-slate-400">🎯 Meta e Tratamento Recomendado</h4>' +
+                    '    <p class="text-xs text-slate-300 leading-relaxed">' +
+                    (sabinesDiff > 0 
+                        ? 'Para alcançar o RT60 alvo ideal de <strong>1.35s</strong>, é necessário adicionar aproximadamente <strong>' + sabinesDiff.toFixed(1) + ' Sabines</strong> (m² de absorção sonora equivalente a 100%) em tratamento acústico na sala.' 
+                        : 'A quantidade de absorção atual estimada na sala é suficiente para atingir o tempo alvo ideal de <strong>1.35s</strong>.') +
+                    '    </p>' +
+                    '    <ul class="space-y-1.5 pt-1">' +
+                    suggestionsHtml +
+                    '    </ul>' +
+                    '  </div>' +
+
+                    (dist > 0 
+                        ? '  <div class="bg-cyan-950/15 border border-cyan-500/10 rounded-xl p-3 flex items-center gap-3">' +
+                          '    <span class="text-xl">⏱️</span>' +
+                          '    <div class="text-left">' +
+                          '      <div class="text-[10px] font-black uppercase text-cyan-400">Ajuste de Delay Auxiliar</div>' +
+                          '      <p class="text-[11px] text-slate-400 leading-tight">Para cobrir a distância de <strong>' + dist.toFixed(1) + 'm</strong> de atraso acústico, configure o canal de delay da mesa em <strong>' + delayMs.toFixed(1) + ' ms</strong>.</p>' +
+                          '    </div>' +
+                          '  </div>'
+                        : '') +
                     '</div>';
 
                 pm._setHTML('rt60-result', resultHtml);
@@ -163,16 +278,6 @@
                 var resultContainer = pm._el('rt60-result');
                 if (resultContainer) {
                     resultContainer.classList.remove('hidden');
-                }
-
-                if (dist > 0) {
-                    var el = pm._el('rt60-result');
-                    if (el) {
-                        var delayInfo = document.createElement('div');
-                        delayInfo.className = 'bg-black/30 rounded-xl p-3 mt-3 text-center';
-                        delayInfo.innerHTML = '<span class="text-[9px] text-slate-500 uppercase font-bold">Delay Auxiliar:</span> <span class="text-sm font-black text-cyan-400">' + delayMs.toFixed(1) + ' ms</span>';
-                        el.appendChild(delayInfo);
-                    }
                 }
 
                 var smm = window.SoundMasterMapping;

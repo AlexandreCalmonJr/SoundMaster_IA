@@ -287,35 +287,26 @@
         pm._on(pm._el('btn-calculate-rt60'), 'click', function () {
             var rawRt60 = pm._call('SoundMasterAnalyzer', 'getLastRt60');
             console.log('[Rt60Page] Calcular RT60 clicado, rawRt60:', rawRt60);
-            if (rawRt60 && window.SchroederRenderer) {
-                var canvas = pm._el('schroeder-canvas');
-                var panel = pm._el('schroeder-chart-panel');
-                if (panel) panel.classList.remove('hidden');
-                
-                var curve = rawRt60.curve || rawRt60.schroeder_curve || [];
-                var rt60Val = rawRt60.rt60 || rawRt60.t30 || rawRt60.t20 || rawRt60.rt60_est || 0;
-                
-                var params = {
-                    rt60: rt60Val,
-                    t20: rawRt60.t20,
-                    t30: rawRt60.t30,
-                    edt: rawRt60.edt,
-                    c50: rawRt60.c50,
-                    c80: rawRt60.c80,
-                    d50: rawRt60.d50,
-                    sti: rawRt60.sti,
-                    sti_category: rawRt60.sti_category
-                };
-
-                if (canvas && curve.length > 0) {
-                    window.SchroederRenderer.draw(canvas, curve, params);
-                }
-                window.SchroederRenderer.updateMetricCards(params);
+            if (rawRt60) {
+                handleRt60Result({ detail: rawRt60 });
+            } else {
+                pm._call('AppStore', 'addLog', '⚠️ Nenhum dado de RT60 salvo para calcular.');
             }
         });
 
         pm._on(pm._el('btn-clear-measurements'), 'click', function () { 
-            pm._toggleClasses('schroeder-chart-panel', ['hidden'], []);
+            pm._safeCall('SoundMasterAnalyzer', 'clearLastRt60');
+            _currentPlan = null;
+            
+            var panel = pm._el('schroeder-chart-panel');
+            if (panel) panel.classList.add('hidden');
+            
+            var corrPanel = pm._el('rt60-corrections-panel');
+            if (corrPanel) {
+                corrPanel.classList.add('hidden');
+                corrPanel.innerHTML = '';
+            }
+
             var metricEls = ['schroeder-rt60', 'schroeder-edt', 'schroeder-t20', 'schroeder-t30', 'schroeder-c50', 'schroeder-c80', 'schroeder-d50', 'schroeder-sti'];
             metricEls.forEach(function (id) {
                 var el = pm._el(id);
@@ -327,6 +318,15 @@
                 if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
             }
         });
+
+        // Carrega última medição na inicialização, se houver
+        var rawRt60 = pm._call('SoundMasterAnalyzer', 'getLastRt60');
+        if (rawRt60) {
+            console.log('[Rt60Page] Restaurando última medição RT60 na inicialização:', rawRt60);
+            setTimeout(function () {
+                handleRt60Result({ detail: rawRt60 });
+            }, 100);
+        }
 
         // Socket integration for historical benchmarking
         var socket = pm._call('SocketService', 'raw');

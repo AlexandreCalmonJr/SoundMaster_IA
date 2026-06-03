@@ -48,6 +48,60 @@
 
 (function () {
     const pm = createPageModule();
+    let _pollingInterval = null;
+
+    function _pollRealtimeData() {
+        const analyzer = window.SoundMasterAnalyzer;
+        if (!analyzer) return;
+
+        const gen = window.SignalGeneratorController;
+        if (gen) {
+            const anyPlaying = gen.isPinkNoisePlaying() || gen.isWhiteNoisePlaying() || gen.isMLSPlaying() || 
+                               gen.isChirpPlaying() || gen.isDualTonePlaying() || gen.isSineWavePlaying() || 
+                               gen.isBandLimitedPlaying();
+            if (anyPlaying && !analyzer.isAnalyzing()) {
+                analyzer.start();
+            }
+        }
+
+        const panel = pm._el('signals-realtime-panel');
+        if (!panel) return;
+
+        if (analyzer.isAnalyzing()) {
+            panel.classList.remove('hidden');
+
+            const analysis = analyzer.getLastAnalysis();
+            if (analysis && analysis.details) {
+                const rmsEl = pm._el('realtime-rms');
+                const crestEl = pm._el('realtime-crest');
+                const peakFreqEl = pm._el('realtime-peak-freq');
+                const peakLevelEl = pm._el('realtime-peak-level');
+
+                if (rmsEl) rmsEl.textContent = analysis.details.rmsDb + ' dB';
+                if (crestEl) crestEl.textContent = analysis.details.crestFactor + ' dB';
+                if (peakFreqEl) peakFreqEl.textContent = analysis.details.peakHz + ' Hz';
+                if (peakLevelEl) peakLevelEl.textContent = analysis.details.peakDb + ' dB';
+
+                const reportCard = pm._el('pink-report-card');
+                if (analysis.pinkReport && reportCard) {
+                    reportCard.classList.remove('hidden');
+                    const summaryEl = pm._el('pink-report-summary');
+                    const lowEl = pm._el('pink-report-low');
+                    const midEl = pm._el('pink-report-mid');
+                    const highEl = pm._el('pink-report-high');
+
+                    if (summaryEl) summaryEl.textContent = analysis.pinkReport.summary;
+                    if (lowEl) lowEl.textContent = analysis.pinkReport.details.averages.low + ' dB';
+                    if (midEl) midEl.textContent = analysis.pinkReport.details.averages.mid + ' dB';
+                    if (highEl) highEl.textContent = analysis.pinkReport.details.averages.high + ' dB';
+                } else if (reportCard) {
+                    reportCard.classList.add('hidden');
+                }
+            }
+        } else {
+            panel.classList.add('hidden');
+        }
+    }
 
     function updateButtonStates() {
         const gen = window.SignalGeneratorController;
@@ -215,9 +269,24 @@
 
         // Initialize state of buttons (if any are already playing in background)
         updateButtonStates();
+
+        if (!_pollingInterval) {
+            _pollingInterval = setInterval(_pollRealtimeData, 100);
+        }
     }
 
     function destroy() {
+        if (_pollingInterval) {
+            clearInterval(_pollingInterval);
+            _pollingInterval = null;
+        }
+        const gen = window.SignalGeneratorController;
+        if (gen) {
+            gen.stopAll();
+        }
+        if (window.SoundMasterAnalyzer && window.SoundMasterAnalyzer.isAnalyzing()) {
+            window.SoundMasterAnalyzer.stop();
+        }
         pm.destroy();
     }
 
