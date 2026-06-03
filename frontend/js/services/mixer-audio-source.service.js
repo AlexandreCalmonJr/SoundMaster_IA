@@ -414,14 +414,20 @@ function _injectStyles() {
             .audio-source-label {
                 display: flex;
                 align-items: center;
-                gap: 0.4rem;
+                gap: 0.5rem;
                 font-size: 0.72rem;
                 color: rgba(148, 163, 184, 0.85);
                 font-weight: 700;
                 text-transform: uppercase;
                 letter-spacing: 0.05em;
             }
-            .audio-source-icon { font-size: 0.9rem; }
+            .audio-source-svg-icon {
+                width: 14px;
+                height: 14px;
+                stroke-width: 2.25px;
+                color: #22d3ee;
+                flex-shrink: 0;
+            }
             .audio-source-select-wrap {
                 display: flex;
                 gap: 0.5rem;

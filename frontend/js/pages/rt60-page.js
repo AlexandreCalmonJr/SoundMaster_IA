@@ -260,15 +260,12 @@
 
     function init() {
         if (window.MixerAudioSource) {
-            window.MixerAudioSource.init().then(function() {
-                window.MixerAudioSource.renderDeviceSelector(pm._el('rt60-audio-source-container'), {
-                    showChannel: true,
-                    onInputChange: function(deviceId) {
-                        pm._call('AppStore', 'addLog', '🎤 Fonte de áudio alterada para medição.');
-                    }
-                });
-            });
+            window.MixerAudioSource.init();
         }
+
+        document.addEventListener('audio_source_changed', function(e) {
+            pm._call('AppStore', 'addLog', '🎤 Fonte de áudio alterada para medição.');
+        });
 
         pm._on(pm._el('btn-trigger-pulse'), 'click', function () {
             var btn = pm._el('btn-trigger-pulse');

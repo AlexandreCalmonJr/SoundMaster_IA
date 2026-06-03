@@ -181,6 +181,7 @@ class Router {
             let scriptTags = `
                 <script src="js/core/page-bridge.js?v=3"></script>
                 <script src="js/core/page-utils.js?v=3"></script>
+                <script src="js/ui/audio-source-selector.js?v=3"></script>
             `;
             if (scriptPath) {
                 scriptTags += `<script src="${scriptPath}?v=3"></script>`;
