@@ -185,6 +185,7 @@
     function setOutputDevice(deviceId) {
         _state.selectedOutputId = deviceId;
         _savePreferences();
+        _notifyStreamChanged();
     }
 
     function setMixerChannel(channel) {

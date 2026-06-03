@@ -900,8 +900,22 @@
         _isStarting = true;
         try {
             console.log('[Analyzer] startAnalyzer()');
-            const deviceId = micSelect?.value || 'default';
-            const deviceLabel = micSelect?.selectedOptions?.[0]?.text || 'Padrão';
+            
+            let deviceId = 'default';
+            let deviceLabel = 'Padrão';
+            
+            if (window.MixerAudioSource && typeof window.MixerAudioSource.getState === 'function') {
+                const mixerState = window.MixerAudioSource.getState();
+                deviceId = mixerState.selectedInputId || 'default';
+                const matchedDev = mixerState.inputDevices.find(d => d.deviceId === deviceId);
+                if (matchedDev) {
+                    deviceLabel = matchedDev.label || 'Microfone';
+                }
+            } else if (micSelect) {
+                deviceId = micSelect.value || 'default';
+                deviceLabel = micSelect.selectedOptions?.[0]?.text || 'Padrão';
+            }
+
             const useStereo = deviceLabel.toLowerCase().includes('usb') || deviceLabel.toLowerCase().includes('interface');
             const constraints = {
                 audio: {
@@ -932,6 +946,13 @@
             }
             if (audioCtx.state !== 'running') {
                 throw new Error('AudioContext não pôde ser iniciado.');
+            }
+
+            // Aplicar dispositivo de saída selecionado
+            if (window.MixerAudioSource && typeof window.MixerAudioSource.applyOutputDevice === 'function') {
+                await window.MixerAudioSource.applyOutputDevice(audioCtx).catch(err => {
+                    console.warn('[Analyzer] Falha ao definir saída de áudio:', err.message);
+                });
             }
 
             try {
@@ -2204,6 +2225,24 @@
             fftSize: analyser.fftSize,
         };
     }
+
+    // Ouvir alterações de dispositivo de entrada/saída em tempo real
+    (window.parent?.document || document).addEventListener('audio_source_changed', async (e) => {
+        console.log('[Analyzer] Evento audio_source_changed recebido:', e.detail);
+        if (audioCtx && window.MixerAudioSource && typeof window.MixerAudioSource.applyOutputDevice === 'function') {
+            await window.MixerAudioSource.applyOutputDevice(audioCtx).catch(err => {
+                console.warn('[Analyzer] Falha ao re-aplicar saída de áudio:', err.message);
+            });
+        }
+        // Se estiver gravando/analisando ativamente e o mic mudou, reinicia a captura
+        if (isAnalyzing && e.detail && e.detail.inputId) {
+            console.log('[Analyzer] Alterando microfone em tempo real...');
+            stopAnalyzer();
+            setTimeout(() => {
+                startAnalyzer().catch(err => console.error('[Analyzer] Falha ao re-iniciar analisador:', err));
+            }, 100);
+        }
+    });
 
     // --- Exportação da API Pública ---
     window.SoundMasterAnalyzer = {

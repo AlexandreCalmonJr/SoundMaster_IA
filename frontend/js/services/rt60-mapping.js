@@ -62,6 +62,7 @@
         const btnImport = _el('btn-import-floorplan');
         const btnClear = _el('btn-clear-mapping');
         const btnExport = _el('btn-export-mapping');
+        const btnReport = _el('btn-generate-report');
 
         if (btnImport && inputFloorplan) {
             btnImport.addEventListener('click', () => inputFloorplan.click(), { signal: sig });
@@ -70,6 +71,7 @@
         
         btnClear?.addEventListener('click', clearMapping, { signal: sig });
         btnExport?.addEventListener('click', exportMapping, { signal: sig });
+        btnReport?.addEventListener('click', generateCoverageReport, { signal: sig });
         
         canvas?.addEventListener('click', handleCanvasClick, { signal: sig });
     }
@@ -409,6 +411,12 @@
             render();
             const statsEl = _el('mapping-stats');
             if (statsEl) statsEl.remove();
+            
+            const reportPanel = _el('mapping-report-panel');
+            if (reportPanel) {
+                reportPanel.classList.add('hidden');
+                reportPanel.innerHTML = '';
+            }
         }
     }
 
@@ -424,6 +432,202 @@
         const a = document.createElement('a');
         a.href = url;
         a.download = `SoundMaster_RT60_Map_${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function generateCoverageReport() {
+        if (mappingPoints.length === 0) {
+            showToast('Adicione pontos de medição no mapa primeiro!', 'info');
+            return;
+        }
+
+        const reportPanel = _el('mapping-report-panel');
+        if (!reportPanel) return;
+
+        const N = mappingPoints.length;
+        const avgRT60 = mappingPoints.reduce((s, p) => s + p.rt60, 0) / N;
+        const avgC50 = mappingPoints.reduce((s, p) => s + (p.c50 || 0), 0) / N;
+        const avgD50 = mappingPoints.reduce((s, p) => s + (p.d50 || 50), 0) / N;
+        const avgSTI = mappingPoints.reduce((s, p) => s + (p.sti || 0.6), 0) / N;
+
+        const variance = mappingPoints.reduce((s, p) => s + Math.pow(p.rt60 - avgRT60, 2), 0) / N;
+        const stdDev = Math.sqrt(variance);
+
+        let homoClass = '';
+        let homoColor = '';
+        let homoDesc = '';
+        if (stdDev <= 0.15) {
+            homoClass = 'Excelente Uniformidade';
+            homoColor = 'text-green-400 border-green-500/20 bg-green-950/10';
+            homoDesc = 'O campo sonoro está muito bem distribuído. O tempo de reverberação varia minimamente entre as diferentes áreas da igreja.';
+        } else if (stdDev <= 0.35) {
+            homoClass = 'Homogeneidade Aceitável';
+            homoColor = 'text-emerald-400 border-emerald-500/20 bg-emerald-950/10';
+            homoDesc = 'Existem variações acústicas naturais toleráveis entre os pontos medidos. A cobertura de áudio está satisfatória.';
+        } else {
+            homoClass = 'Baixa Homogeneidade';
+            homoColor = 'text-red-400 border-red-500/20 bg-red-950/10';
+            homoDesc = 'Atenção! Há grandes discrepâncias acústicas entre os pontos. Algumas zonas estão muito mais reverberantes/secas que outras. Recomenda-se tratamento acústico localizado ou ajuste de angulação das caixas.';
+        }
+
+        let worstPoint = mappingPoints[0];
+        let bestPoint = mappingPoints[0];
+        for (const p of mappingPoints) {
+            if (p.rt60 > worstPoint.rt60 || (p.rt60 === worstPoint.rt60 && p.sti < worstPoint.sti)) {
+                worstPoint = p;
+            }
+            const target = 1.35;
+            const currentDiff = Math.abs(p.rt60 - target);
+            const bestDiff = Math.abs(bestPoint.rt60 - target);
+            if (currentDiff < bestDiff || (currentDiff === bestDiff && p.sti > bestPoint.sti)) {
+                bestPoint = p;
+            }
+        }
+
+        const recommendations = [];
+        if (avgRT60 > 1.6) {
+            recommendations.push('A reverberação média está excessiva. Instale painéis acústicos absorventes nas paredes traseiras e laterais para controlar o tempo de decaimento.');
+        }
+        if (avgSTI < 0.5) {
+            recommendations.push('A inteligibilidade média da fala está comprometida. Aumente a relação sinal-ruído direcionando as caixas de som diretamente para os fiéis e evitando paredes vazias.');
+        }
+        if (stdDev > 0.35) {
+            recommendations.push('Grande desvio acústico detectado. Considere instalar caixas acústicas de reforço lateral (delays) ajustadas no tempo para cobrir os pontos com baixa inteligibilidade.');
+        }
+        if (recommendations.length === 0) {
+            recommendations.push('Cobertura acústica global dentro dos parâmetros adequados. Mantenha calibração periódica e evite alterar o layout físico do templo.');
+        }
+
+        const suggestionsHtml = recommendations.map(function(rec) {
+            return '<li class="text-xs text-slate-400 flex items-start gap-1.5">' +
+                   '  <span class="text-cyan-500 mt-0.5">•</span>' +
+                   '  <span>' + rec + '</span>' +
+                   '</li>';
+        }).join('');
+
+        reportPanel.innerHTML = 
+            '<div class="flex items-center justify-between border-b border-white/5 pb-4">' +
+            '  <div>' +
+            '    <h3 class="text-xs font-black uppercase tracking-widest text-slate-400">📊 Relatório de Cobertura Espacial</h3>' +
+            '    <p class="text-[9px] text-slate-500 font-mono mt-0.5">' + N + ' pontos de medição registrados</p>' +
+            '  </div>' +
+            '  <div class="flex gap-2">' +
+            '    <button id="btn-export-report-txt" class="text-[9px] px-2.5 py-1 bg-cyan-600/30 text-cyan-300 border border-cyan-500/20 rounded font-bold uppercase hover:bg-cyan-600/50 transition-all flex items-center gap-1">' +
+            '      <span>📥</span> Exportar TXT' +
+            '    </button>' +
+            '    <button id="btn-close-report" class="text-[9px] px-2.5 py-1 bg-slate-800 text-slate-400 border border-white/5 rounded font-bold uppercase hover:bg-slate-700 transition-all">' +
+            '      Fechar' +
+            '    </button>' +
+            '  </div>' +
+            '</div>' +
+
+            '<div class="grid grid-cols-2 sm:grid-cols-4 gap-3">' +
+            '  <div class="bg-black/40 rounded-xl p-3 border border-white/5 text-center">' +
+            '    <div class="text-[8px] text-slate-500 uppercase font-black tracking-wider">Média RT60</div>' +
+            '    <div class="text-base font-black text-cyan-400 mt-1">' + avgRT60.toFixed(2) + 's</div>' +
+            '  </div>' +
+            '  <div class="bg-black/40 rounded-xl p-3 border border-white/5 text-center">' +
+            '    <div class="text-[8px] text-slate-500 uppercase font-black tracking-wider">Desvio RT60 (σ)</div>' +
+            '    <div class="text-base font-black text-amber-400 mt-1">' + stdDev.toFixed(3) + 's</div>' +
+            '  </div>' +
+            '  <div class="bg-black/40 rounded-xl p-3 border border-white/5 text-center">' +
+            '    <div class="text-[8px] text-slate-500 uppercase font-black tracking-wider font-bold">Média STI</div>' +
+            '    <div class="text-base font-black text-rose-400 mt-1">' + avgSTI.toFixed(2) + '</div>' +
+            '  </div>' +
+            '  <div class="bg-black/40 rounded-xl p-3 border border-white/5 text-center">' +
+            '    <div class="text-[8px] text-slate-500 uppercase font-black tracking-wider font-bold">Média D50</div>' +
+            '    <div class="text-base font-black text-emerald-400 mt-1">' + avgD50.toFixed(0) + '%</div>' +
+            '  </div>' +
+            '</div>' +
+
+            '<div class="border rounded-xl p-4 ' + homoColor + '">' +
+            '  <div class="font-black text-xs uppercase tracking-wider mb-1">Diagnóstico: ' + homoClass + '</div>' +
+            '  <p class="text-xs leading-relaxed opacity-90">' + homoDesc + '</p>' +
+            '</div>' +
+
+            '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">' +
+            '  <div class="bg-black/20 border border-white/5 rounded-xl p-4">' +
+            '    <h4 class="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">🔍 Pontos Destacados</h4>' +
+            '    <div class="space-y-2 text-xs">' +
+            '      <div class="flex justify-between">' +
+            '        <span class="text-slate-400">Ponto Mais Crítico:</span>' +
+            '        <span class="font-bold text-red-400">RT60 ' + worstPoint.rt60.toFixed(2) + 's | Pos (' + Math.round(worstPoint.x * 100) + '%, ' + Math.round(worstPoint.y * 100) + '%)</span>' +
+            '      </div>' +
+            '      <div class="flex justify-between">' +
+            '        <span class="text-slate-400">Ponto Mais Equilibrado:</span>' +
+            '        <span class="font-bold text-green-400">RT60 ' + bestPoint.rt60.toFixed(2) + 's | Pos (' + Math.round(bestPoint.x * 100) + '%, ' + Math.round(bestPoint.y * 100) + '%)</span>' +
+            '      </div>' +
+            '    </div>' +
+            '  </div>' +
+
+            '  <div class="bg-black/20 border border-white/5 rounded-xl p-4">' +
+            '    <h4 class="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">🔧 Recomendações de Cobertura</h4>' +
+            '    <ul class="space-y-1.5">' +
+            suggestionsHtml +
+            '    </ul>' +
+            '  </div>' +
+            '</div>';
+
+        reportPanel.classList.remove('hidden');
+
+        _el('btn-close-report')?.addEventListener('click', function() {
+            reportPanel.classList.add('hidden');
+        });
+
+        _el('btn-export-report-txt')?.addEventListener('click', function() {
+            exportReportTxt(avgRT60, stdDev, avgC50, avgD50, avgSTI, worstPoint, bestPoint, homoClass, homoDesc, recommendations);
+        });
+    }
+
+    function exportReportTxt(avgRT60, stdDev, avgC50, avgD50, avgSTI, worstPoint, bestPoint, homoClass, homoDesc, recommendations) {
+        const timestamp = new Date().toLocaleString('pt-BR');
+        let lines = [];
+        lines.push('============================================================');
+        lines.push('         SOUNDMASTER PRO - RELATÓRIO DE COBERTURA ACÚSTICA   ');
+        lines.push('============================================================');
+        lines.push(`Gerado em: ${timestamp}`);
+        lines.push(`Total de Pontos de Medição: ${mappingPoints.length}`);
+        lines.push('');
+        lines.push('--- PARÂMETROS ACÚSTICOS MÉDIOS ---');
+        lines.push(`Tempo de Reverberação Médio (RT60): ${avgRT60.toFixed(2)} s`);
+        lines.push(`Desvio Padrão do RT60 (Uniformidade): ${stdDev.toFixed(3)} s`);
+        lines.push(`Inteligibilidade de Fala Média (STI): ${avgSTI.toFixed(2)}`);
+        lines.push(`Clareza Média (C50): ${avgC50.toFixed(1)} dB`);
+        lines.push(`Definição Média (D50): ${avgD50.toFixed(0)} %`);
+        lines.push('');
+        lines.push('--- DIAGNÓSTICO DE HOMOGENEIDADE ---');
+        lines.push(`Classificação: ${homoClass}`);
+        lines.push(`Descrição: ${homoDesc}`);
+        lines.push('');
+        lines.push('--- ANÁLISE DE PONTOS DESTACADOS ---');
+        lines.push(`Ponto Mais Crítico (Maior RT60):`);
+        lines.push(`  - RT60: ${worstPoint.rt60.toFixed(2)} s`);
+        lines.push(`  - Inteligibilidade (STI): ${(worstPoint.sti || 0.6).toFixed(2)}`);
+        lines.push(`  - Posição no Mapa: X=${Math.round(worstPoint.x * 100)}%, Y=${Math.round(worstPoint.y * 100)}%`);
+        lines.push('');
+        lines.push(`Ponto Mais Equilibrado (Mais próximo de 1.35s):`);
+        lines.push(`  - RT60: ${bestPoint.rt60.toFixed(2)} s`);
+        lines.push(`  - Inteligibilidade (STI): ${(bestPoint.sti || 0.6).toFixed(2)}`);
+        lines.push(`  - Posição no Mapa: X=${Math.round(bestPoint.x * 100)}%, Y=${Math.round(bestPoint.y * 100)}%`);
+        lines.push('');
+        lines.push('--- RECOMENDAÇÕES PRÁTICAS ---');
+        recommendations.forEach(function(rec) {
+            lines.push(`- ${rec}`);
+        });
+        lines.push('');
+        lines.push('--- DETALHES DE TODOS OS PONTOS MAPEADOS ---');
+        mappingPoints.forEach(function(p, i) {
+            lines.push(`Ponto #${i+1}: Pos(X=${Math.round(p.x * 100)}%, Y=${Math.round(p.y * 100)}%) | RT60=${p.rt60.toFixed(2)}s | STI=${(p.sti || 0.6).toFixed(2)} | C50=${(p.c50 || 0).toFixed(1)}dB | D50=${(p.d50 || 50).toFixed(0)}%`);
+        });
+        lines.push('');
+        lines.push('============================================================');
+
+        const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `SoundMaster_Relatorio_Cobertura_${Date.now()}.txt`;
         a.click();
         URL.revokeObjectURL(url);
     }

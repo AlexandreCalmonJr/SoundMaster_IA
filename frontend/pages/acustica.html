@@ -191,18 +191,22 @@
                         <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> Crítico / Microfonia</span>
                     </div>
 
-                    <div class="grid grid-cols-3 gap-3 pt-2">
-                        <button id="btn-import-floorplan" class="py-2.5 bg-slate-800 hover:bg-slate-700 active:scale-[0.98] text-white rounded-lg text-xs font-bold transition-all border border-white/5 flex items-center justify-center gap-2">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                        <button id="btn-import-floorplan" class="py-2.5 bg-slate-800 hover:bg-slate-700 active:scale-[0.98] text-white rounded-lg text-[10px] font-bold transition-all border border-white/5 flex items-center justify-center gap-1.5">
                             <span>🖼️</span> Importar Planta
                         </button>
-                        <button id="btn-clear-mapping" class="py-2.5 bg-slate-800 hover:bg-slate-700 active:scale-[0.98] text-white rounded-lg text-xs font-bold transition-all border border-white/5 flex items-center justify-center gap-2">
+                        <button id="btn-clear-mapping" class="py-2.5 bg-slate-800 hover:bg-slate-700 active:scale-[0.98] text-white rounded-lg text-[10px] font-bold transition-all border border-white/5 flex items-center justify-center gap-1.5">
                             <span>🧹</span> Limpar Mapa
                         </button>
-                        <button id="btn-export-mapping" class="py-2.5 bg-cyan-600 hover:bg-cyan-500 active:scale-[0.98] text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-900/20">
-                            <span>📄</span> Exportar
+                        <button id="btn-export-mapping" class="py-2.5 bg-slate-800 hover:bg-slate-700 active:scale-[0.98] text-white rounded-lg text-[10px] font-bold transition-all border border-white/5 flex items-center justify-center gap-1.5">
+                            <span>📄</span> Exportar JSON
+                        </button>
+                        <button id="btn-generate-report" class="py-2.5 bg-cyan-600 hover:bg-cyan-500 active:scale-[0.98] text-white rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-cyan-900/20">
+                            <span>📊</span> Relatório
                         </button>
                     </div>
                     <input type="file" id="input-floorplan" class="hidden" accept="image/*">
+                    <div id="mapping-report-panel" class="hidden mt-4 bg-slate-900/60 border border-white/10 rounded-2xl p-6 shadow-xl space-y-4 animate-in fade-in slide-in-from-bottom-4"></div>
                 </div>
             </div>
         </div>

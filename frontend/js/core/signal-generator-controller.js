@@ -35,6 +35,11 @@
         if (!localAudioCtx || localAudioCtx.state === 'closed') {
             if (localAudioCtx) { try { localAudioCtx.close(); } catch (_) { console.warn('[SignalGenerator] Error closing old AudioContext'); } }
             localAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (window.MixerAudioSource && typeof window.MixerAudioSource.applyOutputDevice === 'function') {
+                window.MixerAudioSource.applyOutputDevice(localAudioCtx).catch(err => {
+                    console.warn('[SignalGenerator] Falha ao definir saída de áudio no localAudioCtx:', err.message);
+                });
+            }
         }
         if (localAudioCtx.state === 'suspended') {
             localAudioCtx.resume();
@@ -313,6 +318,15 @@
         isSineWavePlaying: () => isSineWavePlaying,
         isBandLimitedPlaying: () => isBandLimitedPlaying
     };
+
+    // Ouvir alterações de dispositivo de saída em tempo real
+    (window.parent?.document || document).addEventListener('audio_source_changed', async () => {
+        if (localAudioCtx && window.MixerAudioSource && typeof window.MixerAudioSource.applyOutputDevice === 'function') {
+            await window.MixerAudioSource.applyOutputDevice(localAudioCtx).catch(err => {
+                console.warn('[SignalGenerator] Falha ao re-aplicar saída no localAudioCtx:', err.message);
+            });
+        }
+    });
 
     console.log('[SignalGeneratorController] Carregado.');
 })();
