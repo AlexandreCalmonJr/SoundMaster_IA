@@ -11,6 +11,7 @@ const { registerMixerCommandHandlers } = require('./handlers/mixer-commands');
 const { registerPresetHandlers } = require('./handlers/presets');
 const { registerDiagnosticHandlers } = require('./handlers/diagnostics');
 const { registerMixerConnectionHandlers } = require('./handlers/mixer-connection');
+const { registerRt60MeasurementHandlers } = require('./handlers/rt60-measurement');
 const { isAiAvailable, isLiteMode, setAiAvailable } = require('./python-ai');
 
 const PYTHON_PORT = parseInt(process.env.PYTHON_PORT || '3002', 10);
@@ -178,6 +179,7 @@ function registerSocketHandlers(io, appDataDir = './logs') {
         registerMixerCommandHandlers(io, socket, deps);
         registerPresetHandlers(io, socket, deps);
         registerDiagnosticHandlers(io, socket, deps);
+        registerRt60MeasurementHandlers(io, socket, deps);
 
         socket.on('send_raw_message', (data) => {
             if (!rateLimiter(socket, 'send_raw_message')) return;

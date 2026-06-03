@@ -48,6 +48,7 @@
 (function () {
     var pm = createPageModule();
     var rt60Listener = null;
+    var _currentPlan  = null;  // Plano de correções atual
 
     function handleAcousticHistory(data) {
         var emptyVal = (data && data.benchmark && data.benchmark.empty && data.benchmark.empty.rt60) || 0;
@@ -147,6 +148,11 @@
         } else {
             _appendResultMessage('Medição concluída mas sem dados suficientes para exibir.', 'text-amber-400');
         }
+
+        // ── NOVO: solicita correções ao servidor ─────────────────────────────
+        if (hasMetrics || hasCurve) {
+            _requestCorrections(detail);
+        }
     }
 
     function _appendResultMessage(text, colorClass) {
@@ -158,7 +164,113 @@
         el.appendChild(msg);
     }
 
+    // ─── Correções Acústicas ─────────────────────────────────────────────────
+
+    function _requestCorrections(metrics) {
+        var socket = pm._call('SocketService', 'raw');
+        if (!socket) return;
+        var mixerChannel = window.MixerAudioSource ? window.MixerAudioSource.getSelectedChannel() : null;
+        socket.emit('rt60_get_corrections', {
+            metrics: metrics,
+            roomProfile: { measurementChannel: mixerChannel }
+        });
+    }
+
+    function _renderCorrectionsPlan(plan) {
+        _currentPlan = plan;
+        var container = pm._el('rt60-corrections-panel');
+        if (!container) return;
+
+        var qualityColors = { good: '#22c55e', fair: '#f59e0b', poor: '#ef4444', unknown: '#94a3b8' };
+        var qualityLabels = { good: 'Boa', fair: 'Moderada', poor: 'Ruim', unknown: '?' };
+        var color = qualityColors[plan.roomQuality] || '#94a3b8';
+        var label = qualityLabels[plan.roomQuality] || '?';
+
+        var actionsHtml = (plan.actions || []).map(function(action) {
+            var changesHtml = (action.changes || []).map(function(c) {
+                if (c.type === 'peaking' || c.type === 'shelf') {
+                    return '<span class="rt60-change-tag">' + c.label + ': ' +
+                           (c.gain > 0 ? '+' : '') + c.gain + 'dB @ ' + c.hz + 'Hz</span>';
+                }
+                if (c.type === 'hpf') {
+                    return '<span class="rt60-change-tag">HPF ' + c.hz + 'Hz</span>';
+                }
+                if (c.type === 'compressor') {
+                    return '<span class="rt60-change-tag">Comp ' + c.ratio + ':1 @ ' + c.threshold + 'dB</span>';
+                }
+                return '<span class="rt60-change-tag">' + c.label + '</span>';
+            }).join('');
+
+            var priorityBadge = action.priority === 1
+                ? '<span class="rt60-badge rt60-badge-critical">Crítico</span>'
+                : action.priority === 2
+                ? '<span class="rt60-badge rt60-badge-medium">Sugerido</span>'
+                : '<span class="rt60-badge rt60-badge-low">Opcional</span>';
+
+            return '<div class="rt60-action-card" data-action-id="' + action.id + '">' +
+                   '  <div class="rt60-action-header">' +
+                   '    ' + priorityBadge +
+                   '    <span class="rt60-action-desc">' + _esc(action.description) + '</span>' +
+                   '  </div>' +
+                   '  <div class="rt60-action-changes">' + changesHtml + '</div>' +
+                   '  <p class="rt60-action-explanation">' + _esc(action.explanation) + '</p>' +
+                   '</div>';
+        }).join('');
+
+        var mixerConnected = (window.AppStore && window.AppStore.getState().mixerConnected);
+
+        container.innerHTML =
+            '<div class="rt60-corrections-header">' +
+            '  <div class="rt60-quality-indicator">' +
+            '    <span class="rt60-quality-dot" style="background:' + color + '"></span>' +
+            '    <span class="rt60-quality-label">Qualidade Acústica: <strong>' + label + '</strong></span>' +
+            '    <span class="rt60-confidence">' + plan.confidence + '% de confiança</span>' +
+            '  </div>' +
+            '  <p class="rt60-summary">' + _esc(plan.summary) + '</p>' +
+            '</div>' +
+            (actionsHtml ? '<div class="rt60-actions-list">' + actionsHtml + '</div>' : '') +
+            '<div class="rt60-apply-row">' +
+            '  <button id="btn-apply-all-corrections" class="rt60-apply-btn" ' +
+               (mixerConnected ? '' : 'disabled title="Conecte a mesa primeiro"') + '>' +
+            '    <span>✅</span> Aplicar todas na mesa' +
+            '  </button>' +
+            '  <span class="rt60-apply-hint">' +
+            (mixerConnected ? 'Mesa conectada — pronto para aplicar' : '⚠️ Mesa não conectada') +
+            '  </span>' +
+            '</div>';
+
+        container.classList.remove('hidden');
+        document.getElementById('btn-apply-all-corrections')?.addEventListener('click', _applyAllCorrections);
+    }
+
+    function _applyAllCorrections() {
+        if (!_currentPlan) return;
+        var btn = document.getElementById('btn-apply-all-corrections');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<span>⏳</span> Aplicando...'; }
+
+        var socket = pm._call('SocketService', 'raw');
+        var channel = window.MixerAudioSource ? window.MixerAudioSource.getSelectedChannel() : null;
+        if (socket) {
+            socket.emit('rt60_apply_all', {
+                plan: _currentPlan,
+                channels: channel ? [channel] : []
+            });
+        }
+    }
+
     function init() {
+        // ── Fonte de áudio ───────────────────────────────────────────────────
+        if (window.MixerAudioSource) {
+            window.MixerAudioSource.init().then(function() {
+                window.MixerAudioSource.renderDeviceSelector('rt60-audio-source-container', {
+                    showChannel: true,
+                    onInputChange: function(deviceId) {
+                        pm._call('AppStore', 'addLog', '🎤 Fonte de áudio alterada para medição.');
+                    }
+                });
+            });
+        }
+
         pm._on(pm._el('btn-trigger-pulse'), 'click', function () {
             var btn = pm._el('btn-trigger-pulse');
             if (btn) {
@@ -225,6 +337,27 @@
         if (socket) {
             socket.on('acoustic_history_data', handleAcousticHistory);
             pm._call('SocketService', 'emit', 'get_acoustic_history');
+
+            // Correções RT60 do servidor
+            socket.on('rt60_corrections_ready', function(data) {
+                if (data && data.plan) _renderCorrectionsPlan(data.plan);
+            });
+
+            socket.on('rt60_all_applied', function(data) {
+                var btn = document.getElementById('btn-apply-all-corrections');
+                if (btn) {
+                    btn.innerHTML = '<span>✅</span> Aplicado!';
+                    setTimeout(function() {
+                        btn.disabled = false;
+                        btn.innerHTML = '<span>✅</span> Aplicar todas na mesa';
+                    }, 3000);
+                }
+                pm._call('AppStore', 'addLog', '🎚️ Correções acústicas aplicadas na Ui24R.');
+            });
+
+            socket.on('rt60_error', function(data) {
+                pm._call('AppStore', 'addLog', '⚠️ RT60: ' + (data && data.message || 'Erro desconhecido'));
+            });
         }
 
         // AppStore integration for Virtual Soundcheck (MTK) status
@@ -269,9 +402,16 @@
         var socket = pm._call('SocketService', 'raw');
         if (socket) {
             socket.off('acoustic_history_data', handleAcousticHistory);
+            socket.off('rt60_corrections_ready');
+            socket.off('rt60_all_applied');
+            socket.off('rt60_error');
         }
         document.removeEventListener('rt60-result', rt60Listener);
         pm.destroy();
+    }
+
+    function _esc(str) {
+        return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
     window.RT60Page = { init: init, destroy: destroy };
