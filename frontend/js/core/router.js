@@ -89,6 +89,7 @@ class Router {
             'auto-eq':    ['css/auto-eq.css'],
             'mixer-git':  ['css/mixer-git.css'],
             'stage-plot': ['css/stage-plot.css'],
+            'rt60':       ['css/rt60-integration.css'],
         };
 
         // Build simple route map for backward compat

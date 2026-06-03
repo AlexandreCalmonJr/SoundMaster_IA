@@ -121,6 +121,10 @@
     }
 
     function init() {
+        if (window.MixerAudioSource) {
+            window.MixerAudioSource.init();
+        }
+
         const gen = window.SignalGeneratorController;
         if (!gen) {
             console.error('[AnalyzerSignalsPage] SignalGeneratorController not found.');

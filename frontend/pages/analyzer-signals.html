@@ -17,116 +17,129 @@
         </div>
     </header>
 
-    <div class="bg-slate-800/60 border border-white/10 rounded-2xl p-6">
-        <h3 class="text-lg font-semibold mb-2">Sinais de Teste</h3>
-        <p class="text-xs text-slate-500 mb-6">Selecione o tipo de sinal para emitir pelo sistema de áudio.</p>
-        
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-            <button id="btn-pink-noise" class="group flex flex-col items-center justify-center p-4 bg-red-900/20 border border-red-500/20 hover:border-red-500/50 rounded-xl transition-all">
-                <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">🔊</span>
-                <span class="text-xs font-bold text-red-400">Rosa</span>
-            </button>
-            <button id="btn-white-noise" class="group flex flex-col items-center justify-center p-4 bg-slate-700/50 border border-slate-500/30 hover:border-slate-400 rounded-xl transition-all">
-                <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">🌫️</span>
-                <span class="text-xs font-bold text-slate-300">Branco</span>
-            </button>
-            <button id="btn-mls-signal" class="group flex flex-col items-center justify-center p-4 bg-amber-900/20 border border-amber-500/30 hover:border-amber-400 rounded-xl transition-all">
-                <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">📊</span>
-                <span class="text-xs font-bold text-amber-400">MLS</span>
-            </button>
-            <button id="btn-chirp-signal" class="group flex flex-col items-center justify-center p-4 bg-amber-900/20 border border-amber-500/30 hover:border-amber-400 rounded-xl transition-all">
-                <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">📈</span>
-                <span class="text-xs font-bold text-amber-400">Chirp</span>
-            </button>
-            <button id="btn-dual-tone" class="group flex flex-col items-center justify-center p-4 bg-cyan-900/20 border border-cyan-500/30 hover:border-cyan-400 rounded-xl transition-all">
-                <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">〰️</span>
-                <span class="text-xs font-bold text-cyan-400">Dual-Tone</span>
-            </button>
-            <button id="btn-measure-pink" class="group flex flex-col items-center justify-center p-4 bg-emerald-900/20 border border-emerald-500/30 hover:border-emerald-400 rounded-xl transition-all">
-                <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">🎚️</span>
-                <span class="text-xs font-bold text-emerald-400">Medir Rosa</span>
-            </button>
+    <div class="border-t border-white/10 pt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-1">
+            <span class="text-xs font-mono text-cyan-400 tracking-widest uppercase block mb-1">01 // SISTEMA DE CAPTAÇÃO</span>
+            <h3 class="text-xl font-black text-white tracking-tight">Caminho de Sinal</h3>
+            <p class="text-xs text-slate-400 mt-2 leading-relaxed mb-6">
+                Configure os dispositivos de entrada e saída e defina o canal de áudio da mesa para o envio de ruídos e calibração de sinal.
+            </p>
+            <audio-source-selector id="signals-audio-selector" show-channel="true" class="block mb-4"></audio-source-selector>
         </div>
 
-        <div class="bg-black/40 rounded-xl p-4 mb-6">
-            <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold text-slate-400 uppercase">Nível de Saida</span>
-                <span id="signal-level-val" class="text-xs font-mono text-cyan-400">-20 dB</span>
-            </div>
-            <input type="range" id="signal-level-slider" min="-60" max="0" value="-20" class="w-full accent-cyan-500 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
-            <div class="flex justify-between mt-1">
-                <span class="text-[9px] text-slate-600">-60dB</span>
-                <span class="text-[9px] text-slate-600">0dB</span>
-            </div>
-        </div>
-        
-        <button id="btn-log-sweep" class="w-full py-3 bg-amber-900/30 hover:bg-amber-800/30 border border-amber-500/30 rounded-xl text-sm font-bold text-amber-300 transition-all">
-            📈 Sweep Logarítmico (20Hz - 20kHz)
-        </button>
-        
-        <div class="bg-black/40 rounded-xl p-4 mt-4 mb-8">
-            <p id="pink-measure-summary" class="text-xs text-slate-400 text-center">Use a mediçao de ruído rosa para capturar a resposta do salao.</p>
-        </div>
+        <div class="lg:col-span-2">
+            <div class="bg-slate-900/40 border border-white/5 rounded-2xl p-6 shadow-xl">
+                <h3 class="text-lg font-semibold mb-2 text-white">Sinais de Teste</h3>
+                <p class="text-xs text-slate-500 mb-6">Selecione o tipo de sinal para emitir pelo sistema de áudio.</p>
+                
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+                    <button id="btn-pink-noise" class="group flex flex-col items-center justify-center p-4 bg-red-900/20 border border-red-500/20 hover:border-red-500/50 rounded-xl transition-all">
+                        <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">🔊</span>
+                        <span class="text-xs font-bold text-red-400">Rosa</span>
+                    </button>
+                    <button id="btn-white-noise" class="group flex flex-col items-center justify-center p-4 bg-slate-700/50 border border-slate-500/30 hover:border-slate-400 rounded-xl transition-all">
+                        <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">🌫️</span>
+                        <span class="text-xs font-bold text-slate-300">Branco</span>
+                    </button>
+                    <button id="btn-mls-signal" class="group flex flex-col items-center justify-center p-4 bg-amber-900/20 border border-amber-500/30 hover:border-amber-400 rounded-xl transition-all">
+                        <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">📊</span>
+                        <span class="text-xs font-bold text-amber-400">MLS</span>
+                    </button>
+                    <button id="btn-chirp-signal" class="group flex flex-col items-center justify-center p-4 bg-amber-900/20 border border-amber-500/30 hover:border-amber-400 rounded-xl transition-all">
+                        <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">📈</span>
+                        <span class="text-xs font-bold text-amber-400">Chirp</span>
+                    </button>
+                    <button id="btn-dual-tone" class="group flex flex-col items-center justify-center p-4 bg-cyan-900/20 border border-cyan-500/30 hover:border-cyan-400 rounded-xl transition-all">
+                        <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">〰️</span>
+                        <span class="text-xs font-bold text-cyan-400">Dual-Tone</span>
+                    </button>
+                    <button id="btn-measure-pink" class="group flex flex-col items-center justify-center p-4 bg-emerald-900/20 border border-emerald-500/30 hover:border-emerald-400 rounded-xl transition-all">
+                        <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">🎚️</span>
+                        <span class="text-xs font-bold text-emerald-400">Medir Rosa</span>
+                    </button>
+                </div>
 
-        <div class="bg-black/50 rounded-xl p-4 border border-white/5 mb-4">
-            <div class="flex items-center gap-4 mb-3">
-                <span class="text-xs font-bold text-slate-400 uppercase">Ruído Limitado por Banda</span>
-                <button id="btn-bandlimited-noise" class="px-4 py-2 bg-cyan-700/40 hover:bg-cyan-600/50 text-cyan-300 border border-cyan-500/30 rounded-lg text-xs font-bold transition-all">▶ Tocar</button>
-            </div>
-            <div class="grid grid-cols-3 gap-3">
-                <div>
-                    <label class="text-[8px] text-slate-500 uppercase block mb-1">Tipo</label>
-                    <select id="bl-noise-type" class="w-full bg-black/70 border border-white/10 rounded-lg px-2 py-1.5 text-[9px] text-cyan-300 font-mono outline-none cursor-pointer">
-                        <option value="pink">Rosa</option>
-                        <option value="white">Branco</option>
-                    </select>
+                <div class="bg-black/40 rounded-xl p-4 mb-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold text-slate-400 uppercase">Nível de Saida</span>
+                        <span id="signal-level-val" class="text-xs font-mono text-cyan-400">-20 dB</span>
+                    </div>
+                    <input type="range" id="signal-level-slider" min="-60" max="0" value="-20" class="w-full accent-cyan-500 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between mt-1">
+                        <span class="text-[9px] text-slate-600">-60dB</span>
+                        <span class="text-[9px] text-slate-600">0dB</span>
+                    </div>
                 </div>
-                <div>
-                    <label class="text-[8px] text-slate-500 uppercase block mb-1">Freq Central</label>
-                    <select id="bl-noise-freq" class="w-full bg-black/70 border border-white/10 rounded-lg px-2 py-1.5 text-[9px] text-cyan-300 font-mono outline-none cursor-pointer">
-                        <option value="63">63 Hz</option>
-                        <option value="125">125 Hz</option>
-                        <option value="250">250 Hz</option>
-                        <option value="500">500 Hz</option>
-                        <option value="1000" selected>1 kHz</option>
-                        <option value="2000">2 kHz</option>
-                        <option value="4000">4 kHz</option>
-                        <option value="8000">8 kHz</option>
-                    </select>
+                
+                <button id="btn-log-sweep" class="w-full py-3 bg-amber-900/30 hover:bg-amber-800/30 border border-amber-500/30 rounded-xl text-sm font-bold text-amber-300 transition-all">
+                    📈 Sweep Logarítmico (20Hz - 20kHz)
+                </button>
+                
+                <div class="bg-black/40 rounded-xl p-4 mt-4 mb-8">
+                    <p id="pink-measure-summary" class="text-xs text-slate-400 text-center">Use a mediçao de ruído rosa para capturar a resposta do salao.</p>
                 </div>
-                <div>
-                    <label class="text-[8px] text-slate-500 uppercase block mb-1">Banda</label>
-                    <select id="bl-noise-band" class="w-full bg-black/70 border border-white/10 rounded-lg px-2 py-1.5 text-[9px] text-cyan-300 font-mono outline-none cursor-pointer">
-                        <option value="1">1/1 Oitava</option>
-                        <option value="0.333" selected>1/3 Oitava</option>
-                    </select>
-                </div>
-            </div>
-        </div>
 
-        <div class="bg-black/50 rounded-xl p-4 border border-white/5">
-            <div class="flex items-center gap-4 mb-3">
-                <span class="text-xs font-bold text-slate-400 uppercase">Tom Senoidal</span>
-                <button id="btn-sine-wave" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold transition-all">Tocar</button>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <div class="flex items-center gap-2">
-                    <label class="text-[9px] text-slate-500 uppercase whitespace-nowrap">Freq</label>
-                    <input type="number" id="sine-freq" value="1000" min="20" max="20000" aria-label="Frequência do tom senoidal em Hz" class="flex-1 bg-black/70 border border-white/10 rounded-lg px-3 py-2 text-center text-cyan-400 font-mono text-xs focus:border-cyan-500 outline-none">
-                    <span class="text-[9px] text-slate-500">Hz</span>
+                <div class="bg-black/50 rounded-xl p-4 border border-white/5 mb-4">
+                    <div class="flex items-center gap-4 mb-3">
+                        <span class="text-xs font-bold text-slate-400 uppercase">Ruído Limitado por Banda</span>
+                        <button id="btn-bandlimited-noise" class="px-4 py-2 bg-cyan-700/40 hover:bg-cyan-600/50 text-cyan-300 border border-cyan-500/30 rounded-lg text-xs font-bold transition-all">▶ Tocar</button>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <label class="text-[8px] text-slate-500 uppercase block mb-1">Tipo</label>
+                            <select id="bl-noise-type" class="w-full bg-black/70 border border-white/10 rounded-lg px-2 py-1.5 text-[9px] text-cyan-300 font-mono outline-none cursor-pointer">
+                                <option value="pink">Rosa</option>
+                                <option value="white">Branco</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[8px] text-slate-500 uppercase block mb-1">Freq Central</label>
+                            <select id="bl-noise-freq" class="w-full bg-black/70 border border-white/10 rounded-lg px-2 py-1.5 text-[9px] text-cyan-300 font-mono outline-none cursor-pointer">
+                                <option value="63">63 Hz</option>
+                                <option value="125">125 Hz</option>
+                                <option value="250">250 Hz</option>
+                                <option value="500">500 Hz</option>
+                                <option value="1000" selected>1 kHz</option>
+                                <option value="2000">2 kHz</option>
+                                <option value="4000">4 kHz</option>
+                                <option value="8000">8 kHz</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[8px] text-slate-500 uppercase block mb-1">Banda</label>
+                            <select id="bl-noise-band" class="w-full bg-black/70 border border-white/10 rounded-lg px-2 py-1.5 text-[9px] text-cyan-300 font-mono outline-none cursor-pointer">
+                                <option value="1">1/1 Oitava</option>
+                                <option value="0.333" selected>1/3 Oitava</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <label class="text-[9px] text-slate-500 uppercase whitespace-nowrap">Nivel</label>
-                    <input type="range" id="sine-level" min="-60" max="0" value="-20" aria-label="Nível do tom senoidal em dB" class="flex-1 accent-cyan-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer">
-                    <span id="sine-level-val" class="text-[9px] font-mono text-cyan-400 w-10 text-right">-20dB</span>
+
+                <div class="bg-black/50 rounded-xl p-4 border border-white/5">
+                    <div class="flex items-center gap-4 mb-3">
+                        <span class="text-xs font-bold text-slate-400 uppercase">Tom Senoidal</span>
+                        <button id="btn-sine-wave" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold transition-all">Tocar</button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="flex items-center gap-2">
+                            <label class="text-[9px] text-slate-500 uppercase whitespace-nowrap">Freq</label>
+                            <input type="number" id="sine-freq" value="1000" min="20" max="20000" aria-label="Frequência do tom senoidal em Hz" class="flex-1 bg-black/70 border border-white/10 rounded-lg px-3 py-2 text-center text-cyan-400 font-mono text-xs focus:border-cyan-500 outline-none">
+                            <span class="text-[9px] text-slate-500">Hz</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-[9px] text-slate-500 uppercase whitespace-nowrap">Nivel</label>
+                            <input type="range" id="sine-level" min="-60" max="0" value="-20" aria-label="Nível do tom senoidal em dB" class="flex-1 accent-cyan-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                            <span id="sine-level-val" class="text-[9px] font-mono text-cyan-400 w-10 text-right">-20dB</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-3">
+                        <button class="sine-preset flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 border border-white/5 rounded text-[9px] font-bold text-slate-400 transition-all" data-freq="60">60Hz Sub</button>
+                        <button class="sine-preset flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 border border-white/5 rounded text-[9px] font-bold text-slate-400 transition-all" data-freq="100">100Hz Low</button>
+                        <button class="sine-preset flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 border border-white/5 rounded text-[9px] font-bold text-slate-400 transition-all" data-freq="250">250Hz Mid</button>
+                        <button class="sine-preset flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 border border-white/5 rounded text-[9px] font-bold text-slate-400 transition-all" data-freq="1000">1kHz Ref</button>
+                        <button class="sine-preset flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 border border-white/5 rounded text-[9px] font-bold text-slate-400 transition-all" data-freq="4000">4kHz Hi</button>
+                    </div>
                 </div>
-            </div>
-            <div class="flex gap-2 mt-3">
-                <button class="sine-preset flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 border border-white/5 rounded text-[9px] font-bold text-slate-400 transition-all" data-freq="60">60Hz Sub</button>
-                <button class="sine-preset flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 border border-white/5 rounded text-[9px] font-bold text-slate-400 transition-all" data-freq="100">100Hz Low</button>
-                <button class="sine-preset flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 border border-white/5 rounded text-[9px] font-bold text-slate-400 transition-all" data-freq="250">250Hz Mid</button>
-                <button class="sine-preset flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 border border-white/5 rounded text-[9px] font-bold text-slate-400 transition-all" data-freq="1000">1kHz Ref</button>
-                <button class="sine-preset flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 border border-white/5 rounded text-[9px] font-bold text-slate-400 transition-all" data-freq="4000">4kHz Hi</button>
             </div>
         </div>
     </div>
