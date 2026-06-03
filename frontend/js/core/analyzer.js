@@ -839,7 +839,6 @@
         // Inicializa serviços de controle modulares
         if (window.FeedbackDetectorModule) window.FeedbackDetectorModule.init();
         if (window.SplDisplayModule) window.SplDisplayModule.init();
-        if (window.AutomixController) window.AutomixController.init();
 
         // Inicializa Visualizador de Transfer Function
         if (window.SoundMasterVisualizer) window.SoundMasterVisualizer.init();
