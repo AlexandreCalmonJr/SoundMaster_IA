@@ -6,6 +6,7 @@ const Logger = require('./logger');
 const mixerSingleton = require('./mixer-singleton');
 const loopbackService = require('./loopback-service');
 const netDiag = require('./network');
+const mixerDiscovery = require('./mixer-discovery');
 const { registerMixerCommandHandlers } = require('./handlers/mixer-commands');
 const { registerPresetHandlers } = require('./handlers/presets');
 const { registerDiagnosticHandlers } = require('./handlers/diagnostics');
@@ -26,6 +27,15 @@ function registerSocketHandlers(io, appDataDir = './logs') {
 
     netDiag.init(io);
     loopbackService.init(io);
+    mixerDiscovery.init(io);
+
+    // Auto-descoberta: inicia varredura se ainda não há mesa conectada
+    setTimeout(() => {
+        if (!mixerSingleton.getMixer()) {
+            console.log('[SocketHandlers] Nenhuma mesa conectada — iniciando auto-descoberta...');
+            mixerDiscovery.startDiscovery();
+        }
+    }, 2000);
 
     let activeConnections = 0;
     let feedbackCooldowns = new Map();
@@ -156,6 +166,7 @@ function registerSocketHandlers(io, appDataDir = './logs') {
 
         mixerSingleton.dispatchStateTreeTo(socket);
         netDiag.registerNetDiagHandlers(socket);
+        mixerDiscovery.registerDiscoveryHandlers(socket);
 
         const deps = {
             actions, logger, mixerSingleton, throttledSetMaster, rateLimiter,
