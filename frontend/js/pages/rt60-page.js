@@ -259,10 +259,9 @@
     }
 
     function init() {
-        // ── Fonte de áudio ───────────────────────────────────────────────────
         if (window.MixerAudioSource) {
             window.MixerAudioSource.init().then(function() {
-                window.MixerAudioSource.renderDeviceSelector('rt60-audio-source-container', {
+                window.MixerAudioSource.renderDeviceSelector(pm._el('rt60-audio-source-container'), {
                     showChannel: true,
                     onInputChange: function(deviceId) {
                         pm._call('AppStore', 'addLog', '🎤 Fonte de áudio alterada para medição.');

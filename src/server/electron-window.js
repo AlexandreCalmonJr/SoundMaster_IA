@@ -28,6 +28,7 @@ function createWindow(port) {
     });
 
     win.loadURL(`http://localhost:${port}`);
+    win.webContents.openDevTools();
     return win;
 }
 

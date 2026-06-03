@@ -30,14 +30,16 @@
     const _STORAGE_KEY = 'sm_audio_source_prefs';
 
     const _state = {
-        inputDevices:   [],  // MediaDeviceInfo[] - microfones
-        outputDevices:  [],  // MediaDeviceInfo[] - saídas
-        selectedInputId:  null,
+        inputDevices: [],  // MediaDeviceInfo[] - microfones
+        outputDevices: [],  // MediaDeviceInfo[] - saídas
+        selectedInputId: null,
         selectedOutputId: null,
-        mixerChannel:     null,  // Canal da mesa (contexto/referência)
-        activeStream:     null,
+        mixerChannel: null,  // Canal da mesa (contexto/referência)
+        activeStream: null,
         permissionGranted: false,
     };
+
+    const _renderedElements = new Set();
 
     // ─── Inicialização ────────────────────────────────────────────────────────
 
@@ -45,11 +47,19 @@
         _loadPreferences();
         await _requestPermissionAndEnumerate();
         // Re-enumera quando dispositivos são conectados/desconectados
-        navigator.mediaDevices?.addEventListener('devicechange', _onDeviceChange);
+        if (navigator.mediaDevices) {
+            navigator.mediaDevices.addEventListener('devicechange', _onDeviceChange);
+        }
     }
 
     async function _requestPermissionAndEnumerate() {
         try {
+            if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+                console.warn('[AudioSource] navigator.mediaDevices.getUserMedia não disponível.');
+                _state.permissionGranted = false;
+                await _enumerateDevices();
+                return;
+            }
             // Solicita permissão (necessário para ver labels dos dispositivos)
             const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             tempStream.getTracks().forEach(t => t.stop());
@@ -63,9 +73,14 @@
 
     async function _enumerateDevices() {
         try {
+            if (!navigator.mediaDevices || typeof navigator.mediaDevices.enumerateDevices !== 'function') {
+                console.warn('[AudioSource] navigator.mediaDevices.enumerateDevices não disponível.');
+                _notifyDevicesUpdated();
+                return;
+            }
             const devices = await navigator.mediaDevices.enumerateDevices();
 
-            _state.inputDevices  = devices.filter(d => d.kind === 'audioinput');
+            _state.inputDevices = devices.filter(d => d.kind === 'audioinput');
             _state.outputDevices = devices.filter(d => d.kind === 'audiooutput');
 
             // Auto-detecta Soundcraft Ui24R (aparece como "Soundcraft" ou "Ui24")
@@ -89,6 +104,7 @@
             _notifyDevicesUpdated();
         } catch (err) {
             console.error('[AudioSource] Erro ao enumerar dispositivos:', err);
+            _notifyDevicesUpdated();
         }
     }
 
@@ -117,9 +133,9 @@
                     : true,
                 echoCancellation: false,  // Desabilita para medição acústica
                 noiseSuppression: false,
-                autoGainControl:  false,
-                channelCount:     1,
-                sampleRate:       { ideal: 48000 },
+                autoGainControl: false,
+                channelCount: 1,
+                sampleRate: { ideal: 48000 },
                 ...(opts || {}),
             },
             video: false,
@@ -191,56 +207,66 @@
             : container;
         if (!el) return;
 
+        // Cleanup old selectors that are no longer in any DOM document
+        for (const activeEl of _renderedElements) {
+            if (!activeEl.ownerDocument || !activeEl.ownerDocument.contains(activeEl)) {
+                _renderedElements.delete(activeEl);
+            }
+        }
+        _renderedElements.add(el);
+
         const { showChannel = true, onInputChange, onOutputChange } = opts;
 
         el.innerHTML = `
             <div class="audio-source-panel" id="audio-source-panel">
-                <div class="audio-source-row">
-                    <label class="audio-source-label">
-                        <span class="audio-source-icon">🎤</span>
-                        Entrada (Microfone)
-                    </label>
-                    <div class="audio-source-select-wrap">
-                        <select id="audio-input-select" class="audio-source-select">
-                            <option value="">Carregando...</option>
-                        </select>
-                        ${!_state.permissionGranted ? `
-                        <button id="btn-request-permission" class="audio-source-perm-btn">
-                            Permitir acesso
-                        </button>` : ''}
+                <div class="audio-source-grid">
+                    <div class="audio-source-col">
+                        <label class="audio-source-label">
+                            <span class="audio-source-icon">🎤</span>
+                            Entrada (Microfone)
+                        </label>
+                        <div class="audio-source-select-wrap">
+                            <select id="audio-input-select" class="audio-source-select">
+                                <option value="">Carregando...</option>
+                            </select>
+                            ${!_state.permissionGranted ? `
+                            <button id="btn-request-permission" class="audio-source-perm-btn">
+                                Permitir
+                            </button>` : ''}
+                        </div>
                     </div>
-                </div>
 
-                <div class="audio-source-row">
-                    <label class="audio-source-label">
-                        <span class="audio-source-icon">🔊</span>
-                        Saída (Sweep)
-                    </label>
-                    <select id="audio-output-select" class="audio-source-select">
-                        <option value="">Padrão do sistema</option>
-                    </select>
-                </div>
-
-                ${showChannel ? `
-                <div class="audio-source-row">
-                    <label class="audio-source-label">
-                        <span class="audio-source-icon">📡</span>
-                        Canal da Mesa (referência)
-                    </label>
-                    <div class="audio-source-channel-wrap">
-                        <select id="audio-mixer-channel" class="audio-source-select audio-source-channel-select">
-                            <option value="">— Nenhum —</option>
-                            ${Array.from({ length: 24 }, (_, i) =>
-                                `<option value="${i+1}" ${_state.mixerChannel === i+1 ? 'selected' : ''}>
-                                    Canal ${i+1}
-                                </option>`
-                            ).join('')}
+                    <div class="audio-source-col">
+                        <label class="audio-source-label">
+                            <span class="audio-source-icon">🔊</span>
+                            Saída (Sweep)
+                        </label>
+                        <select id="audio-output-select" class="audio-source-select">
+                            <option value="">Padrão do sistema</option>
                         </select>
-                        <span class="audio-source-channel-hint">
-                            Mic de medição conectado a este canal
-                        </span>
                     </div>
-                </div>` : ''}
+
+                    ${showChannel ? `
+                    <div class="audio-source-col">
+                        <label class="audio-source-label">
+                            <span class="audio-source-icon">📡</span>
+                            Canal da Mesa (referência)
+                        </label>
+                        <div class="audio-source-channel-wrap">
+                            <select id="audio-mixer-channel" class="audio-source-select">
+                                <option value="">— Nenhum —</option>
+                                ${Array.from({ length: 24 }, (_, i) =>
+            `<option value="${i + 1}" ${_state.mixerChannel === i + 1 ? 'selected' : ''}>
+                                        Canal ${i + 1}
+                                    </option>`
+        ).join('')}
+                            </select>
+                            <span class="audio-source-channel-hint">
+                                Mic de medição conectado a este canal
+                            </span>
+                        </div>
+                    </div>` : ''}
+                </div>
 
                 <div id="audio-source-ui24r-hint" class="audio-source-hint" style="display:none">
                     <span>💡</span>
@@ -252,11 +278,11 @@
         _injectStyles();
         _populateSelects();
 
-        // Handlers
-        const inputSel = document.getElementById('audio-input-select');
-        const outputSel = document.getElementById('audio-output-select');
-        const channelSel = document.getElementById('audio-mixer-channel');
-        const permBtn = document.getElementById('btn-request-permission');
+        // Handlers scoped directly to the rendered element
+        const inputSel = el.querySelector('#audio-input-select');
+        const outputSel = el.querySelector('#audio-output-select');
+        const channelSel = el.querySelector('#audio-mixer-channel');
+        const permBtn = el.querySelector('#btn-request-permission');
 
         inputSel?.addEventListener('change', e => {
             setInputDevice(e.target.value || null);
@@ -279,186 +305,198 @@
 
         // Mostra hint se não tem Ui24R como USB
         const hasUi24rUsb = _state.inputDevices.some(d => /soundcraft|ui24/i.test(d.label));
-        const hintEl = document.getElementById('audio-source-ui24r-hint');
+        const hintEl = el.querySelector('#audio-source-ui24r-hint');
         if (hintEl && !hasUi24rUsb) hintEl.style.display = 'flex';
     }
 
     function _populateSelects() {
-        const inputSel  = document.getElementById('audio-input-select');
-        const outputSel = document.getElementById('audio-output-select');
+        for (const root of _renderedElements) {
+            const inputSel = root.querySelector('#audio-input-select');
+            const outputSel = root.querySelector('#audio-output-select');
 
-        if (inputSel) {
-            inputSel.innerHTML = _state.inputDevices.map((d, i) => {
-                const label = d.label || `Microfone ${i + 1}`;
-                const isUi24 = /soundcraft|ui24/i.test(label);
-                const prefix = isUi24 ? '📡 ' : '🎤 ';
-                return `<option value="${d.deviceId}" ${d.deviceId === _state.selectedInputId ? 'selected' : ''}>
-                    ${prefix}${label}
-                </option>`;
-            }).join('') || '<option value="">Nenhum microfone encontrado</option>';
-        }
-
-        if (outputSel) {
-            outputSel.innerHTML = '<option value="">🔊 Padrão do sistema</option>' +
-                _state.outputDevices.map((d, i) => {
-                    const label = d.label || `Saída ${i + 1}`;
+            if (inputSel) {
+                inputSel.innerHTML = _state.inputDevices.map((d, i) => {
+                    const label = d.label || `Microfone ${i + 1}`;
                     const isUi24 = /soundcraft|ui24/i.test(label);
-                    const prefix = isUi24 ? '📡 ' : '🔊 ';
-                    return `<option value="${d.deviceId}" ${d.deviceId === _state.selectedOutputId ? 'selected' : ''}>
+                    const prefix = isUi24 ? '📡 ' : '🎤 ';
+                    return `<option value="${d.deviceId}" ${d.deviceId === _state.selectedInputId ? 'selected' : ''}>
                         ${prefix}${label}
                     </option>`;
-                }).join('');
+                }).join('') || '<option value="">Nenhum microfone encontrado</option>';
+            }
+
+            if (outputSel) {
+                outputSel.innerHTML = '<option value="">🔊 Padrão do sistema</option>' +
+                    _state.outputDevices.map((d, i) => {
+                        const label = d.label || `Saída ${i + 1}`;
+                        const isUi24 = /soundcraft|ui24/i.test(label);
+                        const prefix = isUi24 ? '📡 ' : '🔊 ';
+                        return `<option value="${d.deviceId}" ${d.deviceId === _state.selectedOutputId ? 'selected' : ''}>
+                            ${prefix}${label}
+                        </option>`;
+                    }).join('');
+            }
         }
     }
+
 
     // ─── Persistência ─────────────────────────────────────────────────────────
 
     function _savePreferences() {
-        try {
-            localStorage.setItem(_STORAGE_KEY, JSON.stringify({
-                inputId:  _state.selectedInputId,
-                outputId: _state.selectedOutputId,
-                channel:  _state.mixerChannel,
-            }));
-        } catch (_) {}
-    }
-
-    function _loadPreferences() {
-        try {
-            const saved = JSON.parse(localStorage.getItem(_STORAGE_KEY) || '{}');
-            if (saved.inputId)  _state.selectedInputId  = saved.inputId;
-            if (saved.outputId) _state.selectedOutputId = saved.outputId;
-            if (saved.channel)  _state.mixerChannel     = saved.channel;
-        } catch (_) {}
-    }
-
-    // ─── Notificações ─────────────────────────────────────────────────────────
-
-    function _notifyDevicesUpdated() {
-        document.dispatchEvent(new CustomEvent('audio_devices_updated', {
-            detail: {
-                inputs:  _state.inputDevices,
-                outputs: _state.outputDevices,
-            }
+    try {
+        localStorage.setItem(_STORAGE_KEY, JSON.stringify({
+            inputId: _state.selectedInputId,
+            outputId: _state.selectedOutputId,
+            channel: _state.mixerChannel,
         }));
-        _populateSelects();
-    }
+    } catch (_) { }
+}
 
-    function _notifyStreamChanged() {
-        document.dispatchEvent(new CustomEvent('audio_source_changed', {
-            detail: {
-                inputId:  _state.selectedInputId,
-                outputId: _state.selectedOutputId,
-                channel:  _state.mixerChannel,
-            }
-        }));
-    }
+function _loadPreferences() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(_STORAGE_KEY) || '{}');
+        if (saved.inputId) _state.selectedInputId = saved.inputId;
+        if (saved.outputId) _state.selectedOutputId = saved.outputId;
+        if (saved.channel) _state.mixerChannel = saved.channel;
+    } catch (_) { }
+}
 
-    // ─── CSS injetado ─────────────────────────────────────────────────────────
+// ─── Notificações ─────────────────────────────────────────────────────────
 
-    function _injectStyles() {
-        if (document.getElementById('audio-source-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'audio-source-styles';
-        style.textContent = `
+function _notifyDevicesUpdated() {
+    document.dispatchEvent(new CustomEvent('audio_devices_updated', {
+        detail: {
+            inputs: _state.inputDevices,
+            outputs: _state.outputDevices,
+        }
+    }));
+    _populateSelects();
+}
+
+function _notifyStreamChanged() {
+    document.dispatchEvent(new CustomEvent('audio_source_changed', {
+        detail: {
+            inputId: _state.selectedInputId,
+            outputId: _state.selectedOutputId,
+            channel: _state.mixerChannel,
+        }
+    }));
+}
+
+// ─── CSS injetado ─────────────────────────────────────────────────────────
+
+function _injectStyles() {
+    if (document.getElementById('audio-source-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'audio-source-styles';
+    style.textContent = `
             .audio-source-panel {
                 display: flex;
                 flex-direction: column;
-                gap: 0.6rem;
-                padding: 0.75rem;
-                background: rgba(255,255,255,0.03);
-                border: 1px solid rgba(255,255,255,0.07);
-                border-radius: 0.75rem;
+                gap: 1rem;
+                padding: 1.25rem;
+                background: rgba(15, 23, 42, 0.45);
+                border: 1px solid rgba(6, 182, 212, 0.18);
+                border-radius: 12px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
             }
-            .audio-source-row {
+            .audio-source-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1.25rem;
+                align-items: flex-start;
+            }
+            .audio-source-col {
                 display: flex;
-                align-items: center;
-                gap: 0.75rem;
-                flex-wrap: wrap;
+                flex-direction: column;
+                gap: 0.5rem;
             }
             .audio-source-label {
                 display: flex;
                 align-items: center;
                 gap: 0.4rem;
-                font-size: 0.75rem;
-                color: rgba(148,163,184,0.8);
-                font-weight: 500;
-                min-width: 130px;
+                font-size: 0.72rem;
+                color: rgba(148, 163, 184, 0.85);
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
             }
             .audio-source-icon { font-size: 0.9rem; }
             .audio-source-select-wrap {
                 display: flex;
                 gap: 0.5rem;
                 align-items: center;
-                flex: 1;
+                width: 100%;
             }
             .audio-source-select {
-                flex: 1;
-                background: rgba(15,23,42,0.8);
-                border: 1px solid rgba(255,255,255,0.1);
-                border-radius: 0.5rem;
-                color: #e2e8f0;
+                width: 100%;
+                background: rgba(15, 23, 42, 0.9);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 8px;
+                color: #f1f5f9;
                 font-size: 0.78rem;
-                padding: 0.35rem 0.6rem;
+                padding: 0.5rem 0.75rem;
                 cursor: pointer;
+                outline: none;
+                transition: all 0.15s ease;
                 min-width: 0;
             }
             .audio-source-select:focus {
-                outline: none;
-                border-color: rgba(6,182,212,0.5);
-                box-shadow: 0 0 0 2px rgba(6,182,212,0.15);
+                border-color: rgba(6, 182, 212, 0.6);
+                box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);
             }
             .audio-source-channel-wrap {
                 display: flex;
-                gap: 0.5rem;
-                align-items: center;
-                flex: 1;
+                flex-direction: column;
+                gap: 0.35rem;
+                width: 100%;
             }
-            .audio-source-channel-select { max-width: 120px; }
             .audio-source-channel-hint {
                 font-size: 0.68rem;
-                color: rgba(148,163,184,0.5);
+                color: rgba(148, 163, 184, 0.45);
                 font-style: italic;
             }
             .audio-source-perm-btn {
-                background: rgba(6,182,212,0.2);
-                border: 1px solid rgba(6,182,212,0.4);
-                color: #06b6d4;
-                border-radius: 0.4rem;
+                background: rgba(6, 182, 212, 0.15);
+                border: 1px solid rgba(6, 182, 212, 0.35);
+                color: #22d3ee;
+                border-radius: 6px;
                 font-size: 0.72rem;
-                padding: 0.3rem 0.7rem;
+                padding: 0.4rem 0.8rem;
                 cursor: pointer;
                 white-space: nowrap;
-                transition: background 0.15s;
+                transition: all 0.15s;
             }
-            .audio-source-perm-btn:hover { background: rgba(6,182,212,0.3); }
+            .audio-source-perm-btn:hover { 
+                background: rgba(6, 182, 212, 0.25);
+                border-color: rgba(6, 182, 212, 0.5);
+            }
             .audio-source-hint {
                 display: flex;
-                align-items: flex-start;
-                gap: 0.5rem;
-                padding: 0.5rem 0.75rem;
-                background: rgba(245,158,11,0.08);
-                border: 1px solid rgba(245,158,11,0.2);
-                border-radius: 0.5rem;
+                align-items: center;
+                gap: 0.6rem;
+                padding: 0.65rem 1rem;
+                background: rgba(245, 158, 11, 0.06);
+                border: 1px solid rgba(245, 158, 11, 0.15);
+                border-radius: 8px;
                 font-size: 0.72rem;
-                color: rgba(245,158,11,0.8);
-                margin-top: 0.25rem;
+                color: rgba(251, 191, 36, 0.85);
             }
         `;
-        document.head.appendChild(style);
-    }
+    document.head.appendChild(style);
+}
 
-    // ─── Export ───────────────────────────────────────────────────────────────
+// ─── Export ───────────────────────────────────────────────────────────────
 
-    window.MixerAudioSource = {
-        init,
-        getInputStream,
-        applyOutputDevice,
-        setInputDevice,
-        setOutputDevice,
-        setMixerChannel,
-        renderDeviceSelector,
-        getState: () => ({ ..._state }),
-        getSelectedChannel: () => _state.mixerChannel,
-    };
-})();
+window.MixerAudioSource = {
+    init,
+    getInputStream,
+    applyOutputDevice,
+    setInputDevice,
+    setOutputDevice,
+    setMixerChannel,
+    renderDeviceSelector,
+    getState: () => ({ ..._state }),
+    getSelectedChannel: () => _state.mixerChannel,
+};
+}) ();

@@ -19,6 +19,7 @@
             'AuthService',
             'SocketService',
             'MixerService',
+            'MixerAudioSource',
             'SignalGeneratorService',
             'SoundMasterAnalyzer',
             'SimulationService',

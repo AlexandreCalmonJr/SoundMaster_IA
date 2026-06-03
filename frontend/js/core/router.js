@@ -45,6 +45,7 @@ class Router {
     constructor() {
         this.currentPage = null;
         this.routes = {};
+        this.navigating = false; // Lock to prevent race conditions during async navigation
 
         // Script paths mapping for dynamic import in iframe
         this.scriptPaths = {
@@ -106,6 +107,10 @@ class Router {
     }
 
     async navigate(pageId) {
+        if (this.navigating) {
+            console.warn(`[Router] Navegação ignorada (já em andamento): ${pageId}`);
+            return;
+        }
         if (this.currentPage === pageId) return;
         if (!ROUTE_MAP[pageId]) {
             console.warn(`[Router] Rota desconhecida: ${pageId}`);
@@ -124,6 +129,8 @@ class Router {
             window.location.replace('auth.html');
             return;
         }
+
+        this.navigating = true;
 
         // ✅ T13: Dispatch page-unload para cleanup da página anterior (P24)
         if (this.currentPage) {
@@ -153,8 +160,8 @@ class Router {
             container.classList.add('page-exit');
             await this._wait(200);
 
-            // Fetch new page HTML fragment
-            const response = await fetch(this.routes[pageId]);
+            // Fetch new page HTML fragment (cache-busting query parameter to bypass cache)
+            const response = await fetch(this.routes[pageId] + '?v=' + Date.now());
             if (!response.ok) throw new Error(`Erro ao carregar: ${pageId}`);
             const html = await response.text();
 
@@ -172,11 +179,11 @@ class Router {
             }
 
             let scriptTags = `
-                <script src="js/core/page-bridge.js?v=2"></script>
-                <script src="js/core/page-utils.js?v=2"></script>
+                <script src="js/core/page-bridge.js?v=3"></script>
+                <script src="js/core/page-utils.js?v=3"></script>
             `;
             if (scriptPath) {
-                scriptTags += `<script src="${scriptPath}?v=2"></script>`;
+                scriptTags += `<script src="${scriptPath}?v=3"></script>`;
             }
 
             const pageDepsMap = {
@@ -192,26 +199,9 @@ class Router {
                 });
             }
 
-            // Inline script inside the iframe to trigger init and notify parent
+            // External script to trigger init and notify parent, preventing CSP inline-script violations
             scriptTags += `
-                <script>
-                    document.addEventListener('DOMContentLoaded', () => {
-                        const moduleName = '${moduleName || ''}';
-                        if (moduleName && window[moduleName] && typeof window[moduleName].init === 'function') {
-                            try {
-                                window[moduleName].init();
-                            } catch (e) {
-                                console.error('[Iframe] Erro ao inicializar modulo ' + moduleName + ':', e);
-                            }
-                        }
-                        
-                        // Notify parent router that the page is fully loaded and initialized
-                        const event = new CustomEvent('iframe-loaded', {
-                            detail: { pageId: '${pageId}' }
-                        });
-                        window.parent.document.dispatchEvent(event);
-                    });
-                </script>
+                <script src="js/core/page-initializer.js?v=3"></script>
             `;
 
             const fullHtml = `
@@ -224,7 +214,7 @@ class Router {
                 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400&display=swap" rel="stylesheet">
                 ${scriptTags}
             </head>
-            <body class="bg-transparent text-slate-200" style="margin: 0; padding: 0; overflow-x: hidden;">
+            <body class="bg-transparent text-slate-200" style="margin: 0; padding: 0; overflow-x: hidden;" data-module="${moduleName || ''}" data-page-id="${pageId}">
                 ${html}
             </body>
             </html>
@@ -293,6 +283,8 @@ class Router {
                 </html>
             `);
             iframeDoc.close();
+        } finally {
+            this.navigating = false;
         }
     }
 

@@ -8,11 +8,13 @@
     let _layoutController = null;
 
     function _el(id) {
-        const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
-        if (iframe && iframe.contentDocument) {
-            const el = iframe.contentDocument.getElementById(id);
-            if (el) return el;
-        }
+        try {
+            const iframe = window.parent?.document?.getElementById('agent-workspace-iframe');
+            if (iframe && iframe.contentDocument) {
+                const el = iframe.contentDocument.getElementById(id);
+                if (el) return el;
+            }
+        } catch (_) {}
         return document.getElementById(id);
     }
 
@@ -94,6 +96,7 @@
             if (btn.hasAttribute('data-direct')) {
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     const target = btn.getAttribute('data-target');
 
                     // Close category panel

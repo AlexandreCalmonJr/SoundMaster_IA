@@ -23,8 +23,8 @@ function makeApp() {
                 fontSrc: ["'self'", "https://fonts.gstatic.com"],
                 scriptSrc: ["'self'", "https://cdnjs.cloudflare.com"],
                 scriptSrcAttr: ["'unsafe-inline'"],
-                imgSrc: ["'self'", "data:", "blob:"],
-                connectSrc: ["'self'", "ws:", "wss:"],
+                imgSrc: ["'self'", "data:", "blob:", "https://api.qrserver.com"],
+                connectSrc: ["'self'", "ws:", "wss:", "https://fonts.googleapis.com", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
                 upgradeInsecureRequests: null,
             }
         },

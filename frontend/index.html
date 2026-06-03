@@ -129,7 +129,7 @@
 
     <!-- External Libraries -->
     <!-- DOMPurify: sanitização de HTML gerado pelo chat IA (M3) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js" integrity="sha512-2Bu+tPEEFSLSCkGMFJFTkGPTCXLzpFtjlAcFGkJHqkzdQ5b1LH+TjmyR2GCEBfhfpOvOnuTe5xNbz0XNFVQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js" integrity="sha512-jB0TkTBeQC9ZSkBqDhdmfTv1qdfbWpGE72yJ/01Srq6hEzZIz2xkz1e57p9ai7IeHMwEG7HpzG6NdptChif5Pg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <!-- UI Components -->
@@ -150,12 +150,6 @@
 
     <!-- App Entry Point -->
     <script src="js/core/app.js"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').catch(function(e) {
-          console.warn('[SW] Registration failed:', e);
-        });
-      }
-    </script>
+    <script src="js/core/sw-register.js"></script>
 </body>
 </html>
