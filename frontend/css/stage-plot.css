@@ -10,7 +10,7 @@
 #sp-btn-save   { background:color-mix(in srgb, var(--accent, #22d3ee) 20%, transparent); color:var(--accent, #22d3ee); border:1px solid color-mix(in srgb, var(--accent, #22d3ee) 35%, transparent); }
 #sp-btn-load   { background:rgba(255,255,255,.07); color:var(--text-secondary, #94a3b8); border:1px solid rgba(255,255,255,.1); }
 #sp-btn-export { background:rgba(255,255,255,.07); color:var(--text-secondary, #94a3b8); border:1px solid rgba(255,255,255,.1); }
-#sp-btn-spatial{ background:color-mix(in srgb, #a855f7 15%, transparent); color:#c084fc; border:1px solid rgba(168,85,247,.3); }
+#sp-btn-spatial{ background:color-mix(in srgb, #06b6d4 15%, transparent); color:#22d3ee; border:1px solid rgba(6,182,212,.3); }
 #sp-toolbar button:hover { filter:brightness(1.2); transform:translateY(-1px); }
 #sp-canvas-wrap { flex:1; position:relative; background:linear-gradient(160deg,#0a0f1e 0%,#0d1a2e 100%); border:1px solid color-mix(in srgb, var(--accent, #22d3ee) 18%, transparent); border-radius:16px; overflow:hidden; box-shadow:0 0 60px color-mix(in srgb, var(--accent, #22d3ee) 6%, transparent); }
 #sp-canvas { width:100%; height:100%; display:block; }
@@ -33,7 +33,7 @@
 #sp-popup-confirm { background:color-mix(in srgb, var(--accent, #22d3ee) 30%, transparent); color:var(--accent, #22d3ee); border:1px solid color-mix(in srgb, var(--accent, #22d3ee) 50%, transparent) !important; }
 #sp-popup-open-ch { background:color-mix(in srgb, #22c55e 20%, transparent); color:#4ade80; border:1px solid color-mix(in srgb, #22c55e 40%, transparent) !important; }
 #sp-popup-cancel  { background:rgba(255,255,255,.07); color:var(--text-secondary, #94a3b8); border:1px solid rgba(255,255,255,.15) !important; }
-.sp-spatial-badge { position:absolute; top:10px; right:10px; background:color-mix(in srgb, #a855f7 20%, transparent); border:1px solid color-mix(in srgb, #a855f7 40%, transparent); border-radius:8px; padding:4px 10px; font-size:9px; color:#c084fc; font-weight:700; display:none; }
+.sp-spatial-badge { position:absolute; top:10px; right:10px; background:color-mix(in srgb, #06b6d4 20%, transparent); border:1px solid color-mix(in srgb, #06b6d4 40%, transparent); border-radius:8px; padding:4px 10px; font-size:9px; color:#22d3ee; font-weight:700; display:none; }
 
 /* Responsivo: telas médias */
 @media (max-width: 768px) {
