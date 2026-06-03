@@ -134,7 +134,7 @@ function registerMixerCommandHandlers(io, socket, deps) {
         if (!actions.ensureMixer(socket)) return;
         try {
             const validated = schemas.aiCommand.parse(cmd);
-            const result = actions.executeMixerCommand(validated);
+            const result = actions.executeMixerCommand(validated, { source: 'ai' });
             addToHistory({ type: 'ai_command', data: validated });
             logger.info(socket.id, 'AI_COMMAND_EXECUTED', { action: validated.action, result });
             socket.emit('feedback_cut_success', { hz: validated.hz || 0, msg: `${validated.desc || 'Comando IA'}: ${result}` });

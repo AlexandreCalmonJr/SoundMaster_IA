@@ -14,6 +14,7 @@ const authDb = require('./auth-db');
 const { registerMappingsRoutes } = require('./mappings-routes');
 const { registerSocketHandlers } = require('./socket-handlers');
 const { registerAuthRoutes } = require('./auth.routes');
+const { JWT_SECRET } = require('./jwt-config');
 const calculationRoutes = require('./calculation-routes');
 const mixerGit = require('./mixer-git');
 const { createMixerActions } = require('./mixer-actions');
@@ -36,8 +37,8 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     }
     const upload = multer({ dest: uploadsDir, limits: { fileSize: 50 * 1024 * 1024 } });
 
-    // M21: Extensões de áudio permitidas
-    const AUDIO_EXTENSIONS = ['.wav', '.mp3', '.aiff', '.flac', '.ogg', '.m4a', '.aac'];
+    // M21: Extensões de áudio permitidas (somente WAV — Python só aceita RIFF/WAVE)
+    const AUDIO_EXTENSIONS = ['.wav'];
 
     const ALLOWED_ORIGINS = [
         "http://localhost:3000",
@@ -235,7 +236,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     });
 
     // Proxy para IA (permite acesso mobile)
-    expressApp.post('/api/ai', async (req, res) => {
+    expressApp.post('/api/ai', authenticateToken, async (req, res) => {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 60000);
         try {
@@ -298,7 +299,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
         }
     });
 
-    expressApp.post('/api/ai/classify', async (req, res) => {
+    expressApp.post('/api/ai/classify', authenticateToken, async (req, res) => {
         try {
             const headers = { 'Content-Type': 'application/json' };
             if (AI_API_KEY) headers['X-API-Key'] = AI_API_KEY;
@@ -325,12 +326,12 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
         return aiRes.json();
     };
 
-    expressApp.get('/api/models', async (req, res) => {
+    expressApp.get('/api/models', authenticateToken, async (req, res) => {
         try { res.json(await _proxyAIModel('GET', '/api/models')); }
         catch (e) { res.status(500).json({ error: 'IA offline' }); }
     });
 
-    expressApp.post('/api/models/select', async (req, res) => {
+    expressApp.post('/api/models/select', authenticateToken, async (req, res) => {
         try {
             const result = await _proxyAIModel('POST', '/api/models/select', req.body);
             // Reinicia o servidor Python para aplicar o novo modelo
@@ -398,7 +399,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     });
 
     // Rota de Processamento de Áudio
-    expressApp.post('/api/audio/process', upload.single('file'), async (req, res) => {
+    expressApp.post('/api/audio/process', authenticateToken, upload.single('file'), async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ error: 'Nenhum arquivo enviado' });
         }
@@ -446,7 +447,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     });
 
     // Rota de Realce de Áudio (Enhance)
-    expressApp.post('/api/audio/enhance', upload.single('file'), async (req, res) => {
+    expressApp.post('/api/audio/enhance', authenticateToken, upload.single('file'), async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ error: 'Nenhum arquivo enviado' });
         }
@@ -490,7 +491,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     });
 
     // Rota de Transcrição de Áudio (Transcribe)
-    expressApp.post('/api/audio/transcribe', upload.single('file'), async (req, res) => {
+    expressApp.post('/api/audio/transcribe', authenticateToken, upload.single('file'), async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ error: 'Nenhum arquivo enviado' });
         }
@@ -530,7 +531,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
 
 
 
-    expressApp.post('/api/acoustic_analysis', async (req, res) => {
+    expressApp.post('/api/acoustic_analysis', authenticateToken, async (req, res) => {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 60000);
         try {
@@ -556,7 +557,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     });
 
     // Diagnóstico Preditivo de Hardware (proxy → Python AI Engine)
-    expressApp.post('/api/hardware_diagnosis', async (req, res) => {
+    expressApp.post('/api/hardware_diagnosis', authenticateToken, async (req, res) => {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 60000);
         try {
@@ -594,8 +595,8 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
             res.status(500).json({ error: 'Treinamento offline' });
         }
     }
-    expressApp.post('/train', _proxyTrain);
-    expressApp.post('/api/ai/train', _proxyTrain); // Alias autenticado (padrão /api/ai/*)
+    expressApp.post('/train', authenticateToken, _proxyTrain);
+    expressApp.post('/api/ai/train', authenticateToken, _proxyTrain);
 
     // Mapeamento de nomes de canais e auxiliares
     expressApp.get('/api/mixer/names', authenticateToken, async (req, res) => {

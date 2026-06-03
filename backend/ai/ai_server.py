@@ -22,6 +22,8 @@ from contextlib import asynccontextmanager
 from fastapi.concurrency import run_in_threadpool
 
 # Importações Modulares
+import logging
+logger = logging.getLogger(__name__)
 from engine.ai_logic import AIEngine, SessionContext
 from engine.classifier import AudioClassifier
 from acoustics.processor import AcousticProcessor

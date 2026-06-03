@@ -2216,6 +2216,7 @@
         isAnalyzing: () => isAnalyzing,
         getLastAnalysis: () => lastAnalysis,
         getFreqData: getFreqDataSnapshot,
+        getTimeData: () => timeData ? new Float32Array(timeData) : null,
         getDelayMs: () => latestTFData ? latestTFData.delayMs : null,
         getTransferFunctionData: () => latestTFData,
         getLastRt60: () => lastRt60Result,

@@ -13,6 +13,22 @@ class MixerOfflineError extends Error {
     }
 }
 
+const AI_COMMAND_ALLOWLIST = new Set([
+    'volume_up', 'volume_down',
+    'set_fader_level_db', 'change_fader_level', 'change_fader_level_db',
+    'set_channel_level', 'channel_fader',
+    'channel_mute', 'toggle_channel_mute',
+    'change_channel_pan', 'set_channel_pan',
+    'eq_cut', 'apply_channel_hpf', 'apply_channel_gate',
+    'set_aux_level',
+    'toggle_solo', 'set_solo',
+    'set_master_level',
+    'set_master_pan', 'change_master_pan',
+    'set_master_dim', 'toggle_dim',
+    'set_delay',
+    'log'
+]);
+
 function createMixerActions(getMixer) {
     function clamp(value, min, max) {
         return Math.min(max, Math.max(min, Number(value)));
@@ -553,11 +569,14 @@ function createMixerActions(getMixer) {
         }
     }
 
-    function executeMixerCommand(cmd) {
+    function executeMixerCommand(cmd, options = {}) {
         const mixer = getMixer();
         if (!cmd || !cmd.action) throw new Error('Comando invalido.');
         if (!mixer || (!mixer.conn && !mixer.isSimulated)) {
             throw new Error('Conecte-se à mesa primeiro.');
+        }
+        if (options.source === 'ai' && !AI_COMMAND_ALLOWLIST.has(cmd.action)) {
+            throw new Error(`Acao nao permitida para IA: ${cmd.action}`);
         }
 
         const actionsMap = {

@@ -366,7 +366,7 @@ class LlamaLLM:
 class LocalLLM:
     """Gerenciador de Modelo Local — tenta Ollama primeiro, depois llama-cpp."""
     _instance = None
-    _llama_crash_cache = None
+    _llama_crash_cache = {}
 
     def __init__(self, model_path=None):
         self.llm = None
@@ -393,7 +393,7 @@ class LocalLLM:
                 model_path = potential_path
         self.model_path = model_path
 
-        if os.path.exists(model_path) and self._test_llama_crash_cached():
+        if os.path.exists(model_path) and self._test_llama_crash_cached(model_path):
             model_info = self._get_model_info(model_path)
             n_ctx = model_info.get('n_ctx', 2048) if model_info else 2048
             try:
@@ -432,29 +432,38 @@ class LocalLLM:
         return None
 
     @classmethod
-    def _test_llama_crash_cached(cls):
-        """Testa compatibilidade do llama_cpp com cache (executa 1x por processo)."""
-        if cls._llama_crash_cache is not None:
-            return cls._llama_crash_cache
-        cls._llama_crash_cache = cls._test_llama_crash()
-        return cls._llama_crash_cache
+    def _test_llama_crash_cached(cls, model_path=None):
+        """Testa compatibilidade do llama_cpp com cache (executa 1x por processo + modelo)."""
+        cache_key = model_path or "__import_only__"
+        if cache_key in cls._llama_crash_cache:
+            return cls._llama_crash_cache[cache_key]
+        result = cls._test_llama_crash(model_path)
+        cls._llama_crash_cache[cache_key] = result
+        return result
 
     @staticmethod
-    def _test_llama_crash():
+    def _test_llama_crash(model_path=None):
         import subprocess, sys
-        test_code = (
-            "import sys, os\n"
-            "try:\n"
-            "    from llama_cpp import Llama\n"
-            "    print('OK')\n"
-            "except Exception as e:\n"
-            "    print('ERR:' + str(e))"
-        )
+        lines = [
+            "import sys, os",
+            "try:",
+            "    from llama_cpp import Llama",
+            "    print('IMPORT_OK')",
+            "    if sys.argv[1] and os.path.exists(sys.argv[1]):",
+            "        llm = Llama(model_path=sys.argv[1], n_ctx=512, n_threads=2, verbose=False)",
+            "        print('LOAD_OK')",
+            "        del llm",
+            "except SystemExit:",
+            "    print('ERR:SystemExit')",
+            "except Exception as e:",
+            "    print('ERR:' + str(e))",
+        ]
+        test_code = "\n".join(lines)
         try:
             script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             result = subprocess.run(
-                [sys.executable, '-c', test_code],
-                capture_output=True, text=True, timeout=15, cwd=script_dir
+                [sys.executable, '-c', test_code, '--', model_path or ''],
+                capture_output=True, text=True, timeout=30, cwd=script_dir
             )
             if result.returncode != 0:
                 print(f"[AI Engine] llama_cpp incompatível com esta CPU (código {result.returncode}).")
@@ -463,7 +472,7 @@ class LocalLLM:
             if output.startswith('ERR:'):
                 print(f"[AI Engine] Teste llama_cpp: {output}")
                 return False
-            if output == 'OK':
+            if 'IMPORT_OK' in output:
                 return True
             return False
         except subprocess.TimeoutExpired:

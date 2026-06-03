@@ -565,14 +565,15 @@
             _updateStep(step, 'Capturando 2s de áudio...', '⏳');
             await new Promise(r => setTimeout(r, 2000));
 
-            const freqData = window.SoundMasterAnalyzer.getFreqData();
-            if (!freqData || !freqData.data) {
+            const timeData = window.SoundMasterAnalyzer.getTimeData();
+            if (!timeData) {
                 _updateStep(step, 'Dados de áudio indisponíveis', '❌');
                 return false;
             }
 
             _updateStep(step, 'Classificando sons com YAMNet...', '🧠');
-            const classifyResult = await AIService.classifyAudio(Array.from(freqData.data.slice(0, 48000)), freqData.sampleRate || 48000, 5, 0.1);
+            const sampleRate = window.SoundMasterAnalyzer.getFreqData()?.sampleRate || 48000;
+            const classifyResult = await AIService.classifyAudio(Array.from(timeData.slice(0, sampleRate)), sampleRate, 5, 0.1);
 
             _updateStep(step, 'Classificação concluída', '✓');
 
