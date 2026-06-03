@@ -83,19 +83,105 @@
                 if (peakLevelEl) peakLevelEl.textContent = analysis.details.peakDb + ' dB';
 
                 const reportCard = pm._el('pink-report-card');
-                if (analysis.pinkReport && reportCard) {
-                    reportCard.classList.remove('hidden');
-                    const summaryEl = pm._el('pink-report-summary');
-                    const lowEl = pm._el('pink-report-low');
-                    const midEl = pm._el('pink-report-mid');
-                    const highEl = pm._el('pink-report-high');
+                let activeSignal = 'none';
+                if (gen) {
+                    if (gen.isPinkNoisePlaying()) activeSignal = 'pink';
+                    else if (gen.isWhiteNoisePlaying()) activeSignal = 'white';
+                    else if (gen.isMLSPlaying()) activeSignal = 'mls';
+                    else if (gen.isChirpPlaying()) activeSignal = 'chirp';
+                    else if (gen.isDualTonePlaying()) activeSignal = 'dual';
+                    else if (gen.isSineWavePlaying()) activeSignal = 'sine';
+                    else if (gen.isBandLimitedPlaying()) activeSignal = 'bandlimited';
+                }
 
-                    if (summaryEl) summaryEl.textContent = analysis.pinkReport.summary;
-                    if (lowEl) lowEl.textContent = analysis.pinkReport.details.averages.low + ' dB';
-                    if (midEl) midEl.textContent = analysis.pinkReport.details.averages.mid + ' dB';
-                    if (highEl) highEl.textContent = analysis.pinkReport.details.averages.high + ' dB';
-                } else if (reportCard) {
-                    reportCard.classList.add('hidden');
+                if (reportCard) {
+                    if (activeSignal !== 'none' || analysis.pinkReport) {
+                        reportCard.classList.remove('hidden');
+                        const titleEl = reportCard.querySelector('span');
+                        const summaryEl = pm._el('pink-report-summary');
+                        const lowEl = pm._el('pink-report-low');
+                        const midEl = pm._el('pink-report-mid');
+                        const highEl = pm._el('pink-report-high');
+
+                        // Pre-populate with live bands
+                        if (lowEl) lowEl.textContent = analysis.details.bands.low + ' dB';
+                        if (midEl) midEl.textContent = analysis.details.bands.mid + ' dB';
+                        if (highEl) highEl.textContent = analysis.details.bands.high + ' dB';
+
+                        if (analysis.pinkReport && activeSignal === 'none') {
+                            if (titleEl) titleEl.textContent = 'Relatório de Ruído Rosa';
+                            if (summaryEl) summaryEl.textContent = analysis.pinkReport.summary;
+                            if (lowEl) lowEl.textContent = analysis.pinkReport.details.averages.low + ' dB';
+                            if (midEl) midEl.textContent = analysis.pinkReport.details.averages.mid + ' dB';
+                            if (highEl) highEl.textContent = analysis.pinkReport.details.averages.high + ' dB';
+                        } else {
+                            const lowVal = parseFloat(analysis.details.bands.low) || -100;
+                            const midVal = parseFloat(analysis.details.bands.mid) || -100;
+                            const highVal = parseFloat(analysis.details.bands.high) || -100;
+
+                            switch (activeSignal) {
+                                case 'pink':
+                                    if (titleEl) titleEl.textContent = 'Medição de Ruído Rosa';
+                                    const pinkConclusions = [];
+                                    if (lowVal > midVal + 4) pinkConclusions.push('grave elevado');
+                                    else if (lowVal < midVal - 4) pinkConclusions.push('grave fraco');
+                                    if (highVal < midVal - 4) pinkConclusions.push('agudos retraídos');
+                                    else if (highVal > midVal + 4) pinkConclusions.push('agudos elevados');
+                                    
+                                    if (pinkConclusions.length === 0) {
+                                        if (summaryEl) summaryEl.textContent = 'Medição rosa em tempo real: equilíbrio estável.';
+                                    } else {
+                                        if (summaryEl) summaryEl.textContent = `Medição rosa em tempo real: ${pinkConclusions.join(', ')}.`;
+                                    }
+                                    break;
+
+                                case 'white':
+                                    if (titleEl) titleEl.textContent = 'Medição de Ruído Branco';
+                                    if (summaryEl) summaryEl.textContent = 'Ruído branco ativo: energia constante por Hz (agudos naturalmente acentuados no gráfico).';
+                                    break;
+
+                                case 'mls':
+                                    if (titleEl) titleEl.textContent = 'Medição de Sinal MLS';
+                                    if (summaryEl) summaryEl.textContent = 'Sinal MLS ativo: sequência de comprimento máximo para resposta ao impulso.';
+                                    break;
+
+                                case 'chirp':
+                                    if (titleEl) titleEl.textContent = 'Medição de Chirp';
+                                    if (summaryEl) summaryEl.textContent = `Sweep de frequência ativo (${analysis.details.peakHz} Hz). Pico variando no tempo.`;
+                                    break;
+
+                                case 'sine':
+                                    if (titleEl) titleEl.textContent = 'Medição de Tom Senoidal';
+                                    const sineFreqInput = pm._el('sine-freq');
+                                    const targetSineFreq = parseFloat(sineFreqInput ? sineFreqInput.value : 1000) || 1000;
+                                    const freqDiff = Math.abs(analysis.details.peakHz - targetSineFreq);
+                                    if (freqDiff < 30) {
+                                        if (summaryEl) summaryEl.textContent = `Tom puro estável em ${targetSineFreq} Hz detectado (${analysis.details.peakDb} dB).`;
+                                    } else {
+                                        if (summaryEl) summaryEl.textContent = `Sinal de ${targetSineFreq} Hz gerado. Pico capturado em ${analysis.details.peakHz} Hz (${analysis.details.peakDb} dB).`;
+                                    }
+                                    break;
+
+                                case 'dual':
+                                    if (titleEl) titleEl.textContent = 'Medição Dual-Tone';
+                                    if (summaryEl) summaryEl.textContent = `Tons duplos ativos (1000 Hz + 1500 Hz). Pico atual: ${analysis.details.peakHz} Hz.`;
+                                    break;
+
+                                case 'bandlimited':
+                                    if (titleEl) titleEl.textContent = 'Medição de Ruído Filtrado';
+                                    const blFreq = pm._el('bl-noise-freq')?.value || '1000';
+                                    const blType = pm._el('bl-noise-type')?.value === 'pink' ? 'Rosa' : 'Branco';
+                                    if (summaryEl) summaryEl.textContent = `Ruído ${blType} limitado à banda central de ${blFreq} Hz.`;
+                                    break;
+                                
+                                default:
+                                    if (titleEl) titleEl.textContent = 'Análise de Áudio';
+                                    if (summaryEl) summaryEl.textContent = 'Monitorando espectro de entrada em tempo real.';
+                            }
+                        }
+                    } else {
+                        reportCard.classList.add('hidden');
+                    }
                 }
             }
         } else {
