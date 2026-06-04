@@ -311,7 +311,7 @@ function _tcpPing(host, port, timeoutMs = 3000) {
  * @returns {Promise<number>} % de perda (0–100)
  */
 function _udpLossProbe(host) {
-    if (!host) return Promise.resolve(0);
+    if (!host) return Promise.resolve(null);
 
     const PROBES    = 5;
     const TIMEOUT   = 500; // ms por sonda
@@ -319,50 +319,51 @@ function _udpLossProbe(host) {
 
     return new Promise((resolve) => {
         const sock = dgram.createSocket('udp4');
-        let sent    = 0;
+        let attempts = 0;
+        let sent     = 0;
         let received = 0;
-        let pending  = 0;
         let done     = false;
 
         const finish = () => {
             if (done) return;
             done = true;
-            try { sock.close(); } catch (_) { console.warn('[NetDiag] Erro ao fechar socket UDP na sonda de perda'); }
-            const loss = Math.round((1 - received / Math.max(sent, 1)) * 100);
+            try { sock.close(); } catch (_) { /* socket already closed */ }
+            // Sem sondas enviadas → dados insuficientes (não é 100% de perda)
+            if (sent === 0) {
+                resolve(null);
+                return;
+            }
+            const loss = Math.round((1 - received / sent) * 100);
             resolve(Math.min(100, Math.max(0, loss)));
         };
 
         sock.on('error', () => {
-            // UDP/7 provavelmente bloqueado — assume sem perda
             finish();
         });
 
         sock.on('message', () => {
             received++;
-            pending--;
-            if (pending === 0) finish();
+            if (received >= sent && attempts >= PROBES) finish();
         });
 
-        // Envia as sondas com pequeno espaçamento (100ms)
-        const sendNext = () => {
-            if (sent >= PROBES) return;
-            const payload = Buffer.from(`sm_probe_${Date.now()}`);
-            try {
+        // Bind explícito antes de enviar — evita ERR_SOCKET_DGRAM_NOT_RUNNING
+        sock.bind(0, () => {
+            const sendNext = () => {
+                if (done || attempts >= PROBES) return;
+                attempts++;
+                const payload = Buffer.from(`sm_probe_${Date.now()}`);
                 sock.send(payload, PORT, host, (err) => {
-                    if (!err) { sent++; pending++; }
+                    if (!err) sent++;
                 });
-            } catch (sendErr) {
-                console.warn(`[NetDiag] Falha ao enviar sonda UDP para ${host}: ${sendErr.message}`);
-            }
-            setTimeout(sendNext, 100);
-        };
+                setTimeout(sendNext, 100);
+            };
+            sendNext();
+        });
 
-        sendNext();
-
-        // Timeout global
+        // Timeout global (+300ms margem para o bind)
         setTimeout(() => {
             if (!done) finish();
-        }, PROBES * 100 + TIMEOUT);
+        }, PROBES * 100 + TIMEOUT + 300);
     });
 }
 

@@ -1,6 +1,7 @@
 const { ConnectionStatus } = require('soundcraft-ui-connection');
 const { createMixer, isSimulatedIp } = require('../mixers/mixer-factory');
 const { encodeVuData, encodeMasterLevel, encodeMasterLevelDb, encodeChannelLevel } = require('../codecs/binary');
+const netDiag = require('../network');
 
 const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
 const connectSchema = require('zod').string().regex(ipRegex).or(require('zod').enum(['offline', 'simulado', '127.0.0.1']));
@@ -63,19 +64,34 @@ function registerMixerConnectionHandlers(io, socket, deps) {
 
             newMixer.status$.subscribe(status => {
                 const brandName = newMixer.brand === 'behringer' ? 'Behringer X32' : 'Soundcraft Ui24R';
+
+                // Normaliza: a biblioteca pode emitir { type: 'OPEN' } (objeto) ou 'OPEN' (string)
+                const statusType = (typeof status === 'object' && status !== null && status.type)
+                    ? status.type
+                    : status;
+
                 const statusMap = {
                     [ConnectionStatus.Open]:        { connected: true,  msg: `Conectado à ${brandName}!` },
                     [ConnectionStatus.Close]:       { connected: false, msg: 'Desconectado da mesa.' },
                     [ConnectionStatus.Error]:       { connected: false, msg: 'Erro na conexão com a mesa.' },
                     [ConnectionStatus.Reconnecting]:{ connected: false, msg: 'Reconectando...' }
                 };
-                const s = statusMap[status];
+                const s = statusMap[statusType];
                 if (s) {
                     socket.emit('mixer_status', s);
-                } else if (status === 0 || status === 'open') {
+                } else if (statusType === 0 || statusType === 'open') {
                     socket.emit('mixer_status', { connected: true, msg: `Conectado à ${brandName}!` });
-                } else if (status === 2 || status === 'error') {
+                } else if (statusType === 2 || statusType === 'error') {
                     socket.emit('mixer_status', { connected: false, msg: 'Erro na conexão com a mesa.' });
+                }
+
+                // Ao abrir conexão, reaplicar QoS (socket agora existe) e iniciar NetDiag
+                const isOpen = statusType === ConnectionStatus.Open || statusType === 'OPEN' || statusType === 0 || statusType === 'open';
+                if (isOpen) {
+                    mixerSingleton.reapplyQoS();
+                    if (!newMixer.isSimulated) {
+                        netDiag.start({ mixerIp: validatedIp });
+                    }
                 }
             });
 
@@ -211,7 +227,13 @@ function registerMixerConnectionHandlers(io, socket, deps) {
                 safeSubscribe(newMixer.deviceInfo.capabilities$, caps => {
                     io.emit('device_info', {
                         model: cachedModel,
-                        caps: { inputs: caps.inputChannels, aux: caps.auxBusses, fx: caps.fxChannels, sub: caps.subGroups, vca: caps.vcaGroups }
+                        caps: {
+                            inputs: caps.input  ?? caps.inputChannels ?? 24,
+                            aux:    caps.aux    ?? caps.auxBusses     ?? 10,
+                            fx:     caps.fx     ?? caps.fxChannels    ?? 4,
+                            sub:    caps.sub    ?? caps.subGroups     ?? 6,
+                            vca:    caps.vca    ?? caps.vcaGroups     ?? 6
+                        }
                     });
                 }, 'deviceInfo.capabilities$');
 
@@ -309,7 +331,7 @@ function registerMixerConnectionHandlers(io, socket, deps) {
                 const busTypes = [
                     { type: 'line', max: 2 },
                     { type: 'player', max: 2 },
-                    { type: 'aux', max: 8 },
+                    { type: 'aux', max: 10 },
                     { type: 'fx', max: 4 },
                     { type: 'sub', max: 6 },
                     { type: 'vca', max: 6 }

@@ -56,14 +56,20 @@ function checkFaderRateLimit(key) {
 const EVENT_LOOP_WARN_MS = 50;
 let _lagMonitorId = null;
 
+const EVENT_LOOP_WARMUP_MS = 5000;
+
 function startEventLoopMonitor(logger) {
     if (_lagMonitorId) return;
     let lastCheck = performance.now();
+    const startTs = performance.now();
 
     _lagMonitorId = setInterval(() => {
         const now = performance.now();
         const lag = now - lastCheck - 100;   // intervalo esperado = 100ms
         lastCheck = now;
+
+        // Suprimir alertas durante warmup (startup com subscrições RxJS)
+        if (now - startTs < EVENT_LOOP_WARMUP_MS) return;
 
         if (lag > EVENT_LOOP_WARN_MS) {
             const msg = `[EventLoop] ⚠️ Lag detectado: ${lag.toFixed(1)}ms (limite: ${EVENT_LOOP_WARN_MS}ms)`;
@@ -218,6 +224,9 @@ module.exports = {
     // Event Loop Monitor
     startEventLoopMonitor,
     stopEventLoopMonitor,
+
+    // QoS (reaplicar após socket estabelecido)
+    reapplyQoS: () => { if (mixer) _applySocketQoS(mixer); },
 
     // Socket.IO injection (chamado em app-server.js após io() estar disponível)
     setIo: (ioInstance) => { _io = ioInstance; },

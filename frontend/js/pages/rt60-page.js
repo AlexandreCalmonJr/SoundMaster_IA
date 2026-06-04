@@ -366,6 +366,20 @@
                 pm._subscribe('AppStore', 'isRecordingMTK', function (isRec) {
                     updateMtkUI(isRec);
                 });
+
+                // Atualiza botão "Aplicar na mesa" quando o status de conexão mudar
+                pm._subscribe('AppStore', 'mixerConnected', function (connected) {
+                    var btn = document.getElementById('btn-apply-all-corrections');
+                    var hint = document.querySelector('.rt60-apply-hint');
+                    if (btn) {
+                        btn.disabled = !connected;
+                        if (!connected) btn.setAttribute('title', 'Conecte a mesa primeiro');
+                        else btn.removeAttribute('title');
+                    }
+                    if (hint) {
+                        hint.textContent = connected ? 'Mesa conectada — pronto para aplicar' : '⚠️ Mesa não conectada';
+                    }
+                });
             }
         }
 
