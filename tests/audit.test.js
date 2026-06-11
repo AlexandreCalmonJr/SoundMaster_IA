@@ -1,15 +1,18 @@
 /**
  * SUITE DE TESTES - Sound Assist (PIBI)
- * Audita componentes, menus e submenus
+ * Audita componentes, menus e submenus — valida contra o filesystem real.
  * 
- * Executar: node tests/audit-tests.js
- * Ou: npm test -- tests/audit-tests.js
+ * Executar: npm test -- tests/audit.test.js
  */
 
 import { describe, it, assert } from 'vitest';
+import fs from 'fs';
+import path from 'path';
+
+const FRONTEND_DIR = path.resolve(process.cwd(), 'frontend');
 
 // =============================================================================
-// 1. CONFIGURAÇÃO DE DADOS ESPERADOS
+// 1. CONFIGURAÇÃO DE DADOS ESPERADOS (alinhado com ROUTE_MAP real)
 // =============================================================================
 
 const EXPECTED_COMPONENTS = {
@@ -28,7 +31,7 @@ const EXPECTED_MENU_STRUCTURE = {
     name: 'Medir',
     icon: 'chart-line',
     submenus: [
-      { id: 'rt60', name: 'RT60 & Acústica', file: 'pages/rt60.html' },
+      { id: 'rt60', name: 'RT60', file: 'pages/rt60.html' },
       { id: 'benchmarking', name: 'Benchmarking', file: 'pages/benchmarking.html' },
       { id: 'spl-heatmap', name: 'Mapa de Calor SPL', file: 'pages/spl-heatmap.html' }
     ]
@@ -61,8 +64,7 @@ const EXPECTED_MENU_STRUCTURE = {
     icon: 'sliders-h',
     submenus: [
       { id: 'eq', name: 'Equalização', file: 'pages/eq.html' },
-      { id: 'auto-eq', name: 'Auto-EQ / Target Curve', file: 'pages/auto-eq.html' },
-      { id: 'semantic-eq', name: 'EQ Semântico (NLP)', file: 'pages/semantic-eq.html' }
+      { id: 'auto-eq', name: 'Auto-EQ / Target Curve', file: 'pages/auto-eq.html' }
     ]
   },
   automation: {
@@ -114,7 +116,6 @@ const EXPECTED_PAGES = [
   { id: 'eq-guide', file: 'pages/eq-guide.html', category: 'Analisar' },
   { id: 'eq', file: 'pages/eq.html', category: 'EQ' },
   { id: 'auto-eq', file: 'pages/auto-eq.html', category: 'EQ' },
-  { id: 'semantic-eq', file: 'pages/semantic-eq.html', category: 'EQ' },
   { id: 'mixer-input', file: 'pages/mixer-input.html', category: 'Mixer' },
   { id: 'mixer-aux', file: 'pages/mixer-aux.html', category: 'Mixer' },
   { id: 'mixer-fx', file: 'pages/mixer-fx.html', category: 'Mixer' },
@@ -124,11 +125,10 @@ const EXPECTED_PAGES = [
   { id: 'scene-builder', file: 'pages/scene-builder.html', category: 'Automação' },
   { id: 'mixer-git', file: 'pages/mixer-git.html', category: 'Automação' },
   { id: 'systems', file: 'pages/systems.html', category: 'Sistema' },
+  { id: 'hardware-diagnostics', file: 'pages/hardware-diagnostics.html', category: 'Sistema' },
   { id: 'aes67', file: 'pages/aes67.html', category: 'Sistema' },
   { id: 'settings', file: 'pages/settings.html', category: 'Sistema' },
-  { id: 'hardware-diagnostics', file: 'pages/hardware-diagnostics.html', category: 'Sistema' },
   { id: 'debug', file: 'pages/debug.html', category: 'Sistema' },
-  { id: 'ai-chat', file: 'pages/ai-chat.html', category: null },
   { id: 'mobile', file: 'pages/mobile.html', category: null },
   { id: 'volunteer-mode', file: 'pages/volunteer-mode.html', category: null },
   { id: 'testbed', file: 'pages/testbed.html', category: null }
@@ -157,14 +157,14 @@ describe('📋 AUDITA - Estrutura de Menus', function() {
     assert.strictEqual(directMenus.length, 4, `Esperado 4 menus diretos, encontrado ${directMenus.length}`);
   });
 
-  it('Deve ter 22 submenus no total', function() {
+  it('Deve ter 21 submenus no total', function() {
     let submenuCount = 0;
     Object.values(EXPECTED_MENU_STRUCTURE).forEach(menu => {
       if (menu.submenus) {
         submenuCount += menu.submenus.length;
       }
     });
-    assert.strictEqual(submenuCount, 22, `Esperado 22 submenus, encontrado ${submenuCount}`);
+    assert.strictEqual(submenuCount, 21, `Esperado 21 submenus, encontrado ${submenuCount}`);
   });
 
   it('Deve ter 3 submenus em "Medir"', function() {
@@ -179,8 +179,8 @@ describe('📋 AUDITA - Estrutura de Menus', function() {
     assert.strictEqual(EXPECTED_MENU_STRUCTURE.mixer.submenus.length, 5, 'Mixer deve ter 5 submenus');
   });
 
-  it('Deve ter 3 submenus em "EQ"', function() {
-    assert.strictEqual(EXPECTED_MENU_STRUCTURE.eq.submenus.length, 3, 'EQ deve ter 3 submenus');
+  it('Deve ter 2 submenus em "EQ"', function() {
+    assert.strictEqual(EXPECTED_MENU_STRUCTURE.eq.submenus.length, 2, 'EQ deve ter 2 submenus');
   });
 
   it('Deve ter 3 submenus em "Automação"', function() {
@@ -221,11 +221,11 @@ describe('🧩 AUDITA - Componentes Shell', function() {
 
 describe('📄 AUDITA - Páginas e Views', function() {
   
-  it('Deve haver 27 páginas no total', function() {
+  it('Deve haver 25 páginas no total', function() {
     assert.strictEqual(
       EXPECTED_PAGES.length,
-      27,
-      `Esperado 27 páginas, encontrado ${EXPECTED_PAGES.length}`
+      25,
+      `Esperado 25 páginas, encontrado ${EXPECTED_PAGES.length}`
     );
   });
 
@@ -245,12 +245,6 @@ describe('📄 AUDITA - Páginas e Views', function() {
     const home = EXPECTED_PAGES.find(p => p.id === 'home');
     assert.ok(home, 'Página home não encontrada');
     assert.strictEqual(home.file, 'pages/home.html');
-  });
-
-  it('Deve haver página "ai-chat" (Assistente IA)', function() {
-    const aiChat = EXPECTED_PAGES.find(p => p.id === 'ai-chat');
-    assert.ok(aiChat, 'Página ai-chat não encontrada');
-    assert.strictEqual(aiChat.file, 'pages/ai-chat.html');
   });
 
   it('Deve haver página "mobile" (Modo Remoto)', function() {
@@ -319,7 +313,6 @@ describe('🗺️ AUDITA - Mapeamento Menu → Página', function() {
     const pageIds = EXPECTED_PAGES.map(p => p.id);
     const menuToPageMap = {
       'dashboard': 'home',
-      'aiChat': 'ai-chat',
       'volunteerMode': 'volunteer-mode',
       'testbed': 'testbed'
     };
@@ -350,9 +343,9 @@ describe('🏷️ AUDITA - Categorização de Páginas', function() {
     assert.strictEqual(count, 5, `Esperado 5 páginas em Mixer, encontrado ${count}`);
   });
 
-  it('Deve haver 3 páginas na categoria "EQ"', function() {
+  it('Deve haver 2 páginas na categoria "EQ"', function() {
     const count = EXPECTED_PAGES.filter(p => p.category === 'EQ').length;
-    assert.strictEqual(count, 3, `Esperado 3 páginas em EQ, encontrado ${count}`);
+    assert.strictEqual(count, 2, `Esperado 2 páginas em EQ, encontrado ${count}`);
   });
 
   it('Deve haver 3 páginas na categoria "Automação"', function() {
@@ -367,23 +360,27 @@ describe('🏷️ AUDITA - Categorização de Páginas', function() {
 });
 
 // =============================================================================
-// 7. TESTES DE VALIDAÇÃO DE ARQUIVOS
+// 7. TESTES DE VALIDAÇÃO DE ARQUIVOS (REAL — verifica filesystem)
 // =============================================================================
 
-describe('✅ AUDITA - Validação de Arquivos (Esperado)', function() {
+describe('✅ AUDITA - Validação de Arquivos Reais', function() {
   
-  it('Todos os componentes devem ter arquivos .html', function() {
-    Object.values(EXPECTED_COMPONENTS).forEach(file => {
+  it('Todos os componentes devem existir no disco', function() {
+    Object.entries(EXPECTED_COMPONENTS).forEach(([name, file]) => {
       assert.ok(file.endsWith('.html'), `Arquivo de componente inválido: ${file}`);
+      const filePath = path.resolve(process.cwd(), file);
+      assert.ok(fs.existsSync(filePath), `Componente "${name}" não encontrado no disco: ${filePath}`);
     });
   });
 
-  it('Todas as páginas devem ter arquivos .html', function() {
+  it('Todas as páginas devem existir no disco', function() {
     EXPECTED_PAGES.forEach(page => {
       assert.ok(
         page.file.endsWith('.html'),
         `Arquivo de página inválido: ${page.file}`
       );
+      const filePath = path.resolve(FRONTEND_DIR, page.file);
+      assert.ok(fs.existsSync(filePath), `Página "${page.id}" não encontrada no disco: ${filePath}`);
     });
   });
 
@@ -476,7 +473,7 @@ describe('📈 RESUMO DA AUDITORIA', function() {
     console.log(`   • Submenus:                ${stats.totalSubmenus}`);
     console.log(`   • Páginas:                 ${stats.totalPages}`);
     console.log(`   • Componentes Shell:       ${stats.totalComponents}`);
-    console.log(`\n✅ TESTES ESPERADOS A PASSAR: ${8 * 9} testes\n`);
+    console.log(`\n✅ TESTES VALIDADOS CONTRA FILESYSTEM REAL\n`);
 
     assert.ok(true);
   });

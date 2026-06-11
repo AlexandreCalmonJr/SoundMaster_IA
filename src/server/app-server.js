@@ -205,7 +205,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
         res.json({ localIp, port, tunnelUrl: tunnelService.getTunnelUrl() });
     });
 
-    expressApp.post('/api/tunnel/toggle', async (req, res) => {
+    expressApp.post('/api/tunnel/toggle', authenticateToken, async (req, res) => {
         try {
             const result = await tunnelService.toggleTunnel(port);
             res.json(result);
@@ -344,23 +344,23 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
         } catch (e) { res.status(500).json({ error: 'IA offline' }); }
     });
 
-    expressApp.post('/api/models/download', async (req, res) => {
+    expressApp.post('/api/models/download', authenticateToken, async (req, res) => {
         try { res.json(await _proxyAIModel('POST', '/api/models/download', req.body)); }
         catch (e) { res.status(500).json({ error: 'IA offline' }); }
     });
 
-    expressApp.get('/api/models/download/status', async (req, res) => {
+    expressApp.get('/api/models/download/status', authenticateToken, async (req, res) => {
         try { res.json(await _proxyAIModel('GET', '/api/models/download/status')); }
         catch (e) { res.json({ active: false, completed: false, error: 'IA offline' }); }
     });
 
-    expressApp.post('/api/ollama/config', async (req, res) => {
+    expressApp.post('/api/ollama/config', authenticateToken, async (req, res) => {
         try { res.json(await _proxyAIModel('POST', '/api/ollama/config', req.body)); }
         catch (e) { res.status(500).json({ error: 'IA offline' }); }
     });
 
     // Chat History Persistence (NeDB)
-    expressApp.post('/api/chat/save/:session_id', (req, res) => {
+    expressApp.post('/api/chat/save/:session_id', authenticateToken, (req, res) => {
         try {
             const { session_id } = req.params;
             const { messages } = req.body;
@@ -381,7 +381,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
         }
     });
 
-    expressApp.get('/api/chat/load/:session_id', (req, res) => {
+    expressApp.get('/api/chat/load/:session_id', authenticateToken, (req, res) => {
         try {
             const { session_id } = req.params;
             db.settings.findOne({ type: 'chat_history_' + session_id }, (err, doc) => {

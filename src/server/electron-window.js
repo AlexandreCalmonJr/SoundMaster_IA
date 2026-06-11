@@ -2,15 +2,27 @@ const { BrowserWindow, session } = require('electron');
 const path = require('path');
 
 async function configureElectronSession() {
+    const ALLOWED_PERMISSIONS = ['media', 'audioCapture', 'notifications'];
+
+    function isAllowedOrigin(url) {
+        if (!url) return false;
+        try {
+            const parsed = new URL(url);
+            return parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+        } catch (_) {
+            return false;
+        }
+    }
 
     session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
-        const allowed = ['media', 'audioCapture', 'notifications'];
-        callback(allowed.includes(permission));
+        const origin = webContents.getURL();
+        callback(ALLOWED_PERMISSIONS.includes(permission) && isAllowedOrigin(origin));
     });
 
     session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
-        const allowed = ['media', 'audioCapture', 'notifications'];
-        return allowed.includes(permission);
+        if (!webContents) return ALLOWED_PERMISSIONS.includes(permission);
+        const origin = webContents.getURL();
+        return ALLOWED_PERMISSIONS.includes(permission) && isAllowedOrigin(origin);
     });
 }
 

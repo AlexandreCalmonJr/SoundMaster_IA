@@ -13,15 +13,25 @@ const express = require('express');
 const router = express.Router();
 const Logger = require('./logger');
 const logger = Logger.getInstance();
+const { authenticateToken } = require('./auth.routes');
+
+// Limites de payload para evitar DoS
+const MAX_FREQ_DATA_LENGTH = 65536;
+const MAX_IMPULSE_LENGTH = 960000;  // ~20s @ 48kHz
+const MAX_TIME_DATA_LENGTH = 65536;
+const MAX_PEAK_HISTORY_LENGTH = 500;
 
 // ── Auto-EQ Calculation ──
 
-router.post('/auto-eq', (req, res) => {
+router.post('/auto-eq', authenticateToken, (req, res) => {
     try {
         const { freqData, sampleRate, fftSize, targetCurve } = req.body;
 
         if (!freqData || !Array.isArray(freqData) || freqData.length === 0) {
             return res.status(400).json({ error: 'freqData é obrigatório e deve ser um array não vazio' });
+        }
+        if (freqData.length > MAX_FREQ_DATA_LENGTH) {
+            return res.status(400).json({ error: `freqData excede o limite de ${MAX_FREQ_DATA_LENGTH} amostras` });
         }
 
         const sr = sampleRate || 48000;
@@ -139,12 +149,15 @@ router.post('/auto-eq', (req, res) => {
 
 // ── RT60 Calculation ──
 
-router.post('/rt60', (req, res) => {
+router.post('/rt60', authenticateToken, (req, res) => {
     try {
         const { impulseResponse, sampleRate } = req.body;
 
         if (!impulseResponse || !Array.isArray(impulseResponse) || impulseResponse.length < 100) {
             return res.status(400).json({ error: 'impulseResponse é obrigatório (min 100 samples)' });
+        }
+        if (impulseResponse.length > MAX_IMPULSE_LENGTH) {
+            return res.status(400).json({ error: `impulseResponse excede o limite de ${MAX_IMPULSE_LENGTH} amostras` });
         }
 
         const sr = sampleRate || 48000;
@@ -268,12 +281,18 @@ router.post('/rt60', (req, res) => {
 
 // ── SPL Calculation ──
 
-router.post('/spl', (req, res) => {
+router.post('/spl', authenticateToken, (req, res) => {
     try {
         const { freqData, timeData, sampleRate, weighting } = req.body;
 
         if (!freqData || !Array.isArray(freqData) || freqData.length === 0) {
             return res.status(400).json({ error: 'freqData é obrigatório e não pode ser vazio' });
+        }
+        if (freqData.length > MAX_FREQ_DATA_LENGTH) {
+            return res.status(400).json({ error: `freqData excede o limite de ${MAX_FREQ_DATA_LENGTH} amostras` });
+        }
+        if (timeData && Array.isArray(timeData) && timeData.length > MAX_TIME_DATA_LENGTH) {
+            return res.status(400).json({ error: `timeData excede o limite de ${MAX_TIME_DATA_LENGTH} amostras` });
         }
 
         const sr = sampleRate || 48000;
@@ -337,12 +356,15 @@ router.post('/spl', (req, res) => {
 
 // ── Feedback Risk Analysis ──
 
-router.post('/feedback', (req, res) => {
+router.post('/feedback', authenticateToken, (req, res) => {
     try {
         const { peakHistory, threshold } = req.body;
 
         if (!peakHistory || !Array.isArray(peakHistory) || peakHistory.length < 5) {
             return res.status(400).json({ error: 'peakHistory é obrigatório (min 5 entries)' });
+        }
+        if (peakHistory.length > MAX_PEAK_HISTORY_LENGTH) {
+            return res.status(400).json({ error: `peakHistory excede o limite de ${MAX_PEAK_HISTORY_LENGTH} entries` });
         }
 
         const thresh = threshold || -20;
