@@ -7,6 +7,15 @@
 document.addEventListener('DOMContentLoaded', async function () {
     console.log('[SoundMaster] Inicializando App Shell v2...');
 
+    function setShellHtml(container, html) {
+        if (!container) return;
+        if (typeof window.setSafeHTML === 'function') {
+            window.setSafeHTML(container, html);
+            return;
+        }
+        container.innerHTML = html;
+    }
+
     // 1. Load shell components
     const loadComponent = async (id, path) => {
         try {
@@ -14,11 +23,11 @@ document.addEventListener('DOMContentLoaded', async function () {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const container = document.getElementById(id);
             if (!container) throw new Error(`Container #${id} não encontrado`);
-            container.innerHTML = await res.text();
+            setShellHtml(container, await res.text());
         } catch (err) {
             console.error(`[SoundMaster] Erro ao carregar componente ${id}:`, err);
             const container = document.getElementById(id);
-            if (container) container.innerHTML = '<div class="text-red-400 p-4">Erro ao carregar componente. Recarregue a página.</div>';
+            setShellHtml(container, '<div class="text-red-400 p-4">Erro ao carregar componente. Recarregue a página.</div>');
         }
     };
 

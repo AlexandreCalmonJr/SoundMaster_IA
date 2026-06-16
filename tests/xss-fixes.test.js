@@ -156,3 +156,42 @@ describe('XSS - analyzer and aes67 dynamic renderers', () => {
         expect(mixerGitSrc).not.toContain("document.querySelectorAll('.git-scope-tag')");
     });
 });
+
+describe('XSS - volunteer, settings, and app shell renderers', () => {
+    const volunteerSrc = read('frontend/js/services/volunteer.service.js');
+    const settingsSrc = read('frontend/js/pages/settings-page.js');
+    const appSrc = read('frontend/js/core/app.js');
+    const sanitizeSrc = read('frontend/js/core/dom-sanitize.js');
+
+    it('uses safe wrapper and escapes dynamic volunteer channel and pin content', () => {
+        expect(volunteerSrc).toContain('function _setHtml(el, html)');
+        expect(volunteerSrc).toContain('function _esc(value)');
+        expect(volunteerSrc).toContain('_setHtml(overlay, `');
+        expect(volunteerSrc).toContain('_setHtml(pinModal, `');
+        expect(volunteerSrc).toContain('_setHtml(grid, channels.map(ch => {');
+        expect(volunteerSrc).toContain('const safeName = _esc(preset.name);');
+        expect(volunteerSrc).toContain('const safeChannel = _esc(ch);');
+        expect(volunteerSrc).toContain('data-key="${_esc(k)}">${_esc(k)}</button>');
+    });
+
+    it('escapes settings model metadata before templated HTML rendering', () => {
+        expect(settingsSrc).toContain('function _setHtml(el, html)');
+        expect(settingsSrc).toContain("var safeDesc = pm._esc(info.desc || '');");
+        expect(settingsSrc).toContain("var safeSize = pm._esc(info.size || '-');");
+        expect(settingsSrc).toContain('_setHtml(card, `');
+        expect(settingsSrc).toContain('${safeDesc}');
+        expect(settingsSrc).toContain('${safeSize}');
+        expect(settingsSrc).toContain("_setHtml(container, '<div class=\"text-xs text-slate-500 py-4 text-center col-span-2\">Servidor de IA offline. Modelos indisponiveis.</div>');");
+    });
+
+    it('keeps shell component loading behind the safe HTML wrapper', () => {
+        expect(appSrc).toContain('function setShellHtml(container, html)');
+        expect(appSrc).toContain('setShellHtml(container, await res.text());');
+        expect(appSrc).toContain("setShellHtml(container, '<div class=\"text-red-400 p-4\">Erro ao carregar componente. Recarregue a página.</div>');");
+    });
+
+    it('uses a full HTML sanitization profile instead of a tiny tag allowlist', () => {
+        expect(sanitizeSrc).toContain('USE_PROFILES: { html: true }');
+        expect(sanitizeSrc).not.toContain('ALLOWED_TAGS:');
+    });
+});

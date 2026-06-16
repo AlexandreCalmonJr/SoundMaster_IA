@@ -39,7 +39,7 @@
             window.setSafeHTML(container, html);
             return;
         }
-        _setHtml(container, html);
+        container.innerHTML = html;
     }
 
     // ── Graph ──

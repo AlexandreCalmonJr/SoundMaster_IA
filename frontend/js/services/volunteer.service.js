@@ -28,6 +28,29 @@
         return document.getElementById(id);
     }
 
+    function _esc(value) {
+        if (typeof window.escapeHTMLText === 'function') return window.escapeHTMLText(value);
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function _setHtml(el, html) {
+        if (!el) return;
+        if (typeof window.setSafeHTML === 'function') {
+            window.setSafeHTML(el, html);
+            return;
+        }
+        el.innerHTML = html;
+    }
+
+    function _buttonGlyph(isVolunteer) {
+        return isVolunteer ? '&#128737;&#65039;' : '&#128100;';
+    }
+
     // ── Categorias e rotas bloqueadas em modo voluntário ──────────────────────
     const BLOCKED_CATEGORIES = ['measure', 'analysis', 'network', 'settings'];
     const BLOCKED_ROUTES     = [
@@ -169,7 +192,7 @@
 
         const overlay = document.createElement('div');
         overlay.id = 'volunteer-mixer-overlay';
-        overlay.innerHTML = `
+        _setHtml(overlay, `
         <div style="padding:20px;max-width:680px;margin:0 auto;width:100%;">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
                 <div style="background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:12px;padding:8px;font-size:1.4rem;">🎛️</div>
@@ -208,12 +231,12 @@
             <p style="text-align:center;font-size:.7rem;color:#8b949e;margin-top:16px;">
                 ⚠️ Faders limitados a 0dB para proteger o sistema de som.
             </p>
-        </div>`;
+        </div>`);
         document.body.appendChild(overlay);
 
         const pinModal = document.createElement('div');
         pinModal.id = 'volunteer-pin-modal';
-        pinModal.innerHTML = `
+        _setHtml(pinModal, `
         <div class="pin-box">
             <h2>🔐 Modo Técnico</h2>
             <p>Digite o PIN para desbloquear todos os controles.</p>
@@ -223,11 +246,11 @@
             </div>
             <div class="pin-numpad" id="pin-numpad">
                 ${[1,2,3,4,5,6,7,8,9,'✕',0,'←'].map(k => `
-                    <button class="pin-key ${k==='✕'?'danger':''}" data-key="${k}">${k}</button>
+                    <button class="pin-key ${k==='✕'?'danger':''}" data-key="${_esc(k)}">${_esc(k)}</button>
                 `).join('')}
             </div>
             <div class="pin-error" id="pin-error"></div>
-        </div>`;
+        </div>`);
         document.body.appendChild(pinModal);
 
         _bindOverlayEvents();
@@ -287,14 +310,17 @@
         if (!grid) return;
         const channels = AppStore.getState().volunteerChannels;
 
-        grid.innerHTML = channels.map(ch => {
-            const preset = CHANNEL_PRESETS[ch] || { name: `Canal ${ch}`, icon: '🎚️' };
+        _setHtml(grid, channels.map(ch => {
+            const preset = CHANNEL_PRESETS[ch] || { name: `Canal ${ch}`, icon: '&#127899;&#65039;' };
+            const safeIcon = _esc(preset.icon);
+            const safeName = _esc(preset.name);
+            const safeChannel = _esc(ch);
             return `
             <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;">
                 <div style="display:flex;align-items:center;gap:8px;">
-                    <span style="font-size:1.2rem">${preset.icon}</span>
-                    <span style="font-size:.82rem;font-weight:700;color:#c9d1d9;">${preset.name}</span>
-                    <span style="font-size:.65rem;color:#8b949e;margin-left:auto;">CH${ch}</span>
+                    <span style="font-size:1.2rem">${safeIcon}</span>
+                    <span style="font-size:.82rem;font-weight:700;color:#c9d1d9;">${safeName}</span>
+                    <span style="font-size:.65rem;color:#8b949e;margin-left:auto;">CH${safeChannel}</span>
                 </div>
                 <div style="display:flex;gap:8px;align-items:flex-end;height:80px;">
                     <div style="flex:1;background:#21262d;border-radius:4px;height:100%;position:relative;cursor:pointer;" title="Arraste para ajustar">
@@ -303,7 +329,7 @@
                         <input type="range" orient="vertical" id="vol-ch${ch}-fader"
                             min="0" max="100" value="70" data-ch="${ch}"
                             style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;"
-                            title="${preset.name}">
+                            title="${safeName}">
                     </div>
                     <div style="display:flex;flex-direction:column;gap:4px;">
                         <button class="vol-ch-mute" data-ch="${ch}" style="width:32px;height:32px;border-radius:6px;border:1px solid #30363d;
@@ -313,9 +339,9 @@
                         </div>
                     </div>
                 </div>
-                <div style="font-size:.65rem;color:#8b949e;text-align:center;" id="vol-ch${ch}-db">— dB</div>
+                <div style="font-size:.65rem;color:#8b949e;text-align:center;" id="vol-ch${safeChannel}-db">&mdash; dB</div>
             </div>`;
-        }).join('');
+        }).join(''));
 
         grid.querySelectorAll('input[type="range"]').forEach(slider => {
             slider.addEventListener('input', (e) => {
@@ -381,9 +407,7 @@
         const isVol = AppStore.getState().userMode === 'volunteer';
         btn.classList.toggle('active', isVol);
         btn.title = isVol ? 'Modo Voluntário ativo — clique para desbloquear' : 'Ativar Modo Voluntário';
-        btn.innerHTML = isVol
-            ? `<span style="font-size:.95rem">🛡️</span>`
-            : `<span style="font-size:.95rem">👤</span>`;
+        _setHtml(btn, `<span style="font-size:.95rem">${_buttonGlyph(isVol)}</span>`);
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -406,7 +430,7 @@
 
         const badge = document.createElement('div');
         badge.id = 'volunteer-badge';
-        badge.innerHTML = '🛡️ Modo Voluntário';
+        _setHtml(badge, '&#128737;&#65039; Modo Voluntario');
         badge.addEventListener('click', () => {
             if (_pin) _openPinModal(); else _exitVolunteer();
         });
@@ -416,7 +440,7 @@
         btn.id = 'btn-volunteer-toggle';
         btn.className = 'header-btn';
         btn.style.cssText = 'transition:.15s;border-radius:7px;padding:5px 8px;';
-        btn.innerHTML = `<span style="font-size:.95rem">👤</span>`;
+        _setHtml(btn, `<span style="font-size:.95rem">${_buttonGlyph(false)}</span>`);
         btn.addEventListener('click', () => {
             const isVol = AppStore.getState().userMode === 'volunteer';
             if (isVol) {

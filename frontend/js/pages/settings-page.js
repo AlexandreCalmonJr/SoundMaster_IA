@@ -77,6 +77,15 @@ function _safeSetItem(key, value) {
     let _currentModel = null;
     let _modelsData = [];
 
+    function _setHtml(el, html) {
+        if (!el) return;
+        if (typeof window.setSafeHTML === 'function') {
+            window.setSafeHTML(el, html);
+            return;
+        }
+        el.innerHTML = html;
+    }
+
     // ─── Helpers ────────────────────────────────────────────────────────────────
 
     function _fetchWithTimeout(url, opts, timeoutMs = 10000) {
@@ -136,7 +145,9 @@ function _safeSetItem(key, value) {
 
             var safeName = pm._esc(m.name || '');
             var safeKey = pm._esc(m.key || '');
-            card.innerHTML = `
+            var safeDesc = pm._esc(info.desc || '');
+            var safeSize = pm._esc(info.size || '-');
+            _setHtml(card, `
                 <div class="flex items-start justify-between mb-2">
                     <span class="text-2xl">${info.icon || '🤖'}</span>
                     <div class="flex items-center gap-2">
@@ -145,9 +156,9 @@ function _safeSetItem(key, value) {
                     </div>
                 </div>
                 <h4 class="text-sm font-bold text-white mb-1">${safeName}</h4>
-                <p class="text-[11px] text-slate-400 mb-2">${info.desc || ''}</p>
+                <p class="text-[11px] text-slate-400 mb-2">${safeDesc}</p>
                 <div class="flex items-center justify-between">
-                    <span class="text-[10px] text-slate-500">${info.size || '—'}</span>
+                    <span class="text-[10px] text-slate-500">${safeSize}</span>
                     ${isActive
                         ? '<span class="text-[10px] font-bold text-cyan-400">✓ ATIVO</span>'
                         : isDownloaded
@@ -155,7 +166,7 @@ function _safeSetItem(key, value) {
                             : `<button class="btn-download-model text-[10px] font-bold text-amber-400 hover:text-amber-300" data-key="${safeKey}">Baixar</button>`
                     }
                 </div>
-            `;
+            `);
 
             container.appendChild(card);
         });
@@ -186,7 +197,7 @@ function _safeSetItem(key, value) {
             console.warn('[SettingsPage] Falha ao carregar modelos:', err.message);
             const container = pm._el('ai-model-list');
             if (container) {
-                container.innerHTML = '<div class="text-xs text-slate-500 py-4 text-center col-span-2">Servidor de IA offline. Modelos indisponíveis.</div>';
+                _setHtml(container, '<div class="text-xs text-slate-500 py-4 text-center col-span-2">Servidor de IA offline. Modelos indisponiveis.</div>');
             }
         }
     }

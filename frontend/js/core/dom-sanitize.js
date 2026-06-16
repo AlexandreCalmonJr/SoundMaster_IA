@@ -25,8 +25,7 @@ window.sanitizeHTML = function (html) {
     if (!html) return '';
     if (window.DOMPurify) {
         return window.DOMPurify.sanitize(html, {
-            ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'p', 'br', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'code', 'pre', 'blockquote'],
-            ALLOWED_ATTR: ['href', 'target', 'rel', 'class']
+            USE_PROFILES: { html: true }
         });
     }
     // Fallback: escape HTML entities

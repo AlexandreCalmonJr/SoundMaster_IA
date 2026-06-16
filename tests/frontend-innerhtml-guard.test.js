@@ -44,6 +44,10 @@ describe('frontend innerHTML guardrail', () => {
         const feedback = read('frontend/js/pages/feedback-detector-page.js');
         const aes67 = read('frontend/js/pages/aes67-page.js');
         const analyzer = read('frontend/js/core/analyzer.js');
+        const volunteer = read('frontend/js/services/volunteer.service.js');
+        const settings = read('frontend/js/pages/settings-page.js');
+        const app = read('frontend/js/core/app.js');
+        const sanitize = read('frontend/js/core/dom-sanitize.js');
 
         expect(autoEq).toContain('function _setHtml(container, html)');
         expect(autoEq).toContain('_setHtml(container, html);');
@@ -68,5 +72,20 @@ describe('frontend innerHTML guardrail', () => {
         expect(analyzer).toContain('function _escapeHtmlText(value)');
         expect(analyzer).toContain('_setHtml(rt60El, `');
         expect(analyzer).toContain('_setHtml(resultEl, `');
+
+        expect(volunteer).toContain('function _setHtml(el, html)');
+        expect(volunteer).toContain('_setHtml(pinModal, `');
+        expect(volunteer).toContain('_setHtml(grid, channels.map(ch => {');
+        expect(volunteer).toContain('const safeName = _esc(preset.name);');
+
+        expect(settings).toContain('function _setHtml(el, html)');
+        expect(settings).toContain("var safeDesc = pm._esc(info.desc || '');");
+        expect(settings).toContain("var safeSize = pm._esc(info.size || '-');");
+        expect(settings).toContain('_setHtml(card, `');
+
+        expect(app).toContain('function setShellHtml(container, html)');
+        expect(app).toContain('setShellHtml(container, await res.text());');
+
+        expect(sanitize).toContain('USE_PROFILES: { html: true }');
     });
 });
