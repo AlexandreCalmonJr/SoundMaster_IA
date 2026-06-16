@@ -7,9 +7,9 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
 
 ## Baseline atual
 
-- `npm test`: aprovado, `22` arquivos de teste, `248` testes passando.
+- `npm test`: aprovado, `23` arquivos de teste, `253` testes passando.
 - `npm run audit`: aprovado, `1` arquivo de teste, `41` testes passando.
-- `python -m pytest backend/ai/tests -q`: ainda falha na coleta por dependencia ausente (`ModuleNotFoundError: No module named 'numpy'`).
+- `.venv\Scripts\python.exe -m pytest backend/ai/tests -q`: aprovado, `69` testes passando.
 - Toolchain: `npm test` continua emitindo warning de CLI legado no `pretest` por uso de `npm rebuild better-sqlite3 --runtime=node --update-binary`.
 
 ## Resumo executivo
@@ -19,10 +19,10 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
   - Fluxos principais de XSS em chat e viewer de tutoriais foram endurecidos.
   - DevTools nao abre mais fora de `development`.
   - Update e bootstrap Python agora exigem verificacao de integridade configurada.
+  - Bootstrap Python agora prefere a `.venv` do projeto e valida dependencias realmente usadas pelo backend.
   - Rotas `/api/ai/health` e `/api/ai/diagnose` passaram a exigir auth.
 - Riscos remanescentes prioritarios:
   - Rota REST `/api/mixer/command` ainda merece schema dedicado e allowlist propria.
-  - Suite Python ainda nao e reproduzivel no ambiente atual.
   - Parte dos proxies Node -> Python ainda pode melhorar a propagacao de status/erro.
   - O frontend ainda usa `innerHTML` em muitos pontos fora de wrappers centralizados.
 
@@ -87,18 +87,18 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
 
 ## Checklist - `backend`
 
-### [OPEN] Suite Python nao e reproduzivel no ambiente atual
-- Severidade: `alto`
-- Evidencia:
-  - `python -m pytest backend/ai/tests -q` falha na coleta por falta de `numpy`.
+### [FIXED] Suite Python agora e reproduzivel na `.venv` do projeto
+- Severidade original: `alto`
+- Evidencia da correcao:
+  - `scripts/install-python-deps.js` agora prefere `./.venv/Scripts/python.exe` quando presente.
+  - `scripts/install-python-deps.js` deixou de aceitar ambiente "saudavel" so com `fastapi` e passou a validar `numpy`, `scipy`, `python-multipart`, `requests`, `tqdm` e `python-dotenv`.
+  - `backend/ai/requirements.txt` passou a declarar tambem dependencias oficiais de teste (`pytest`, `httpx2`).
+  - `.venv\Scripts\python.exe -m pytest backend/ai/tests -q` aprovado com `69` testes.
 - Impacto em producao:
-  - O backend Python segue sem baseline executavel confiavel em dev/CI neste ambiente.
-- Correcao sugerida:
-  - Formalizar ambiente Python suportado e bootstrap de dependencias para dev/CI.
-  - Adicionar job de CI para `python -m pytest backend/ai/tests -q`.
-- Teste de regressao recomendado:
-  - Suite Python deve coletar e passar integralmente.
-- Esforco: `medio`
+  - O backend Python voltou a ter baseline executavel confiavel no ambiente suportado do projeto.
+- Teste de regressao aplicado:
+  - `.venv\Scripts\python.exe -m pytest backend/ai/tests -q`
+- Esforco aplicado: `medio`
 
 ### [FIXED] Instalador do Python aceitava `get-pip.py` sem checksum configurado
 - Severidade original: `alto`
@@ -214,8 +214,6 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
 
 - `command surface`:
   - O maior item em aberto do lado Node e a rota REST `/api/mixer/command` sem schema dedicado.
-- `python operability`:
-  - O maior item em aberto do lado backend e a falta de baseline Python executavel no ambiente atual.
 - `proxy consistency`:
   - Ainda falta padronizar como o Node reflete erros do Python para o frontend.
 - `frontend rendering discipline`:
@@ -227,15 +225,11 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
    - Impacto: `alto`
    - Esforco: `medio`
 
-2. Restaurar ambiente e CI do backend Python.
-   - Impacto: `alto`
-   - Esforco: `medio`
-
-3. Padronizar propagacao de status/erro em todos os proxies Node -> Python.
+2. Padronizar propagacao de status/erro em todos os proxies Node -> Python.
    - Impacto: `medio`
    - Esforco: `medio`
 
-4. Criar guardrail de CI para `innerHTML` fora de wrappers autorizados.
+3. Criar guardrail de CI para `innerHTML` fora de wrappers autorizados.
    - Impacto: `medio`
    - Esforco: `medio`
 
@@ -248,4 +242,4 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
 
 ## Conclusao
 
-Os itens de maior risco do relatorio original foram tratados nesta execucao: autenticacao do canal realtime, XSS nos fluxos mais expostos, integridade de update/bootstrap e exposicao de diagnostico sem auth. O projeto ficou objetivamente mais pronto para producao; o trabalho restante agora esta concentrado em consistencia de validacao REST, maturidade operacional do backend Python e consolidacao do padrao de renderizacao segura no frontend.
+Os itens de maior risco do relatorio original foram tratados nesta execucao: autenticacao do canal realtime, XSS nos fluxos mais expostos, integridade de update/bootstrap, baseline reproduzivel do backend Python e exposicao de diagnostico sem auth. O projeto ficou objetivamente mais pronto para producao; o trabalho restante agora esta concentrado em consistencia de validacao REST, propagacao de erros Node -> Python e consolidacao do padrao de renderizacao segura no frontend.

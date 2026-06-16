@@ -1,15 +1,39 @@
-const { execSync } = require('child_process');
+const { execFileSync, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
 const REQS = path.join(__dirname, '..', 'backend', 'ai', 'requirements.txt');
+const PROJECT_ROOT = path.join(__dirname, '..');
+const LOCAL_VENV = process.platform === 'win32'
+    ? path.join(PROJECT_ROOT, '.venv', 'Scripts', 'python.exe')
+    : path.join(PROJECT_ROOT, '.venv', 'bin', 'python');
+const REQUIRED_IMPORTS = [
+    'fastapi',
+    'numpy',
+    'scipy',
+    'multipart',
+    'requests',
+    'tqdm',
+    'dotenv',
+];
+const PACKAGE_BY_IMPORT = {
+    fastapi: 'fastapi',
+    numpy: 'numpy',
+    scipy: 'scipy',
+    multipart: 'python-multipart',
+    requests: 'requests',
+    tqdm: 'tqdm',
+    dotenv: 'python-dotenv',
+};
 
 if (!fs.existsSync(REQS)) {
     console.log('[install-python-deps] requirements.txt not found at', REQS);
     process.exit(0);
 }
 
-const candidates = ['python', 'python3'];
+const candidates = [];
+if (fs.existsSync(LOCAL_VENV)) candidates.push(LOCAL_VENV);
+candidates.push('python', 'python3');
 if (process.platform === 'win32') candidates.push('py');
 
 let pythonCmd = null;
@@ -26,18 +50,59 @@ if (!pythonCmd) {
     process.exit(0);
 }
 
-// Check if fastapi is already installed
-try {
-    execSync(`"${pythonCmd}" -c "import fastapi"`, { stdio: 'ignore' });
-    console.log('[install-python-deps] Python dependencies already installed.');
-    process.exit(0);
-} catch (_) {}
+function getRequirementSpec(pkgName) {
+    const content = fs.readFileSync(REQS, 'utf8');
+    const lines = content.split(/\r?\n/);
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('--')) continue;
+        if (trimmed.startsWith(`${pkgName}`)) return trimmed;
+    }
+    return pkgName;
+}
 
-console.log('[install-python-deps] Installing Python dependencies (pip install -r requirements.txt)...');
+function getMissingImports() {
+    const command = [
+        'import importlib.util',
+        `mods = ${JSON.stringify(REQUIRED_IMPORTS)}`,
+        'missing = [name for name in mods if importlib.util.find_spec(name) is None]',
+        "print(','.join(missing))",
+    ].join('\n');
+    const output = execFileSync(pythonCmd, ['-c', command], { encoding: 'utf8' });
+    return output
+        .trim()
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+}
+
+let missingImports = [];
 try {
-    execSync(`"${pythonCmd}" -m pip install -r "${REQS}"`, { stdio: 'inherit', timeout: 300000 });
+    missingImports = getMissingImports();
+} catch (error) {
+    console.warn('[install-python-deps] Failed to inspect Python environment:', error.message);
+}
+
+if (missingImports.length === 0) {
+    console.log(`[install-python-deps] Python dependencies already installed in ${pythonCmd}.`);
+    process.exit(0);
+}
+
+const packageSpecs = Array.from(new Set(
+    missingImports.map((name) => getRequirementSpec(PACKAGE_BY_IMPORT[name] || name))
+));
+
+console.log(`[install-python-deps] Using Python: ${pythonCmd}`);
+console.log(`[install-python-deps] Missing imports: ${missingImports.join(', ')}`);
+console.log('[install-python-deps] Installing baseline Python dependencies...');
+try {
+    const args = ['-m', 'pip', 'install', ...packageSpecs];
+    execSync(`"${pythonCmd}" ${args.map((arg) => `"${arg}"`).join(' ')}`, {
+        stdio: 'inherit',
+        timeout: 300000,
+    });
     console.log('[install-python-deps] Done.');
 } catch (e) {
     console.warn('[install-python-deps] Failed:', e.message);
-    console.warn('Run manually: pip install -r backend/ai/requirements.txt');
+    console.warn(`Run manually: "${pythonCmd}" -m pip install ${packageSpecs.join(' ')}`);
 }

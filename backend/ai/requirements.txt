@@ -12,6 +12,9 @@ requests>=2.28.0
 tqdm>=4.64.0
 sounddevice>=0.5.0  # WASAPI/ASIO capture via Python
 llama-cpp-python>=0.2.0,<0.3.0
+# ===== TESTES / DESENVOLVIMENTO =====
+pytest>=9.0.0
+httpx2>=0.22.0
 # ===== OPCIONAIS (instalados separadamente - podem falhar sem quebrar o servidor) =====
 # --- Audio Classification (YAMNet) ---
 # Linux: tflite-runtime (leve, ~20MB)
