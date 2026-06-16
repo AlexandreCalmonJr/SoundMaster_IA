@@ -21,9 +21,9 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
   - Update e bootstrap Python agora exigem verificacao de integridade configurada.
   - Bootstrap Python agora prefere a `.venv` do projeto e valida dependencias realmente usadas pelo backend.
   - Rota REST `/api/mixer/command` agora exige `admin`, parser estrito e rejeicao explicita de campos extras.
+  - Proxies Node -> Python passaram a compartilhar leitura de payload, timeout e espelhamento de status HTTP na maior parte das rotas JSON e multipart.
   - Rotas `/api/ai/health` e `/api/ai/diagnose` passaram a exigir auth.
 - Riscos remanescentes prioritarios:
-  - Parte dos proxies Node -> Python ainda pode melhorar a propagacao de status/erro.
   - O frontend ainda usa `innerHTML` em muitos pontos fora de wrappers centralizados.
 
 ## Checklist - `src`
@@ -111,18 +111,17 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
   - `tests/integrity-guards.test.js`
 - Esforco aplicado: `medio`
 
-### [PARTIAL] Proxies Node -> Python ainda propagam erro de forma inconsistente
+### [FIXED] Proxies principais Node -> Python agora espelham status e payload de forma consistente
 - Severidade: `medio`
-- Evidencia:
-  - `src/server/app-server.js:278` a `src/server/app-server.js:296` agora protegem auth e `/api/ai/health` preserva status; `/api/ai/diagnose` tambem preserva `aiRes.status`.
-  - Ainda restam proxies que respondem `200` com `res.json(data)` independentemente de falha sem repassar envelope completo, como `/api/ai`, `/api/acoustic_analysis` e `/api/hardware_diagnosis`.
+- Evidencia da correcao:
+  - `src/server/app-server.js` agora centraliza a chamada em `callPythonJson(...)`, `buildPythonHeaders(...)`, `fetchPython(...)` e `readPythonPayload(...)`.
+  - As rotas `/api/ai`, `/api/ai/health`, `/api/ai/diagnose`, `/api/ai/classify`, `/api/models*`, `/api/acoustic_analysis`, `/api/hardware_diagnosis` e `/train` passaram a responder com `res.status(response.status).json(data)`.
+  - Os proxies multipart de audio agora tambem preservam o status e o corpo de erro do Python antes de cair em fallback local.
 - Impacto em producao:
-  - Parte das falhas do motor Python ainda pode chegar ao frontend de forma achatada.
-- Correcao sugerida:
-  - Padronizar propagacao de `status`, `statusText` e corpo de erro em todos os proxies.
-- Teste de regressao recomendado:
-  - Forcar `401`, `403`, `422` e `500` do Python e validar espelhamento no Node.
-- Esforco: `medio`
+  - O frontend deixa de receber uma parte relevante dos erros do Python como `200` enganoso ou `500` genérico sem contexto.
+- Teste de regressao aplicado:
+  - `tests/auth-surface.test.js`
+- Esforco aplicado: `medio`
 
 ### [FIXED] Rotas de diagnostico da IA no Node estavam expostas sem auth
 - Severidade original: `medio`
@@ -212,18 +211,12 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
 
 ## Riscos transversais remanescentes
 
-- `proxy consistency`:
-  - Ainda falta padronizar como o Node reflete erros do Python para o frontend.
 - `frontend rendering discipline`:
   - O projeto melhorou nos hotspots, mas ainda precisa consolidar um padrao unico para HTML dinamico.
 
 ## Backlog priorizado restante
 
-1. Padronizar propagacao de status/erro em todos os proxies Node -> Python.
-   - Impacto: `medio`
-   - Esforco: `medio`
-
-2. Criar guardrail de CI para `innerHTML` fora de wrappers autorizados.
+1. Criar guardrail de CI para `innerHTML` fora de wrappers autorizados.
    - Impacto: `medio`
    - Esforco: `medio`
 
@@ -238,4 +231,4 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
 
 ## Conclusao
 
-Os itens de maior risco do relatorio original foram tratados nesta execucao: autenticacao do canal realtime, XSS nos fluxos mais expostos, integridade de update/bootstrap, baseline reproduzivel do backend Python, endurecimento da superficie REST do mixer e exposicao de diagnostico sem auth. O projeto ficou objetivamente mais pronto para producao; o trabalho restante agora esta concentrado em propagacao de erros Node -> Python e consolidacao do padrao de renderizacao segura no frontend.
+Os itens de maior risco do relatorio original foram tratados nesta execucao: autenticacao do canal realtime, XSS nos fluxos mais expostos, integridade de update/bootstrap, baseline reproduzivel do backend Python, endurecimento da superficie REST do mixer, consistencia principal dos proxies Node -> Python e exposicao de diagnostico sem auth. O projeto ficou objetivamente mais pronto para producao; o trabalho restante agora esta concentrado em consolidacao do padrao de renderizacao segura no frontend.

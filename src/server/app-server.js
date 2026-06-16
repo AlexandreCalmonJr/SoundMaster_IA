@@ -107,6 +107,103 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     registerAuthRoutes(expressApp);
     expressApp.use('/api/calculate', calculationRoutes);
 
+    function buildPythonHeaders({ contentType = 'application/json', extraHeaders = null } = {}) {
+        const headers = Object.assign({}, extraHeaders || {});
+        if (contentType) headers['Content-Type'] = contentType;
+        if (AI_API_KEY) headers['X-API-Key'] = AI_API_KEY;
+        return headers;
+    }
+
+    async function fetchPython({ method = 'GET', pythonPath, headers = {}, body, timeoutMs = 30000 }) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+            return await fetch(`http://127.0.0.1:${PYTHON_PORT}${pythonPath}`, {
+                method,
+                headers,
+                body,
+                signal: controller.signal
+            });
+        } finally {
+            clearTimeout(timeout);
+        }
+    }
+
+    async function readPythonPayload(response) {
+        const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+
+        if (contentType.includes('application/json')) {
+            try {
+                return { isJson: true, contentType, data: await response.json() };
+            } catch (_) {
+                return {
+                    isJson: true,
+                    contentType: 'application/json',
+                    data: { error: 'Resposta JSON invalida do backend Python' }
+                };
+            }
+        }
+
+        return {
+            isJson: false,
+            contentType,
+            data: await response.text()
+        };
+    }
+
+    async function callPythonJson({
+        method = 'GET',
+        pythonPath,
+        body,
+        headers = buildPythonHeaders(),
+        timeoutMs = 30000
+    }) {
+        const response = await fetchPython({ method, pythonPath, headers, body, timeoutMs });
+        const payload = await readPythonPayload(response);
+        const data = payload.isJson
+            ? payload.data
+            : { error: payload.data || `Backend Python respondeu com status ${response.status}` };
+
+        return { response, data };
+    }
+
+    async function relayPythonBinaryProxy(res, {
+        method = 'POST',
+        pythonPath,
+        body,
+        headers = buildPythonHeaders({ contentType: null }),
+        timeoutMs = 60000,
+        timeoutMessage = 'Timeout no backend Python',
+        offlineMessage = 'Backend Python offline',
+        offlineStatus = 500
+    }) {
+        try {
+            const response = await fetchPython({ method, pythonPath, headers, body, timeoutMs });
+
+            if (!response.ok) {
+                const payload = await readPythonPayload(response);
+                const errorBody = payload.isJson
+                    ? payload.data
+                    : { error: payload.data || `Backend Python respondeu com status ${response.status}` };
+                return res.status(response.status).json(errorBody);
+            }
+
+            const contentType = response.headers.get('content-type');
+            const contentDisposition = response.headers.get('content-disposition');
+            if (contentType) res.setHeader('Content-Type', contentType);
+            if (contentDisposition) res.setHeader('Content-Disposition', contentDisposition);
+
+            const arrayBuffer = await response.arrayBuffer();
+            return res.status(response.status).send(Buffer.from(arrayBuffer));
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                return res.status(504).json({ error: timeoutMessage });
+            }
+            return res.status(offlineStatus).json({ error: offlineMessage });
+        }
+    }
+
     // ── Mixer Git REST API (protegidas) ──────────────────────────────────────
     expressApp.get('/api/git/commits', authenticateToken, async (req, res) => {
         try { res.json(await mixerGit.list(parseInt(req.query.limit) || 50)); }
@@ -239,8 +336,6 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
 
     // Proxy para IA (permite acesso mobile)
     expressApp.post('/api/ai', authenticateToken, async (req, res) => {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 60000);
         try {
             const payload = req.body;
             const targetCh = payload.channel || (payload.analysis && payload.analysis.channel);
@@ -256,19 +351,15 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
                 timestamp: Date.now()
             };
 
-            const headers = { 'Content-Type': 'application/json' };
-            if (AI_API_KEY) headers['X-API-Key'] = AI_API_KEY;
-            const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}/chat`, {
+            const { response, data } = await callPythonJson({
                 method: 'POST',
-                headers,
+                pythonPath: '/chat',
+                headers: buildPythonHeaders(),
                 body: JSON.stringify(payload),
-                signal: controller.signal
+                timeoutMs: 60000
             });
-            clearTimeout(timeout);
-            const data = await aiRes.json();
-            res.json(data);
+            res.status(response.status).json(data);
         } catch (error) {
-            clearTimeout(timeout);
             if (error.name === 'AbortError') {
                 res.status(504).json({ error: 'IA demorou demais para responder (timeout)' });
             } else {
@@ -279,11 +370,11 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
 
     expressApp.get('/api/ai/health', authenticateToken, async (req, res) => {
         try {
-            const hdrs = {};
-            if (AI_API_KEY) hdrs['X-API-Key'] = AI_API_KEY;
-            const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}/`, { headers: hdrs });
-            const data = await aiRes.json();
-            res.status(aiRes.status).json(data);
+            const { response, data } = await callPythonJson({
+                pythonPath: '/',
+                headers: buildPythonHeaders({ contentType: null })
+            });
+            res.status(response.status).json(data);
         } catch (error) {
             res.status(500).json({ error: 'IA offline' });
         }
@@ -291,11 +382,11 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
 
     expressApp.get('/api/ai/diagnose', authenticateToken, async (req, res) => {
         try {
-            const hdrs = {};
-            if (AI_API_KEY) hdrs['X-API-Key'] = AI_API_KEY;
-            const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}/diagnose`, { headers: hdrs });
-            const data = await aiRes.json();
-            res.status(aiRes.status).json(data);
+            const { response, data } = await callPythonJson({
+                pythonPath: '/diagnose',
+                headers: buildPythonHeaders({ contentType: null })
+            });
+            res.status(response.status).json(data);
         } catch (error) {
             res.status(500).json({ error: 'IA offline' });
         }
@@ -303,16 +394,14 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
 
     expressApp.post('/api/ai/classify', authenticateToken, async (req, res) => {
         try {
-            const headers = { 'Content-Type': 'application/json' };
-            if (AI_API_KEY) headers['X-API-Key'] = AI_API_KEY;
-            const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}/api/ai/classify`, {
+            const { response, data } = await callPythonJson({
                 method: 'POST',
-                headers,
+                pythonPath: '/api/ai/classify',
+                headers: buildPythonHeaders(),
                 body: JSON.stringify(req.body),
-                signal: AbortSignal.timeout(10000)
+                timeoutMs: 10000
             });
-            const data = await aiRes.json();
-            res.status(aiRes.status).json(data);
+            res.status(response.status).json(data);
         } catch (error) {
             res.status(500).json({ error: 'Classify offline' });
         }
@@ -320,44 +409,56 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
 
     // ── AI Model Management Proxy ──────────────────────────────────────────────
     const _proxyAIModel = async (method, pythonPath, body) => {
-        const headers = { 'Content-Type': 'application/json' };
-        if (AI_API_KEY) headers['X-API-Key'] = AI_API_KEY;
-        const opts = { method, headers, signal: AbortSignal.timeout(30000) };
-        if (body) opts.body = JSON.stringify(body);
-        const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}${pythonPath}`, opts);
-        return aiRes.json();
+        return callPythonJson({
+            method,
+            pythonPath,
+            headers: buildPythonHeaders(),
+            body: body ? JSON.stringify(body) : undefined,
+            timeoutMs: 30000
+        });
     };
 
     expressApp.get('/api/models', authenticateToken, async (req, res) => {
-        try { res.json(await _proxyAIModel('GET', '/api/models')); }
-        catch (e) { res.status(500).json({ error: 'IA offline' }); }
+        try {
+            const { response, data } = await _proxyAIModel('GET', '/api/models');
+            res.status(response.status).json(data);
+        } catch (e) { res.status(500).json({ error: 'IA offline' }); }
     });
 
     expressApp.post('/api/models/select', authenticateToken, async (req, res) => {
         try {
-            const result = await _proxyAIModel('POST', '/api/models/select', req.body);
+            const { response, data: result } = await _proxyAIModel('POST', '/api/models/select', req.body);
             // Reinicia o servidor Python para aplicar o novo modelo
             if (result.success) {
                 const pythonAi = require('./python-ai');
                 // Não mata o processo — o Python detecta a mudança no próximo request
                 console.log('[AppServer] Modelo alterado para:', req.body.model);
             }
-            res.json(result);
+            res.status(response.status).json(result);
         } catch (e) { res.status(500).json({ error: 'IA offline' }); }
     });
 
     expressApp.post('/api/models/download', authenticateToken, async (req, res) => {
-        try { res.json(await _proxyAIModel('POST', '/api/models/download', req.body)); }
+        try {
+            const { response, data } = await _proxyAIModel('POST', '/api/models/download', req.body);
+            res.status(response.status).json(data);
+        }
         catch (e) { res.status(500).json({ error: 'IA offline' }); }
     });
 
     expressApp.get('/api/models/download/status', authenticateToken, async (req, res) => {
-        try { res.json(await _proxyAIModel('GET', '/api/models/download/status')); }
-        catch (e) { res.json({ active: false, completed: false, error: 'IA offline' }); }
+        try {
+            const { response, data } = await _proxyAIModel('GET', '/api/models/download/status');
+            res.status(response.status).json(data);
+        }
+        catch (e) { res.status(500).json({ active: false, completed: false, error: 'IA offline' }); }
     });
 
     expressApp.post('/api/ollama/config', authenticateToken, async (req, res) => {
-        try { res.json(await _proxyAIModel('POST', '/api/ollama/config', req.body)); }
+        try {
+            const { response, data } = await _proxyAIModel('POST', '/api/ollama/config', req.body);
+            res.status(response.status).json(data);
+        }
         catch (e) { res.status(500).json({ error: 'IA offline' }); }
     });
 
@@ -422,27 +523,19 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
                 formData.append('intensity', intensity.toString());
             }
 
-            const headers = {};
-            if (AI_API_KEY) headers['X-API-Key'] = AI_API_KEY;
-
-            const response = await fetch(`http://127.0.0.1:${PYTHON_PORT}/process`, {
-                method: 'POST',
-                headers,
-                body: formData
+            await relayPythonBinaryProxy(res, {
+                pythonPath: '/process',
+                body: formData,
+                headers: buildPythonHeaders({ contentType: null }),
+                timeoutMs: 60000,
+                timeoutMessage: 'Processamento de audio demorou demais (timeout)',
+                offlineMessage: 'Motor de audio offline'
             });
-
-            if (!response.ok) {
-                const errText = await response.text();
-                throw new Error(`Python server error (${response.status}): ${errText}`);
-            }
-
-            res.setHeader('Content-Type', 'audio/wav');
-            const arrayBuffer = await response.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-            res.send(buffer);
         } catch (error) {
             logger.error('appserver', 'AUDIO_PROCESS_ERROR', { error: error.message });
-            res.status(500).json({ error: error.message });
+            if (!res.headersSent) {
+                res.status(500).json({ error: error.message });
+            }
         } finally {
             fs.unlink(req.file.path, () => {});
         }
@@ -466,27 +559,19 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
             formData.append('file', blob, req.file.originalname);
             formData.append('effect', effect || 'denoise');
 
-            const headers = {};
-            if (AI_API_KEY) headers['X-API-Key'] = AI_API_KEY;
-
-            const response = await fetch(`http://127.0.0.1:${PYTHON_PORT}/enhance`, {
-                method: 'POST',
-                headers,
-                body: formData
+            await relayPythonBinaryProxy(res, {
+                pythonPath: '/enhance',
+                body: formData,
+                headers: buildPythonHeaders({ contentType: null }),
+                timeoutMs: 60000,
+                timeoutMessage: 'Realce de audio demorou demais (timeout)',
+                offlineMessage: 'Motor de audio offline'
             });
-
-            if (!response.ok) {
-                const errText = await response.text();
-                throw new Error(`Python server error (${response.status}): ${errText}`);
-            }
-
-            res.setHeader('Content-Type', 'audio/wav');
-            const arrayBuffer = await response.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-            res.send(buffer);
         } catch (error) {
             logger.error('appserver', 'AUDIO_ENHANCE_ERROR', { error: error.message });
-            res.status(500).json({ error: error.message });
+            if (!res.headersSent) {
+                res.status(500).json({ error: error.message });
+            }
         } finally {
             fs.unlink(req.file.path, () => {});
         }
@@ -507,22 +592,14 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
             const blob = new Blob([fs.readFileSync(req.file.path)], { type: req.file.mimetype });
             formData.append('file', blob, req.file.originalname);
 
-            const headers = {};
-            if (AI_API_KEY) headers['X-API-Key'] = AI_API_KEY;
-
-            const response = await fetch(`http://127.0.0.1:${PYTHON_PORT}/transcribe`, {
+            const { response, data } = await callPythonJson({
                 method: 'POST',
-                headers,
-                body: formData
+                pythonPath: '/transcribe',
+                headers: buildPythonHeaders({ contentType: null }),
+                body: formData,
+                timeoutMs: 60000
             });
-
-            if (!response.ok) {
-                const errText = await response.text();
-                throw new Error(`Python server error (${response.status}): ${errText}`);
-            }
-
-            const data = await response.json();
-            res.json(data);
+            res.status(response.status).json(data);
         } catch (error) {
             logger.error('appserver', 'AUDIO_TRANSCRIBE_ERROR', { error: error.message });
             res.status(500).json({ error: error.message });
@@ -534,49 +611,37 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
 
 
     expressApp.post('/api/acoustic_analysis', authenticateToken, async (req, res) => {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 60000);
         try {
-            const hdrsAcoustic = { 'Content-Type': 'application/json' };
-            if (AI_API_KEY) hdrsAcoustic['X-API-Key'] = AI_API_KEY;
-            const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}/acoustic_analysis`, {
+            const { response, data } = await callPythonJson({
                 method: 'POST',
-                headers: hdrsAcoustic,
+                pythonPath: '/acoustic_analysis',
+                headers: buildPythonHeaders(),
                 body: JSON.stringify(req.body),
-                signal: controller.signal
+                timeoutMs: 60000
             });
-            clearTimeout(timeout);
-            const data = await aiRes.json();
-            res.json(data);
+            res.status(response.status).json(data);
         } catch (error) {
-            clearTimeout(timeout);
             if (error.name === 'AbortError') {
-                res.status(504).json({ error: 'Motor de Acústica demorou demais (timeout)' });
+                res.status(504).json({ error: 'Motor de Acustica demorou demais (timeout)' });
             } else {
-                res.status(500).json({ error: 'Motor de Acústica offline' });
+                res.status(500).json({ error: 'Motor de Acustica offline' });
             }
         }
     });
 
-    // Diagnóstico Preditivo de Hardware (proxy → Python AI Engine)
     expressApp.post('/api/hardware_diagnosis', authenticateToken, async (req, res) => {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 60000);
         try {
-            const hdrsHw = { 'Content-Type': 'application/json' };
-            if (AI_API_KEY) hdrsHw['X-API-Key'] = AI_API_KEY;
-            const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}/hardware_diagnosis`, {
-                method:  'POST',
-                headers: hdrsHw,
-                body:    JSON.stringify(req.body),
-                signal:  controller.signal
+            const { response, data } = await callPythonJson({
+                method: 'POST',
+                pythonPath: '/hardware_diagnosis',
+                headers: buildPythonHeaders(),
+                body: JSON.stringify(req.body),
+                timeoutMs: 60000
             });
-            clearTimeout(timeout);
-            res.json(await aiRes.json());
+            res.status(response.status).json(data);
         } catch (error) {
-            clearTimeout(timeout);
             res.status(error.name === 'AbortError' ? 504 : 500)
-               .json({ error: error.name === 'AbortError' ? 'Timeout no diagnóstico' : 'Motor Python offline' });
+               .json({ error: error.name === 'AbortError' ? 'Timeout no diagnostico' : 'Motor Python offline' });
         }
     });
 
@@ -584,15 +649,14 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     // Ambas as rotas injetam X-API-Key automaticamente antes de chamar o Python.
     async function _proxyTrain(req, res) {
         try {
-            const hdrs = { 'Content-Type': 'application/json' };
-            if (AI_API_KEY) hdrs['X-API-Key'] = AI_API_KEY;
-            const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}/train`, {
+            const { response, data } = await callPythonJson({
                 method: 'POST',
-                headers: hdrs,
+                pythonPath: '/train',
+                headers: buildPythonHeaders(),
                 body: JSON.stringify(req.body),
-                signal: AbortSignal.timeout(10000)
+                timeoutMs: 10000
             });
-            res.status(aiRes.status).json(await aiRes.json());
+            res.status(response.status).json(data);
         } catch (error) {
             res.status(500).json({ error: 'Treinamento offline' });
         }
