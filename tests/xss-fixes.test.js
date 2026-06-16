@@ -44,6 +44,35 @@ describe('XSS - mixer-git-page.js commit list (C-2 fe)', () => {
     });
 });
 
+describe('XSS - AI command cards escape dynamic fields', () => {
+    const aiChatSrc = read('frontend/js/pages/ai-chat-page.js');
+    const homeSrc = read('frontend/js/pages/home-page.js');
+
+    it('escapes command.action and command.value in ai-chat-page', () => {
+        expect(aiChatSrc).toMatch(/const action = _escapeHtmlText\(command\.action \|\| '-'\);/);
+        expect(aiChatSrc).toMatch(/const value = command\.value != null \? _escapeHtmlText\(command\.value\) : '';/);
+    });
+
+    it('escapes command.action and command.value in home-page', () => {
+        expect(homeSrc).toMatch(/const action = _escapeHtmlText\(command\.action \|\| '-'\);/);
+        expect(homeSrc).toMatch(/const value = command\.value !== undefined \? _escapeHtmlText\(command\.value\) : '';/);
+    });
+});
+
+describe('XSS - tutorials markdown viewer sanitizes rendered HTML', () => {
+    const tutorialsPageSrc = read('frontend/js/pages/tutorials-page.js');
+    const tutorialsHtmlSrc = read('frontend/pages/tutorials.html');
+
+    it('loads DOMPurify in the tutorials page shell', () => {
+        expect(tutorialsHtmlSrc).toContain('dompurify');
+    });
+
+    it('sanitizes marked output before assigning to innerHTML', () => {
+        expect(tutorialsPageSrc).toMatch(/content\.innerHTML = _sanitizeRenderedMarkdown\(html\);/);
+        expect(tutorialsPageSrc).toMatch(/DOMPurify\.sanitize/);
+    });
+});
+
 describe('XSS - rt60-mapping.js profile list (additional)', () => {
     let src;
     try {

@@ -94,8 +94,7 @@ async function downloadAndInstallUpdate(downloadUrl, newVersion) {
                     // Verificação OBRIGATÓRIA do hash esperado
                     const expectedHash = process.env.UPDATE_HASH;
                     if (!expectedHash) {
-                        console.warn('[Updater] ⚠️ UPDATE_HASH não configurado. Verificação de integridade desabilitada.');
-                        console.warn('[Updater] Para segurança, defina UPDATE_HASH no .env com o hash SHA256 esperado.');
+                        throw new Error('UPDATE_HASH não configurado. Atualização bloqueada por política de integridade.');
                     } else if (fileHash !== expectedHash) {
                         throw new Error('Hash SHA256 inválido! Atualização pode estar comprometida.');
                     }

@@ -105,6 +105,7 @@
         }
 
         _socket = io({
+            withCredentials:      true,
             reconnection:         true,
             reconnectionAttempts: Infinity,
             reconnectionDelay:    1000,

@@ -160,6 +160,18 @@
         return '<pre class="text-xs text-slate-400 whitespace-pre-wrap">' + _sanitize(md) + '</pre>';
     }
 
+    function _sanitizeRenderedMarkdown(html) {
+        if (window.DOMPurify && typeof DOMPurify.sanitize === 'function') {
+            return DOMPurify.sanitize(html, {
+                ALLOWED_TAGS: ['a', 'b', 'blockquote', 'br', 'code', 'div', 'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'img', 'li', 'ol', 'p', 'pre', 'span', 'strong', 'table', 'tbody', 'td', 'th', 'thead', 'tr', 'ul'],
+                ALLOWED_ATTR: ['alt', 'class', 'href', 'rel', 'src', 'target', 'title'],
+                ALLOW_DATA_ATTR: false,
+                FORBID_ATTR: ['style', 'onerror', 'onload', 'onclick']
+            });
+        }
+        return '<pre class="text-xs text-slate-400 whitespace-pre-wrap">' + _sanitize(html) + '</pre>';
+    }
+
     function _openDocViewer(card) {
         var docUrl = card.getAttribute('data-doc');
         if (!docUrl) return;
@@ -180,13 +192,13 @@
             })
             .then(function (md) {
                 var html = _renderMarkdown(md);
-                html = html.replace(/<img /g, '<img class="rounded-xl border border-white/10 max-w-full my-4" ');
                 var flowDir = docUrl.substring(0, docUrl.lastIndexOf('/'));
                 html = html.replace(/src="([^"]+)"/g, function (m, src) {
                     if (src.startsWith('http') || src.startsWith('/')) return m;
                     return 'src="' + flowDir + '/' + src + '"';
                 });
-                content.innerHTML = html;
+                html = html.replace(/<img /g, '<img class="rounded-xl border border-white/10 max-w-full my-4" ');
+                content.innerHTML = _sanitizeRenderedMarkdown(html);
             })
             .catch(function (err) {
                 content.innerHTML = '<div class="text-red-400 text-center py-8"><p class="text-lg font-bold mb-2">Erro ao carregar</p><p class="text-sm text-slate-400">' + _sanitize(err.message) + '</p></div>';

@@ -40,7 +40,9 @@ function createWindow(port) {
     });
 
     win.loadURL(`http://localhost:${port}`);
-    win.webContents.openDevTools();
+    if (process.env.NODE_ENV === 'development') {
+        win.webContents.openDevTools();
+    }
     return win;
 }
 

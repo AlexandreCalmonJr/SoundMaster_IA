@@ -101,7 +101,8 @@
     }
 
     function isAuthenticated() {
-        return !!getUser();
+        const user = getUser();
+        return !!(user && typeof user === 'object' && user.id);
     }
 
     window.AuthService = {

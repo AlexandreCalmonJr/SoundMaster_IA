@@ -128,6 +128,10 @@
         return div.innerHTML;
     }
 
+    function _escapeHtmlText(value) {
+        return _sanitizeHtml(String(value == null ? '' : value));
+    }
+
     function _stripDangerousUrls(text) {
         return text.replace(/(href|src)=["']\s*(javascript|data|vbscript):/gi, '$1="#"');
     }
@@ -204,7 +208,10 @@
             const card = document.createElement('div');
             card.className = 'mt-2 bg-slate-950/80 border border-cyan-500/20 rounded-xl p-2.5 text-left flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-lg';
             
-            const desc = (command.desc || 'Ajuste').replace(/[&<>]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]; });
+            const desc = _escapeHtmlText(command.desc || 'Ajuste');
+            const action = _escapeHtmlText(command.action || '-');
+            const value = command.value !== undefined ? _escapeHtmlText(command.value) : '';
+            const channel = _escapeHtmlText(command.channel !== undefined ? command.channel : '-');
 
             card.innerHTML = `
                 <div class="flex flex-col min-w-0">
@@ -213,10 +220,10 @@
                         <span class="text-xs text-white font-bold truncate">${desc}</span>
                     </div>
                     <div class="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5 font-mono">
-                        <span>CH ${command.channel !== undefined ? command.channel : '-'}</span>
+                        <span>CH ${channel}</span>
                         <span>|</span>
-                        <span class="uppercase">${command.action || '-'}</span>
-                        ${command.value !== undefined ? `<span>|</span><span>${command.value}</span>` : ''}
+                        <span class="uppercase">${action}</span>
+                        ${command.value !== undefined ? `<span>|</span><span>${value}</span>` : ''}
                     </div>
                 </div>
                 <div class="flex gap-1.5 justify-end shrink-0">

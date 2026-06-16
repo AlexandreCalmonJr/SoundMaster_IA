@@ -102,6 +102,18 @@
         return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     }
 
+    function _escapeHtmlText(value) {
+        return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[char];
+        });
+    }
+
     // ─── Markdown Renderer melhorado ───────────────────────────────────────────
 
     const _PURIFY_CONFIG = {
@@ -210,7 +222,10 @@
         content.className = 'text-sm leading-relaxed';
         if (text === '...' || text.startsWith('Analisando') || text.startsWith('Capturando')) {
             content.className += ' typing-dots';
-            content.innerHTML = `<span class="text-slate-400">${text}</span>`;
+            const loadingText = document.createElement('span');
+            loadingText.className = 'text-slate-400';
+            loadingText.textContent = text;
+            content.appendChild(loadingText);
         } else {
             content.innerHTML = _renderMarkdown(text);
         }
@@ -235,7 +250,10 @@
         const card = document.createElement('div');
         card.className = 'mt-2 bg-slate-950/80 border border-cyan-500/20 rounded-xl p-2 text-left flex flex-col sm:flex-row sm:items-center justify-between gap-2';
 
-        const desc = (command.desc || 'Ajuste').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+        const desc = _escapeHtmlText(command.desc || 'Ajuste');
+        const action = _escapeHtmlText(command.action || '-');
+        const value = command.value != null ? _escapeHtmlText(command.value) : '';
+        const channel = _escapeHtmlText(command.channel ?? '-');
 
         card.innerHTML = `
             <div class="flex flex-col min-w-0">
@@ -244,10 +262,10 @@
                     <span class="text-xs text-white font-bold truncate">${desc}</span>
                 </div>
                 <div class="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5 font-mono">
-                    <span>CH ${command.channel ?? '-'}</span>
+                    <span>CH ${channel}</span>
                     <span>|</span>
-                    <span class="uppercase">${command.action || '-'}</span>
-                    ${command.value != null ? `<span>|</span><span>${command.value}</span>` : ''}
+                    <span class="uppercase">${action}</span>
+                    ${command.value != null ? `<span>|</span><span>${value}</span>` : ''}
                 </div>
             </div>
             <div class="flex gap-1.5 justify-end shrink-0">

@@ -8,12 +8,11 @@ const { spawn, execSync, spawnSync } = require('child_process');
 const PYTHON_ZIP_URL = 'https://www.python.org/ftp/python/3.10.11/python-3.10.11-embed-amd64.zip';
 const EXPECTED_PYTHON_SHA256 = '608619f8619075629c9c69f361352a0da6ed7e62f83a0e19c63e0ea32eb7629d';
 const GET_PIP_URL = 'https://bootstrap.pypa.io/get-pip.py';
-const EXPECTED_GETPIP_SHA256 = ''; // Preencher com o hash conhecido do get-pip.py se disponível
+const EXPECTED_GETPIP_SHA256 = process.env.EXPECTED_GETPIP_SHA256 || '';
 
 async function _verifyChecksum(filePath, expectedHash, label) {
     if (!expectedHash) {
-        console.warn(`[Python Installer] Checksum não configurado para ${label}. Pulando verificação.`);
-        return true;
+        throw new Error(`Checksum não configurado para ${label}. Instalação bloqueada por política de integridade.`);
     }
     const crypto = require('crypto');
     const hash = crypto.createHash('sha256');

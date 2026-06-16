@@ -13,7 +13,7 @@ const db = require('./database');
 const authDb = require('./auth-db');
 const { registerMappingsRoutes } = require('./mappings-routes');
 const { registerSocketHandlers } = require('./socket-handlers');
-const { registerAuthRoutes } = require('./auth.routes');
+const { registerAuthRoutes, extractToken } = require('./auth.routes');
 const { JWT_SECRET } = require('./jwt-config');
 const calculationRoutes = require('./calculation-routes');
 const mixerGit = require('./mixer-git');
@@ -275,7 +275,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
         }
     });
 
-    expressApp.get('/api/ai/health', async (req, res) => {
+    expressApp.get('/api/ai/health', authenticateToken, async (req, res) => {
         try {
             const hdrs = {};
             if (AI_API_KEY) hdrs['X-API-Key'] = AI_API_KEY;
@@ -287,13 +287,13 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
         }
     });
 
-    expressApp.get('/api/ai/diagnose', async (req, res) => {
+    expressApp.get('/api/ai/diagnose', authenticateToken, async (req, res) => {
         try {
             const hdrs = {};
             if (AI_API_KEY) hdrs['X-API-Key'] = AI_API_KEY;
             const aiRes = await fetch(`http://127.0.0.1:${PYTHON_PORT}/diagnose`, { headers: hdrs });
             const data = await aiRes.json();
-            res.json(data);
+            res.status(aiRes.status).json(data);
         } catch (error) {
             res.status(500).json({ error: 'IA offline' });
         }
@@ -706,6 +706,21 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
         return (ipNum & maskBits) === (baseNum & maskBits);
     }
 
+    function extractSocketToken(socket) {
+        const headers = Object.assign({}, socket.handshake?.headers || {});
+        const authToken = socket.handshake?.auth?.token;
+        const queryToken = socket.handshake?.query?.token;
+
+        if (!headers.authorization && typeof authToken === 'string' && authToken.trim()) {
+            headers.authorization = `Bearer ${authToken.trim()}`;
+        }
+        if (!headers.authorization && typeof queryToken === 'string' && queryToken.trim()) {
+            headers.authorization = `Bearer ${queryToken.trim()}`;
+        }
+
+        return extractToken({ headers });
+    }
+
     io.use((socket, next) => {
         const clientIp = socket.handshake.address;
         if (!isIpAllowed(clientIp)) {
@@ -713,20 +728,23 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
             return next(new Error('IP não autorizado. Contate o administrador.'));
         }
 
-        // JWT authentication (optional - allows unauthenticated for backward compatibility)
-        const token = socket.handshake.auth?.token || socket.handshake.query?.token;
-        if (token) {
-            try {
-                const decoded = jwt.verify(token, JWT_SECRET);
-                socket.user = decoded;
-                logger.info('socketio', 'CLIENT_AUTHENTICATED', { ip: clientIp, user: decoded.username });
-            } catch (err) {
-                logger.warn('socketio', 'INVALID_TOKEN', { ip: clientIp });
-                // Allow connection but mark as unauthenticated
-                socket.user = null;
+        const token = extractSocketToken(socket);
+        if (!token) {
+            logger.warn('socketio', 'MISSING_TOKEN', { ip: clientIp });
+            return next(new Error('Autenticação obrigatória para Socket.IO.'));
+        }
+
+        try {
+            const decoded = jwt.verify(token, JWT_SECRET);
+            if (decoded.mustChangePassword === true) {
+                logger.warn('socketio', 'BLOCKED_MUST_CHANGE_PASSWORD', { ip: clientIp, userId: decoded.id });
+                return next(new Error('Senha precisa ser alterada antes de usar o tempo real.'));
             }
-        } else {
-            socket.user = null;
+            socket.user = decoded;
+            logger.info('socketio', 'CLIENT_AUTHENTICATED', { ip: clientIp, user: decoded.username });
+        } catch (err) {
+            logger.warn('socketio', 'INVALID_TOKEN', { ip: clientIp });
+            return next(new Error('Token inválido ou expirado.'));
         }
 
         logger.info('socketio', 'CLIENT_AUTHORIZED', { ip: clientIp });
