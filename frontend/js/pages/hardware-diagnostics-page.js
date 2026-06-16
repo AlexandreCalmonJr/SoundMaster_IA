@@ -52,6 +52,15 @@
     var _diagHistory = [];
 
     function _el(id) { return pm._el(id); }
+    function _esc(value) {
+        if (typeof window.escapeHTMLText === 'function') return window.escapeHTMLText(value);
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
     function _setStatus(msg, type) {
         var el = _el('hd-status');
         if (el) { el.textContent = msg; el.className = 'text-xs mb-4 min-h-[18px] ' + (type || ''); }
@@ -101,7 +110,7 @@
             var d = new Date(s.timestamp);
             return '<div class="flex items-center justify-between bg-black/20 border border-white/5 rounded px-2 py-1">' +
                 '<span class="text-[10px] text-slate-400">#' + (i + 1) + ' Ch' + s.channel + ' — ' + d.toLocaleTimeString() + '</span>' +
-                '<span class="text-[9px] text-cyan-400 font-mono">' + Object.keys(s.spectrum_db).length + ' bins</span></div>';
+                '<span class="text-[9px] text-cyan-400 font-mono">' + _esc(Object.keys(s.spectrum_db).length) + ' bins</span></div>';
         }).join('');
     }
 
@@ -197,8 +206,8 @@
             bandsEl.innerHTML = result.bands.map(function (b) {
                 var driftColor = b.drift_db > 0 ? 'text-green-400' : 'text-red-400';
                 return '<div class="bg-black/30 border border-white/10 rounded-xl p-2 text-center">' +
-                    '<div class="text-[10px] text-slate-500">' + b.hz + ' Hz</div>' +
-                    '<div class="text-sm font-black ' + driftColor + '">' + (b.drift_db > 0 ? '+' : '') + b.drift_db.toFixed(1) + ' dB</div>' +
+                    '<div class="text-[10px] text-slate-500">' + _esc(b.hz) + ' Hz</div>' +
+                    '<div class="text-sm font-black ' + driftColor + '">' + _esc((b.drift_db > 0 ? '+' : '') + b.drift_db.toFixed(1)) + ' dB</div>' +
                     '<div class="text-[8px] text-slate-600">drift</div></div>';
             }).join('');
         } else if (bandsEl) {

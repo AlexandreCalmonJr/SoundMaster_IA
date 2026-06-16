@@ -7,6 +7,15 @@
 
 window.DOMPurify = window.DOMPurify || null;
 
+window.escapeHTMLText = function (value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+};
+
 /**
  * Sanitize HTML string using DOMPurify if available, otherwise fallback to basic escaping.
  * @param {string} html - HTML string to sanitize
@@ -21,12 +30,7 @@ window.sanitizeHTML = function (html) {
         });
     }
     // Fallback: escape HTML entities
-    return String(html)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+    return window.escapeHTMLText(html);
 };
 
 /**

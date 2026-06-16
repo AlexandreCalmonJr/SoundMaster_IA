@@ -23,6 +23,25 @@
         return document.getElementById(id);
     }
 
+    function _esc(value) {
+        if (typeof window.escapeHTMLText === 'function') return window.escapeHTMLText(value);
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function _setHtml(container, html) {
+        if (!container) return;
+        if (typeof window.setSafeHTML === 'function') {
+            window.setSafeHTML(container, html);
+            return;
+        }
+        _setHtml(container, html);
+    }
+
     // ── Graph ──
 
     function drawGraph(canvas, result, freqData, sampleRate, fftSize) {
@@ -116,7 +135,7 @@
         if (badge) badge.textContent = peq.length;
 
         if (peq.length === 0) {
-            container.innerHTML = '<div class="empty-state">✅ Espectro dentro da curva alvo (desvio &lt; 0.5dB).</div>';
+            _setHtml(container, '<div class="empty-state">Espectro dentro da curva alvo (desvio &lt; 0.5dB).</div>');
             return;
         }
 
@@ -128,11 +147,11 @@
                 <td>${_fmtHz(f.hz)}</td>
                 <td class="${cls}">${f.gainDb > 0 ? '+' : ''}${f.gainDb} dB</td>
                 <td>${f.q}</td>
-                <td>${f.name}</td>
+                <td>${_esc(f.name)}</td>
             </tr>`;
         });
         html += '</tbody></table>';
-        container.innerHTML = html;
+        _setHtml(container, html);
     }
 
     // ── GEQ Bars ──

@@ -36,6 +36,16 @@
 (function () {
     var pm = createPageModule();
 
+    function _esc(value) {
+        if (typeof window.escapeHTMLText === 'function') return window.escapeHTMLText(value);
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     function updateRT60Visuals(emptyVal, fullVal) {
         var emptyEl = pm._el('bench-empty-rt60');
         var fullEl = pm._el('bench-full-rt60');
@@ -87,10 +97,10 @@
 
             html += '<div class="p-4 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between hover:bg-white/10 transition-all">';
             html += '  <div>';
-            html += '    <span class="text-sm font-bold text-white block">' + name + '</span>';
-            html += '    <span class="text-[10px] text-slate-500 uppercase">' + dateStr + '</span>';
+            html += '    <span class="text-sm font-bold text-white block">' + _esc(name) + '</span>';
+            html += '    <span class="text-[10px] text-slate-500 uppercase">' + _esc(dateStr) + '</span>';
             html += '  </div>';
-            html += '  <span class="text-xs font-mono text-cyan-400">' + rt60Str + '</span>';
+            html += '  <span class="text-xs font-mono text-cyan-400">' + _esc(rt60Str) + '</span>';
             html += '</div>';
         }
 

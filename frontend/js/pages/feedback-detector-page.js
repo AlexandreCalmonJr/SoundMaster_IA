@@ -45,6 +45,16 @@
     const pm = createPageModule();
     let history = [];
 
+    function _esc(value) {
+        if (typeof window.escapeHTMLText === 'function') return window.escapeHTMLText(value);
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     function updateUI(hz) {
         const iconEl = pm._el('feedback-status-icon');
         const textEl = pm._el('feedback-status-text');
@@ -102,11 +112,11 @@
                         <div class="flex items-center gap-4">
                             <span class="text-red-500">🚨</span>
                             <div>
-                                <span class="text-sm font-black text-white">${item.hz} Hz</span>
+                                <span class="text-sm font-black text-white">${_esc(item.hz)} Hz</span>
                                 <span class="text-[10px] text-slate-500 block">Frequência crítica de microfonia</span>
                             </div>
                         </div>
-                        <span class="text-[10px] font-mono text-slate-500">${item.time}</span>
+                        <span class="text-[10px] font-mono text-slate-500">${_esc(item.time)}</span>
                     </div>
                 `).join('');
             }
