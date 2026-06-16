@@ -22,6 +22,8 @@ const tunnelService = require('./tunnel-service');
 const Logger = require('./logger');
 const fs = require('fs');
 const multer = require('multer');
+const { ZodError } = require('zod');
+const { parseRestMixerCommand, buildRestMixerBroadcast } = require('./mixer-rest-command');
 
 function createAppServer({ rootDir, localIp, port, dbDir }) {
     const logger = Logger.getInstance(dbDir);
@@ -640,23 +642,22 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
 
     expressApp.post('/api/mixer/command', authenticateToken, express.json(), (req, res) => {
         try {
-            const cmd = req.body;
+            const cmd = parseRestMixerCommand(req.body);
             const actions = createMixerActions(() => mixerSingleton.getMixer());
             const result = actions.executeMixerCommand(cmd);
             const socketIo = mixerSingleton.getIo();
-            if (socketIo) {
-                if (cmd.action === 'set_master_level' || cmd.action === 'master_level') {
-                    socketIo.emit('set_master_level', { level: cmd.level });
-                } else if (cmd.action === 'channel_fader' || cmd.action === 'channel_level' || cmd.action === 'set_channel_level') {
-                    socketIo.emit('set_channel_level', { channel: cmd.channel || cmd.ch || 1, level: cmd.level });
-                } else if (cmd.action === 'channel_mute') {
-                    socketIo.emit('set_channel_mute', { channel: cmd.channel || cmd.ch || 1, mute: cmd.enabled });
-                } else if (cmd.action === 'master_mute') {
-                    socketIo.emit('set_master_mute', { mute: cmd.enabled });
-                }
+            const broadcast = buildRestMixerBroadcast(cmd);
+            if (socketIo && broadcast) {
+                socketIo.emit(broadcast.event, broadcast.data);
             }
             res.json({ success: true, result });
         } catch (e) {
+            if (e instanceof ZodError) {
+                return res.status(400).json({ error: 'Payload de comando invalido', details: e.issues });
+            }
+            if (/^Acao nao permitida na API REST:/.test(e.message) || /^Payload do comando deve ser um objeto JSON\./.test(e.message)) {
+                return res.status(400).json({ error: e.message });
+            }
             res.status(500).json({ error: e.message });
         }
     });
