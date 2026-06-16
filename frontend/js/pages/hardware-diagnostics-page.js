@@ -109,7 +109,7 @@
         list.innerHTML = _snapshots.map(function (s, i) {
             var d = new Date(s.timestamp);
             return '<div class="flex items-center justify-between bg-black/20 border border-white/5 rounded px-2 py-1">' +
-                '<span class="text-[10px] text-slate-400">#' + (i + 1) + ' Ch' + s.channel + ' — ' + d.toLocaleTimeString() + '</span>' +
+                '<span class="text-[10px] text-slate-400">#' + _esc(i + 1) + ' Ch' + _esc(s.channel) + ' - ' + _esc(d.toLocaleTimeString()) + '</span>' +
                 '<span class="text-[9px] text-cyan-400 font-mono">' + _esc(Object.keys(s.spectrum_db).length) + ' bins</span></div>';
         }).join('');
     }
@@ -193,7 +193,7 @@
                 result.recommendations.forEach(function (r) {
                     var div = document.createElement('div');
                     div.className = 'flex items-center gap-2';
-                    div.innerHTML = '<span class="text-cyan-400">→</span> ' + r;
+                    div.innerHTML = '<span class="text-cyan-400">&rarr;</span> ' + _esc(r);
                     recEl.appendChild(div);
                 });
             } else {

@@ -7,7 +7,7 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
 
 ## Baseline atual
 
-- `npm test`: aprovado, `23` arquivos de teste, `253` testes passando.
+- `npm test`: aprovado, `25` arquivos de teste, `264` testes passando.
 - `npm run audit`: aprovado, `1` arquivo de teste, `41` testes passando.
 - `.venv\Scripts\python.exe -m pytest backend/ai/tests -q`: aprovado, `69` testes passando.
 - Toolchain: `npm test` continua emitindo warning de CLI legado no `pretest` por uso de `npm rebuild better-sqlite3 --runtime=node --update-binary`.
@@ -24,7 +24,7 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
   - Proxies Node -> Python passaram a compartilhar leitura de payload, timeout e espelhamento de status HTTP na maior parte das rotas JSON e multipart.
   - Rotas `/api/ai/health` e `/api/ai/diagnose` passaram a exigir auth.
 - Riscos remanescentes prioritarios:
-  - O frontend ainda usa `innerHTML` em muitos pontos fora de wrappers centralizados.
+  - O frontend ainda usa `innerHTML` em muitos pontos fora de wrappers centralizados, embora agora exista guardrail de regressao para crescimento silencioso dessa superficie.
 
 ## Checklist - `src`
 
@@ -170,19 +170,25 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
   - `tests/xss-fixes.test.js`
 - Esforco aplicado: `medio`
 
-### [OPEN] `innerHTML` segue espalhado e a sanitizacao ainda e inconsistente no restante do app
+### [PARTIAL] Guardrail e hotspots prioritarios de `innerHTML` foram endurecidos
 - Severidade: `medio`
 - Evidencia:
-  - Ainda existem varios pontos com HTML dinamico fora de um wrapper unico, como `frontend/js/services/auto-eq-renderer.service.js`, `frontend/js/ui/layout.js` e outras paginas.
-  - `frontend/js/core/dom-sanitize.js` existe, mas nao e o caminho padrao do projeto.
+  - `frontend/index.html` agora carrega `frontend/js/core/dom-sanitize.js` no shell principal.
+  - `frontend/js/core/dom-sanitize.js` passa a expor `escapeHTMLText(...)` e continua com `setSafeHTML(...)`.
+  - `frontend/js/services/auto-eq-renderer.service.js` passou a usar `_setHtml(...)` e escape explicito em campos dinamicos como `f.name`.
+  - `frontend/js/pages/feedback-detector-page.js`, `frontend/js/pages/hardware-diagnostics-page.js` e `frontend/js/pages/benchmarking-page.js` passaram a escapar interpolacoes dinamicas vindas de estado local/backend.
+  - `frontend/js/core/analyzer.js` agora usa `_setHtml(...)` nos cards de RT60/IR e escapa mensagens de erro e warning dinamicas.
+  - `frontend/js/pages/aes67-page.js` passou a usar `_setHtml(...)` e escape explicito em alertas de rede e badges de status.
+  - `frontend/js/pages/mixer-git-page.js` corrigiu a limpeza visual das tags de escopo no rollback (`.scope-tag`).
+  - `tests/frontend-innerhtml-guard.test.js` congela o baseline atual de atribuicoes HTML e verifica os renderizadores dinamicos endurecidos.
 - Impacto em producao:
-  - A chance de regressao de XSS continua acima do ideal.
+  - A regressao silenciosa de novos pontos com `innerHTML` ficou detectavel em CI e os fluxos mais expostos neste bloco passaram a renderizar dados dinamicos com escape/sanitizacao.
 - Correcao sugerida:
-  - Padronizar `textContent` por default e `setSafeHTML` apenas em funis revisados.
-  - Adicionar scanner/lint na CI para `innerHTML` fora de wrappers permitidos.
-- Teste de regressao recomendado:
-  - Verificacao estatica em CI.
-- Esforco: `medio`
+  - Continuar migrando telas antigas para `textContent` por default e `setSafeHTML` apenas em funis revisados.
+  - Refinar o guardrail para allowlist por contexto e reduzir gradualmente o baseline de `innerHTML`.
+- Teste de regressao aplicado:
+  - `tests/frontend-innerhtml-guard.test.js`
+- Esforco remanescente: `medio`
 
 ### [PARTIAL] Estado de autenticacao no frontend dependia demais de `localStorage`
 - Severidade: `baixo`
@@ -212,11 +218,11 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
 ## Riscos transversais remanescentes
 
 - `frontend rendering discipline`:
-  - O projeto melhorou nos hotspots, mas ainda precisa consolidar um padrao unico para HTML dinamico.
+  - O projeto melhorou nos hotspots e agora possui guardrail de regressao, mas ainda precisa consolidar um padrao unico para HTML dinamico.
 
 ## Backlog priorizado restante
 
-1. Criar guardrail de CI para `innerHTML` fora de wrappers autorizados.
+1. Reduzir gradualmente o baseline legado de `innerHTML` nas telas antigas e convergir para `textContent`/`setSafeHTML`.
    - Impacto: `medio`
    - Esforco: `medio`
 
@@ -228,6 +234,7 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
 - `tests/mixer-rest-command.test.js`
 - `tests/mixer-rest-surface.test.js`
 - `tests/xss-fixes.test.js` expandido
+- `tests/frontend-innerhtml-guard.test.js`
 
 ## Conclusao
 

@@ -75,6 +75,7 @@
         if (!compareA || !compareB) return;
         var opts = _commits.map(function (c) { return '<option value="' + pm._esc(c._id) + '">' + pm._esc(c.hash) + ' \u2014 ' + pm._esc(c.label) + '</option>'; }).join('');
         compareA.innerHTML = opts; compareB.innerHTML = opts;
+        if (_commits.length > 0) compareA.selectedIndex = 0;
         if (_commits.length > 1) compareB.selectedIndex = 1;
     }
 
@@ -151,7 +152,7 @@
         });
         pm._on(compareToggle, 'click', function () { _compareMode = !_compareMode; if (compareToolbar) compareToolbar.style.display = _compareMode ? '' : 'none'; compareToggle.textContent = _compareMode ? '\u2715 Fechar Compara\u00E7\u00E3o' : '\u26A1 Modo Compara\u00E7\u00E3o'; });
         pm._on(doCompareBtn, 'click', async function () { var idA = compareA ? compareA.value : '', idB = compareB ? compareB.value : ''; if (!idA || !idB || idA === idB) { _showToast('Selecione dois commits diferentes.', true); return; } try { var diffs = await _api('GET', '/api/git/diff/' + idA + '/' + idB); _diffData = diffs; _renderDiff(diffs); _renderRollbackScope(diffs); _selectedId = idA; if (deleteBtn) deleteBtn.disabled = false; } catch (e) { _showToast('\u274C ' + e.message, true); } });
-        pm._on(rollbackClear, 'click', function () { _selectedScope.clear(); document.querySelectorAll('.git-scope-tag').forEach(function (t) { t.classList.remove('selected'); }); });
+        pm._on(rollbackClear, 'click', function () { _selectedScope.clear(); document.querySelectorAll('.scope-tag').forEach(function (t) { t.classList.remove('selected'); }); });
         pm._on(rollbackBtn, 'click', async function () { if (!_selectedId) return; rollbackBtn.disabled = true; var rr = pm._el('git-rollback-result'); if (rr) { rr.textContent = 'Aplicando\u2026'; rr.className = 'git-rollback-result'; } try { var res = await _api('POST', '/api/git/rollback/' + _selectedId, { scope: Array.from(_selectedScope) }); if (rr) { rr.textContent = '\u2705 ' + res.commands + ' comando(s) enviados \u00E0 mesa.'; rr.className = 'git-rollback-result ok'; } pm._setTimeout(function () { _selectCommit(_selectedId); }, 800); } catch (e) { if (rr) { rr.textContent = '\u274C ' + e.message; rr.className = 'git-rollback-result err'; } } finally { rollbackBtn.disabled = false; } });
         _loadCommits();
     }

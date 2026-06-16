@@ -203,9 +203,9 @@
         peakPerOctave.forEach(function (band) {
             const el = document.createElement('div');
             el.className = 'flex flex-col items-center bg-black/30 rounded px-1.5 py-1 min-w-[36px]';
-            el.innerHTML = '<span class="text-[7px] text-slate-600">' + (band.fc >= 1000 ? (band.fc / 1000).toFixed(band.fc >= 10000 ? 0 : 1) + 'k' : band.fc) + '</span>'
-                + '<span class="text-[9px] font-bold text-cyan-300 leading-tight">' + (band.peakDb > -120 ? Math.round(band.peakDb) : '--') + '</span>'
-                + '<span class="text-[6px] text-slate-700">dB</span>';
+            _setHtml(el, '<span class="text-[7px] text-slate-600">' + _escapeHtmlText(band.fc >= 1000 ? (band.fc / 1000).toFixed(band.fc >= 10000 ? 0 : 1) + 'k' : band.fc) + '</span>'
+                + '<span class="text-[9px] font-bold text-cyan-300 leading-tight">' + _escapeHtmlText(band.peakDb > -120 ? Math.round(band.peakDb) : '--') + '</span>'
+                + '<span class="text-[6px] text-slate-700">dB</span>');
             container.appendChild(el);
         });
     }
@@ -219,6 +219,25 @@
             if (el) return el;
         }
         return document.getElementById(id);
+    }
+
+    function _escapeHtmlText(value) {
+        if (typeof window.escapeHTMLText === 'function') return window.escapeHTMLText(value);
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function _setHtml(el, html) {
+        if (!el) return;
+        if (typeof window.setSafeHTML === 'function') {
+            window.setSafeHTML(el, html);
+            return;
+        }
+        el.innerHTML = html;
     }
 
     // --- Ponderações acústicas (IEC 61672:2003) ---
@@ -494,7 +513,7 @@
 
         if (slope < 6 || slope > 20) {
             if (pinkMeasureSummary) {
-                pinkMeasureSummary.innerHTML = `<span class="text-amber-400 font-bold">⚠️ Atenção: Ruído rosa não detectado ou inconsistente.</span><br><small class="text-slate-400">Verifique se o sinal está sendo reproduzido no som do salão.</small>`;
+                _setHtml(pinkMeasureSummary, '<span class="text-amber-400 font-bold">Atencao: ruido rosa nao detectado ou inconsistente.</span><br><small class="text-slate-400">Verifique se o sinal esta sendo reproduzido no som do salao.</small>');
             }
         } else {
             if (pinkMeasureSummary) {
@@ -2012,7 +2031,7 @@
         };
 
         _sweepResultTimeout = setTimeout(function () {
-            if (summaryEl) summaryEl.innerHTML = '<span class="text-red-400">Timeout: resposta do servidor demorou mais de 60s.</span>';
+            if (summaryEl) _setHtml(summaryEl, '<span class="text-red-400">Timeout: resposta do servidor demorou mais de 60s.</span>');
         }, 65000);
 
         function _trySend(retries) {
@@ -2024,7 +2043,7 @@
                 setTimeout(function () { _trySend(retries - 1); }, 2000);
             } else {
                 clearTimeout(_sweepResultTimeout);
-                if (summaryEl) summaryEl.innerHTML = '<span class="text-red-400">Falha ao enviar dados. Socket offline.</span>';
+                if (summaryEl) _setHtml(summaryEl, '<span class="text-red-400">Falha ao enviar dados. Socket offline.</span>');
             }
         }
         _trySend(5);
@@ -2086,7 +2105,7 @@
         if (result.error) {
             console.error('[Analyzer] Erro retornado na análise de sweep:', result.error);
             const summaryEl = _el('pink-measure-summary');
-            if (summaryEl) summaryEl.innerHTML = `<span class="text-red-400">Erro: ${result.error}</span>`;
+            if (summaryEl) _setHtml(summaryEl, `<span class="text-red-400">Erro: ${_escapeHtmlText(result.error)}</span>`);
             _dispatchRt60Result({ error: result.error });
             return;
         }
@@ -2128,19 +2147,19 @@
 
         const summaryEl = _el('pink-measure-summary');
         if (summaryEl) {
-            summaryEl.innerHTML = `
+            _setHtml(summaryEl, `
                 <div class="space-y-2">
                     <div><span class="text-cyan-300 font-bold">EDT:</span> ${result.edt}s | <span class="text-cyan-300">T20:</span> ${result.t20}s | <span class="text-cyan-300">T30:</span> ${result.t30}s</div>
                     <div><span class="text-amber-300 font-bold">STI:</span> ${result.sti} (${result.sti_category}) | <span class="text-amber-300">C50:</span> ${result.c50}dB | <span class="text-amber-300">C80:</span> ${result.c80}dB</div>
                     <div><span class="text-slate-400 text-[10px]">SNR: ${result.snr_db}dB</span></div>
                 </div>
-            `;
+            `);
         }
 
         const rt60El = _el('rt60-result');
         if (rt60El) {
             rt60El.classList.remove('hidden');
-            rt60El.innerHTML = `
+            _setHtml(rt60El, `
                 <div class="bg-cyan-900/40 border border-cyan-500/30 p-6 rounded-2xl shadow-xl">
                     <h4 class="text-xs font-black uppercase text-cyan-400 tracking-widest mb-4">Métricas Acústicas (IR Real)</h4>
                     <div class="grid grid-cols-3 gap-4 mb-4">
@@ -2157,7 +2176,7 @@
                         <span class="text-[10px] text-cyan-100/60">SNR: ${result.snr_db} dB | Cat: ${result.sti_category}</span>
                     </div>
                 </div>
-            `;
+            `);
         }
 
         _dispatchRt60Result({
@@ -2184,7 +2203,7 @@
         const resultEl = _el('rt60-result');
         if (resultEl) {
             resultEl.classList.remove('hidden');
-            resultEl.innerHTML = `
+            _setHtml(resultEl, `
                 <div class="bg-cyan-900/40 border border-cyan-500/30 p-6 rounded-2xl shadow-xl">
                     <h4 class="text-xs font-black uppercase text-cyan-400 tracking-widest mb-4">Resultado RT60 (Schroeder)</h4>
                     <div class="flex items-baseline gap-2">
@@ -2193,10 +2212,10 @@
                     </div>
                     <div class="mt-2 flex flex-col gap-1">
                         <p class="text-[10px] text-cyan-100/60">SNR: ${result.snr} dB</p>
-                        ${result.warning ? `<p class="text-[10px] text-amber-400 font-bold">⚠️ ${result.warning}</p>` : ''}
+                        ${result.warning ? `<p class="text-[10px] text-amber-400 font-bold">⚠️ ${_escapeHtmlText(result.warning)}</p>` : ''}
                     </div>
                 </div>
-            `;
+            `);
         }
 
         _dispatchRt60Result({

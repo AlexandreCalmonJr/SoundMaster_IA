@@ -124,3 +124,35 @@ describe('XSS - page-utils.js escaper is comprehensive', () => {
         expect(map).toMatch(/"'":\s*'&#39;'/);
     });
 });
+
+describe('XSS - analyzer and aes67 dynamic renderers', () => {
+    const analyzerSrc = read('frontend/js/core/analyzer.js');
+    const aes67Src = read('frontend/js/pages/aes67-page.js');
+    const mixerGitSrc = read('frontend/js/pages/mixer-git-page.js');
+
+    it('uses shared safe HTML wrapper for analyzer result panels and escapes error text', () => {
+        expect(analyzerSrc).toContain('function _setHtml(el, html)');
+        expect(analyzerSrc).toContain('function _escapeHtmlText(value)');
+        expect(analyzerSrc).toContain('_setHtml(summaryEl, `<span class="text-red-400">Erro: ${_escapeHtmlText(result.error)}</span>`);');
+        expect(analyzerSrc).toContain('_setHtml(rt60El, `');
+        expect(analyzerSrc).toContain('_setHtml(resultEl, `');
+    });
+
+    it('escapes analyzer warning text rendered inside RT60 cards', () => {
+        expect(analyzerSrc).toContain('${result.warning ? `<p class="text-[10px] text-amber-400 font-bold">');
+        expect(analyzerSrc).toContain('${_escapeHtmlText(result.warning)}');
+    });
+
+    it('uses safe wrapper and escapes dynamic alert fields in aes67 page', () => {
+        expect(aes67Src).toContain('function _setHtml(el, html)');
+        expect(aes67Src).toContain('function _esc(value)');
+        expect(aes67Src).toContain('_setHtml(ptpEl, `<span class="w-2 h-2 rounded-full');
+        expect(aes67Src).toContain('${_esc(alert.code)}');
+        expect(aes67Src).toContain('${_esc(alert.message)}');
+    });
+
+    it('clears selected rollback scope tags using the right selector in mixer-git', () => {
+        expect(mixerGitSrc).toContain("document.querySelectorAll('.scope-tag')");
+        expect(mixerGitSrc).not.toContain("document.querySelectorAll('.git-scope-tag')");
+    });
+});

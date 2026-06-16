@@ -52,6 +52,25 @@
     const pm = createPageModule();
     let meterBars = [];
 
+    function _esc(value) {
+        if (typeof window.escapeHTMLText === 'function') return window.escapeHTMLText(value);
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function _setHtml(el, html) {
+        if (!el) return;
+        if (typeof window.setSafeHTML === 'function') {
+            window.setSafeHTML(el, html);
+            return;
+        }
+        el.innerHTML = html;
+    }
+
     function buildMeters() {
         const grid = pm._el('aes67-meters-grid');
         if (!grid) return;
@@ -133,7 +152,7 @@
 
         if (ptpEl) {
             const hasGoodSync = data.latency !== null && data.jitter !== null && data.jitter < 5;
-            ptpEl.innerHTML = `<span class="w-2 h-2 rounded-full ${hasGoodSync ? 'bg-green-500' : 'bg-amber-500'} animate-pulse"></span> ${hasGoodSync ? 'Lock' : 'Unsynced'}`;
+            _setHtml(ptpEl, `<span class="w-2 h-2 rounded-full ${hasGoodSync ? 'bg-green-500' : 'bg-amber-500'} animate-pulse"></span> ${hasGoodSync ? 'Lock' : 'Unsynced'}`);
             ptpEl.className = `flex items-center gap-2 text-xs font-bold uppercase tracking-widest ${hasGoodSync ? 'text-green-400' : 'text-amber-400'}`;
         }
     }
@@ -154,16 +173,16 @@
             alert.level === 'critical' ? 'bg-red-950/20 border-red-500/20 text-red-300' : 'bg-amber-950/20 border-amber-500/20 text-amber-300'
         }`;
 
-        alertDiv.innerHTML = `
+        _setHtml(alertDiv, `
             <span class="text-xs">${alert.level === 'critical' ? '🔴' : '⚠️'}</span>
             <div class="flex-1">
                 <div class="flex items-center justify-between font-bold mb-1 text-[10px] uppercase tracking-wider">
-                    <span>${alert.code.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}</span>
-                    <span class="text-slate-500 font-mono font-normal">${time}</span>
+                    <span>${_esc(alert.code)}</span>
+                    <span class="text-slate-500 font-mono font-normal">${_esc(time)}</span>
                 </div>
-                <div>${alert.message.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}</div>
+                <div>${_esc(alert.message)}</div>
             </div>
-        `;
+        `);
 
         container.insertBefore(alertDiv, container.firstChild);
 
@@ -180,12 +199,12 @@
         
         const container = pm._el('aes67-ai-alerts');
         if (container) {
-            container.innerHTML = `
+            _setHtml(container, `
                 <div class="p-3 bg-cyan-950/20 border border-cyan-500/20 rounded-xl text-[11px] text-cyan-300 flex items-center gap-2">
                     <span class="animate-spin">🌀</span>
                     <span>Receptor reiniciado. Aguardando novos dados de telemetria...</span>
                 </div>
-            `;
+            `);
         }
     }
 
@@ -198,16 +217,16 @@
             const time = new Date().toLocaleTimeString('pt-BR');
             const scanDiv = document.createElement('div');
             scanDiv.className = 'p-3 bg-cyan-950/20 border border-cyan-500/20 rounded-xl text-[11px] text-cyan-300 flex items-start gap-2';
-            scanDiv.innerHTML = `
+            _setHtml(scanDiv, `
                 <span class="text-xs">🤖</span>
                 <div class="flex-1">
                     <div class="flex items-center justify-between font-bold mb-1 text-[10px] uppercase tracking-wider">
                         <span>Varredura Ativa</span>
-                        <span class="text-slate-500 font-mono font-normal">${time}</span>
+                        <span class="text-slate-500 font-mono font-normal">${_esc(time)}</span>
                     </div>
                     <div>Varredura mDNS e varredura de portas TCP na subnet iniciadas.</div>
                 </div>
-            `;
+            `);
             container.insertBefore(scanDiv, container.firstChild);
         }
     }

@@ -177,7 +177,7 @@
         });
         html += '</div>';
         html += '<div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--sub);margin-top:6px;"><span>−12dB</span><span>0dB</span><span>+12dB</span></div>';
-        container.innerHTML = html;
+        _setHtml(container, html);
     }
 
     // ── Stats ──
