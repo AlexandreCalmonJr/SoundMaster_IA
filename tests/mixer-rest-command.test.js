@@ -32,6 +32,7 @@ describe('Mixer REST command parser', () => {
         expect(() => parseRestMixerCommand(null)).toThrow('Payload do comando deve ser um objeto JSON.');
         expect(() => parseRestMixerCommand({ action: 'set_channel_level', channel: 99, level: 0.5 })).toThrow();
         expect(() => parseRestMixerCommand({ action: 'eq_cut', target: 'channel', hz: 400 })).toThrow();
+        expect(() => parseRestMixerCommand({ action: 'set_master_level', level: 0.5, raw: 'SETD^m.mix^1' })).toThrow();
     });
 
     it('parses allowed commands with explicit bounds', () => {
@@ -48,6 +49,15 @@ describe('Mixer REST command parser', () => {
             aux: 1,
             ms: 120
         });
+    });
+
+    it('rejects unknown fields instead of silently stripping them', () => {
+        expect(() => parseRestMixerCommand({
+            action: 'set_channel_name',
+            channel: 2,
+            name: 'Pastor',
+            extra: true
+        })).toThrow();
     });
 });
 

@@ -20,9 +20,9 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
   - DevTools nao abre mais fora de `development`.
   - Update e bootstrap Python agora exigem verificacao de integridade configurada.
   - Bootstrap Python agora prefere a `.venv` do projeto e valida dependencias realmente usadas pelo backend.
+  - Rota REST `/api/mixer/command` agora exige `admin`, parser estrito e rejeicao explicita de campos extras.
   - Rotas `/api/ai/health` e `/api/ai/diagnose` passaram a exigir auth.
 - Riscos remanescentes prioritarios:
-  - Rota REST `/api/mixer/command` ainda merece schema dedicado e allowlist propria.
   - Parte dos proxies Node -> Python ainda pode melhorar a propagacao de status/erro.
   - O frontend ainda usa `innerHTML` em muitos pontos fora de wrappers centralizados.
 
@@ -40,19 +40,19 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
   - `tests/socket-auth.test.js`
 - Esforco aplicado: `medio`
 
-### [OPEN] Rota REST de comando do mixer executa payload amplo sem schema dedicado
-- Severidade: `alto`
-- Evidencia:
-  - `src/server/app-server.js:641` a `src/server/app-server.js:658` chamam `actions.executeMixerCommand(cmd)` diretamente.
-  - `src/server/mixer-actions.js:572` em diante expande varias acoes internas sem um schema REST proprio.
+### [FIXED] Rota REST de comando do mixer agora usa schema estrito e controle por papel
+- Severidade original: `alto`
+- Evidencia da correcao:
+  - `src/server/app-server.js` agora protege `/api/mixer/command` com `authenticateToken` e `requireRole('admin')`.
+  - `src/server/auth.routes.js` passou a expor `requireRole(...)` para enforcement reutilizavel.
+  - `src/server/mixer-rest-command.js` trocou `.strip()` por `.strict()` e continua aceitando apenas a allowlist explicita de acoes REST.
+  - Campos extras e aliases fora da allowlist agora falham com `400`, em vez de serem silenciosamente ignorados.
 - Impacto em producao:
-  - Usuario autenticado ainda pode alcancar uma superficie de comando maior que a prevista pela UI.
-- Correcao sugerida:
-  - Aplicar schema explicito para a rota REST e allowlist de acoes por perfil.
-  - Reusar a mesma politica de validacao/autorizacao usada nos handlers de socket.
-- Teste de regressao recomendado:
-  - Payload invalido, tipos errados e acoes nao permitidas devem resultar em `400`/`403`.
-- Esforco: `medio`
+  - A superficie REST deixou de aceitar comandos de mixer para usuarios comuns e ficou menos tolerante a payload ambíguo ou expandido.
+- Teste de regressao aplicado:
+  - `tests/mixer-rest-command.test.js`
+  - `tests/mixer-rest-surface.test.js`
+- Esforco aplicado: `medio`
 
 ### [FIXED] DevTools abria sempre na janela Electron
 - Severidade original: `alto`
@@ -212,8 +212,6 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
 
 ## Riscos transversais remanescentes
 
-- `command surface`:
-  - O maior item em aberto do lado Node e a rota REST `/api/mixer/command` sem schema dedicado.
 - `proxy consistency`:
   - Ainda falta padronizar como o Node reflete erros do Python para o frontend.
 - `frontend rendering discipline`:
@@ -221,15 +219,11 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
 
 ## Backlog priorizado restante
 
-1. Aplicar schema dedicado e allowlist na rota REST `/api/mixer/command`.
-   - Impacto: `alto`
-   - Esforco: `medio`
-
-2. Padronizar propagacao de status/erro em todos os proxies Node -> Python.
+1. Padronizar propagacao de status/erro em todos os proxies Node -> Python.
    - Impacto: `medio`
    - Esforco: `medio`
 
-3. Criar guardrail de CI para `innerHTML` fora de wrappers autorizados.
+2. Criar guardrail de CI para `innerHTML` fora de wrappers autorizados.
    - Impacto: `medio`
    - Esforco: `medio`
 
@@ -238,8 +232,10 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
 - `tests/socket-auth.test.js`
 - `tests/integrity-guards.test.js`
 - `tests/auth-surface.test.js`
+- `tests/mixer-rest-command.test.js`
+- `tests/mixer-rest-surface.test.js`
 - `tests/xss-fixes.test.js` expandido
 
 ## Conclusao
 
-Os itens de maior risco do relatorio original foram tratados nesta execucao: autenticacao do canal realtime, XSS nos fluxos mais expostos, integridade de update/bootstrap, baseline reproduzivel do backend Python e exposicao de diagnostico sem auth. O projeto ficou objetivamente mais pronto para producao; o trabalho restante agora esta concentrado em consistencia de validacao REST, propagacao de erros Node -> Python e consolidacao do padrao de renderizacao segura no frontend.
+Os itens de maior risco do relatorio original foram tratados nesta execucao: autenticacao do canal realtime, XSS nos fluxos mais expostos, integridade de update/bootstrap, baseline reproduzivel do backend Python, endurecimento da superficie REST do mixer e exposicao de diagnostico sem auth. O projeto ficou objetivamente mais pronto para producao; o trabalho restante agora esta concentrado em propagacao de erros Node -> Python e consolidacao do padrao de renderizacao segura no frontend.

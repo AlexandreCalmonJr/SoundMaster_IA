@@ -78,6 +78,20 @@ function authenticateToken(req, res, next) {
     }
 }
 
+function requireRole(...allowedRoles) {
+    return function requireRoleMiddleware(req, res, next) {
+        const role = req.user && typeof req.user.role === 'string'
+            ? req.user.role
+            : '';
+
+        if (!role || !allowedRoles.includes(role)) {
+            return res.status(403).json({ error: 'Acesso restrito a administradores' });
+        }
+
+        next();
+    };
+}
+
 function registerAuthRoutes(app) {
     const logger = Logger.getInstance();
     app.post('/api/auth/register', (req, res) => {
@@ -265,6 +279,7 @@ function registerAuthRoutes(app) {
 module.exports = {
     registerAuthRoutes,
     authenticateToken,
+    requireRole,
     extractToken,
     AUTH_COOKIE_NAME
 };

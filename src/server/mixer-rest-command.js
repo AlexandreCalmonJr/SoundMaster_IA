@@ -11,38 +11,38 @@ const restCommandSchemas = {
     set_master_level: z.object({
         action: z.enum(['set_master_level', 'master_level']),
         level: level01
-    }).strip(),
+    }).strict(),
 
     master_mute: z.object({
         action: z.enum(['master_mute', 'mute_master']),
         enabled: boolish
-    }).strip(),
+    }).strict(),
 
     set_channel_level: z.object({
         action: z.enum(['set_channel_level', 'channel_fader', 'channel_level']),
         channel: integerChannel,
         level: level01
-    }).strip(),
+    }).strict(),
 
     channel_mute: z.object({
         action: z.literal('channel_mute'),
         channel: integerChannel,
         enabled: boolish
-    }).strip(),
+    }).strict(),
 
     set_aux_level: z.object({
         action: z.literal('set_aux_level'),
         channel: integerChannel,
         aux: integerAux,
         level: level01
-    }).strip(),
+    }).strict(),
 
     set_fx_level: z.object({
         action: z.literal('set_fx_level'),
         channel: integerChannel,
         fx: integerFx,
         level: level01
-    }).strip(),
+    }).strict(),
 
     set_delay: z.object({
         action: z.literal('set_delay'),
@@ -51,7 +51,7 @@ const restCommandSchemas = {
         aux: integerAux.optional(),
         id: z.union([z.number(), z.string()]).transform((value) => Number(value)).pipe(z.number().int().min(1).max(24)).optional(),
         ms: boundedNumber(0, 500)
-    }).strip().superRefine((value, ctx) => {
+    }).strict().superRefine((value, ctx) => {
         if ((value.target === 'channel' || value.target === 'input') && value.channel == null && value.id == null) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
@@ -76,7 +76,7 @@ const restCommandSchemas = {
         gain: boundedNumber(-24, 12).optional(),
         q: boundedNumber(0.1, 10).optional(),
         band: boundedNumber(1, 4).optional()
-    }).strip().superRefine((value, ctx) => {
+    }).strict().superRefine((value, ctx) => {
         if (value.target === 'channel' && value.channel == null) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
@@ -90,28 +90,28 @@ const restCommandSchemas = {
         action: z.literal('apply_channel_hpf'),
         channel: integerChannel,
         hz: boundedNumber(20, 1000)
-    }).strip(),
+    }).strict(),
 
     apply_channel_gate: z.object({
         action: z.literal('apply_channel_gate'),
         channel: integerChannel,
         enabled: boolish,
         threshold: boundedNumber(-80, 0).optional()
-    }).strip(),
+    }).strict(),
 
     apply_channel_compressor: z.object({
         action: z.literal('apply_channel_compressor'),
         channel: integerChannel,
         ratio: boundedNumber(1, 20).optional(),
         threshold: boundedNumber(-60, 0).optional()
-    }).strip(),
+    }).strict(),
 
     set_phantom: z.object({
         action: z.enum(['set_phantom', 'set_phantom_power']),
         input: integerChannel.optional(),
         channel: integerChannel.optional(),
         enabled: boolish
-    }).strip().superRefine((value, ctx) => {
+    }).strict().superRefine((value, ctx) => {
         if (value.input == null && value.channel == null) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
@@ -125,7 +125,7 @@ const restCommandSchemas = {
         action: z.literal('set_channel_name'),
         channel: integerChannel,
         name: z.string().trim().min(1).max(20)
-    }).strip()
+    }).strict()
 };
 
 const ACTION_KEY_BY_ALIAS = new Map([

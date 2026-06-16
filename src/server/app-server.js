@@ -97,7 +97,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     expressApp.use(express.urlencoded({ limit: '50mb', extended: true }));
 
     // Middleware de autenticação JWT (lê do header Authorization OU do cookie httpOnly)
-    const { authenticateToken } = require('./auth.routes');
+    const { authenticateToken, requireRole } = require('./auth.routes');
 
     // Inicializa banco centralizado IMEDIATAMENTE (presets + mappings no mesmo diretório)
     db.initDatabase(dbDir);
@@ -640,7 +640,7 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
         }
     });
 
-    expressApp.post('/api/mixer/command', authenticateToken, express.json(), (req, res) => {
+    expressApp.post('/api/mixer/command', authenticateToken, requireRole('admin'), express.json(), (req, res) => {
         try {
             const cmd = parseRestMixerCommand(req.body);
             const actions = createMixerActions(() => mixerSingleton.getMixer());
