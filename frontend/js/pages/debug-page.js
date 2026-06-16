@@ -78,7 +78,8 @@
         var consoleDiv = pm._el('debug-console');
         if (!consoleDiv) return;
         var logs = (AppStore.getState().mixerLog) || [];
-        consoleDiv.innerHTML = logs.map(function (l) {
+        var safeSetHtml = (typeof window.setSafeHTML === 'function') ? window.setSafeHTML : function (el, html) { if (el) el.innerHTML = html; };
+        safeSetHtml(consoleDiv, logs.map(function (l) {
             var color = '#4ade80';
             if (l.text.includes('[ERROR]') || l.text.toLowerCase().includes('erro') || l.text.includes('falhou')) {
                 color = '#f87171';
@@ -94,7 +95,7 @@
                 '<span style="color: #64748b; font-size: 8px;">[' + l.time + ']</span> ' +
                 '<span style="color: ' + color + ';">' + safeText + '</span>' +
                 '</div>';
-        }).join('');
+        }).join(''));
         consoleDiv.scrollTop = consoleDiv.scrollHeight;
     }
 

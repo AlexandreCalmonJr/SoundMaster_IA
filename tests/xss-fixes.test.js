@@ -162,6 +162,10 @@ describe('XSS - volunteer, settings, and app shell renderers', () => {
     const settingsSrc = read('frontend/js/pages/settings-page.js');
     const appSrc = read('frontend/js/core/app.js');
     const sanitizeSrc = read('frontend/js/core/dom-sanitize.js');
+    const mixerAudioSrc = read('frontend/js/services/mixer-audio-source.service.js');
+    const audioSelectorSrc = read('frontend/js/ui/audio-source-selector.js');
+    const debugSrc = read('frontend/js/pages/debug-page.js');
+    const mixerPanelSrc = read('frontend/js/ui/mixer-panel.ui.js');
 
     it('uses safe wrapper and escapes dynamic volunteer channel and pin content', () => {
         expect(volunteerSrc).toContain('function _setHtml(el, html)');
@@ -193,5 +197,28 @@ describe('XSS - volunteer, settings, and app shell renderers', () => {
     it('uses a full HTML sanitization profile instead of a tiny tag allowlist', () => {
         expect(sanitizeSrc).toContain('USE_PROFILES: { html: true }');
         expect(sanitizeSrc).not.toContain('ALLOWED_TAGS:');
+    });
+
+    it('renders audio device options with DOM nodes instead of interpolated innerHTML', () => {
+        expect(mixerAudioSrc).toContain("inputSel.textContent = '';");
+        expect(mixerAudioSrc).toContain("outputSel.textContent = '';");
+        expect(mixerAudioSrc).toContain("const prefix = isUi24 ? '[Ui24] ' : '[Mic] ';");
+        expect(mixerAudioSrc).toContain("const prefix = isUi24 ? '[Ui24] ' : '[Out] ';");
+        expect(mixerAudioSrc).not.toContain('inputSel.innerHTML = _state.inputDevices.map');
+        expect(mixerAudioSrc).not.toContain("outputSel.innerHTML = '<option value=\"\">");
+
+        expect(audioSelectorSrc).toContain("inputSel.textContent = '';");
+        expect(audioSelectorSrc).toContain("outputSel.textContent = '';");
+        expect(audioSelectorSrc).not.toContain('inputSel.innerHTML = state.inputDevices.map');
+        expect(audioSelectorSrc).not.toContain("outputSel.innerHTML = '<option value=\"\">Padrão do sistema</option>' +");
+    });
+
+    it('avoids preset name interpolation in mixer panel and wraps debug log rendering', () => {
+        expect(mixerPanelSrc).toContain("const label = document.createElement('span');");
+        expect(mixerPanelSrc).toContain("button.textContent = 'Carregar';");
+        expect(mixerPanelSrc).not.toContain("div.innerHTML = '<span>' + p.name");
+
+        expect(debugSrc).toContain("safeSetHtml(consoleDiv, logs.map(function (l) {");
+        expect(debugSrc).toContain("var safeText = l.text.replace(/[&<>\"']/g");
     });
 });

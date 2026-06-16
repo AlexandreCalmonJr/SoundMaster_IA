@@ -191,8 +191,19 @@
             div.style.display = 'flex';
             div.style.justifyContent = 'space-between';
             div.style.alignItems = 'center';
-            div.innerHTML = '<span>' + p.name.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]}) + ' <small style="color:var(--text-muted)">(' + new Date(p.timestamp).toLocaleTimeString() + ')</small></span>\n                <button class="action-btn primary small" style="padding: 4px 8px;">Carregar</button>';
-            div.querySelector('button').onclick = () => MixerService.loadPreset(p._id);
+            const label = document.createElement('span');
+            label.textContent = p.name + ' ';
+            const time = document.createElement('small');
+            time.style.color = 'var(--text-muted)';
+            time.textContent = '(' + new Date(p.timestamp).toLocaleTimeString() + ')';
+            label.appendChild(time);
+            const button = document.createElement('button');
+            button.className = 'action-btn primary small';
+            button.style.padding = '4px 8px';
+            button.textContent = 'Carregar';
+            button.onclick = () => MixerService.loadPreset(p._id);
+            div.appendChild(label);
+            div.appendChild(button);
             els.presetsList.appendChild(div);
         });
     }

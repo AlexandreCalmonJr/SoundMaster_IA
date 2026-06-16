@@ -257,24 +257,42 @@ class AudioSourceSelector extends HTMLElement {
         const outputSel = this.querySelector('#audio-output-select');
 
         if (inputSel) {
-            inputSel.innerHTML = state.inputDevices.map((d, i) => {
-                const label = d.label || `Microfone ${i + 1}`;
-                return `<option value="${d.deviceId}" ${d.deviceId === state.selectedInputId ? 'selected' : ''}>
-                    ${label}
-                </option>`;
-            }).join('') || '<option value="">Nenhum microfone encontrado</option>';
+            inputSel.textContent = '';
+            if (state.inputDevices.length === 0) {
+                const emptyInput = document.createElement('option');
+                emptyInput.value = '';
+                emptyInput.textContent = 'Nenhum microfone encontrado';
+                inputSel.appendChild(emptyInput);
+            } else {
+                state.inputDevices.forEach((d, i) => {
+                    const label = d.label || `Microfone ${i + 1}`;
+                    const option = document.createElement('option');
+                    option.value = d.deviceId || '';
+                    option.selected = d.deviceId === state.selectedInputId;
+                    option.textContent = label;
+                    inputSel.appendChild(option);
+                });
+            }
         }
 
         if (outputSel) {
-            outputSel.innerHTML = '<option value="">Padrão do sistema</option>' +
-                state.outputDevices.map((d, i) => {
-                    const label = d.label || `Saída ${i + 1}`;
-                    return `<option value="${d.deviceId}" ${d.deviceId === state.selectedOutputId ? 'selected' : ''}>
-                        ${label}
-                    </option>`;
-                }).join('');
+            outputSel.textContent = '';
+            const defaultOutput = document.createElement('option');
+            defaultOutput.value = '';
+            defaultOutput.textContent = 'Padrao do sistema';
+            outputSel.appendChild(defaultOutput);
+            state.outputDevices.forEach((d, i) => {
+                const label = d.label || `Saida ${i + 1}`;
+                const option = document.createElement('option');
+                option.value = d.deviceId || '';
+                option.selected = d.deviceId === state.selectedOutputId;
+                option.textContent = label;
+                outputSel.appendChild(option);
+            });
         }
     }
+
+    updateHint    }
 
     updateHint(state) {
         const hasUi24rUsb = state.inputDevices.some(d => /soundcraft|ui24/i.test(d.label));

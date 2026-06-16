@@ -316,26 +316,42 @@
             const outputSel = root.querySelector('#audio-output-select');
 
             if (inputSel) {
-                inputSel.innerHTML = _state.inputDevices.map((d, i) => {
-                    const label = d.label || `Microfone ${i + 1}`;
-                    const isUi24 = /soundcraft|ui24/i.test(label);
-                    const prefix = isUi24 ? '📡 ' : '🎤 ';
-                    return `<option value="${d.deviceId}" ${d.deviceId === _state.selectedInputId ? 'selected' : ''}>
-                        ${prefix}${label}
-                    </option>`;
-                }).join('') || '<option value="">Nenhum microfone encontrado</option>';
+                inputSel.textContent = '';
+                if (_state.inputDevices.length === 0) {
+                    var emptyInput = document.createElement('option');
+                    emptyInput.value = '';
+                    emptyInput.textContent = 'Nenhum microfone encontrado';
+                    inputSel.appendChild(emptyInput);
+                } else {
+                    _state.inputDevices.forEach((d, i) => {
+                        const label = d.label || `Microfone ${i + 1}`;
+                        const isUi24 = /soundcraft|ui24/i.test(label);
+                        const prefix = isUi24 ? '[Ui24] ' : '[Mic] ';
+                        const option = document.createElement('option');
+                        option.value = d.deviceId || '';
+                        option.selected = d.deviceId === _state.selectedInputId;
+                        option.textContent = prefix + label;
+                        inputSel.appendChild(option);
+                    });
+                }
             }
 
             if (outputSel) {
-                outputSel.innerHTML = '<option value="">🔊 Padrão do sistema</option>' +
-                    _state.outputDevices.map((d, i) => {
-                        const label = d.label || `Saída ${i + 1}`;
-                        const isUi24 = /soundcraft|ui24/i.test(label);
-                        const prefix = isUi24 ? '📡 ' : '🔊 ';
-                        return `<option value="${d.deviceId}" ${d.deviceId === _state.selectedOutputId ? 'selected' : ''}>
-                            ${prefix}${label}
-                        </option>`;
-                    }).join('');
+                outputSel.textContent = '';
+                var defaultOutput = document.createElement('option');
+                defaultOutput.value = '';
+                defaultOutput.textContent = '[Out] Padrao do sistema';
+                outputSel.appendChild(defaultOutput);
+                _state.outputDevices.forEach((d, i) => {
+                    const label = d.label || `Saida ${i + 1}`;
+                    const isUi24 = /soundcraft|ui24/i.test(label);
+                    const prefix = isUi24 ? '[Ui24] ' : '[Out] ';
+                    const option = document.createElement('option');
+                    option.value = d.deviceId || '';
+                    option.selected = d.deviceId === _state.selectedOutputId;
+                    option.textContent = prefix + label;
+                    outputSel.appendChild(option);
+                });
             }
         }
     }

@@ -48,6 +48,10 @@ describe('frontend innerHTML guardrail', () => {
         const settings = read('frontend/js/pages/settings-page.js');
         const app = read('frontend/js/core/app.js');
         const sanitize = read('frontend/js/core/dom-sanitize.js');
+        const mixerAudio = read('frontend/js/services/mixer-audio-source.service.js');
+        const audioSelector = read('frontend/js/ui/audio-source-selector.js');
+        const debug = read('frontend/js/pages/debug-page.js');
+        const mixerPanel = read('frontend/js/ui/mixer-panel.ui.js');
 
         expect(autoEq).toContain('function _setHtml(container, html)');
         expect(autoEq).toContain('_setHtml(container, html);');
@@ -87,5 +91,18 @@ describe('frontend innerHTML guardrail', () => {
         expect(app).toContain('setShellHtml(container, await res.text());');
 
         expect(sanitize).toContain('USE_PROFILES: { html: true }');
+
+        expect(mixerAudio).toContain("inputSel.textContent = '';");
+        expect(mixerAudio).toContain("outputSel.textContent = '';");
+        expect(mixerAudio).toContain("const prefix = isUi24 ? '[Ui24] ' : '[Mic] ';");
+        expect(mixerAudio).toContain("const prefix = isUi24 ? '[Ui24] ' : '[Out] ';");
+
+        expect(audioSelector).toContain("inputSel.textContent = '';");
+        expect(audioSelector).toContain("outputSel.textContent = '';");
+
+        expect(debug).toContain('safeSetHtml(consoleDiv, logs.map(function (l) {');
+
+        expect(mixerPanel).toContain("const label = document.createElement('span');");
+        expect(mixerPanel).toContain("button.textContent = 'Carregar';");
     });
 });

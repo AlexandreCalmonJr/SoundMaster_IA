@@ -7,7 +7,7 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
 
 ## Baseline atual
 
-- `npm test`: aprovado, `25` arquivos de teste, `268` testes passando.
+- `npm test`: aprovado, `25` arquivos de teste, `270` testes passando.
 - `npm run audit`: aprovado, `1` arquivo de teste, `41` testes passando.
 - `.venv\Scripts\python.exe -m pytest backend/ai/tests -q`: aprovado, `69` testes passando.
 - Toolchain: `npm test` continua emitindo warning de CLI legado no `pretest` por uso de `npm rebuild better-sqlite3 --runtime=node --update-binary`.
@@ -182,6 +182,9 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
   - `frontend/js/services/volunteer.service.js` agora encapsula overlay, modal PIN, grade de canais e icones do header via `_setHtml(...)` com escape de valores dinamicos de preset/estado.
   - `frontend/js/pages/settings-page.js` passou a escapar `desc` e `size` dos modelos antes do templating HTML e usa `_setHtml(...)` no fallback offline.
   - `frontend/js/core/app.js` centraliza a injecao do shell por `setShellHtml(...)`, mantendo o carregamento de componentes locais sob a mesma disciplina de sanitizacao.
+  - `frontend/js/services/mixer-audio-source.service.js` e `frontend/js/ui/audio-source-selector.js` deixaram de interpolar nomes de dispositivos em `innerHTML`, passando a construir `option`s via DOM API.
+  - `frontend/js/ui/mixer-panel.ui.js` deixou de interpolar nomes de presets em `innerHTML`, usando `createElement(...)` e `textContent`.
+  - `frontend/js/pages/debug-page.js` passou a encapsular a renderizacao do console com o wrapper de HTML seguro.
   - `frontend/js/pages/mixer-git-page.js` corrigiu a limpeza visual das tags de escopo no rollback (`.scope-tag`).
   - `tests/frontend-innerhtml-guard.test.js` congela o baseline atual de atribuicoes HTML e verifica os renderizadores dinamicos endurecidos.
 - Impacto em producao:
