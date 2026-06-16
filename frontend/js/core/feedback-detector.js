@@ -19,6 +19,27 @@
         return document.getElementById(id);
     }
 
+    function _setAlertMessage(feedbackAlert, parts) {
+        if (!feedbackAlert) return;
+        feedbackAlert.textContent = '';
+
+        parts.forEach((part, index) => {
+            if (!part) return;
+            if (index > 0) {
+                feedbackAlert.appendChild(document.createTextNode(' '));
+            }
+
+            if (part.strong) {
+                const strong = document.createElement('strong');
+                strong.textContent = part.text == null ? '' : String(part.text);
+                feedbackAlert.appendChild(strong);
+                return;
+            }
+
+            feedbackAlert.appendChild(document.createTextNode(part.text == null ? '' : String(part.text)));
+        });
+    }
+
     function init() {
         const btnToggleAutoCut = _el('btn-toggle-auto-cut');
         if (btnToggleAutoCut) {
@@ -46,7 +67,13 @@
             const freqInt = Math.round(peakHz);
             if (feedbackAlert) {
                 feedbackAlert.className = 'alert danger';
-                feedbackAlert.innerHTML = `⚠️ <strong>Microfonia DETECTADA</strong> em <strong>${freqInt} Hz</strong> sustentados. Diferença local: ${(peakDb - neighborAvg).toFixed(1)} dB.`;
+                _setAlertMessage(feedbackAlert, [
+                    { text: 'WARNING' },
+                    { text: 'Microfonia DETECTADA', strong: true },
+                    { text: 'em' },
+                    { text: freqInt + ' Hz', strong: true },
+                    { text: 'sustentados. Diferen?a local: ' + (peakDb - neighborAvg).toFixed(1) + ' dB.' }
+                ]);
             }
 
             if (window.AppStore && typeof AppStore.setState === 'function') {
@@ -108,7 +135,9 @@
         } else {
             if (feedbackAlert) {
                 feedbackAlert.className = 'alert safe';
-                feedbackAlert.innerHTML = `Espectro estável. Pico dominante: ${Math.round(peakHz)} Hz (${peakDb.toFixed(1)} dB).`;
+                _setAlertMessage(feedbackAlert, [
+                    { text: 'Espectro estavel. Pico dominante: ' + Math.round(peakHz) + ' Hz (' + peakDb.toFixed(1) + ' dB).' }
+                ]);
             }
             if (btnAutoCut && !isAutoCutEnabled) {
                 btnAutoCut.style.display = 'none';

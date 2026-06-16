@@ -143,9 +143,16 @@
             var btn = document.createElement('button');
             btn.className = 'sim-scene-btn w-full text-left p-3 rounded-xl border transition-all text-xs font-bold';
             btn.setAttribute('data-scene', id);
-            btn.innerHTML = '<div class="text-sm">' + scene.label + '</div><div class="text-[10px] text-slate-500 mt-1">' + scene.description + '</div>';
+            var title = document.createElement('div');
+                        title.className = 'text-sm';
+                        title.textContent = scene.label || '';
+                        var description = document.createElement('div');
+                        description.className = 'text-[10px] text-slate-500 mt-1';
+                        description.textContent = scene.description || '';
+                        btn.appendChild(title);
+                        btn.appendChild(description);
             btn.className += (id === 'louvor' ? ' bg-cyan-900/30 border-cyan-500/40 text-cyan-300' : ' bg-slate-800/60 border-white/5 text-slate-300 hover:border-white/20');
-            pm._on(btn, 'click', function () { SimulationService.setScene(id); _updateSceneButtons(); _updateAcousticDisplay(); pm._log('sim-log', 'Cen\u00E1rio alterado: ' + scene.label); });
+            pm._on(btn, 'click', function () { SimulationService.setScene(id); _updateSceneButtons(); _updateAcousticDisplay(); pm._log('sim-log', 'Cen\u00E1rio alterado: ' + String(scene.label || '')); });
             container.appendChild(btn);
         });
     }

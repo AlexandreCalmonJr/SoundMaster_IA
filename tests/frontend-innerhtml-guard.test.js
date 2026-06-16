@@ -52,6 +52,9 @@ describe('frontend innerHTML guardrail', () => {
         const audioSelector = read('frontend/js/ui/audio-source-selector.js');
         const debug = read('frontend/js/pages/debug-page.js');
         const mixerPanel = read('frontend/js/ui/mixer-panel.ui.js');
+        const aiChat = read('frontend/js/pages/ai-chat-page.js');
+        const feedbackDetectorCore = read('frontend/js/core/feedback-detector.js');
+        const testbed = read('frontend/js/pages/testbed-page.js');
 
         expect(autoEq).toContain('function _setHtml(container, html)');
         expect(autoEq).toContain('_setHtml(container, html);');
@@ -104,5 +107,14 @@ describe('frontend innerHTML guardrail', () => {
 
         expect(mixerPanel).toContain("const label = document.createElement('span');");
         expect(mixerPanel).toContain("button.textContent = 'Carregar';");
+
+        expect(aiChat).toContain('function _renderStepContent(el, text, icon, textClassName) {');
+        expect(aiChat).toContain("textSpan.textContent = text == null ? '' : String(text);");
+
+        expect(feedbackDetectorCore).toContain('function _setAlertMessage(feedbackAlert, parts) {');
+        expect(feedbackDetectorCore).not.toContain('feedbackAlert.innerHTML =');
+
+        expect(testbed).toContain("var title = document.createElement('div');");
+        expect(testbed).toContain("description.textContent = scene.description || '';");
     });
 });

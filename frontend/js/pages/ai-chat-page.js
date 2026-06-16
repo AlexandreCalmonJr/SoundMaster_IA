@@ -334,13 +334,30 @@
 
     // ─── Status step indicator ─────────────────────────────────────────────────
 
+    function _renderStepContent(el, text, icon, textClassName) {
+        if (!el) return;
+        el.textContent = '';
+
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'text-cyan-500';
+        iconSpan.textContent = icon || '>';
+
+        const textSpan = document.createElement('span');
+        if (textClassName) textSpan.className = textClassName;
+        textSpan.textContent = text == null ? '' : String(text);
+
+        el.appendChild(iconSpan);
+        el.appendChild(document.createTextNode(' '));
+        el.appendChild(textSpan);
+    }
+
     function _appendStep(text, icon) {
         const id = 'step-' + Date.now();
         if (!els.chatMessages) return id;
         const el = document.createElement('div');
         el.id = id;
         el.className = 'flex items-center gap-2 text-xs text-slate-400 pl-2 py-1';
-        el.innerHTML = `<span class="text-cyan-500">${icon || '▸'}</span> <span>${text}</span>`;
+        _renderStepContent(el, text, icon);
         els.chatMessages.appendChild(el);
         els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
         return id;
@@ -349,7 +366,7 @@
     function _updateStep(id, text, icon) {
         const el = pm._el(id);
         if (el) {
-            el.innerHTML = `<span class="text-cyan-500">${icon || '✓'}</span> <span class="text-slate-300">${text}</span>`;
+            _renderStepContent(el, text, icon || 'OK', 'text-slate-300');
         }
     }
 

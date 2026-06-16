@@ -166,6 +166,9 @@ describe('XSS - volunteer, settings, and app shell renderers', () => {
     const audioSelectorSrc = read('frontend/js/ui/audio-source-selector.js');
     const debugSrc = read('frontend/js/pages/debug-page.js');
     const mixerPanelSrc = read('frontend/js/ui/mixer-panel.ui.js');
+    const aiChatSrc = read('frontend/js/pages/ai-chat-page.js');
+    const feedbackDetectorSrc = read('frontend/js/core/feedback-detector.js');
+    const testbedSrc = read('frontend/js/pages/testbed-page.js');
 
     it('uses safe wrapper and escapes dynamic volunteer channel and pin content', () => {
         expect(volunteerSrc).toContain('function _setHtml(el, html)');
@@ -220,5 +223,22 @@ describe('XSS - volunteer, settings, and app shell renderers', () => {
 
         expect(debugSrc).toContain("safeSetHtml(consoleDiv, logs.map(function (l) {");
         expect(debugSrc).toContain("var safeText = l.text.replace(/[&<>\"']/g");
+    });
+
+    it('renders ai chat status steps with DOM nodes instead of innerHTML interpolation', () => {
+        expect(aiChatSrc).toContain('function _renderStepContent(el, text, icon, textClassName) {');
+        expect(aiChatSrc).toContain("textSpan.textContent = text == null ? '' : String(text);");
+        expect(aiChatSrc).toContain('_renderStepContent(el, text, icon);');
+        expect(aiChatSrc).toContain("_renderStepContent(el, text, icon || 'OK', 'text-slate-300');");
+    });
+
+    it('renders feedback alerts and testbed scene buttons without dynamic innerHTML', () => {
+        expect(feedbackDetectorSrc).toContain('function _setAlertMessage(feedbackAlert, parts) {');
+        expect(feedbackDetectorSrc).toContain("feedbackAlert.textContent = '';");
+        expect(feedbackDetectorSrc).not.toContain('feedbackAlert.innerHTML =');
+
+        expect(testbedSrc).toContain("var title = document.createElement('div');");
+        expect(testbedSrc).toContain("description.textContent = scene.description || '';");
+        expect(testbedSrc).not.toContain("btn.innerHTML = '<div class=\"text-sm\">' + scene.label");
     });
 });
