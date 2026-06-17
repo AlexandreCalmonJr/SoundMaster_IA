@@ -53,6 +53,8 @@ describe('frontend innerHTML guardrail', () => {
         const debug = read('frontend/js/pages/debug-page.js');
         const mixerPanel = read('frontend/js/ui/mixer-panel.ui.js');
         const aiChat = read('frontend/js/pages/ai-chat-page.js');
+        const home = read('frontend/js/pages/home-page.js');
+        const sceneBuilder = read('frontend/js/pages/scene-builder-page.js');
         const feedbackDetectorCore = read('frontend/js/core/feedback-detector.js');
         const testbed = read('frontend/js/pages/testbed-page.js');
 
@@ -110,6 +112,16 @@ describe('frontend innerHTML guardrail', () => {
 
         expect(aiChat).toContain('function _renderStepContent(el, text, icon, textClassName) {');
         expect(aiChat).toContain("textSpan.textContent = text == null ? '' : String(text);");
+
+        expect(home).toContain('function _setSafeHtml(el, html) {');
+        expect(home).toContain("title.textContent = command.desc || 'Ajuste';");
+        expect(home).toContain("actionSpan.textContent = command.action || '-';");
+        expect(home).toContain("desc.textContent = card.desc || '';");
+
+        expect(sceneBuilder).toContain("function _renderAiStatus(el, text, className) {");
+        expect(sceneBuilder).toContain("title.textContent = scene.name || '';");
+        expect(sceneBuilder).toContain("label.textContent = scene.name || '';");
+        expect(sceneBuilder).toContain("description.textContent = _selectedScene.description;");
 
         expect(feedbackDetectorCore).toContain('function _setAlertMessage(feedbackAlert, parts) {');
         expect(feedbackDetectorCore).not.toContain('feedbackAlert.innerHTML =');

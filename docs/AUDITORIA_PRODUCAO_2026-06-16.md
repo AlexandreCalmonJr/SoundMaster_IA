@@ -7,7 +7,7 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
 
 ## Baseline atual
 
-- `npm test`: aprovado, `25` arquivos de teste, `272` testes passando.
+- `npm test`: aprovado, `25` arquivos de teste, `274` testes passando.
 - `npm run audit`: aprovado, `1` arquivo de teste, `41` testes passando.
 - `.venv\Scripts\python.exe -m pytest backend/ai/tests -q`: aprovado, `69` testes passando.
 - Toolchain: `npm test` continua emitindo warning de CLI legado no `pretest` por uso de `npm rebuild better-sqlite3 --runtime=node --update-binary`.
@@ -186,6 +186,8 @@ Status: auditoria executada e correcoes aplicadas em ordem de criticidade
   - `frontend/js/ui/mixer-panel.ui.js` deixou de interpolar nomes de presets em `innerHTML`, usando `createElement(...)` e `textContent`.
   - `frontend/js/pages/debug-page.js` passou a encapsular a renderizacao do console com o wrapper de HTML seguro.
   - `frontend/js/pages/ai-chat-page.js` deixou de interpolar texto bruto nos steps de progresso da IA, passando a montar o status com nos DOM e `textContent`.
+  - `frontend/js/pages/home-page.js` passou a renderizar o bubble Markdown pelo wrapper seguro compartilhado e deixou de interpolar cards de comando e suggestion cards diretamente em `innerHTML`.
+  - `frontend/js/pages/scene-builder-page.js` foi reescrita para renderizar lista, miniaturas, preview e feedback da geracao IA com DOM API, sem montar blocos dinamicos por `innerHTML`.
   - `frontend/js/core/feedback-detector.js` deixou de usar `innerHTML` nas mensagens de alerta e status, preservando o destaque visual com construcao explicita de nos.
   - `frontend/js/pages/testbed-page.js` deixou de interpolar `scene.label` e `scene.description` em `innerHTML` nos botoes de cenario.
   - `frontend/js/pages/mixer-git-page.js` corrigiu a limpeza visual das tags de escopo no rollback (`.scope-tag`).

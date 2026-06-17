@@ -132,6 +132,15 @@
         return _sanitizeHtml(String(value == null ? '' : value));
     }
 
+    function _setSafeHtml(el, html) {
+        if (!el) return;
+        if (typeof window.setSafeHTML === 'function') {
+            window.setSafeHTML(el, html);
+            return;
+        }
+        el.innerHTML = html;
+    }
+
     function _stripDangerousUrls(text) {
         return text.replace(/(href|src)=["']\s*(javascript|data|vbscript):/gi, '$1="#"');
     }
@@ -201,44 +210,75 @@
             bubble.innerText = text;
         } else {
             const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            bubble.innerHTML = _renderMarkdown(text) + '<span class="text-[9px] text-slate-600 mt-1 block">' + ts + '</span>';
+            _setSafeHtml(bubble, _renderMarkdown(text) + '<span class="text-[9px] text-slate-600 mt-1 block">' + _escapeHtmlText(ts) + '</span>');
         }
 
         if (command && !isUser) {
             const card = document.createElement('div');
             card.className = 'mt-2 bg-slate-950/80 border border-cyan-500/20 rounded-xl p-2.5 text-left flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-lg';
-            
-            const desc = _escapeHtmlText(command.desc || 'Ajuste');
-            const action = _escapeHtmlText(command.action || '-');
-            const value = command.value !== undefined ? _escapeHtmlText(command.value) : '';
-            const channel = _escapeHtmlText(command.channel !== undefined ? command.channel : '-');
+            const info = document.createElement('div');
+            info.className = 'flex flex-col min-w-0';
 
-            card.innerHTML = `
-                <div class="flex flex-col min-w-0">
-                    <div class="flex items-center gap-1.5 leading-tight">
-                        <span class="text-cyan-400 text-xs shrink-0">⚡</span>
-                        <span class="text-xs text-white font-bold truncate">${desc}</span>
-                    </div>
-                    <div class="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5 font-mono">
-                        <span>CH ${channel}</span>
-                        <span>|</span>
-                        <span class="uppercase">${action}</span>
-                        ${command.value !== undefined ? `<span>|</span><span>${value}</span>` : ''}
-                    </div>
-                </div>
-                <div class="flex gap-1.5 justify-end shrink-0">
-                    <button class="ignore-btn px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-400 hover:text-white transition-all">Ignorar</button>
-                    <button class="exec-btn px-3 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-[10px] font-extrabold text-white transition-all flex items-center gap-1">
-                        Aplicar
-                    </button>
-                </div>
-            `;
+            const titleRow = document.createElement('div');
+            titleRow.className = 'flex items-center gap-1.5 leading-tight';
 
-            const btnExec = card.querySelector('.exec-btn');
-            const btnIgnore = card.querySelector('.ignore-btn');
+            const icon = document.createElement('span');
+            icon.className = 'text-cyan-400 text-xs shrink-0';
+            icon.textContent = 'AI';
+
+            const title = document.createElement('span');
+            title.className = 'text-xs text-white font-bold truncate';
+            title.textContent = command.desc || 'Ajuste';
+
+            titleRow.appendChild(icon);
+            titleRow.appendChild(title);
+
+            const metaRow = document.createElement('div');
+            metaRow.className = 'flex items-center gap-2 text-[10px] text-slate-400 mt-0.5 font-mono';
+
+            const channelSpan = document.createElement('span');
+            channelSpan.textContent = 'CH ' + (command.channel !== undefined ? command.channel : '-');
+            const actionSeparator = document.createElement('span');
+            actionSeparator.textContent = '|';
+            const actionSpan = document.createElement('span');
+            actionSpan.className = 'uppercase';
+            actionSpan.textContent = command.action || '-';
+
+            metaRow.appendChild(channelSpan);
+            metaRow.appendChild(actionSeparator);
+            metaRow.appendChild(actionSpan);
+
+            if (command.value !== undefined) {
+                const valueSeparator = document.createElement('span');
+                valueSeparator.textContent = '|';
+                const valueSpan = document.createElement('span');
+                valueSpan.textContent = String(command.value);
+                metaRow.appendChild(valueSeparator);
+                metaRow.appendChild(valueSpan);
+            }
+
+            info.appendChild(titleRow);
+            info.appendChild(metaRow);
+
+            const actions = document.createElement('div');
+            actions.className = 'flex gap-1.5 justify-end shrink-0';
+
+            const btnIgnore = document.createElement('button');
+            btnIgnore.className = 'ignore-btn px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-400 hover:text-white transition-all';
+            btnIgnore.textContent = 'Ignorar';
+
+            const btnExec = document.createElement('button');
+            btnExec.className = 'exec-btn px-3 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-[10px] font-extrabold text-white transition-all flex items-center gap-1';
+            btnExec.textContent = 'Aplicar';
+
+            actions.appendChild(btnIgnore);
+            actions.appendChild(btnExec);
+
+            card.appendChild(info);
+            card.appendChild(actions);
 
             if (executed) {
-                btnExec.innerHTML = '✓ Aplicado';
+                btnExec.textContent = 'Aplicado';
                 btnExec.disabled = true;
                 btnExec.className = 'exec-btn px-3 py-1 rounded bg-emerald-950/40 border border-emerald-500/30 text-[10px] font-bold text-emerald-400 flex items-center gap-1';
                 btnIgnore.style.display = 'none';
@@ -246,7 +286,7 @@
                 pm._on(btnExec, 'click', function () {
                     const ok = MixerService.executeAICommand(command);
                     if (ok) {
-                        btnExec.innerHTML = '✓ Aplicado';
+                        btnExec.textContent = 'Aplicado';
                         btnExec.disabled = true;
                         btnExec.className = 'exec-btn px-3 py-1 rounded bg-emerald-950/40 border border-emerald-500/30 text-[10px] font-bold text-emerald-400 flex items-center gap-1';
                         btnIgnore.style.display = 'none';
@@ -363,11 +403,18 @@
             const btn = document.createElement('button');
             btn.className = 'suggestion-card flex flex-col items-start gap-1.5 bg-slate-900/40 border border-white/5 hover:border-cyan-500/30 hover:bg-slate-800/30 p-3.5 rounded-2xl text-left transition-all group cursor-pointer suggestion-card-enter';
             btn.dataset.prompt = card.prompt;
-            btn.innerHTML = `
-                <div class="text-lg">${card.icon}</div>
-                <div class="text-xs font-bold text-slate-200 group-hover:text-cyan-400 transition-colors">${card.title}</div>
-                <div class="text-[9px] text-slate-500 leading-tight">${card.desc}</div>
-            `;
+            const icon = document.createElement('div');
+            icon.className = 'text-lg';
+            icon.textContent = card.icon || '';
+            const title = document.createElement('div');
+            title.className = 'text-xs font-bold text-slate-200 group-hover:text-cyan-400 transition-colors';
+            title.textContent = card.title || '';
+            const desc = document.createElement('div');
+            desc.className = 'text-[9px] text-slate-500 leading-tight';
+            desc.textContent = card.desc || '';
+            btn.appendChild(icon);
+            btn.appendChild(title);
+            btn.appendChild(desc);
             container.appendChild(btn);
             pm._setTimeout(function () {
                 btn.classList.add('suggestion-card-enter-active');

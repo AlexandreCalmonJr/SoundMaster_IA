@@ -54,8 +54,11 @@ describe('XSS - AI command cards escape dynamic fields', () => {
     });
 
     it('escapes command.action and command.value in home-page', () => {
-        expect(homeSrc).toMatch(/const action = _escapeHtmlText\(command\.action \|\| '-'\);/);
-        expect(homeSrc).toMatch(/const value = command\.value !== undefined \? _escapeHtmlText\(command\.value\) : '';/);
+        expect(homeSrc).toContain('function _setSafeHtml(el, html) {');
+        expect(homeSrc).toContain("_setSafeHtml(bubble, _renderMarkdown(text) + '<span class=\"text-[9px] text-slate-600 mt-1 block\">' + _escapeHtmlText(ts) + '</span>');");
+        expect(homeSrc).toContain("title.textContent = command.desc || 'Ajuste';");
+        expect(homeSrc).toContain("actionSpan.textContent = command.action || '-';");
+        expect(homeSrc).toContain("valueSpan.textContent = String(command.value);");
     });
 });
 
@@ -166,9 +169,11 @@ describe('XSS - volunteer, settings, and app shell renderers', () => {
     const audioSelectorSrc = read('frontend/js/ui/audio-source-selector.js');
     const debugSrc = read('frontend/js/pages/debug-page.js');
     const mixerPanelSrc = read('frontend/js/ui/mixer-panel.ui.js');
+    const homeSrc = read('frontend/js/pages/home-page.js');
     const aiChatSrc = read('frontend/js/pages/ai-chat-page.js');
     const feedbackDetectorSrc = read('frontend/js/core/feedback-detector.js');
     const testbedSrc = read('frontend/js/pages/testbed-page.js');
+    const sceneBuilderSrc = read('frontend/js/pages/scene-builder-page.js');
 
     it('uses safe wrapper and escapes dynamic volunteer channel and pin content', () => {
         expect(volunteerSrc).toContain('function _setHtml(el, html)');
@@ -240,5 +245,21 @@ describe('XSS - volunteer, settings, and app shell renderers', () => {
         expect(testbedSrc).toContain("var title = document.createElement('div');");
         expect(testbedSrc).toContain("description.textContent = scene.description || '';");
         expect(testbedSrc).not.toContain("btn.innerHTML = '<div class=\"text-sm\">' + scene.label");
+    });
+
+    it('renders home suggestion cards with DOM nodes instead of template innerHTML', () => {
+        expect(homeSrc).toContain("const icon = document.createElement('div');");
+        expect(homeSrc).toContain("icon.textContent = card.icon || '';");
+        expect(homeSrc).toContain("title.textContent = card.title || '';");
+        expect(homeSrc).toContain("desc.textContent = card.desc || '';");
+    });
+
+    it('renders scene builder lists and preview with DOM nodes for dynamic content', () => {
+        expect(sceneBuilderSrc).toContain("function _renderAiStatus(el, text, className) {");
+        expect(sceneBuilderSrc).toContain("container.textContent = '';");
+        expect(sceneBuilderSrc).toContain("title.textContent = scene.name || '';");
+        expect(sceneBuilderSrc).toContain("label.textContent = scene.name || '';");
+        expect(sceneBuilderSrc).toContain("description.textContent = _selectedScene.description;");
+        expect(sceneBuilderSrc).toContain("_renderAiStatus(result, 'Gerando com IA...', 'text-cyan-400 animate-pulse');");
     });
 });
