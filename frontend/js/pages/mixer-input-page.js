@@ -64,7 +64,8 @@
             localSoloState[i] = state[`ch_${i}_solo`] || false;
             localMtkState[i] = state[`ch_${i}_mtk_selected`] || false;
             const chDiv = document.createElement('div');
-            chDiv.className = 'w-24 flex flex-col gap-4 flex-shrink-0';
+            chDiv.className = 'flex flex-col gap-2 flex-shrink-0';
+            chDiv.style.width = '7.5rem';
             chDiv.innerHTML =
                 '<div class="flex-1 bg-black/40 rounded-2xl p-3 flex flex-col items-center gap-4 border border-white/5 group hover:border-cyan-500/30 transition-all">' +
                     '<span class="text-[10px] font-black text-slate-500 uppercase">Ch ' + i.toString().padStart(2, '0') + '</span>' +
@@ -76,10 +77,10 @@
                     '</div>' +
                     '<input type="text" id="name-ch-' + i + '" value="' + esc(chName) + '" class="bg-transparent text-[9px] font-bold text-white text-center w-full focus:outline-none focus:bg-white/5 rounded p-1 border-b border-transparent focus:border-cyan-500/50">' +
                 '</div>' +
-                '<div class="flex gap-1 w-full mt-2">' +
-                    '<button id="mute-ch-' + i + '" class="flex-1 py-1.5 bg-slate-800 text-slate-500 text-[9px] font-black rounded-lg border border-white/5 transition-all uppercase">Mute</button>' +
-                    '<button id="solo-ch-' + i + '" class="flex-1 py-1.5 bg-slate-800 text-slate-500 text-[9px] font-black rounded-lg border border-white/5 transition-all uppercase">Solo</button>' +
-                    '<button id="mtk-ch-' + i + '" class="flex-1 py-1.5 bg-slate-800 text-slate-500 text-[9px] font-black rounded-lg border border-white/5 transition-all uppercase">Mtk</button>' +
+                '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;width:100%;">' +
+                    '<button id="mute-ch-' + i + '" class="py-1.5 bg-slate-800 text-slate-500 text-[9px] font-black rounded-lg border border-white/5 transition-all uppercase" style="line-height:1">MUTE</button>' +
+                    '<button id="solo-ch-' + i + '" class="py-1.5 bg-slate-800 text-slate-500 text-[9px] font-black rounded-lg border border-white/5 transition-all uppercase" style="line-height:1">SOLO</button>' +
+                    '<button id="mtk-ch-' + i + '" class="col-span-2 py-1 bg-slate-800/60 text-slate-600 text-[8px] font-black rounded-lg border border-white/5 transition-all uppercase" style="line-height:1">MTK</button>' +
                 '</div>';
             container.appendChild(chDiv);
 

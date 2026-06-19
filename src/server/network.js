@@ -499,6 +499,14 @@ function _processMdnsResponse(response) {
 
     if (!ip && !hostname) return;
 
+    // Filtra IPs inválidos, loopback e endereços não roteáveis
+    if (ip) {
+        const invalid = ['0.0.0.0', '::', '127.0.0.1', '::1', ''];
+        if (invalid.includes(ip)) return;
+        // IPv6 puro sem serviços de áudio conhecidos → ignora
+        if (ip.includes(':') && services.length === 0) return;
+    }
+
     // Tenta resolver o hostname se só temos IP
     if (ip && !hostname) {
         dns.reverse(ip, (err, hostnames) => {
@@ -513,10 +521,15 @@ function _processMdnsResponse(response) {
     _registerDevice(ip, hostname, services);
 }
 
+// Tipos de dispositivos que merecem log visível (áudio real)
+const KNOWN_AUDIO_TYPES = new Set([
+    'AES67', 'Dante/AoIP', 'Soundcraft Mixer', 'RAVENNA',
+    'Shure Wireless', 'Dante Device', 'OSC Device', 'AES67 Stream',
+]);
+
 function _registerDevice(ip, hostname, services) {
     if (!ip) return;
 
-    const known  = AOIP_MDNS_SERVICES.filter(s => services.includes(s.type));
     const type   = _inferDeviceType(hostname, services);
     const ts     = Date.now();
 
@@ -533,12 +546,16 @@ function _registerDevice(ip, hostname, services) {
     _state.devices.set(ip, entry);
 
     if (isNew) {
-        console.log(`[NetDiag] Dispositivo AoIP descoberto: ${type} @ ${ip} (${hostname})`);
+        if (KNOWN_AUDIO_TYPES.has(type)) {
+            // Dispositivo de áudio real → log visível
+            console.log(`[NetDiag] Dispositivo AoIP descoberto: ${type} @ ${ip} (${hostname})`);
+        }
+        // Emite evento para a UI independentemente do tipo
         _emit('net_device_found', { ...entry, ts });
     }
 
-    // Atualiza a lista completa
-    _emit('net_device_list', _getDeviceList());
+    // Atualiza a lista completa (throttled para não inundar o socket)
+    _emitDeviceListThrottled();
 }
 
 function _inferDeviceType(hostname = '', services = []) {
@@ -584,6 +601,16 @@ function _round(v, dec = 2) {
 
 function _emit(event, data) {
     if (_io) _io.emit(event, data);
+}
+
+// Throttle de emissão da lista de dispositivos (máx 1x por segundo)
+let _deviceListThrottleTimer = null;
+function _emitDeviceListThrottled() {
+    if (_deviceListThrottleTimer) return;
+    _deviceListThrottleTimer = setTimeout(() => {
+        _deviceListThrottleTimer = null;
+        _emit('net_device_list', _getDeviceList());
+    }, 1000);
 }
 
 // ─── Registo de handlers Socket.IO ────────────────────────────────────────────

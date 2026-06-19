@@ -498,27 +498,28 @@ function _trySpawn(command, scriptPath, rootDir, onExitCallback) {
 
         proc.stdout.on('data', (data) => {
             started = true;
-            const msg = data.toString().trim();
+            const msg = data.toString('utf8').trim();
+            if (!msg) return;
             if (msg.includes('READY')) {
                 console.log('✅ [Python AI] Servidor de IA está PRONTO e operacional.');
             }
-            console.log(`[Python AI]: ${msg}`);
+            // Logger.info já emite console.log internamente — não duplicar
             Logger.getInstance().info('PYTHON', 'PYTHON_STDOUT', msg);
         });
 
         proc.stderr.on('data', (data) => {
-            const msg = data.toString().trim();
+            const msg = data.toString('utf8').trim();
+            if (!msg) return;
             // uvicorn imprime info no stderr — não tratar como erro fatal
             if (msg.includes('Uvicorn running') || msg.includes('Started') || msg.startsWith('INFO:')) {
                 started = true;
-                console.log(`[Python AI]: ${msg}`);
                 Logger.getInstance().info('PYTHON', 'PYTHON_STDOUT', msg);
-            } else if (msg.includes('DeprecationWarning')) {
-                // Silenciar ou baixar nível de avisos de depreciação para não assustar o usuário
+            } else if (msg.includes('DeprecationWarning') || msg.includes('UserWarning')) {
+                // Silenciar avisos de depreciação para não poluir o log
                 Logger.getInstance().warn('PYTHON', 'PYTHON_WARN', msg);
             } else {
+                // Erros reais — visível no console
                 console.error(`[Python AI ERRO]: ${msg}`);
-                Logger.getInstance().error('PYTHON', 'PYTHON_STDERR', msg);
             }
         });
 

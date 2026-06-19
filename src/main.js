@@ -1,6 +1,13 @@
 const path = require('path');
 const fs = require('fs');
 
+// ⚡ Fix de encoding UTF-8 no terminal Windows (evita ├│├¬├í em vez de ó,ê,á)
+if (process.platform === 'win32') {
+    try {
+        require('child_process').execSync('chcp 65001', { stdio: 'ignore', shell: true });
+    } catch (_) { /* ignora se chcp não disponível */ }
+}
+
 const { app, BrowserWindow, ipcMain } = require('electron');
 
 // Carregador manual de .env para desenvolvimento e produção
