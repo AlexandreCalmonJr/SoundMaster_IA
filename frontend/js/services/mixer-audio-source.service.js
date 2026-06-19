@@ -40,6 +40,7 @@
     };
 
     const _renderedElements = new Set();
+    let _initialEnumerationDone = false;
 
     // ─── Inicialização ────────────────────────────────────────────────────────
 
@@ -80,6 +81,9 @@
             }
             const devices = await navigator.mediaDevices.enumerateDevices();
 
+            const oldInputs = [..._state.inputDevices];
+            const oldOutputs = [..._state.outputDevices];
+
             _state.inputDevices = devices.filter(d => d.kind === 'audioinput');
             _state.outputDevices = devices.filter(d => d.kind === 'audiooutput');
 
@@ -102,10 +106,51 @@
             }
 
             _notifyDevicesUpdated();
+
+            _notifyDeviceChanges(oldInputs, _state.inputDevices, 'entrada');
+            _notifyDeviceChanges(oldOutputs, _state.outputDevices, 'saída');
+
+            _initialEnumerationDone = true;
         } catch (err) {
             console.error('[AudioSource] Erro ao enumerar dispositivos:', err);
             _notifyDevicesUpdated();
         }
+    }
+
+    function _notifyDeviceChanges(oldList, newList, type) {
+        if (!_initialEnumerationDone) return;
+        
+        const toast = window.SoundMasterToast || window.parent?.SoundMasterToast;
+        if (!toast) return;
+
+        // Find connected devices
+        const connected = newList.filter(n => n.deviceId && n.deviceId !== 'default' && !oldList.some(o => o.deviceId === n.deviceId));
+        // Find disconnected devices
+        const disconnected = oldList.filter(o => o.deviceId && o.deviceId !== 'default' && !newList.some(n => n.deviceId === o.deviceId));
+
+        connected.forEach(dev => {
+            const isUi24 = /soundcraft|ui24/i.test(dev.label);
+            const isP2 = /realtek|conexant|via hd|high definition|p2|jack|headphone|fones|plug|alto-falante|speaker|microfone|built-in/i.test(dev.label);
+            if (isUi24) {
+                toast.showToast(`🎤 Soundcraft Ui24R (USB) conectada como dispositivo de ${type}!`, 'success', 5000);
+            } else if (isP2) {
+                toast.showToast(`🔌 Dispositivo P2/Onboard de ${type} conectado: ${dev.label || 'Conector P2'}`, 'success', 4000);
+            } else {
+                toast.showToast(`🔌 Dispositivo USB de ${type} conectado: ${dev.label || 'Interface USB'}`, 'success', 4000);
+            }
+        });
+
+        disconnected.forEach(dev => {
+            const isUi24 = /soundcraft|ui24/i.test(dev.label);
+            const isP2 = /realtek|conexant|via hd|high definition|p2|jack|headphone|fones|plug|alto-falante|speaker|microfone|built-in/i.test(dev.label);
+            if (isUi24) {
+                toast.showToast(`⚠️ Soundcraft Ui24R (USB) desconectada de ${type}!`, 'error', 6000);
+            } else if (isP2) {
+                toast.showToast(`🔌 Dispositivo P2/Onboard de ${type} desconectado: ${dev.label || 'Conector P2'}`, 'warning', 4000);
+            } else {
+                toast.showToast(`🔌 Dispositivo USB de ${type} desconectado: ${dev.label || 'Interface USB'}`, 'warning', 4000);
+            }
+        });
     }
 
     async function _onDeviceChange() {

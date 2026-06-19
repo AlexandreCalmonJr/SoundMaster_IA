@@ -17,15 +17,14 @@
         </div>
     </header>
 
-    <div class="flex flex-col gap-4 mb-6">
-        <!-- Microphone Selector -->
-        <div class="flex items-center gap-3 px-4 py-2 bg-black/70 border border-white/5 rounded-xl">
-            <label for="mic-select" class="text-xs font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">Hardware In:</label>
-            <select id="mic-select" class="flex-1 bg-transparent text-xs text-cyan-400 font-bold outline-none cursor-pointer" aria-label="Selecionar entrada de microfone">
-                <option value="default">Microfone Padrão</option>
-            </select>
-            <div class="h-4 w-px bg-white/10"></div>
-            <div class="text-xs text-slate-500 font-mono">FFT: <span id="analyzer-fft-info">32768 (1.3Hz res)</span></div>
+    <!-- 🎤 Configuração do Caminho do Sinal de Entrada -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+        <div class="lg:col-span-3">
+            <audio-source-selector id="analyzer-audio-selector" show-channel="true" class="block"></audio-source-selector>
+        </div>
+        <div class="bg-slate-900/60 border border-white/5 rounded-2xl p-4 flex flex-col justify-center items-center h-full">
+            <span class="text-[9px] uppercase font-black text-slate-500 tracking-widest mb-1">Resolução FFT</span>
+            <span id="analyzer-fft-info" class="text-xs font-mono font-bold text-cyan-400">32768 (1.3Hz res)</span>
         </div>
     </div>    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-4">
         <!-- Gráfico de Magnitude -->

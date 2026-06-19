@@ -10,6 +10,41 @@
     </header>
 
     <div class="max-w-4xl space-y-8">
+
+        <!-- 🎤 Fonte de Áudio para Medições -->
+        <div class="bg-slate-900/80 border border-cyan-500/20 rounded-2xl p-8">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                </div>
+                <div>
+                    <h3 class="text-xs font-black uppercase tracking-widest text-slate-300">Fonte de Áudio para Medições</h3>
+                    <p class="text-[11px] text-slate-500 mt-0.5">Selecione o microfone usado para análises, RT60, SPL e medições acústicas</p>
+                </div>
+            </div>
+
+            <!-- Explicação das opções -->
+            <div class="grid gap-3 mb-6" style="grid-template-columns:1fr 1fr">
+                <div class="bg-black/30 border border-white/5 rounded-xl p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                        <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wide">Microfone do PC</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 leading-relaxed">Selecione o mic conectado diretamente no computador (USB, P2 ou integrado).</p>
+                </div>
+                <div class="bg-black/30 border border-white/5 rounded-xl p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="2" y1="14" x2="6" y2="14"/><line x1="10" y1="8" x2="14" y2="8"/><line x1="18" y1="16" x2="22" y2="16"/></svg>
+                        <span class="text-[11px] font-bold text-amber-400 uppercase tracking-wide">Mic via Mesa</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 leading-relaxed">Mic conectado na mesa (canal X). Use a Ui24R com USB ou line-in do PC para captura.</p>
+                </div>
+            </div>
+
+            <!-- Componente seletor -->
+            <audio-source-selector id="settings-audio-selector" show-channel="true" class="block"></audio-source-selector>
+        </div>
+
         <!-- Geral -->
         <div class="bg-slate-900/80 border border-white/10 rounded-2xl p-8">
             <h3 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-8">Preferências de Interface</h3>

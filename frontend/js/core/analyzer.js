@@ -1387,6 +1387,17 @@
                 }
             }
 
+            if (isClipping) {
+                const now = Date.now();
+                if (!window._lastClippingToastTime || now - window._lastClippingToastTime > 8000) {
+                    window._lastClippingToastTime = now;
+                    const toast = window.SoundMasterToast || window.parent?.SoundMasterToast;
+                    if (toast) {
+                        toast.showToast("🚨 CLIPPING DETECTADO! Reduza o ganho de entrada para evitar distorção.", "error", 4000);
+                    }
+                }
+            }
+
             let peakDb = -Infinity;
             let peakIndex = 0;
             const minBin = Math.floor(20 * analyserFast.fftSize / audioCtx.sampleRate);

@@ -292,8 +292,6 @@ class AudioSourceSelector extends HTMLElement {
         }
     }
 
-    updateHint    }
-
     updateHint(state) {
         const hasUi24rUsb = state.inputDevices.some(d => /soundcraft|ui24/i.test(d.label));
         const hintEl = this.querySelector('#audio-source-ui24r-hint');

@@ -207,6 +207,49 @@
                 }
             });
         });
+
+        // ─── Disparadores do Playground de Notificações ───────────────────────
+        const getToast = () => window.SoundMasterToast || window.parent?.SoundMasterToast;
+        pm._on(pm._el('btn-test-usb-in'), 'click', function () {
+            const t = getToast();
+            if (t) t.showToast("🎤 Soundcraft Ui24R (USB) conectada como dispositivo de entrada!", "success", 5000);
+            pm._log('sim-log', 'Mock: USB conectada');
+        });
+        pm._on(pm._el('btn-test-usb-out'), 'click', function () {
+            const t = getToast();
+            if (t) t.showToast("⚠️ Soundcraft Ui24R (USB) desconectada de entrada!", "error", 6000);
+            pm._log('sim-log', 'Mock: USB desconectada', 'warn');
+        });
+        pm._on(pm._el('btn-test-p2-in'), 'click', function () {
+            const t = getToast();
+            if (t) t.showToast("🔌 Dispositivo P2/Onboard de entrada conectado: Realtek High Definition Audio", "success", 4000);
+            pm._log('sim-log', 'Mock: P2 conectado');
+        });
+        pm._on(pm._el('btn-test-p2-out'), 'click', function () {
+            const t = getToast();
+            if (t) t.showToast("🔌 Dispositivo P2/Onboard de entrada desconectado: Realtek High Definition Audio", "warning", 4000);
+            pm._log('sim-log', 'Mock: P2 desconectado', 'warn');
+        });
+        pm._on(pm._el('btn-test-mixer-online'), 'click', function () {
+            const t = getToast();
+            if (t) t.showToast("✅ Conectado à mesa Ui24R!", "success", 3500);
+            pm._log('sim-log', 'Mock: Mesa Conectada');
+        });
+        pm._on(pm._el('btn-test-mixer-offline'), 'click', function () {
+            const t = getToast();
+            if (t) t.showToast("❌ Conexão perdida com a mesa Ui24R!", "error", 4500);
+            pm._log('sim-log', 'Mock: Mesa Desconectada', 'warn');
+        });
+        pm._on(pm._el('btn-test-clipping'), 'click', function () {
+            const t = getToast();
+            if (t) t.showToast("🚨 CLIPPING DETECTADO! Reduza o ganho de entrada para evitar distorção.", "error", 4000);
+            pm._log('sim-log', 'Mock: Clipping de áudio', 'warn');
+        });
+        pm._on(pm._el('btn-test-feedback'), 'click', function () {
+            const t = getToast();
+            if (t) t.showToast("⚠️ Risco de feedback detectado em 1000Hz (85%)!", "warning", 4000);
+            pm._log('sim-log', 'Mock: Risco de microfonia', 'warn');
+        });
     }
 
     function destroy() { 

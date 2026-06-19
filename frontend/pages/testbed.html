@@ -113,4 +113,42 @@
             </div>
         </div>
     </div>
+
+    <!-- 🔔 Playground de Teste de Notificações (Toasts) -->
+    <div class="bg-slate-800/60 border border-white/10 rounded-2xl p-5 mb-6">
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+            <span class="text-cyan-400">🔔</span> Playground de Teste de Notificações (Toasts)
+        </h3>
+        <p class="text-slate-500 text-xs mb-4">Simule eventos físicos de hardware e condições críticas de áudio para validar as notificações visuais.</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Coluna 1: Hardware USB -->
+            <div class="bg-black/30 p-4 rounded-xl border border-white/5 flex flex-col gap-2">
+                <span class="text-[9px] uppercase font-black text-slate-500 tracking-wider">Conexão USB (Ui24R)</span>
+                <button id="btn-test-usb-in" class="py-2 px-3 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-bold transition-all">🔌 Conectar USB</button>
+                <button id="btn-test-usb-out" class="py-2 px-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/20 rounded-lg text-xs font-bold transition-all">🔌 Desconectar USB</button>
+            </div>
+            
+            <!-- Coluna 2: Hardware P2 -->
+            <div class="bg-black/30 p-4 rounded-xl border border-white/5 flex flex-col gap-2">
+                <span class="text-[9px] uppercase font-black text-slate-500 tracking-wider">Conexão Analógica P2</span>
+                <button id="btn-test-p2-in" class="py-2 px-3 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 border border-cyan-500/20 rounded-lg text-xs font-bold transition-all">🎧 Conectar P2</button>
+                <button id="btn-test-p2-out" class="py-2 px-3 bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 border border-amber-500/20 rounded-lg text-xs font-bold transition-all">🎧 Desconectar P2</button>
+            </div>
+            
+            <!-- Coluna 3: Conexão da Mesa -->
+            <div class="bg-black/30 p-4 rounded-xl border border-white/5 flex flex-col gap-2">
+                <span class="text-[9px] uppercase font-black text-slate-500 tracking-wider">Status de Rede (Mesa)</span>
+                <button id="btn-test-mixer-online" class="py-2 px-3 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-bold transition-all">✅ Mesa Online</button>
+                <button id="btn-test-mixer-offline" class="py-2 px-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/20 rounded-lg text-xs font-bold transition-all">❌ Mesa Offline</button>
+            </div>
+            
+            <!-- Coluna 4: Alertas de Áudio -->
+            <div class="bg-black/30 p-4 rounded-xl border border-white/5 flex flex-col gap-2">
+                <span class="text-[9px] uppercase font-black text-slate-500 tracking-wider">Monitoramento de Áudio</span>
+                <button id="btn-test-clipping" class="py-2 px-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/20 rounded-lg text-xs font-bold transition-all">🚨 Simular Clipping</button>
+                <button id="btn-test-feedback" class="py-2 px-3 bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 border border-amber-500/20 rounded-lg text-xs font-bold transition-all">⚠️ Simular Microfonia</button>
+            </div>
+        </div>
+    </div>
 </section>

@@ -1,24 +1,15 @@
-/**
- * SoundMaster — SocketService v2 (Resilient)
- * ============================================
- * T26: Reconexão Passiva + Reconciliação de Estado (Offline Queue)
- * T28: Optimistic UI — registo de locks de fader para rubber-band fix
- */
 (function () {
     'use strict';
 
     let _socket = null;
     let _initialized = false;
-
-    // ─── Offline Command Queue (T26) ─────────────────────────────────────────
+    let _isOnline = false;
+    let _reconnectTs = null;
     const _offlineQueue = [];
     const MAX_QUEUE_SIZE = 100;
-    let   _isOnline      = false;
-    let   _reconnectTs   = null;
-
-    // ─── Optimistic UI Lock Registry (T28) ───────────────────────────────────
-    const _faderLocks    = new Map();
+    const _faderLocks = new Map();
     const LOCK_DURATION_MS = 300;
+    let _lastMixerConnectedState = null;
 
     // ─── Toast não intrusivo ──────────────────────────────────────────────────
     let _toastEl = null;
@@ -147,11 +138,25 @@
         });
 
         _socket.on('mixer_status', (data) => {
+            const isConnected = !!data.connected;
             AppStore.setState({
-                mixerConnected: !!data.connected,
-                mixerStatusMsg: data.msg || (data.connected ? 'Conectado' : 'Offline')
+                mixerConnected: isConnected,
+                mixerStatusMsg: data.msg || (isConnected ? 'Conectado' : 'Offline')
             });
             if (data.msg) AppStore.addLog(data.msg);
+
+            // Toast notification on connection state changes
+            if (_lastMixerConnectedState !== null && _lastMixerConnectedState !== isConnected) {
+                const toast = window.SoundMasterToast || window.parent?.SoundMasterToast;
+                if (toast) {
+                    if (isConnected) {
+                        toast.showToast("✅ Conectado à mesa Ui24R!", "success", 3500);
+                    } else {
+                        toast.showToast("❌ Conexão perdida com a mesa Ui24R!", "error", 4500);
+                    }
+                }
+            }
+            _lastMixerConnectedState = isConnected;
         });
 
         _socket.on('master_level', (data) => {
@@ -367,7 +372,21 @@
         _socket.on('feedback_cut_success',  (data) => { if (data?.msg) AppStore.addLog(data.msg); });
         _socket.on('channel_selected_external', (s) => AppStore.addLog(`Canal externo: ${s.type} ${s.number}`));
         _socket.on('feedback_risk_result', (data) => {
-            if (data.risk > 0.7) AppStore.addLog(`⚠️ Risco feedback ${data.hz}Hz: ${Math.round(data.risk * 100)}%`);
+            if (data.risk > 0.7) {
+                AppStore.addLog(`⚠️ Risco feedback ${data.hz}Hz: ${Math.round(data.risk * 100)}%`);
+
+                // Throttle notifications per frequency (10 seconds)
+                const now = Date.now();
+                window._lastFeedbackToasts = window._lastFeedbackToasts || {};
+                const lastTime = window._lastFeedbackToasts[data.hz] || 0;
+                if (now - lastTime > 10000) {
+                    window._lastFeedbackToasts[data.hz] = now;
+                    const toast = window.SoundMasterToast || window.parent?.SoundMasterToast;
+                    if (toast) {
+                        toast.showToast(`⚠️ Risco de feedback detectado em ${data.hz}Hz (${Math.round(data.risk * 100)}%)!`, "warning", 4000);
+                    }
+                }
+            }
         });
 
         window.addEventListener('beforeunload', () => { if (_socket) _socket.disconnect(); });
