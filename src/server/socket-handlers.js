@@ -27,16 +27,20 @@ function registerSocketHandlers(io, appDataDir = './logs') {
     };
 
     netDiag.init(io);
-    loopbackService.init(io);
-    mixerDiscovery.init(io);
 
-    // Auto-descoberta: inicia varredura se ainda não há mesa conectada
+    // ⚡ Defer serviços não-críticos para após o Event Loop estar livre
+    setImmediate(() => {
+        loopbackService.init(io);
+        mixerDiscovery.init(io);
+    });
+
+    // Auto-descoberta: aguarda 5s para dar tempo ao servidor estabilizar
     setTimeout(() => {
         if (!mixerSingleton.getMixer()) {
             console.log('[SocketHandlers] Nenhuma mesa conectada — iniciando auto-descoberta...');
             mixerDiscovery.startDiscovery();
         }
-    }, 2000);
+    }, 5000);
 
     let activeConnections = 0;
     let feedbackCooldowns = new Map();

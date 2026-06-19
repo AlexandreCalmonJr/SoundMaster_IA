@@ -15,7 +15,7 @@
     "postinstall": "node scripts/install-python-deps.js && electron-rebuild -f -w better-sqlite3",
     "test": "vitest run",
     "pretest": "npm rebuild better-sqlite3 --runtime=node --update-binary",
-    "prestart": "electron-rebuild -f -w better-sqlite3",
+    "prestart": "node scripts/check-rebuild.js",
     "testbed": "node tests/testbed.js",
     "audit": "vitest run tests/audit.test.js",
     "audit:quick": "echo 'Use: npm run audit para rodar auditoria completa' && echo 'Abra AUDIT_INTERACTIVE.html para teste visual interativo' && echo 'Consulte AUDIT_GUIDE.md para instruções detalhadas'"

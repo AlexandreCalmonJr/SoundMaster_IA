@@ -33,15 +33,9 @@ const os      = require('os');
 const dns     = require('dns');
 
 // multicast-dns para descoberta Bonjour/mDNS
-let mdns;
+// ⚡ LAZY INIT: instanciado apenas quando init() é chamado, não no require()
+let mdns = null;
 let mdnsTimer = null;
-try {
-    mdns = require('multicast-dns')();
-    mdns.setMaxListeners(20);
-} catch (e) {
-    console.warn('[NetDiag] multicast-dns não disponível:', e.message);
-    mdns = null;
-}
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -109,6 +103,18 @@ let _io = null;  // referência ao Socket.IO server
  */
 function init(io) {
     _io = io;
+
+    // ⚡ Lazy init do mDNS — só abre socket UDP quando o módulo for realmente usado
+    if (!mdns) {
+        try {
+            mdns = require('multicast-dns')();
+            mdns.setMaxListeners(20);
+        } catch (e) {
+            console.warn('[NetDiag] multicast-dns não disponível:', e.message);
+            mdns = null;
+        }
+    }
+
     _startMdnsDiscovery();
     console.log('[NetDiag] Módulo iniciado.');
 }

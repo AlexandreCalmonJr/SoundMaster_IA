@@ -56,7 +56,7 @@ function checkFaderRateLimit(key) {
 const EVENT_LOOP_WARN_MS = 50;
 let _lagMonitorId = null;
 
-const EVENT_LOOP_WARMUP_MS = 5000;
+const EVENT_LOOP_WARMUP_MS = 15000; // cobre todo o startup (Python probe + deps check)
 
 function startEventLoopMonitor(logger) {
     if (_lagMonitorId) return;

@@ -1,4 +1,4 @@
-const { spawn, execSync, spawnSync } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -21,6 +21,26 @@ function getPythonCommand() {
 
 const REQS_PATH = installUtils.REQS_PATH;
 const DEPS_STATE_PATH = path.join(__dirname, '..', '..', 'backend', 'ai', '.deps_state.json');
+
+// Cache do comando Python resolvido — evita múltiplos spawnSync no startup
+const PYTHON_CMD_CACHE_PATH = path.join(__dirname, '..', '..', 'node_modules', '.python-cmd-cache.json');
+
+function _readPythonCmdCache() {
+    try {
+        const data = JSON.parse(fs.readFileSync(PYTHON_CMD_CACHE_PATH, 'utf8'));
+        // Cache válido por 24h
+        if (data && data.cmd && Date.now() - (data.ts || 0) < 86400000) {
+            return data.cmd;
+        }
+    } catch { /* cache ausente ou corrompido */ }
+    return null;
+}
+
+function _writePythonCmdCache(cmd) {
+    try {
+        fs.writeFileSync(PYTHON_CMD_CACHE_PATH, JSON.stringify({ cmd, ts: Date.now() }), 'utf8');
+    } catch { /* falha silenciosa */ }
+}
 const CORE_IMPORT_CHECK = 'import fastapi, multipart';
 
 function _getVenvPython(rootDir) {
@@ -48,7 +68,7 @@ function _getFileHash(filePath) {
 
 function _pythonRuns(command, args) {
     try {
-        return spawnSync(command, args, { stdio: 'ignore' }).status === 0;
+        return spawnSync(command, args, { stdio: 'ignore', timeout: 5000 }).status === 0;
     } catch (_) {
         return false;
     }
@@ -68,6 +88,33 @@ function _choosePython(candidates, requireCore = false) {
     return usable.find(_isYamnetCapablePython) || usable[0] || null;
 }
 
+/**
+ * Resolve o melhor comando Python disponível de forma ASSÍNCRONA.
+ * Usa cache em disco para evitar spawnSync repetido no startup.
+ * @param {string[]} candidates
+ * @returns {Promise<string|null>}
+ */
+function _resolvePythonAsync(candidates) {
+    return new Promise((resolve) => {
+        // 1. Tenta o cache primeiro (caminho rápido — sem spawnSync)
+        const cached = _readPythonCmdCache();
+        if (cached && candidates.some(c => c === cached || cached.includes(path.basename(c, '.exe')))) {
+            resolve(cached);
+            return;
+        }
+
+        // 2. Resolve em background sem bloquear o Event Loop
+        setImmediate(() => {
+            const cmd = _choosePython(candidates);
+            if (cmd) {
+                _writePythonCmdCache(cmd);
+                console.log(`[Python AI] Comando Python resolvido e cacheado: ${cmd}`);
+            }
+            resolve(cmd);
+        });
+    });
+}
+
 function _resolveProjectRoot(rootDir) {
     if (fs.existsSync(path.join(rootDir, 'backend', 'ai', 'ai_server.py'))) {
         return rootDir;
@@ -85,6 +132,10 @@ function _resolveAiDir(rootDir) {
     return path.join(rootDir, 'backend', 'ai');
 }
 
+/**
+ * Valida e instala dependências Python de forma ASSÍNCRONA (não-bloqueante).
+ * Toda a lógica de verificação e instalação roda em background via setImmediate.
+ */
 function _ensurePythonDeps() {
     if (!fs.existsSync(REQS_PATH)) {
         console.warn('[Python AI] requirements.txt não encontrado em:', REQS_PATH);
@@ -94,62 +145,68 @@ function _ensurePythonDeps() {
     const currentHash = _getFileHash(REQS_PATH);
     const statePath = DEPS_STATE_PATH;
 
-    const venvPython = _getVenvPython(path.join(__dirname, '..', '..'));
-    const candidates = [];
-    if (venvPython) candidates.push(venvPython);
-    candidates.push('python', 'python3');
-    if (process.platform === 'win32') candidates.push('py');
-
-    const pythonCmd = _choosePython(candidates);
-
-    if (!pythonCmd) {
-        console.warn('[Python AI] Python nao encontrado.');
-        return;
-    }
-
-    // Cache: se já validamos este hash com sucesso, não repete
+    // Verificação rápida via cache de estado (leitura de arquivo — não-bloqueante)
     let savedState = null;
     if (fs.existsSync(statePath)) {
         try { savedState = JSON.parse(fs.readFileSync(statePath, 'utf8')); } catch (_) {}
     }
-    if (savedState && savedState.hash === currentHash && savedState.success === true && _hasCoreDeps(pythonCmd) && _isYamnetCapablePython(pythonCmd)) {
+
+    // ✅ Caminho rápido: hash idêntico + instalação bem-sucedida anterior → skip imediato
+    if (savedState && savedState.hash === currentHash && savedState.success === true) {
         console.log('[Python AI] Dependências Python já validadas.');
         return;
     }
 
-    // Se o estado salvo mostra falha mas fastapi roda no Python atual, ignora reinstalação.
-    if (savedState && savedState.hash === currentHash && savedState.success === false && _hasCoreDeps(pythonCmd) && _isYamnetCapablePython(pythonCmd)) {
-        console.log('[Python AI] Instalação anterior falhou mas core está funcional. Modo Lite.');
+    // ✅ Caminho rápido: hash idêntico + falha anterior mas core OK → Modo Lite
+    if (savedState && savedState.hash === currentHash && savedState.success === false) {
+        console.log('[Python AI] Instalação anterior incompleta. Iniciando em Modo Lite.');
         return;
     }
 
-    console.log('[Python AI] Instalando dependências essenciais...');
-    const coreOk = installUtils.installCoreReqs(pythonCmd);
-    if (!coreOk || !_hasCoreDeps(pythonCmd)) {
-        console.error('[Python AI] Falha ao instalar dependências essenciais. Execute manualmente:');
-        console.error(`[Python AI]   ${pythonCmd} -m pip install -r backend/ai/requirements.txt`);
-        return;
-    }
-    console.log('[Python AI] Dependências essenciais OK.');
+    // Instalação necessária — executa em background para não bloquear o Event Loop
+    console.log('[Python AI] Verificando dependências em background...');
+    setImmediate(() => {
+        const venvPython = _getVenvPython(path.join(__dirname, '..', '..'));
+        const candidates = [];
+        if (venvPython) candidates.push(venvPython);
+        candidates.push('python', 'python3');
+        if (process.platform === 'win32') candidates.push('py');
 
-    // Instala opcionais (falhas são apenas avisos)
-    const optResults = installUtils.installOptionalReqs(pythonCmd);
-    for (const r of optResults) {
-        if (r.ok) {
-            console.log(`[Python AI] ${r.name} instalado.`);
-        } else {
-            console.warn(`[Python AI] ${r.name} não disponível para esta plataforma.`);
+        const pythonCmd = _choosePython(candidates);
+
+        if (!pythonCmd) {
+            console.warn('[Python AI] Python não encontrado. IA desativada.');
+            return;
         }
-    }
 
-    // Salva estado
-    try {
-        fs.writeFileSync(statePath, JSON.stringify({
-            hash: currentHash,
-            success: true,
-            timestamp: Date.now()
-        }, null, 2), 'utf8');
-    } catch (_) {}
+        console.log('[Python AI] Instalando dependências essenciais...');
+        const coreOk = installUtils.installCoreReqs(pythonCmd);
+        if (!coreOk || !_hasCoreDeps(pythonCmd)) {
+            console.error('[Python AI] Falha ao instalar dependências essenciais. Execute manualmente:');
+            console.error(`[Python AI]   ${pythonCmd} -m pip install -r backend/ai/requirements.txt`);
+            try {
+                fs.writeFileSync(statePath, JSON.stringify({
+                    hash: currentHash, success: false, timestamp: Date.now()
+                }, null, 2), 'utf8');
+            } catch (_) {}
+            return;
+        }
+
+        const optResults = installUtils.installOptionalReqs(pythonCmd);
+        for (const r of optResults) {
+            if (r.ok) {
+                console.log(`[Python AI] ${r.name} instalado.`);
+            } else {
+                console.warn(`[Python AI] ${r.name} não disponível para esta plataforma.`);
+            }
+        }
+
+        try {
+            fs.writeFileSync(statePath, JSON.stringify({
+                hash: currentHash, success: true, timestamp: Date.now()
+            }, null, 2), 'utf8');
+        } catch (_) {}
+    });
 }
 
 function _findPython() {
@@ -255,15 +312,13 @@ function startPythonAI(rootDir, onExitCallback) {
     _backoffStopping = false;
     _backoffRetryCount = 0;
 
+    // Validação de deps em background — não bloqueia o startup
     _ensurePythonDeps();
     _ensureAIModelAsync(rootDir);
 
     const projectRoot = _resolveProjectRoot(rootDir);
     const aiDir = _resolveAiDir(rootDir);
-    let pythonScript = path.join(aiDir, 'ai_server.py');
-    if (!fs.existsSync(pythonScript)) {
-        pythonScript = path.join(aiDir, 'ai_server.py');
-    }
+    const pythonScript = path.join(aiDir, 'ai_server.py');
 
     if (!fs.existsSync(pythonScript)) {
         console.warn(`[Python AI] Script não encontrado: ${pythonScript}. IA desativada.`);
@@ -271,59 +326,69 @@ function startPythonAI(rootDir, onExitCallback) {
     }
 
     const isWin = process.platform === 'win32';
-    let venvPython = isWin 
-        ? path.join(projectRoot, 'venv', 'Scripts', 'python.exe')
-        : path.join(projectRoot, 'venv', 'bin', 'python');
 
-    if (!fs.existsSync(venvPython)) {
-        venvPython = isWin
-            ? path.join(aiDir, 'venv', 'Scripts', 'python.exe')
-            : path.join(aiDir, 'venv', 'bin', 'python');
-    }
+    // Resolução do venv Python (apenas verificações de fs.existsSync — rápidas)
+    const venvCandidates = [
+        isWin ? path.join(projectRoot, 'venv', 'Scripts', 'python.exe')
+              : path.join(projectRoot, 'venv', 'bin', 'python'),
+        isWin ? path.join(aiDir, 'venv', 'Scripts', 'python.exe')
+              : path.join(aiDir, 'venv', 'bin', 'python'),
+        path.join(app.getPath('userData'), 'python-portable', 'python.exe'),
+        path.join(projectRoot, 'python-portable', 'python.exe'),
+        path.join(aiDir, 'python-portable', 'python.exe'),
+    ];
 
-    if (!fs.existsSync(venvPython)) {
-        venvPython = path.join(app.getPath('userData'), 'python-portable', 'python.exe');
-    }
-
-    if (!fs.existsSync(venvPython)) {
-        venvPython = path.join(projectRoot, 'python-portable', 'python.exe');
-        if (!fs.existsSync(venvPython)) {
-            venvPython = path.join(aiDir, 'python-portable', 'python.exe');
-        }
-    }
-
-    const commands = [];
-    if (fs.existsSync(venvPython)) {
+    const venvPython = venvCandidates.find(fs.existsSync) || null;
+    if (venvPython) {
         console.log(`[Python AI] Ambiente virtual detectado em: ${venvPython}`);
-        commands.push(venvPython);
     }
 
-    commands.push('python');
-    commands.push('python3');
-    if (isWin) commands.push('py');
+    // Monta lista de candidatos — venv primeiro, depois sistema
+    const allCandidates = [];
+    if (venvPython) allCandidates.push(venvPython);
+    allCandidates.push('python', 'python3');
+    if (isWin) allCandidates.push('py');
 
     console.log(`[Python AI] Tentando iniciar servidor em: ${pythonScript}`);
 
-    const validCommands = commands.filter(_checkPython);
-    const sortedCommands = [
-        ...validCommands.filter(_isYamnetCapablePython),
-        ...validCommands.filter(c => !_isYamnetCapablePython(c)),
-    ];
+    // ✅ OTIMIZAÇÃO: lê o comando Python do cache (sem spawnSync no caminho crítico)
+    //    A resolução completa ocorre de forma assíncrona
+    const cachedCmd = _readPythonCmdCache();
+    const cachedCandidates = cachedCmd ? [cachedCmd] : [];
+    const prioritizedCandidates = [...cachedCandidates, ...allCandidates];
 
-    function _spawnAttempt() {
+    // Spawn imediato com o candidato mais provável (cache hit → 0 spawnSync)
+    // Se falhar, tenta os próximos candidatos com backoff
+    function _spawnAttempt(candidateList) {
         if (_backoffStopping) return null;
-        for (const cmd of sortedCommands) {
+
+        for (const cmd of candidateList) {
             const proc = _trySpawn(cmd, pythonScript, path.dirname(pythonScript), (code) => {
                 setAiAvailable(false);
                 if (onExitCallback) onExitCallback(code);
-                _scheduleRestart(_spawnAttempt);
+                // No restart, usar a lista completa (não só o cache)
+                _scheduleRestart(() => _spawnWithValidation(allCandidates));
             });
             if (proc) {
                 resolvedPythonCommand = cmd;
+                if (cmd !== cachedCmd) {
+                    _writePythonCmdCache(cmd);
+                }
                 return proc;
             }
         }
         return null;
+    }
+
+    // Versão com validação completa (para restarts após falha)
+    function _spawnWithValidation(candidates) {
+        if (_backoffStopping) return null;
+        const valid = candidates.filter(_checkPython);
+        const sorted = [
+            ...valid.filter(_isYamnetCapablePython),
+            ...valid.filter(c => !_isYamnetCapablePython(c)),
+        ];
+        return _spawnAttempt(sorted.length > 0 ? sorted : candidates);
     }
 
     function _onProcessReady() {
@@ -332,7 +397,14 @@ function startPythonAI(rootDir, onExitCallback) {
         _backoffStableTimer = setTimeout(_resetBackoff, _BACKOFF_RESET_AFTER_MS);
     }
 
-    let pythonProcess = _spawnAttempt();
+    // Primeiro spawn: usa cache ou venv diretamente (sem validação bloqueante)
+    let pythonProcess = _spawnAttempt(prioritizedCandidates);
+
+    if (!pythonProcess && !cachedCmd) {
+        // Fallback: resolução com spawnSync (apenas se cache vazio e spawn direto falhou)
+        console.log('[Python AI] Fallback: validando candidatos Python...');
+        pythonProcess = _spawnWithValidation(allCandidates);
+    }
 
     if (pythonProcess) {
         pythonProcess.isReady = false;
@@ -351,7 +423,7 @@ function startPythonAI(rootDir, onExitCallback) {
         pythonProcess.healthCheck = () => healthPromise;
     } else {
         setAiAvailable(false);
-        _scheduleRestart(_spawnAttempt);
+        _scheduleRestart(() => _spawnWithValidation(allCandidates));
     }
     return pythonProcess;
 }
