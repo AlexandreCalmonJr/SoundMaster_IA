@@ -138,11 +138,7 @@ class Router {
             return this.navigate(routeData.redirect);
         }
 
-        if (window.AuthService && !AuthService.isAuthenticated()) {
-            console.log('[Router] Redirecionando para auth.html (não autenticado)');
-            window.location.replace('auth.html');
-            return;
-        }
+
 
         this.navigating = true;
 

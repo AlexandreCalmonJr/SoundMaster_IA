@@ -83,12 +83,12 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     });
     expressApp.use('/api/', apiLimiter);
 
-    // Rota raiz → auth.html (gate de autenticação standalone ou JSON de status para mobile)
+    // Rota raiz → index.html (ignora autenticação em aplicativo local desktop)
     expressApp.get('/', (req, res) => {
         if (req.headers['accept'] && req.headers['accept'].includes('application/json')) {
             return res.json({ status: "online", version: "1.0.0", message: "SoundMaster Pro Backend" });
         }
-        res.sendFile(path.join(rootDir, 'frontend', 'auth.html'));
+        res.sendFile(path.join(rootDir, 'frontend', 'index.html'));
     });
 
     expressApp.use(express.static(path.join(rootDir, 'frontend')));

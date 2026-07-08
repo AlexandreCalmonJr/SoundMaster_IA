@@ -79,3 +79,16 @@ async function handleRegister(e) {
 
 document.getElementById('form-login')?.addEventListener('submit', handleLogin);
 document.getElementById('form-register')?.addEventListener('submit', handleRegister);
+
+// H5: Real-time validation logic
+document.addEventListener('DOMContentLoaded', () => {
+    const inputs = document.querySelectorAll('form input');
+    inputs.forEach(input => {
+        input.addEventListener('input', () => {
+            input.classList.add('touched');
+        });
+        input.addEventListener('blur', () => {
+            if (input.value) input.classList.add('touched');
+        });
+    });
+});

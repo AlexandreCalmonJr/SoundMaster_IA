@@ -302,19 +302,5 @@
 <script src="js/pages/auth-page.js"></script>
 <script src="js/services/auth.service.js"></script>
 <script src="js/services/python-installer.service.js"></script>
-<script>
-    // H5: Real-time validation logic
-    document.addEventListener('DOMContentLoaded', () => {
-        const inputs = document.querySelectorAll('form input');
-        inputs.forEach(input => {
-            input.addEventListener('input', () => {
-                input.classList.add('touched');
-            });
-            input.addEventListener('blur', () => {
-                if (input.value) input.classList.add('touched');
-            });
-        });
-    });
-</script>
 </body>
 </html>
