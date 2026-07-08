@@ -28,7 +28,6 @@
             'AcousticCalibration',
             'ChartExport',
             'SoundMasterLayout',
-            'SoundMasterMixerPanel',
             'SoundMasterTour',
             'SoundMasterAIChat',
             'OnboardingService',

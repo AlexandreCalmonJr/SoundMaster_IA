@@ -153,6 +153,16 @@
             border-color: var(--border-active);
             box-shadow: 0 0 0 3px var(--accent-dim);
         }
+        
+        /* H5: Real-time validation feedback */
+        input.touched:invalid {
+            border-color: rgba(239, 68, 68, 0.5);
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        }
+        input.touched:valid {
+            border-color: rgba(34, 197, 94, 0.5);
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+        }
 
         .btn-submit {
             width: 100%;
@@ -292,5 +302,19 @@
 <script src="js/pages/auth-page.js"></script>
 <script src="js/services/auth.service.js"></script>
 <script src="js/services/python-installer.service.js"></script>
+<script>
+    // H5: Real-time validation logic
+    document.addEventListener('DOMContentLoaded', () => {
+        const inputs = document.querySelectorAll('form input');
+        inputs.forEach(input => {
+            input.addEventListener('input', () => {
+                input.classList.add('touched');
+            });
+            input.addEventListener('blur', () => {
+                if (input.value) input.classList.add('touched');
+            });
+        });
+    });
+</script>
 </body>
 </html>

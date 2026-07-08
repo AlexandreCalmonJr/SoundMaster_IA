@@ -49,6 +49,7 @@
                 { id: 'mixer-fx',      label: 'Envios de Efeito' },
                 { id: 'voice-presets', label: 'Presets de Voz' },
                 { id: 'stage-plot',    label: 'Palco Virtual' },
+                { id: 'ui24r-embed',   label: 'Mesa Original' },
             ]
         },
         eq: {
@@ -88,6 +89,17 @@
         const sidebar = _el('app-sidebar');
 
         if (!panel || !panelNav) return;
+
+        // Auto-close category panel when a sub-item is clicked
+        panelNav.addEventListener('click', (e) => {
+            const btn = e.target.closest('.panel-nav-btn');
+            if (btn) {
+                panel.classList.remove('open');
+                sidebar?.classList.remove('panel-open');
+                document.querySelectorAll('.rail-btn[data-category]').forEach(b => b.classList.remove('active'));
+                activeCategory = null;
+            }
+        });
 
         // Handle rail button clicks
         document.querySelectorAll('.rail-btn').forEach(btn => {
@@ -161,38 +173,18 @@
 
     function initGlobalToggles() {
         const btnSidebar = _el('btn-toggle-sidebar');
-        const btnMixer = _el('btn-toggle-mixer');
-        const btnMain = _el('btn-toggle-main');
-        const txtMixer = _el('txt-toggle-mixer');
 
         btnSidebar?.addEventListener('click', () => {
             const isCollapsed = document.body.classList.toggle('sidebar-collapsed');
             localStorage.setItem('sidebar-collapsed', isCollapsed);
         });
 
-        btnMixer?.addEventListener('click', () => {
-            const isCollapsed = document.body.classList.toggle('mixer-collapsed');
-            if (txtMixer) {
-                txtMixer.innerText = isCollapsed ? 'Mostrar' : 'Mixer';
-            }
-            localStorage.setItem('mixer-collapsed', isCollapsed);
-        });
-
-        btnMain?.addEventListener('click', () => {
-            document.body.classList.toggle('main-collapsed');
-        });
-
         // Restore saved states or collapse by default on small screens (<= 1024px)
         const isSmallScreen = window.innerWidth <= 1024;
         const savedSidebar = localStorage.getItem('sidebar-collapsed');
-        const savedMixer = localStorage.getItem('mixer-collapsed');
 
         if (savedSidebar === 'true' || (savedSidebar === null && isSmallScreen)) {
             document.body.classList.add('sidebar-collapsed');
-        }
-        if (savedMixer === 'true' || (savedMixer === null && isSmallScreen)) {
-            document.body.classList.add('mixer-collapsed');
-            if (txtMixer) txtMixer.innerText = 'Mostrar';
         }
     }
 

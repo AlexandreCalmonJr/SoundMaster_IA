@@ -848,7 +848,18 @@
         }
 
         if (els.btnNewChat) {
-            pm._on(els.btnNewChat, 'click', () => {
+            pm._on(els.btnNewChat, 'click', async () => {
+                // H3: Confirm before destructive action
+                if (window.parent && window.parent.SoundMasterUI) {
+                    const confirmed = await window.parent.SoundMasterUI.confirm({
+                        title: 'Nova Conversa?',
+                        description: 'O histórico atual do chat será apagado permanentemente.',
+                        confirmText: 'Apagar Histórico',
+                        cancelText: 'Cancelar',
+                        variant: 'danger'
+                    });
+                    if (!confirmed) return;
+                }
                 AppStore.setState({ aiChatHistory: [] });
             });
         }
@@ -1083,6 +1094,32 @@
         const initialAuto = AppStore.getState?.().aiAutonomousMode;
         const toggleEl = pm._el('home-toggle-autonomous');
         if (toggleEl) toggleEl.checked = !!initialAuto;
+
+        // H5: Disable actions when mic is offline to prevent errors
+        pm._subscribe('AppStore', 'micActive', (active) => {
+            const toggleDisabled = (el, disabled) => {
+                if (!el) return;
+                if (disabled) {
+                    el.classList.add('sm-action-disabled');
+                    if (!el.dataset.oldTitle) el.dataset.oldTitle = el.title || '';
+                    el.title = 'Conecte o microfone primeiro (Ctrl+M)';
+                } else {
+                    el.classList.remove('sm-action-disabled');
+                    el.title = el.dataset.oldTitle || '';
+                }
+            };
+            
+            toggleDisabled(els.btnListen, !active);
+            toggleDisabled(els.btnSendAnalysis, !active);
+            
+            if (els.quickActions) {
+                const btns = els.quickActions.querySelectorAll('button');
+                btns.forEach(b => toggleDisabled(b, !active));
+            }
+        });
+        // Set initial state
+        const micInitial = AppStore.getState?.().micActive;
+        if (!micInitial && els.btnListen) els.btnListen.classList.add('sm-action-disabled');
 
         // Load persisted history from server
         (function () {

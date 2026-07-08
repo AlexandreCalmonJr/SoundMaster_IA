@@ -327,7 +327,8 @@ function _safeSetItem(key, value) {
                 const ollamaTimeout = Math.max(10, Math.min(120, isNaN(rawTimeout) ? 45 : rawTimeout));
 
                 if (!ollamaModel) {
-                    alert('Informe o nome do modelo Ollama.');
+                    if (window.SoundMasterUI) window.SoundMasterUI.showToast('Informe o nome do modelo Ollama.', 'error');
+                    else alert('Informe o nome do modelo Ollama.');
                     return;
                 }
 
@@ -336,9 +337,22 @@ function _safeSetItem(key, value) {
 
                 try {
                     await _apiPost('/api/ollama/config', { model: ollamaModel, timeout: ollamaTimeout });
-                    alert('Configurações do Ollama salvas!');
+                    if (window.SoundMasterUI) window.SoundMasterUI.showToast('Configurações do Ollama salvas!', 'success');
+                    else alert('Configurações do Ollama salvas!');
                 } catch (err) {
-                    alert('Salvo localmente. Reinicie o servidor para aplicar.');
+                    if (window.SoundMasterUI) window.SoundMasterUI.showToast('Salvo localmente. Reinicie para aplicar.', 'warning');
+                    else alert('Salvo localmente. Reinicie o servidor para aplicar.');
+                }
+            });
+        }
+        
+        // H5: Validação visual em tempo real
+        const timeoutInputEl = pm._el('ollama-timeout');
+        if (timeoutInputEl) {
+            pm._on(timeoutInputEl, 'input', (e) => {
+                const errorSpan = pm._el('ollama-timeout-error');
+                if (errorSpan) {
+                    errorSpan.classList.toggle('hidden', e.target.checkValidity());
                 }
             });
         }
@@ -381,6 +395,7 @@ function _safeSetItem(key, value) {
         if (autoStartInput) {
             pm._on(autoStartInput, 'change', (e) => {
                 _safeSetItem('sm-settings-auto-start', e.target.checked);
+                if (window.SoundMasterUI) window.SoundMasterUI.showToast('Preferência salva', 'success');
             });
         }
 
@@ -392,6 +407,7 @@ function _safeSetItem(key, value) {
                 if (window.SoundMasterAnalyzer && typeof window.SoundMasterAnalyzer.setHighResolution === 'function') {
                     window.SoundMasterAnalyzer.setHighResolution(e.target.checked);
                 }
+                if (window.SoundMasterUI) window.SoundMasterUI.showToast('Preferência salva', 'success');
             });
         }
 
@@ -400,6 +416,7 @@ function _safeSetItem(key, value) {
         if (unitSelect) {
             pm._on(unitSelect, 'change', (e) => {
                 _safeSetItem('sm-settings-unit', e.target.value);
+                if (window.SoundMasterUI) window.SoundMasterUI.showToast('Preferência salva', 'success');
             });
         }
 

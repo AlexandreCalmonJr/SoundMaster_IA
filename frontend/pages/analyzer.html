@@ -32,9 +32,9 @@
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2 px-1">
                 <h4 class="text-xs font-black uppercase text-slate-400 tracking-widest">Magnitude (Transfer Function)</h4>
                 <div class="flex flex-wrap items-center gap-2">
-                    <button id="btn-toggle-coherence" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-red-500/20 text-red-300 border-red-500/30">Coherence</button>
-                    <button id="btn-multispectrum" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-slate-700 text-slate-500 border-white/10" title="Sobrepor RTA">Σ</button>
-                    <button id="btn-autoscale-mag" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-slate-700 text-slate-400 border-white/10 hover:bg-cyan-700/30" title="Auto-Scale Y">↕</button>
+                    <button id="btn-toggle-coherence" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-red-500/20 text-red-300 border-red-500/30" title="Coerência: Mostra a confiabilidade da medição em cada frequência. Valores baixos indicam ruído ou reflexões">Coherence</button>
+                    <button id="btn-multispectrum" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-slate-700 text-slate-500 border-white/10" title="Multi-espectro: Sobrepõe o analisador RTA sobre a Transfer Function para comparação visual">Σ</button>
+                    <button id="btn-autoscale-mag" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-slate-700 text-slate-400 border-white/10 hover:bg-cyan-700/30" title="Auto-escala vertical: Ajusta automaticamente o zoom do eixo Y para melhor visualização">↕</button>
                     <span class="text-[10px] font-mono text-cyan-400 font-bold bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-500/10">dB / Hz</span>
                     <span class="w-px h-3 bg-white/10"></span>
                     <input type="number" id="freq-range-min" value="20" min="10" max="20000" class="w-10 bg-transparent text-[8px] text-cyan-300 font-mono text-center outline-none border border-white/10 rounded" title="Freq min (Hz)">
@@ -50,11 +50,11 @@
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2 px-1">
                 <h4 class="text-xs font-black uppercase text-amber-500 tracking-widest">Resposta de Fase</h4>
                 <div class="flex flex-wrap items-center gap-2">
-                    <button id="btn-toggle-phase-mode" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer" aria-label="Alternar entre fase embrulhada e desembrulhada">Wrapped</button>
-                    <button id="btn-toggle-group-delay" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-slate-700 text-slate-500 border-white/10">Group Delay</button>
+                    <button id="btn-toggle-phase-mode" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer" aria-label="Alternar entre fase embrulhada e desembrulhada" title="Modo de Fase: Wrapped mostra ±180°, Unwrapped mostra a fase contínua para análise de polaridade">Wrapped</button>
+                    <button id="btn-toggle-group-delay" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-slate-700 text-slate-500 border-white/10" title="Group Delay: Mostra o atraso em milissegundos por frequência. Útil para verificar alinhamento temporal de caixas">Group Delay</button>
                     <span id="tf-phase-unit" class="text-[10px] font-mono text-amber-400 font-bold bg-amber-950/40 px-2 py-0.5 rounded border border-amber-500/10">Deg / Hz</span>
-                    <button id="btn-toggle-lir" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-slate-700 text-slate-500 border-white/10">LIR</button>
-                    <button id="btn-autoscale-phase" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-slate-700 text-slate-400 border-white/10 hover:bg-cyan-700/30" title="Auto-Scale Y">↕</button>
+                    <button id="btn-toggle-lir" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-slate-700 text-slate-500 border-white/10" title="LIR (Live Impulse Response): Mostra a resposta ao impulso em tempo real para verificar reflexões e decaimento">LIR</button>
+                    <button id="btn-autoscale-phase" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded border transition-all cursor-pointer bg-slate-700 text-slate-400 border-white/10 hover:bg-cyan-700/30" title="Auto-escala vertical: Ajusta automaticamente o zoom do eixo Y">↕</button>
                 </div>
             </div>
             <canvas id="tf-phase-canvas" class="w-full h-48 md:h-64" aria-label="Gráfico de resposta de fase do espectro de áudio"></canvas>

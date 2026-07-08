@@ -168,7 +168,6 @@ describe('XSS - volunteer, settings, and app shell renderers', () => {
     const mixerAudioSrc = read('frontend/js/services/mixer-audio-source.service.js');
     const audioSelectorSrc = read('frontend/js/ui/audio-source-selector.js');
     const debugSrc = read('frontend/js/pages/debug-page.js');
-    const mixerPanelSrc = read('frontend/js/ui/mixer-panel.ui.js');
     const homeSrc = read('frontend/js/pages/home-page.js');
     const aiChatSrc = read('frontend/js/pages/ai-chat-page.js');
     const feedbackDetectorSrc = read('frontend/js/core/feedback-detector.js');
@@ -221,11 +220,7 @@ describe('XSS - volunteer, settings, and app shell renderers', () => {
         expect(audioSelectorSrc).not.toContain("outputSel.innerHTML = '<option value=\"\">Padrão do sistema</option>' +");
     });
 
-    it('avoids preset name interpolation in mixer panel and wraps debug log rendering', () => {
-        expect(mixerPanelSrc).toContain("const label = document.createElement('span');");
-        expect(mixerPanelSrc).toContain("button.textContent = 'Carregar';");
-        expect(mixerPanelSrc).not.toContain("div.innerHTML = '<span>' + p.name");
-
+    it('wraps debug log rendering', () => {
         expect(debugSrc).toContain("safeSetHtml(consoleDiv, logs.map(function (l) {");
         expect(debugSrc).toContain("var safeText = l.text.replace(/[&<>\"']/g");
     });

@@ -17,7 +17,7 @@ let _compactTimers = [];
 function _startAutoCompact(db, name) {
     const timer = setInterval(() => {
         try {
-            db.persistence.compactDatafile();
+            db.compactDatafile();
         } catch (_) {
             console.warn(`[DB] Falha ao compactar ${name}`);
         }
@@ -45,7 +45,7 @@ function compactAll() {
     for (let i = 0; i < dbs.length; i++) {
         if (dbs[i]) {
             try {
-                dbs[i].persistence.compactDatafile();
+                dbs[i].compactDatafile();
             } catch (_) {
                 console.warn(`[DB] Falha ao compactar ${names[i]}`);
             }

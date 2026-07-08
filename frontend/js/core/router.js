@@ -28,6 +28,7 @@ const ROUTE_MAP = {
     'stage-plot':        { path: 'pages/stage-plot.html',        title: 'Palco Virtual',       category: 'Mixer' },
     'automixer':         { path: 'pages/automixer.html',         title: 'Auto-Mixer Dugan',   category: 'Automação' },
     'scene-builder':     { path: 'pages/scene-builder.html',     title: 'Scene Builder',       category: 'Automação' },
+    'ui24r-embed':       { path: 'pages/ui24r-embed.html',       title: 'Mesa Original',       category: 'Mixer' },
     'systems':           { path: 'pages/systems.html',           title: 'Conexão Ui24R',       category: 'Sistema' },
     'hardware-diagnostics': { path: 'pages/hardware-diagnostics.html', title: 'Diagnóstico Hardware', category: 'Sistema' },
     'aes67':             { path: 'pages/aes67.html',             title: 'Saúde de Cabos',      category: 'Sistema' },
@@ -72,6 +73,7 @@ class Router {
             'stage-plot': 'js/pages/stage-plot-page.js',
             'automixer': 'js/pages/automixer-page.js',
             'scene-builder': 'js/pages/scene-builder-page.js',
+            'ui24r-embed': 'js/pages/ui24r-embed-page.js',
             'systems': 'js/pages/systems-page.js',
             'hardware-diagnostics': 'js/pages/hardware-diagnostics-page.js',
             'aes67': 'js/pages/aes67-page.js',
@@ -105,9 +107,20 @@ class Router {
                 this.navigate(target);
             }
         });
+
+        // H3: Browser back/forward support via History API
+        window.addEventListener('popstate', (e) => {
+            if (e.state && e.state.pageId && ROUTE_MAP[e.state.pageId]) {
+                this._navigateInternal(e.state.pageId, false);
+            }
+        });
     }
 
     async navigate(pageId) {
+        return this._navigateInternal(pageId, true);
+    }
+
+    async _navigateInternal(pageId, pushHistory = true) {
         if (this.navigating) {
             console.warn(`[Router] Navegação ignorada (já em andamento): ${pageId}`);
             return;
@@ -156,14 +169,21 @@ class Router {
         try {
             console.log(`[Router] Navegando para: ${pageId}`);
 
+            // H1: Start navigation progress bar
+            if (window.SoundMasterUI) window.SoundMasterUI.startProgress();
+
             // Exit animation
             container.classList.remove('page-enter');
             container.classList.add('page-exit');
             await this._wait(200);
 
-            // Fetch new page HTML fragment (cache-busting query parameter to bypass cache)
-            const response = await fetch(this.routes[pageId] + '?v=' + Date.now());
-            if (!response.ok) throw new Error(`Erro ao carregar: ${pageId}`);
+            // Fetch new page HTML fragment (cache-busting only if not file://)
+            const isFile = window.location.protocol === 'file:';
+            const fetchUrl = isFile ? this.routes[pageId] : this.routes[pageId] + '?v=' + Date.now();
+            const response = await fetch(fetchUrl);
+            if (!response.ok && !isFile) throw new Error(`Erro ao carregar: ${pageId}`);
+            // Note: on file:// protocol fetch might not have .ok=true even if successful depending on the environment, 
+            // but if it fails completely it will throw. We'll rely on text() throwing if empty/not found.
             const html = await response.text();
 
             // Prepare the HTML content with styles and page bridge
@@ -245,6 +265,9 @@ class Router {
 
             this.currentPage = pageId;
 
+            // H1: End navigation progress bar
+            if (window.SoundMasterUI) window.SoundMasterUI.endProgress();
+
             // Enter animation
             container.classList.remove('page-exit');
             container.classList.add('page-enter');
@@ -252,8 +275,14 @@ class Router {
             // Update sidebar active states
             this.updateActiveLinks(pageId);
 
+            // H3: Push to browser history for back/forward support
+            if (pushHistory) {
+                const url = new URL(window.location);
+                url.searchParams.set('page', pageId);
+                history.pushState({ pageId }, routeData.title, url);
+            }
+
             // Dispatch page-loaded event with route metadata
-            const routeData = ROUTE_MAP[pageId];
             document.dispatchEvent(new CustomEvent('page-loaded', {
                 detail: {
                     pageId,
@@ -267,21 +296,45 @@ class Router {
 
         } catch (error) {
             console.error('[Router] Erro na navegação:', error);
+
+            // H1: End progress bar on error
+            if (window.SoundMasterUI) window.SoundMasterUI.endProgress();
+
             container.classList.remove('page-exit');
             const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+
+            // H9: Descriptive error page with retry and go-home
+            const errorMsg = error.message || 'Erro desconhecido';
+            const isNetworkError = errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError');
+            const errorDesc = isNetworkError
+                ? 'Parece que houve um problema de conexão. Verifique se o servidor está rodando e tente novamente.'
+                : `Não foi possível carregar a página "${ROUTE_MAP[pageId]?.title || pageId}". O arquivo pode estar faltando ou houve um erro no servidor.`;
+
             iframeDoc.open();
             iframeDoc.write(`
                 <html lang="pt-br">
                 <head>
                     <link rel="stylesheet" href="css/styles.css">
                 </head>
-                <body class="bg-transparent text-slate-200 flex flex-col items-center justify-center min-h-[60vh] gap-4">
-                    <div class="text-6xl">⚠️</div>
-                    <h2 class="text-2xl font-black text-white">Página não encontrada</h2>
-                    <p class="text-slate-400 text-sm">Não foi possível carregar esta página.</p>
-                    <button onclick="window.parent.history.back()" class="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold transition-all mt-4">
-                        Voltar
-                    </button>
+                <body class="bg-transparent text-slate-200" style="margin:0;padding:0;">
+                    <div class="sm-error-page">
+                        <div class="sm-error-icon">${isNetworkError ? '📡' : '⚠️'}</div>
+                        <h2 class="sm-error-title">${isNetworkError ? 'Sem Conexão' : 'Erro de Navegação'}</h2>
+                        <p class="sm-error-desc">${errorDesc}</p>
+                        <div style="background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; font-family: monospace; font-size: 10px; margin-top: 10px; text-align: left; overflow: auto; max-height: 150px; color: #ff8888;">
+                            <strong>[DEBUG INFO]</strong><br>
+                            Message: ${error.message}<br>
+                            Stack: ${error.stack}
+                        </div>
+                        <div class="sm-error-actions">
+                            <button onclick="window.parent.router.navigate('home')" class="sm-error-btn sm-error-btn-secondary">
+                                🏠 Ir para Dashboard
+                            </button>
+                            <button onclick="window.parent.router.navigate('${pageId}')" class="sm-error-btn sm-error-btn-primary">
+                                🔄 Tentar Novamente
+                            </button>
+                        </div>
+                    </div>
                 </body>
                 </html>
             `);
@@ -351,6 +404,7 @@ class Router {
             'stage-plot': 'StagePlotPage',
             'automixer': 'AutomixerPage',
             'scene-builder': 'SceneBuilderPage',
+            'ui24r-embed': 'Ui24rEmbedPage',
             'systems': 'SystemsPage',
             'hardware-diagnostics': 'HardwareDiagnosticsPage',
             'aes67': 'Aes67Page',

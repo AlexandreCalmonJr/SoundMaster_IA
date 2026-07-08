@@ -32,13 +32,17 @@ document.addEventListener('DOMContentLoaded', async function () {
     };
 
     await Promise.all([
-        loadComponent('app-sidebar', 'components/sidebar.html'),
-        loadComponent('app-mixer', 'components/mixer-panel.html')
+        loadComponent('app-sidebar', 'components/sidebar.html')
     ]);
 
     // 2. Init layout (sidebar, toggles, breadcrumbs) — must run AFTER sidebar HTML is loaded
     if (window.SoundMasterLayout) {
         window.SoundMasterLayout.init();
+    }
+
+    // 2b. Init Nielsen UI Enhancements (H1, H3, H6, H7)
+    if (window.SoundMasterUI) {
+        window.SoundMasterUI.init();
     }
 
     // 3. Init Socket & Services
@@ -47,10 +51,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         window.socket = SocketService.raw();
     }
 
-    // 4. Init Mixer Panel
-    if (window.SoundMasterMixerPanel) {
-        window.SoundMasterMixerPanel.init();
-    }
+
 
     // 5. Init Onboarding Tour
     if (window.SoundMasterTour) {
@@ -61,6 +62,13 @@ document.addEventListener('DOMContentLoaded', async function () {
     document.getElementById('btn-help')?.addEventListener('click', () => {
         if (window.SoundMasterTour) {
             window.SoundMasterTour.openHelpModal();
+        }
+    });
+
+    // 6a. Global Search button (H6)
+    document.getElementById('btn-global-search')?.addEventListener('click', () => {
+        if (window.SoundMasterSearch) {
+            window.SoundMasterSearch.toggle();
         }
     });
 
@@ -79,8 +87,19 @@ document.addEventListener('DOMContentLoaded', async function () {
             window.router.navigate('home');
         });
 
-        document.getElementById('btn-logout')?.addEventListener('click', function () {
+        document.getElementById('btn-logout')?.addEventListener('click', async function () {
             if (window.AuthService) {
+                // H3: Confirmation before destructive action
+                if (window.SoundMasterUI) {
+                    const confirmed = await SoundMasterUI.confirm({
+                        title: 'Sair do SoundMaster?',
+                        description: 'Sua sessão será encerrada. Dados não salvos podem ser perdidos.',
+                        confirmText: 'Sair',
+                        cancelText: 'Cancelar',
+                        variant: 'danger'
+                    });
+                    if (!confirmed) return;
+                }
                 AuthService.logout();
                 window.location.replace('auth.html');
             }
@@ -95,9 +114,21 @@ document.addEventListener('DOMContentLoaded', async function () {
             const user = await AuthService.fetchMe();
             if (user) {
                 updateUserUI();
-                window.router.navigate('home');
+                // H3: Restore page from URL if navigating back
+                const urlParams2 = new URLSearchParams(window.location.search);
+                const savedPage = urlParams2.get('page');
+                if (savedPage && ROUTE_MAP[savedPage]) {
+                    window.router.navigate(savedPage);
+                } else {
+                    window.router.navigate('home');
+                }
             } else {
-                window.location.replace('auth.html');
+                // H9: Descriptive error for session expiry
+                console.warn('[SoundMaster] Sessão expirada ou inválida. Redirecionando para login.');
+                if (window.SoundMasterToast) {
+                    SoundMasterToast.showToast('Sessão expirada. Faça login novamente.', 'warning', 4000);
+                }
+                setTimeout(() => window.location.replace('auth.html'), 1500);
             }
         } else {
             window.location.replace('auth.html');

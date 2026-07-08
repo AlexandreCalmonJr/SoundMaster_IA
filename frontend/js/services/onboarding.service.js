@@ -30,15 +30,6 @@
             icon: '🎛️'
         },
         {
-            id: 'mixer-panel',
-            target: 'mixer-iframe',
-            position: 'left',
-            title: 'Painel da Mesa de Som',
-            content: 'Aqui está a sua Soundcraft Ui24R. Todos os controles da mesa são sincronizados em tempo real.',
-            icon: '🎚️',
-            required: true
-        },
-        {
             id: 'analyzer-nav',
             target: null,
             selector: 'button[data-target="analyzer"]',

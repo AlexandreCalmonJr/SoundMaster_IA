@@ -16,8 +16,7 @@ const FRONTEND_DIR = path.resolve(process.cwd(), 'frontend');
 // =============================================================================
 
 const EXPECTED_COMPONENTS = {
-  sidebar: 'frontend/components/sidebar.html',
-  mixerPanel: 'frontend/components/mixer-panel.html'
+  sidebar: 'frontend/components/sidebar.html'
 };
 
 const EXPECTED_MENU_STRUCTURE = {
@@ -55,7 +54,8 @@ const EXPECTED_MENU_STRUCTURE = {
       { id: 'mixer-aux', name: 'Monitores & Aux', file: 'pages/mixer-aux.html' },
       { id: 'mixer-fx', name: 'Envios de Efeito', file: 'pages/mixer-fx.html' },
       { id: 'voice-presets', name: 'Presets de Voz', file: 'pages/voice-presets.html' },
-      { id: 'stage-plot', name: 'Palco Virtual', file: 'pages/stage-plot.html' }
+      { id: 'stage-plot', name: 'Palco Virtual', file: 'pages/stage-plot.html' },
+      { id: 'ui24r-embed', name: 'Mesa Original', file: 'pages/ui24r-embed.html' }
     ]
   },
   eq: {
@@ -121,6 +121,7 @@ const EXPECTED_PAGES = [
   { id: 'mixer-fx', file: 'pages/mixer-fx.html', category: 'Mixer' },
   { id: 'voice-presets', file: 'pages/voice-presets.html', category: 'Mixer' },
   { id: 'stage-plot', file: 'pages/stage-plot.html', category: 'Mixer' },
+  { id: 'ui24r-embed', file: 'pages/ui24r-embed.html', category: 'Mixer' },
   { id: 'automixer', file: 'pages/automixer.html', category: 'Automação' },
   { id: 'scene-builder', file: 'pages/scene-builder.html', category: 'Automação' },
   { id: 'mixer-git', file: 'pages/mixer-git.html', category: 'Automação' },
@@ -157,14 +158,14 @@ describe('📋 AUDITA - Estrutura de Menus', function() {
     assert.strictEqual(directMenus.length, 4, `Esperado 4 menus diretos, encontrado ${directMenus.length}`);
   });
 
-  it('Deve ter 21 submenus no total', function() {
+  it('Deve ter 22 submenus no total', function() {
     let submenuCount = 0;
     Object.values(EXPECTED_MENU_STRUCTURE).forEach(menu => {
       if (menu.submenus) {
         submenuCount += menu.submenus.length;
       }
     });
-    assert.strictEqual(submenuCount, 21, `Esperado 21 submenus, encontrado ${submenuCount}`);
+    assert.strictEqual(submenuCount, 22, `Esperado 22 submenus, encontrado ${submenuCount}`);
   });
 
   it('Deve ter 3 submenus em "Medir"', function() {
@@ -175,8 +176,8 @@ describe('📋 AUDITA - Estrutura de Menus', function() {
     assert.strictEqual(EXPECTED_MENU_STRUCTURE.analysis.submenus.length, 3, 'Analisar deve ter 3 submenus');
   });
 
-  it('Deve ter 5 submenus em "Mixer"', function() {
-    assert.strictEqual(EXPECTED_MENU_STRUCTURE.mixer.submenus.length, 5, 'Mixer deve ter 5 submenus');
+  it('Deve ter 6 submenus em "Mixer"', function() {
+    assert.strictEqual(EXPECTED_MENU_STRUCTURE.mixer.submenus.length, 6, 'Mixer deve ter 6 submenus');
   });
 
   it('Deve ter 2 submenus em "EQ"', function() {
@@ -202,15 +203,11 @@ describe('🧩 AUDITA - Componentes Shell', function() {
     assert.ok(EXPECTED_COMPONENTS.sidebar, 'Componente Sidebar não encontrado');
   });
 
-  it('Deve ter componente Mixer Panel', function() {
-    assert.ok(EXPECTED_COMPONENTS.mixerPanel, 'Componente Mixer Panel não encontrado');
-  });
-
-  it('Devem haver exatamente 2 componentes principais', function() {
+  it('Devem haver exatamente 1 componentes principais', function() {
     assert.strictEqual(
       Object.keys(EXPECTED_COMPONENTS).length,
-      2,
-      'Deve haver exatamente 2 componentes shell'
+      1,
+      'Deve haver exatamente 1 componentes shell'
     );
   });
 });
@@ -221,11 +218,11 @@ describe('🧩 AUDITA - Componentes Shell', function() {
 
 describe('📄 AUDITA - Páginas e Views', function() {
   
-  it('Deve haver 25 páginas no total', function() {
+  it('Deve haver 26 páginas no total', function() {
     assert.strictEqual(
       EXPECTED_PAGES.length,
-      25,
-      `Esperado 25 páginas, encontrado ${EXPECTED_PAGES.length}`
+      26,
+      `Esperado 26 páginas, encontrado ${EXPECTED_PAGES.length}`
     );
   });
 
@@ -338,9 +335,9 @@ describe('🏷️ AUDITA - Categorização de Páginas', function() {
     assert.strictEqual(count, 3, `Esperado 3 páginas em Analisar, encontrado ${count}`);
   });
 
-  it('Deve haver 5 páginas na categoria "Mixer"', function() {
+  it('Deve haver 6 páginas na categoria "Mixer"', function() {
     const count = EXPECTED_PAGES.filter(p => p.category === 'Mixer').length;
-    assert.strictEqual(count, 5, `Esperado 5 páginas em Mixer, encontrado ${count}`);
+    assert.strictEqual(count, 6, `Esperado 6 páginas em Mixer, encontrado ${count}`);
   });
 
   it('Deve haver 2 páginas na categoria "EQ"', function() {
