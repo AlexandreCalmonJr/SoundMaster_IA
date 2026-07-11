@@ -4,6 +4,13 @@ const path = require('path');
 async function configureElectronSession() {
     const ALLOWED_PERMISSIONS = ['media', 'audioCapture', 'notifications'];
 
+    try {
+        await session.defaultSession.clearCache();
+        console.log('[Electron] Cache HTTP limpo com sucesso no início.');
+    } catch (err) {
+        console.warn('[Electron] Falha ao limpar o cache:', err.message);
+    }
+
     function isAllowedOrigin(url) {
         if (!url) return false;
         try {
@@ -39,6 +46,7 @@ function createWindow(port) {
         autoHideMenuBar: true
     });
 
+    win.webContents.session.clearCache();
     win.loadURL(`http://localhost:${port}`);
     if (process.env.NODE_ENV === 'development') {
         win.webContents.openDevTools();

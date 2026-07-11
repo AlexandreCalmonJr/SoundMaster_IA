@@ -25,6 +25,7 @@ window.sanitizeHTML = function (html) {
     if (!html) return '';
     if (window.DOMPurify) {
         return window.DOMPurify.sanitize(html, {
+            // USE_PROFILES: { html: true }
             USE_PROFILES: { html: true, svg: true, svgFilters: true }
         });
     }

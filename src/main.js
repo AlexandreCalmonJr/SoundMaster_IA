@@ -65,6 +65,10 @@ function loadEnvironmentVariables() {
             existingVars.PYTHON_PORT = '3002';
             modified = true;
         }
+        if (!existingVars.EXPECTED_GETPIP_SHA256 && !process.env.EXPECTED_GETPIP_SHA256) {
+            existingVars.EXPECTED_GETPIP_SHA256 = 'a341e1a43e38001c551a1508a73ff23636a11970b61d901d9a1cad2a18f57055';
+            modified = true;
+        }
 
         if (modified) {
             const newEnvContent = Object.entries(existingVars)
