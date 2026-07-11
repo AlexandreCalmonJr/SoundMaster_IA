@@ -171,25 +171,29 @@ function setupConsoleBridge(io) {
 }
 
 function startServer() {
-    const { server, io } = createHttpServer();
-    ioInstance = io;
-    setupConsoleBridge(io);
+    return new Promise((resolve, reject) => {
+        const { server, io } = createHttpServer();
+        ioInstance = io;
+        setupConsoleBridge(io);
 
-    server.on('error', (err) => {
-        if (err.code === 'EADDRINUSE') {
-            console.error(`[Main] Erro: A porta ${PORT} já está em uso por outro processo.`);
-            console.error('[Main] Feche outros apps que possam estar usando esta porta e tente novamente.');
-            app.quit();
-        } else {
-            console.error('[Main] Erro inesperado no servidor:', err.message);
-        }
-    });
+        server.on('error', (err) => {
+            if (err.code === 'EADDRINUSE') {
+                console.error(`[Main] Erro: A porta ${PORT} já está em uso por outro processo.`);
+                console.error('[Main] Feche outros apps que possam estar usando esta porta e tente novamente.');
+                app.quit();
+            } else {
+                console.error('[Main] Erro inesperado no servidor:', err.message);
+            }
+            reject(err);
+        });
 
-    server.listen(PORT, () => {
-        console.log('====================================');
-        console.log('SoundMaster Backend Rodando!');
-        console.log(`IP Local para acesso: http://${localIp}:${PORT}`);
-        console.log('====================================');
+        server.listen(PORT, () => {
+            console.log('====================================');
+            console.log('SoundMaster Backend Rodando!');
+            console.log(`IP Local para acesso: http://${localIp}:${PORT}`);
+            console.log('====================================');
+            resolve();
+        });
     });
 }
 
@@ -273,8 +277,8 @@ app.whenReady().then(async () => {
     if (isInitialized) return;
     isInitialized = true;
     
-    // Inicia servidor primeiro para ter ioInstance disponível
-    startServer();
+    // Inicia servidor primeiro e aguarda estar pronto
+    await startServer();
     
     triggerPythonAI();
     await configureElectronSession();
