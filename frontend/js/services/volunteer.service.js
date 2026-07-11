@@ -48,7 +48,11 @@
     }
 
     function _buttonGlyph(isVolunteer) {
-        return isVolunteer ? '&#128737;&#65039;' : '&#128100;';
+        if (isVolunteer) {
+            return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="display: block;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`;
+        } else {
+            return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="display: block;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+        }
     }
 
     // ── Categorias e rotas bloqueadas em modo voluntário ──────────────────────
@@ -407,7 +411,7 @@
         const isVol = AppStore.getState().userMode === 'volunteer';
         btn.classList.toggle('active', isVol);
         btn.title = isVol ? 'Modo Voluntário ativo — clique para desbloquear' : 'Ativar Modo Voluntário';
-        _setHtml(btn, `<span style="font-size:.95rem">${_buttonGlyph(isVol)}</span>`);
+        _setHtml(btn, _buttonGlyph(isVol));
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -430,7 +434,7 @@
 
         const badge = document.createElement('div');
         badge.id = 'volunteer-badge';
-        _setHtml(badge, '&#128737;&#65039; Modo Voluntario');
+        _setHtml(badge, `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span>Modo Voluntário</span>`);
         badge.addEventListener('click', () => {
             if (_pin) _openPinModal(); else _exitVolunteer();
         });
@@ -439,8 +443,7 @@
         const btn = document.createElement('button');
         btn.id = 'btn-volunteer-toggle';
         btn.className = 'header-btn';
-        btn.style.cssText = 'transition:.15s;border-radius:7px;padding:5px 8px;';
-        _setHtml(btn, `<span style="font-size:.95rem">${_buttonGlyph(false)}</span>`);
+        _setHtml(btn, _buttonGlyph(false));
         btn.addEventListener('click', () => {
             const isVol = AppStore.getState().userMode === 'volunteer';
             if (isVol) {
