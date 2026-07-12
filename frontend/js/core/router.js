@@ -232,7 +232,7 @@ class Router {
                 <meta charset="UTF-8">
                 <link rel="stylesheet" href="css/styles.css">
                 ${conditionalCssTags}
-                <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+                <link rel="preload" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" onerror="this.remove()">
                 ${scriptTags}
             </head>
             <body class="bg-transparent text-slate-200" style="margin: 0; padding: 0; overflow-x: hidden;" data-module="${moduleName || ''}" data-page-id="${pageId}">

@@ -110,6 +110,18 @@
             
             if (els.mobileQrCode) {
                 const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(mobileHref)}`;
+                els.mobileQrCode.onerror = function () {
+                    this.style.display = 'none';
+                    // Show URL text when QR API is unreachable (offline/mixer network)
+                    var fallback = this.parentElement?.querySelector('.qr-fallback');
+                    if (!fallback) {
+                        fallback = document.createElement('div');
+                        fallback.className = 'qr-fallback';
+                        fallback.style.cssText = 'font-size:11px;color:#94a3b8;word-break:break-all;padding:8px;text-align:center;';
+                        fallback.textContent = mobileHref;
+                        this.parentElement?.appendChild(fallback);
+                    }
+                };
                 els.mobileQrCode.src = qrUrl;
                 console.log('[HomePage] QR Code set to:', mobileHref);
             }
