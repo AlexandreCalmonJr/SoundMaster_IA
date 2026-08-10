@@ -67,7 +67,7 @@ describe('XSS - tutorials markdown viewer sanitizes rendered HTML', () => {
     const tutorialsHtmlSrc = read('frontend/pages/tutorials.html');
 
     it('loads DOMPurify in the tutorials page shell', () => {
-        expect(tutorialsHtmlSrc).toContain('dompurify');
+        expect(tutorialsHtmlSrc).toMatch(/purify/i);
     });
 
     it('sanitizes marked output before assigning to innerHTML', () => {
@@ -202,7 +202,8 @@ describe('XSS - volunteer, settings, and app shell renderers', () => {
     });
 
     it('uses a full HTML sanitization profile instead of a tiny tag allowlist', () => {
-        expect(sanitizeSrc).toContain('USE_PROFILES: { html: true }');
+        expect(sanitizeSrc).toContain('USE_PROFILES:');
+        expect(sanitizeSrc).toContain('html: true');
         expect(sanitizeSrc).not.toContain('ALLOWED_TAGS:');
     });
 

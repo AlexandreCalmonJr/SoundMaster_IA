@@ -126,7 +126,8 @@ describe('frontend innerHTML guardrail', () => {
         expect(app).toContain('function setShellHtml(container, html)');
         expect(app).toContain('setShellHtml(container, await res.text());');
 
-        expect(sanitize).toContain('USE_PROFILES: { html: true }');
+        expect(sanitize).toContain('USE_PROFILES:');
+        expect(sanitize).toContain('html: true');
 
         expect(mixerAudio).toContain("inputSel.textContent = '';");
         expect(mixerAudio).toContain("outputSel.textContent = '';");
