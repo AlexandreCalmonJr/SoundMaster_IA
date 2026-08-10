@@ -103,6 +103,10 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
     db.initDatabase(dbDir);
     authDb.initDatabase(dbDir);
     mixerGit.init(dbDir);
+    const asioAudioNative = require('./asio-audio-native');
+    asioAudioNative.init();
+    asioAudioNative.registerRoutes(expressApp);
+
     registerMappingsRoutes(expressApp, db.mappings, authenticateToken);
     registerAuthRoutes(expressApp);
     expressApp.use('/api/calculate', calculationRoutes);
