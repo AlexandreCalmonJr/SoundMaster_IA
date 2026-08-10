@@ -488,6 +488,32 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
         }
     });
 
+    expressApp.get('/api/chat/sessions', authenticateToken, (req, res) => {
+        try {
+            db.settings.find({ type: /^chat_history_/ }, (err, docs) => {
+                if (err) return res.status(500).json({ error: err.message });
+                const sessions = (docs || [])
+                    .filter(d => d.messages && d.messages.length > 0)
+                    .map(d => {
+                        const sid = d.type.replace('chat_history_', '');
+                        const msgs = d.messages || [];
+                        const firstUserMsg = msgs.find(m => m.role === 'user');
+                        return {
+                            id: sid,
+                            preview: firstUserMsg ? firstUserMsg.content.substring(0, 60) : (msgs[0]?.content?.substring(0, 60) || ''),
+                            messageCount: msgs.length,
+                            timestamp: d.timestamp || 0,
+                        };
+                    })
+                    .sort((a, b) => b.timestamp - a.timestamp)
+                    .slice(0, 30);
+                res.json({ sessions });
+            });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    });
+
     expressApp.get('/api/chat/load/:session_id', authenticateToken, (req, res) => {
         try {
             const { session_id } = req.params;

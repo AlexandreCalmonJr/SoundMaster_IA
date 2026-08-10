@@ -88,7 +88,8 @@
             suggestionCards: pm._el('home-suggestion-cards'),
             quickActions: pm._el('home-quick-actions'),
             charCounter: pm._el('home-char-counter'),
-            workspaceWrapper: pm._el('home-workspace-wrapper')
+            workspaceWrapper: pm._el('home-workspace-wrapper'),
+            sessionList: pm._el('home-session-list')
         };
     }
 
@@ -376,6 +377,78 @@
             AppStore.setState({ aiSessionId: sid });
         }
         return sid;
+    }
+
+    // -------------------------------------------------------------------------
+    // Session History Sidebar
+    // -------------------------------------------------------------------------
+
+    async function _loadSessionList() {
+        const els = _getEls();
+        if (!els.sessionList) return;
+        try {
+            const res = await fetch('/api/chat/sessions');
+            if (!res.ok) return;
+            const data = await res.json();
+            const sessions = data.sessions || [];
+            const currentSid = _getSessionId();
+
+            els.sessionList.innerHTML = '';
+
+            // Current session always first
+            const currentItem = document.createElement('div');
+            currentItem.className = 'hist-item active bg-slate-800/40 border border-cyan-500/20 rounded-xl px-3 py-2.5 cursor-pointer';
+            currentItem.innerHTML = '<div class="text-[10px] font-bold text-cyan-400 truncate">Conversa atual</div><div class="text-[9px] text-slate-500 mt-0.5">Agora</div>';
+            els.sessionList.appendChild(currentItem);
+
+            sessions.forEach(function (s) {
+                if (s.id === currentSid) return; // skip current
+                var item = document.createElement('div');
+                item.className = 'hist-item bg-slate-900/30 border border-white/5 rounded-xl px-3 py-2.5 cursor-pointer';
+                var preview = s.preview || 'Conversa';
+                var date = s.timestamp ? new Date(s.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '';
+                var count = s.messageCount || 0;
+                item.innerHTML = '<div class="text-[10px] font-bold text-slate-300 truncate">' + _sanitizeHtml(preview) + '</div>' +
+                    '<div class="text-[9px] text-slate-500 mt-0.5 flex items-center gap-1.5"><span>' + _sanitizeHtml(date) + '</span><span>·</span><span>' + count + ' msgs</span></div>';
+                pm._on(item, 'click', function () {
+                    _switchToSession(s.id);
+                });
+                els.sessionList.appendChild(item);
+            });
+
+            if (sessions.length === 0) {
+                var empty = document.createElement('div');
+                empty.className = 'text-[9px] text-slate-600 text-center py-3';
+                empty.textContent = 'Nenhuma conversa anterior';
+                els.sessionList.appendChild(empty);
+            }
+        } catch (e) {
+            console.warn('[HomePage] Error loading session list:', e);
+        }
+    }
+
+    async function _switchToSession(sid) {
+        try {
+            const res = await fetch('/api/chat/load/' + encodeURIComponent(sid));
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data && data.messages && data.messages.length > 0) {
+                var restored = data.messages.map(function (msg) {
+                    return {
+                        text: msg.content,
+                        isUser: msg.role === 'user',
+                        command: null,
+                        id: 'hist-' + msg.ts + '-' + Math.random().toString(36).substr(2, 4),
+                        executed: false,
+                        ts: msg.ts * 1000
+                    };
+                });
+                AppStore.setState({ aiSessionId: sid, aiChatHistory: restored });
+                _loadSessionList();
+            }
+        } catch (e) {
+            console.warn('[HomePage] Error switching session:', e);
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -861,18 +934,11 @@
 
         if (els.btnNewChat) {
             pm._on(els.btnNewChat, 'click', async () => {
-                // H3: Confirm before destructive action
-                if (window.parent && window.parent.SoundMasterUI) {
-                    const confirmed = await window.parent.SoundMasterUI.confirm({
-                        title: 'Nova Conversa?',
-                        description: 'O histórico atual do chat será apagado permanentemente.',
-                        confirmText: 'Apagar Histórico',
-                        cancelText: 'Cancelar',
-                        variant: 'danger'
-                    });
-                    if (!confirmed) return;
-                }
-                AppStore.setState({ aiChatHistory: [] });
+                // Save current history first, then start fresh
+                _persistHistory();
+                var newSid = 'ses-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+                AppStore.setState({ aiSessionId: newSid, aiChatHistory: [] });
+                _loadSessionList();
             });
         }
 
@@ -1097,6 +1163,9 @@
 
         // Render initial suggestion cards
         _renderSuggestionCards(0);
+
+        // Load session history sidebar
+        _loadSessionList();
 
         // Autonomy toggle initialization & sync
         pm._subscribe('AppStore', 'aiAutonomousMode', (val) => {
