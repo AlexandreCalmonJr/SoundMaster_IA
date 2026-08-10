@@ -1,8 +1,8 @@
 <section id="home" class="module page-section active">
-    <!-- Inline styles encapsulados para animações do chat e avatar -->
     <style>
+        /* Skeleton loading pulse */
         .skeleton-pulse {
-            background: linear-gradient(90deg, rgba(30, 41, 59, 0.4) 25%, rgba(51, 65, 85, 0.5) 50%, rgba(30, 41, 59, 0.4) 75%);
+            background: linear-gradient(90deg, rgba(30,41,59,.4) 25%, rgba(51,65,85,.5) 50%, rgba(30,41,59,.4) 75%);
             background-size: 200% 100%;
             animation: loading-pulse 1.6s infinite ease-in-out;
             border-radius: 4px;
@@ -12,367 +12,288 @@
             vertical-align: middle;
         }
         @keyframes loading-pulse {
-            0% { background-position: 200% 0; }
+            0%   { background-position: 200% 0; }
             100% { background-position: -200% 0; }
         }
 
-        .ai-pulse-core {
-            background: radial-gradient(circle, rgba(6, 182, 212, 0.4) 0%, rgba(15, 23, 42, 0.8) 70%, rgba(11, 15, 23, 1) 100%);
-            animation: hud-glow 4s ease-in-out infinite;
-        }
+        /* Chat scrollbar */
+        .home-scroll-chat::-webkit-scrollbar { width: 5px; }
+        .home-scroll-chat::-webkit-scrollbar-track { background: transparent; }
+        .home-scroll-chat::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 4px; }
+        .home-scroll-chat::-webkit-scrollbar-thumb:hover { background: rgba(6,182,212,.3); }
 
-        .ai-ring-outer.spin-slow {
-            animation: spin-anim 25s linear infinite;
+        /* F) Smooth intro → chat transition */
+        #home-intro-container {
+            transition: opacity 0.35s cubic-bezier(.4,0,.2,1), transform 0.35s cubic-bezier(.4,0,.2,1);
         }
-
-        .ai-ring-outer.spin-fast {
-            animation: spin-anim 1.5s linear infinite;
-        }
-
-        @keyframes spin-anim {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        @keyframes hud-glow {
-            0%, 100% {
-                transform: scale(0.98);
-                opacity: 0.7;
-                filter: drop-shadow(0 0 6px rgba(6, 182, 212, 0.3));
-            }
-            50% {
-                transform: scale(1.02);
-                opacity: 0.95;
-                filter: drop-shadow(0 0 14px rgba(6, 182, 212, 0.6));
-            }
-        }
-
-        /* Estilo da barra de rolagem do chat */
-        .home-scroll-chat::-webkit-scrollbar {
-            width: 5px;
-        }
-        .home-scroll-chat::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .home-scroll-chat::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-        }
-        .home-scroll-chat::-webkit-scrollbar-thumb:hover {
-            background: rgba(6, 182, 212, 0.3);
+        #home-intro-container.hiding {
+            opacity: 0;
+            transform: translateY(-16px);
+            pointer-events: none;
         }
 
         .fade-in-up {
-            animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation: fadeInUp 0.4s cubic-bezier(.16,1,.3,1) forwards;
         }
         @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(12px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
+        /* Prompt pills collapse */
         .prompt-pills-container {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            max-height: 44px;
-            opacity: 1;
-            transform: scale(1);
+            transition: all 0.3s cubic-bezier(.4,0,.2,1);
+            max-height: 44px; opacity: 1; transform: scale(1);
         }
         .prompt-pills-container.collapsed {
-            max-height: 0;
-            opacity: 0;
-            transform: scale(0.95);
-            pointer-events: none;
-            margin-bottom: 0 !important;
-            padding-bottom: 0 !important;
-            overflow: hidden;
+            max-height: 0; opacity: 0; transform: scale(.95);
+            pointer-events: none; margin: 0 !important; padding: 0 !important; overflow: hidden;
         }
 
-        .typing-dots {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 4px 8px;
-        }
+        /* Typing dots */
+        .typing-dots { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; }
         .typing-dot {
-            width: 5px;
-            height: 5px;
-            border-radius: 50%;
-            background-color: rgba(6, 182, 212, 0.85);
+            width: 5px; height: 5px; border-radius: 50%;
+            background-color: rgba(6,182,212,.85);
             animation: typing-bounce 1.4s infinite ease-in-out both;
         }
-        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
-        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
-
+        .typing-dot:nth-child(1) { animation-delay: -.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -.16s; }
         @keyframes typing-bounce {
-            0%, 80%, 100% { transform: scale(0.3); opacity: 0.4; }
+            0%, 80%, 100% { transform: scale(.3); opacity: .4; }
             40% { transform: scale(1); opacity: 1; }
         }
 
+        /* Chat container sizing */
         #home-chat-container {
             flex: 1 1 auto;
-            min-height: 340px;
-            max-height: 580px;
+            min-height: 300px;
+            max-height: 520px;
             width: 100%;
         }
 
+        /* D) Suggestion cards as horizontal pills */
         .suggestion-card {
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: all 0.2s cubic-bezier(.16,1,.3,1);
         }
         .suggestion-card:hover {
-            transform: translateY(-2px);
-            border-color: rgba(6, 182, 212, 0.3) !important;
-            box-shadow: 0 8px 24px rgba(6, 182, 212, 0.12);
+            border-color: rgba(6,182,212,.35) !important;
+            background: rgba(6,182,212,.06) !important;
+            color: rgb(6,182,212) !important;
+        }
+        .suggestion-card-exit { opacity: 0; transform: scale(.94); transition: all .2s ease; }
+        .suggestion-card-enter { opacity: 0; transform: translateY(4px); }
+        .suggestion-card-enter-active { opacity: 1; transform: translateY(0); transition: all .3s ease; }
+
+        /* E) Quick action compact icons */
+        .qa-icon {
+            transition: all 0.15s ease;
+        }
+        .qa-icon:hover {
+            color: rgb(6,182,212);
+            background: rgba(6,182,212,.1);
+        }
+        .qa-icon:active { transform: scale(.92); }
+        .qa-icon.active-pill {
+            background: rgba(6,182,212,.2);
+            border-color: rgba(6,182,212,.5);
+            color: rgb(6,182,212);
         }
 
-        .quick-action-pill {
-            transition: all 0.2s ease;
-        }
-        .quick-action-pill:active {
-            transform: scale(0.96);
-        }
-        .quick-action-pill.active-pill {
-            background: rgba(6, 182, 212, 0.2);
-            border-color: rgba(6, 182, 212, 0.5);
-            color: rgb(6, 182, 212);
-        }
+        .chat-bubble { width: fit-content !important; }
 
-        .suggestion-card-exit {
-            opacity: 0;
-            transform: scale(0.94);
-            transition: all 0.2s ease;
-        }
-        .suggestion-card-enter {
-            opacity: 0;
-            transform: translateY(6px);
-        }
-        .suggestion-card-enter-active {
-            opacity: 1;
-            transform: translateY(0);
-            transition: all 0.3s ease;
-        }
-
-        .chat-bubble {
-            width: fit-content !important;
+        /* Input focus glow */
+        .input-composer:focus-within {
+            border-color: rgba(6,182,212,.4);
+            box-shadow: 0 0 0 1px rgba(6,182,212,.1), 0 4px 24px rgba(6,182,212,.06);
         }
     </style>
 
-    <!-- Header Compacto (Telemetria Rápida no Topo) -->
-    <header class="flex items-center justify-end gap-6 mb-6">
-        <div id="home-ai-ring" class="hidden"></div>
-        <!-- Telemetria Rápida no Topo Direito -->
-        <div class="flex items-center gap-4 bg-slate-900/80 border border-white/10 px-5 py-2.5 rounded-2xl shadow-xl">
-            <button class="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer text-xs" data-target="analyzer" title="Analisador SPL">
-                <span class="text-[9px] uppercase font-black text-slate-500 tracking-wider">SPL:</span>
-                <span id="home-spl-val" class="font-mono font-bold text-cyan-400" aria-live="polite"><span class="skeleton-pulse"></span></span>
+    <!-- Hidden AI ring element (preserved for home-page.js binding) -->
+    <div id="home-ai-ring" class="hidden"></div>
+
+    <!-- B) Telemetria como Status Bar horizontal no topo -->
+    <div class="flex items-center justify-between gap-4 pb-4 mb-6 border-b border-white/10">
+        <div class="flex items-center gap-2">
+            <div class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></div>
+            <span class="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">SoundMaster AI</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <button class="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer" data-target="analyzer" title="Analisador SPL">
+                <span class="text-[9px] uppercase font-black text-slate-500 tracking-wider">SPL</span>
+                <span id="home-spl-val" class="text-xs font-mono font-bold text-cyan-400" aria-live="polite"><span class="skeleton-pulse"></span></span>
             </button>
-            <span class="w-px h-4 bg-white/10"></span>
-            <button class="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer text-xs" data-target="rt60" title="Medição RT60">
-                <span class="text-[9px] uppercase font-black text-slate-500 tracking-wider">RT60:</span>
-                <span id="home-rt60-val" class="font-mono font-bold text-emerald-400" aria-live="polite"><span class="skeleton-pulse"></span></span>
+            <span class="w-px h-3.5 bg-white/10"></span>
+            <button class="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer" data-target="rt60" title="Medição RT60">
+                <span class="text-[9px] uppercase font-black text-slate-500 tracking-wider">RT60</span>
+                <span id="home-rt60-val" class="text-xs font-mono font-bold text-emerald-400" aria-live="polite"><span class="skeleton-pulse"></span></span>
             </button>
-            <span class="w-px h-4 bg-white/10"></span>
-            <button class="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer text-xs" data-target="systems" title="Status Mesa Ui24R">
-                <span class="text-[9px] uppercase font-black text-slate-500 tracking-wider">Ui24R:</span>
-                <span id="home-mixer-status" class="font-mono font-bold text-red-400" aria-live="polite"><span class="skeleton-pulse"></span></span>
+            <span class="w-px h-3.5 bg-white/10"></span>
+            <button class="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer" data-target="systems" title="Status Ui24R">
+                <span class="text-[9px] uppercase font-black text-slate-500 tracking-wider">Ui24R</span>
+                <span id="home-mixer-status" class="text-xs font-mono font-bold text-red-400" aria-live="polite"><span class="skeleton-pulse"></span></span>
             </button>
         </div>
-    </header>
+    </div>
 
     <!-- Workspace Principal -->
-    <div id="home-workspace-wrapper" class="w-full space-y-6">
+    <div id="home-workspace-wrapper" class="w-full flex flex-col items-center">
 
-        <!-- Container de Apresentação / Sugestões (Início) -->
-        <div id="home-intro-container" class="flex flex-col items-center justify-center w-full text-center fade-in-up py-4">
-            <!-- Greeting Text -->
-            <h1 class="text-2xl sm:text-3xl font-black text-white mb-1 tracking-tight">
+        <!-- Intro Container (Greeting + Suggestion Pills) -->
+        <div id="home-intro-container" class="w-full flex flex-col items-center text-center pt-8 pb-4 fade-in-up">
+
+            <!-- C) Greeting com tipografia mais leve e gradiente sutil -->
+            <h1 class="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 mb-2 tracking-tight leading-snug">
                 Como posso ajudar no som hoje?
             </h1>
-            <p class="text-slate-400 text-xs sm:text-sm max-w-md mx-auto mb-6 leading-relaxed">
-                Assistente inteligente para acústica, alinhamento e mixagem ao vivo
+            <p class="text-slate-500 text-xs max-w-sm mx-auto mb-8 leading-relaxed">
+                Pergunte, analise ou controle a mesa — tudo por aqui.
             </p>
 
-            <!-- Suggestion Cards Grid (Full Width Grid igual ao RT60) -->
-            <div id="home-suggestion-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+            <!-- D) Suggestion Cards como pílulas horizontais compactas -->
+            <div id="home-suggestion-cards" class="flex flex-wrap gap-2 justify-center w-full max-w-2xl mb-2">
+                <!-- JS injeta pílulas aqui via _renderSuggestionCards() -->
             </div>
-            <button id="btn-cycle-suggestions" class="text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-cyan-400 mt-4 transition-colors cursor-pointer flex items-center gap-1">
-                <span>🔄</span> <span>Trocar Sugestões</span>
+            <button id="btn-cycle-suggestions" class="text-[10px] text-slate-500 hover:text-cyan-400 mt-1 transition-colors cursor-pointer flex items-center gap-1 font-medium">
+                <span>↻</span> <span>Mais sugestões</span>
             </button>
         </div>
 
-        <!-- Chat History Scroll Container (Painel Padrão Glassmorphism) -->
-        <div id="home-chat-container" class="hidden flex-col w-full bg-slate-900/80 border border-white/10 rounded-2xl overflow-hidden shadow-2xl fade-in-up">
-            <!-- Header bar do Chat -->
-            <div class="px-5 py-3 bg-slate-800/40 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+        <!-- Chat History Container -->
+        <div id="home-chat-container" class="hidden flex-col w-full bg-slate-900/60 border border-white/10 rounded-2xl overflow-hidden shadow-2xl fade-in-up">
+            <!-- Chat Header -->
+            <div class="px-5 py-2.5 bg-slate-800/40 border-b border-white/10 flex items-center justify-between flex-shrink-0">
                 <div class="flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                    <span class="text-xs font-black uppercase tracking-wider text-slate-200">Chat Console SoundMaster</span>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-slate-300">Chat Console</span>
                 </div>
                 <div class="flex items-center gap-3">
-                    <!-- Autonomous Toggle Switch -->
                     <label class="flex items-center gap-1.5 cursor-pointer" title="Executar comandos recomendados de forma autônoma">
                         <input type="checkbox" id="home-toggle-autonomous" class="sr-only peer">
-                        <div class="relative w-8 h-4 bg-slate-950 rounded-full peer peer-focus:ring-0 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-slate-400 after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-cyan-500 peer-checked:after:bg-white border border-white/10"></div>
-                        <span class="text-[9px] font-bold text-slate-400 peer-checked:text-cyan-400 uppercase tracking-wider">IA Autônoma</span>
+                        <div class="relative w-7 h-3.5 bg-slate-950 rounded-full peer peer-focus:ring-0 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-slate-400 after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-cyan-500 peer-checked:after:bg-white border border-white/10"></div>
+                        <span class="text-[9px] font-bold text-slate-400 peer-checked:text-cyan-400 uppercase tracking-wider">Auto</span>
                     </label>
-                    <button id="btn-home-export-chat" class="text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-cyan-400 transition-colors flex items-center gap-1 cursor-pointer">
-                        📥 Exportar
+                    <button id="btn-home-export-chat" class="text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-cyan-400 transition-colors cursor-pointer">
+                        📥
                     </button>
-                    <button id="btn-home-new-chat" class="text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-cyan-400 transition-colors flex items-center gap-1 cursor-pointer">
-                        <span>+</span> Nova Conversa
+                    <button id="btn-home-new-chat" class="text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-cyan-400 transition-colors cursor-pointer flex items-center gap-0.5">
+                        <span>+</span> Nova
                     </button>
                 </div>
             </div>
-            <!-- Messages list -->
+            <!-- Messages -->
             <div id="home-chat-messages" class="flex-1 overflow-y-auto p-5 space-y-4 home-scroll-chat text-sm" aria-live="polite">
-                <!-- Injected bubbles -->
             </div>
         </div>
 
-        <!-- Área de Input & Botões na Base (Full Width Grid) -->
-        <div id="home-input-wrapper" class="w-full flex flex-col gap-3">
-            <!-- Prompts Pills -->
-            <div id="home-prompt-pills" class="flex gap-2 overflow-x-auto pb-1 w-full justify-center prompt-pills-container" style="scrollbar-width: none; -ms-overflow-style: none;">
-                <button class="home-prompt-pill px-3.5 py-1.5 rounded-xl bg-slate-900/60 border border-white/5 hover:border-cyan-500/30 hover:bg-cyan-950/20 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-cyan-300 whitespace-nowrap transition-all cursor-pointer" data-prompt="auditar mixer">
-                    🔍 Auditar Mixer
-                </button>
-                <button class="home-prompt-pill px-3.5 py-1.5 rounded-xl bg-slate-900/60 border border-white/5 hover:border-cyan-500/30 hover:bg-cyan-950/20 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-cyan-300 whitespace-nowrap transition-all cursor-pointer" data-prompt="relatório acústico detalhado">
-                    📐 Relatório Acústico
-                </button>
-                <button class="home-prompt-pill px-3.5 py-1.5 rounded-xl bg-slate-900/60 border border-white/5 hover:border-cyan-500/30 hover:bg-cyan-950/20 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-cyan-300 whitespace-nowrap transition-all cursor-pointer" data-prompt="resolver apito microfonia">
-                    🚨 Resolver Microfonia
-                </button>
-                <button class="home-prompt-pill px-3.5 py-1.5 rounded-xl bg-slate-900/60 border border-white/5 hover:border-cyan-500/30 hover:bg-cyan-950/20 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-cyan-300 whitespace-nowrap transition-all cursor-pointer" data-prompt="clarear voz principal">
-                    🔊 Clarear Voz
-                </button>
+        <!-- A) Input como Centro Gravitacional — sempre visível -->
+        <div id="home-input-wrapper" class="w-full max-w-2xl mt-4 flex flex-col gap-2">
+
+            <!-- Prompt Pills (colapsam quando tem conversa ativa) -->
+            <div id="home-prompt-pills" class="flex gap-1.5 overflow-x-auto pb-1 w-full justify-center prompt-pills-container" style="scrollbar-width:none;-ms-overflow-style:none;">
+                <button class="home-prompt-pill px-3 py-1 rounded-full bg-slate-900/50 border border-white/5 hover:border-cyan-500/30 hover:bg-cyan-950/20 text-[10px] font-semibold text-slate-400 hover:text-cyan-300 whitespace-nowrap transition-all cursor-pointer" data-prompt="auditar mixer">🔍 Auditar</button>
+                <button class="home-prompt-pill px-3 py-1 rounded-full bg-slate-900/50 border border-white/5 hover:border-cyan-500/30 hover:bg-cyan-950/20 text-[10px] font-semibold text-slate-400 hover:text-cyan-300 whitespace-nowrap transition-all cursor-pointer" data-prompt="relatório acústico detalhado">📐 Acústica</button>
+                <button class="home-prompt-pill px-3 py-1 rounded-full bg-slate-900/50 border border-white/5 hover:border-cyan-500/30 hover:bg-cyan-950/20 text-[10px] font-semibold text-slate-400 hover:text-cyan-300 whitespace-nowrap transition-all cursor-pointer" data-prompt="resolver apito microfonia">🚨 Microfonia</button>
+                <button class="home-prompt-pill px-3 py-1 rounded-full bg-slate-900/50 border border-white/5 hover:border-cyan-500/30 hover:bg-cyan-950/20 text-[10px] font-semibold text-slate-400 hover:text-cyan-300 whitespace-nowrap transition-all cursor-pointer" data-prompt="clarear voz principal">🔊 Clarear Voz</button>
             </div>
 
-            <!-- Entrada do Chat (Painel Glassmorphism Padrão) -->
-            <div class="bg-slate-900/80 border border-white/10 rounded-2xl p-4 focus-within:border-cyan-500/40 transition-all flex flex-col gap-3 w-full shadow-xl">
+            <!-- Composer (Textarea + Toolbar) -->
+            <div class="input-composer bg-slate-900/80 border border-white/10 rounded-2xl p-3 transition-all flex flex-col gap-2 w-full shadow-lg">
                 <!-- Textarea -->
                 <div class="relative w-full">
-                    <textarea id="home-chat-input" rows="1" class="w-full bg-transparent border-none text-slate-100 placeholder-slate-500 focus:ring-0 outline-none py-1 px-1 resize-none text-sm leading-relaxed" placeholder="Pergunte à IA ou solicite um ajuste na mesa... (Ex: clarear voz CH 01)" style="max-height: 120px; overflow-y: auto; height: auto;"></textarea>
-                    <span id="home-char-counter" class="absolute right-1 bottom-0.5 text-[9px] text-slate-500 font-mono">0/5000</span>
+                    <textarea id="home-chat-input" rows="1" class="w-full bg-transparent border-none text-slate-100 placeholder-slate-500 focus:ring-0 outline-none py-1.5 px-1 resize-none text-sm leading-relaxed" placeholder="Pergunte à IA ou ajuste a mesa... (Ex: clarear voz CH 01)" style="max-height:120px;overflow-y:auto;height:auto;"></textarea>
+                    <span id="home-char-counter" class="absolute right-1 bottom-0 text-[9px] text-slate-600 font-mono">0/5000</span>
                 </div>
                 
-                <!-- Ações e seletores alinhados -->
-                <div class="flex items-center justify-between border-t border-white/5 pt-3 px-1">
-                    <div class="flex items-center gap-2">
+                <!-- Toolbar Unificada: Channel + Mic + Analysis + Quick Actions + Send -->
+                <div class="flex items-center justify-between border-t border-white/5 pt-2 px-0.5 gap-2">
+                    <!-- Lado Esquerdo: Channel + Ferramentas + E) Quick Actions compactas -->
+                    <div class="flex items-center gap-1">
                         <!-- Channel Selector -->
-                        <div class="flex items-center" title="Canal Alvo para Otimização">
-                            <label for="home-target-channel" class="sr-only">Canal Alvo</label>
-                            <select id="home-target-channel" class="bg-slate-950 border border-white/10 rounded-xl px-3 py-1.5 text-cyan-400 font-mono text-[11px] font-bold focus:border-cyan-500/40 outline-none cursor-pointer">
-                                <option value="1">CH 01</option>
-                                <option value="2">CH 02</option>
-                                <option value="3">CH 03</option>
-                                <option value="4">CH 04</option>
-                                <option value="5">CH 05</option>
-                                <option value="6">CH 06</option>
-                                <option value="7">CH 07</option>
-                                <option value="8">CH 08</option>
-                                <option value="9">CH 09</option>
-                                <option value="10">CH 10</option>
-                                <option value="11">CH 11</option>
-                                <option value="12">CH 12</option>
-                                <option value="13">CH 13</option>
-                                <option value="14">CH 14</option>
-                                <option value="15">CH 15</option>
-                                <option value="16">CH 16</option>
-                                <option value="17">CH 17</option>
-                                <option value="18">CH 18</option>
-                                <option value="19">CH 19</option>
-                                <option value="20">CH 20</option>
-                                <option value="21">CH 21</option>
-                                <option value="22">CH 22</option>
-                                <option value="23">CH 23</option>
-                                <option value="24">CH 24</option>
-                            </select>
-                        </div>
-                        
-                        <!-- Acoustic Analysis button -->
-                        <button id="btn-home-send-analysis" class="p-2.5 rounded-xl text-slate-400 hover:text-cyan-400 hover:bg-slate-800/60 transition-all flex items-center justify-center cursor-pointer text-sm" title="Enviar Análise Acústica para IA">
-                            📎
+                        <select id="home-target-channel" class="bg-slate-950 border border-white/10 rounded-lg px-2 py-1 text-cyan-400 font-mono text-[10px] font-bold focus:border-cyan-500/40 outline-none cursor-pointer" title="Canal Alvo">
+                            <option value="1">CH01</option>
+                            <option value="2">CH02</option>
+                            <option value="3">CH03</option>
+                            <option value="4">CH04</option>
+                            <option value="5">CH05</option>
+                            <option value="6">CH06</option>
+                            <option value="7">CH07</option>
+                            <option value="8">CH08</option>
+                            <option value="9">CH09</option>
+                            <option value="10">CH10</option>
+                            <option value="11">CH11</option>
+                            <option value="12">CH12</option>
+                            <option value="13">CH13</option>
+                            <option value="14">CH14</option>
+                            <option value="15">CH15</option>
+                            <option value="16">CH16</option>
+                            <option value="17">CH17</option>
+                            <option value="18">CH18</option>
+                            <option value="19">CH19</option>
+                            <option value="20">CH20</option>
+                            <option value="21">CH21</option>
+                            <option value="22">CH22</option>
+                            <option value="23">CH23</option>
+                            <option value="24">CH24</option>
+                        </select>
+
+                        <span class="w-px h-4 bg-white/5"></span>
+
+                        <!-- Analysis -->
+                        <button id="btn-home-send-analysis" class="p-1.5 rounded-lg text-slate-500 hover:text-cyan-400 hover:bg-slate-800/60 transition-all cursor-pointer text-sm" title="Enviar Análise Acústica">📎</button>
+
+                        <!-- Mic / Listen -->
+                        <button id="btn-home-listen" class="p-1.5 rounded-lg text-slate-500 hover:text-cyan-400 hover:bg-slate-800/60 transition-all cursor-pointer" title="Escutar e Analisar Áudio">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
                         </button>
 
-                        <!-- Mic button -->
-                        <button id="btn-home-listen" class="p-2.5 rounded-xl text-slate-400 hover:text-cyan-400 hover:bg-slate-800/60 transition-all flex items-center justify-center cursor-pointer" title="IA Escuta e Analisa o Áudio">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                                <line x1="12" y1="19" x2="12" y2="23" />
-                                <line x1="8" y1="23" x2="16" y2="23" />
-                            </svg>
-                        </button>
+                        <span class="w-px h-4 bg-white/5"></span>
+
+                        <!-- E) Quick Actions como ícones compactos inline -->
+                        <div id="home-quick-actions" class="flex items-center gap-0.5">
+                            <button class="qa-icon quick-action-pill p-1.5 rounded-lg text-slate-500 text-[11px] cursor-pointer" data-action="clean" title="Preset Som Limpo">🔧</button>
+                            <button class="qa-icon quick-action-pill p-1.5 rounded-lg text-slate-500 text-[11px] cursor-pointer" data-action="hpf" title="HPF 100Hz">HPF</button>
+                            <button class="qa-icon quick-action-pill p-1.5 rounded-lg text-slate-500 text-[11px] cursor-pointer" data-action="gate" title="Gate Leve">G</button>
+                            <button class="qa-icon quick-action-pill p-1.5 rounded-lg text-slate-500 text-[11px] cursor-pointer hidden sm:flex" data-action="eq250" title="EQ Cut 250Hz">250</button>
+                            <button class="qa-icon quick-action-pill p-1.5 rounded-lg text-slate-500 text-[11px] cursor-pointer hidden sm:flex" data-action="eq3k" title="EQ Cut 3.2kHz">3.2k</button>
+                            <button class="qa-icon quick-action-pill p-1.5 rounded-lg text-slate-500 text-[11px] cursor-pointer hidden sm:flex" data-action="afs" title="AFS On/Off">AFS</button>
+                        </div>
                     </div>
                     
-                    <div class="flex items-center gap-2">
-                        <!-- Clear Button -->
-                        <button id="btn-home-clear" class="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all flex items-center justify-center cursor-pointer" style="display: none;" title="Limpar texto">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
+                    <!-- Lado Direito: Clear + Send -->
+                    <div class="flex items-center gap-1.5">
+                        <button id="btn-home-clear" class="p-1.5 rounded-full text-slate-500 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer" style="display:none;" title="Limpar">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
-                        
-                        <!-- Send Button -->
-                        <button id="btn-home-send" class="w-9 h-9 bg-slate-800 hover:bg-cyan-600 hover:text-white text-slate-300 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-md" aria-label="Enviar mensagem">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="12" y1="19" x2="12" y2="5"></line>
-                                <polyline points="5 12 12 5 19 12"></polyline>
-                            </svg>
+                        <button id="btn-home-send" class="w-8 h-8 bg-cyan-600/80 hover:bg-cyan-500 text-white rounded-full flex items-center justify-center transition-all cursor-pointer shadow-md shadow-cyan-900/30" aria-label="Enviar">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
                         </button>
                     </div>
                 </div>
-            </div>
-
-            <!-- Botões de Ação Rápida Estruturados em Grid/Vertical Alinhados na Base -->
-            <div id="home-quick-actions" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 w-full">
-                <button class="quick-action-pill px-4 py-3 rounded-2xl bg-slate-900/60 border border-white/5 hover:border-cyan-500/30 hover:bg-cyan-950/20 text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-cyan-400 text-center transition-all cursor-pointer" data-action="clean">
-                    🔧 Som Limpo
-                </button>
-                <button class="quick-action-pill px-4 py-3 rounded-2xl bg-slate-900/60 border border-white/5 hover:border-cyan-500/30 hover:bg-cyan-950/20 text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-cyan-400 text-center transition-all cursor-pointer" data-action="hpf">
-                    HPF 100Hz
-                </button>
-                <button class="quick-action-pill px-4 py-3 rounded-2xl bg-slate-900/60 border border-white/5 hover:border-cyan-500/30 hover:bg-cyan-950/20 text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-cyan-400 text-center transition-all cursor-pointer" data-action="gate">
-                    Gate Leve
-                </button>
-                <button class="quick-action-pill px-4 py-3 rounded-2xl bg-slate-900/60 border border-white/5 hover:border-cyan-500/30 hover:bg-cyan-950/20 text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-cyan-400 text-center transition-all cursor-pointer" data-action="eq250">
-                    EQ 250Hz
-                </button>
-                <button class="quick-action-pill px-4 py-3 rounded-2xl bg-slate-900/60 border border-white/5 hover:border-cyan-500/30 hover:bg-cyan-950/20 text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-cyan-400 text-center transition-all cursor-pointer" data-action="eq3k">
-                    EQ 3.2kHz
-                </button>
-                <button class="quick-action-pill px-4 py-3 rounded-2xl bg-slate-900/60 border border-white/5 hover:border-cyan-500/30 hover:bg-cyan-950/20 text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-cyan-400 text-center transition-all cursor-pointer" data-action="afs">
-                    AFS On/Off
-                </button>
             </div>
         </div>
     </div>
 
-    <!-- Small Footer Link for Remote IP (Collapsible / Compact) -->
-    <footer class="mt-8 text-center flex-shrink-0 text-xs text-slate-500 font-medium flex items-center justify-center gap-3 border-t border-white/10 pt-4 pb-2">
-        <span>SoundMaster Pro v1.2.0</span>
-        <span>•</span>
-        <button id="btn-toggle-ip" class="hover:text-cyan-400 transition-colors cursor-pointer">📱 Controle Remoto (iPad/Celular)</button>
+    <!-- Footer compacto com link remoto -->
+    <footer class="mt-6 text-center text-[10px] text-slate-600 font-mono flex items-center justify-center gap-2 border-t border-white/5 pt-3 pb-1">
+        <span>v1.2.0</span>
+        <span>·</span>
+        <button id="btn-toggle-ip" class="hover:text-cyan-400 transition-colors cursor-pointer">📱 Acesso Remoto</button>
     </footer>
 
-    <!-- Retractable Remote IP & QR Code Card -->
-    <div class="card bg-slate-900/90 border border-white/10 p-5 rounded-2xl mt-4 hidden w-full max-w-md mx-auto fade-in-up mb-4 shadow-2xl" id="local-ip-card">
+    <!-- QR Code Card retrátil -->
+    <div class="bg-slate-900/90 border border-white/10 p-5 rounded-2xl mt-3 hidden w-full max-w-sm mx-auto fade-in-up mb-2 shadow-2xl" id="local-ip-card">
         <h3 class="text-xs font-bold text-cyan-400 mb-2 flex items-center gap-1.5">
-            <span>📱</span> Controle Remoto (iPad / Celular)
+            <span>📱</span> Controle Remoto
         </h3>
-        <p class="text-xs text-slate-400 mb-3">Para abrir este painel em outro dispositivo na mesma rede:</p>
-        <div class="bg-black/40 p-3 rounded-xl mb-4 border border-white/5">
-            <h2 id="server-ip-display" class="text-sm font-mono text-center text-cyan-400 font-bold">Aguardando IP...</h2>
+        <p class="text-[10px] text-slate-400 mb-2">Abra em outro dispositivo na mesma rede:</p>
+        <div class="bg-black/40 p-2.5 rounded-xl mb-3 border border-white/5">
+            <h2 id="server-ip-display" class="text-xs font-mono text-center text-cyan-400 font-bold">Aguardando IP...</h2>
         </div>
-        <div class="flex gap-4 items-center justify-center">
-            <a id="mobile-link" href="#" target="_blank" class="text-xs font-bold text-center py-2.5 px-4 bg-cyan-600/30 hover:bg-cyan-600 text-cyan-300 hover:text-white rounded-xl border border-cyan-500/30 transition-all">Abrir Modo Remoto</a>
-            <div class="bg-white p-1.5 rounded-xl shadow-lg">
-                <img id="home-mobile-qr-code" src="" alt="QR Code" class="w-14 h-14" />
+        <div class="flex gap-3 items-center justify-center">
+            <a id="mobile-link" href="#" target="_blank" class="text-[10px] font-bold py-2 px-3 bg-cyan-600/30 hover:bg-cyan-600 text-cyan-300 hover:text-white rounded-xl border border-cyan-500/30 transition-all">Abrir</a>
+            <div class="bg-white p-1 rounded-lg">
+                <img id="home-mobile-qr-code" src="" alt="QR Code" class="w-12 h-12" />
             </div>
         </div>
     </div>
