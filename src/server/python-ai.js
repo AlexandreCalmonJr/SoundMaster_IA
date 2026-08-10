@@ -83,7 +83,7 @@ function _isYamnetCapablePython(command) {
 }
 
 function _choosePython(candidates, requireCore = false) {
-    const existing = candidates.filter(c => _pythonRuns(c, ['--version']));
+    const existing = candidates.filter(c => _pythonRuns(c, ['--version']) && _pythonRuns(c, ['-m', 'pip', '--version']));
     const usable = requireCore ? existing.filter(_hasCoreDeps) : existing;
     return usable.find(_isYamnetCapablePython) || usable[0] || null;
 }
@@ -214,8 +214,9 @@ function _findPython() {
     if (process.platform === 'win32') candidates.push('py');
     for (const cmd of candidates) {
         try {
-            const r = spawnSync(cmd, ['--version'], { stdio: 'ignore' });
-            if (r.status === 0) return cmd;
+            const r1 = spawnSync(cmd, ['--version'], { stdio: 'ignore' });
+            const r2 = spawnSync(cmd, ['-m', 'pip', '--version'], { stdio: 'ignore' });
+            if (r1.status === 0 && r2.status === 0) return cmd;
         } catch (_) {}
     }
     return null;

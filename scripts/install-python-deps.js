@@ -40,6 +40,7 @@ let pythonCmd = null;
 for (const cmd of candidates) {
     try {
         execSync(`"${cmd}" --version`, { stdio: 'ignore' });
+        execSync(`"${cmd}" -m pip --version`, { stdio: 'ignore' });
         pythonCmd = cmd;
         break;
     } catch (_) {}
