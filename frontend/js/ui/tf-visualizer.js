@@ -46,6 +46,7 @@
     let lirTimeMs = 20;
     let lirFrameCount = 0;
     let _abortCtrl = null;
+    let _resizeObserver = null;
 
     const GRID_COLOR = 'rgba(148, 163, 184, 0.08)';
     const GRID_LABEL_COLOR = 'rgba(148, 163, 184, 0.5)';
@@ -197,6 +198,15 @@
         }
         window.addEventListener('resize', resize, { signal: sig });
         resize();
+
+        // ResizeObserver: mais confiável que window.resize para canvases dentro de iframes
+        if (typeof ResizeObserver !== 'undefined') {
+            _resizeObserver = new ResizeObserver(function () { resize(); });
+            [magCanvas, phaseCanvas, lirCanvas].forEach(function (c) {
+                if (c) _resizeObserver.observe(c);
+            });
+        }
+
         bindInteractivity(magCanvas, 'mag', sig);
         bindInteractivity(phaseCanvas, 'phase', sig);
         _updateTraceCount();
@@ -226,6 +236,7 @@
 
     function destroy() {
         if (_abortCtrl) { _abortCtrl.abort(); _abortCtrl = null; }
+        if (_resizeObserver) { _resizeObserver.disconnect(); _resizeObserver = null; }
         capturedTraces = [];
         targetCurve = null;
         rtaSpectrumData = null;
@@ -836,15 +847,14 @@
         const dpr = window.devicePixelRatio || 1;
         [magCanvas, phaseCanvas, lirCanvas].forEach(c => {
             if (!c) return;
-            const cssW = c.clientWidth;
-            const cssH = c.clientHeight;
-            const w = Math.floor(cssW * dpr);
-            const h = Math.floor(cssH * dpr);
+            c.style.width = '';
+            c.style.height = '';
+            const rect = c.getBoundingClientRect();
+            const w = Math.floor(rect.width * dpr);
+            const h = Math.floor(rect.height * dpr);
             if (c.width !== w || c.height !== h) {
                 c.width = w;
                 c.height = h;
-                c.style.width = cssW + 'px';
-                c.style.height = cssH + 'px';
             }
         });
     }

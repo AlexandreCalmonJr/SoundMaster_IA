@@ -2,7 +2,9 @@
     <!-- Top Action Bar -->
     <header class="flex items-center justify-between mb-4 flex-shrink-0 bg-slate-900/60 border border-white/10 rounded-2xl p-4">
         <div class="flex items-center gap-3">
-            <span class="p-2.5 bg-slate-800 rounded-xl text-xl">🎛️</span>
+            <span class="p-2.5 bg-slate-800 rounded-xl flex items-center justify-center text-slate-400">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="2" y1="14" x2="6" y2="14"/><line x1="10" y1="8" x2="14" y2="8"/><line x1="18" y1="16" x2="22" y2="16"/></svg>
+            </span>
             <div>
                 <h2 class="text-lg font-black text-white tracking-tight">Mesa Original (Ui24R)</h2>
                 <p class="text-xs text-slate-400 font-medium">Interface de controle nativa da Soundcraft</p>
@@ -23,18 +25,18 @@
             </button>
         </div>
     </header>
-
+ 
     <!-- Content Workspace -->
     <div class="flex-1 min-h-0 relative rounded-2xl border border-white/10 overflow-hidden bg-slate-950">
         <!-- Iframe container -->
         <div id="ui24r-iframe-container" class="w-full h-full hidden">
             <iframe id="ui24r-iframe" class="w-full h-full border-none bg-transparent" src=""></iframe>
         </div>
-
+ 
         <!-- Offline Placeholder -->
         <div id="ui24r-offline-placeholder" class="w-full h-full flex flex-col items-center justify-center p-6 text-center gap-6">
-            <div class="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-3xl animate-bounce">
-                🔌
+            <div class="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500">
+                <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8H6a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2z"/></svg>
             </div>
             <div class="max-w-md space-y-2">
                 <h3 class="text-xl font-black text-white">Mesa Desconectada</h3>

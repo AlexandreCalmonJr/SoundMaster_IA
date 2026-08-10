@@ -29,6 +29,7 @@ const ROUTE_MAP = {
     'automixer':         { path: 'pages/automixer.html',         title: 'Auto-Mixer Dugan',   category: 'Automação' },
     'scene-builder':     { path: 'pages/scene-builder.html',     title: 'Scene Builder',       category: 'Automação' },
     'ui24r-embed':       { path: 'pages/ui24r-embed.html',       title: 'Mesa Original',       category: 'Mixer' },
+    'mixer-report':      { path: 'pages/mixer-report.html',      title: 'Relatório da Mesa',   category: 'Mixer' },
     'systems':           { path: 'pages/systems.html',           title: 'Conexão Ui24R',       category: 'Sistema' },
     'hardware-diagnostics': { path: 'pages/hardware-diagnostics.html', title: 'Diagnóstico Hardware', category: 'Sistema' },
     'aes67':             { path: 'pages/aes67.html',             title: 'Saúde de Cabos',      category: 'Sistema' },
@@ -74,6 +75,7 @@ class Router {
             'automixer': 'js/pages/automixer-page.js',
             'scene-builder': 'js/pages/scene-builder-page.js',
             'ui24r-embed': 'js/pages/ui24r-embed-page.js',
+            'mixer-report': 'js/pages/mixer-report-page.js',
             'systems': 'js/pages/systems-page.js',
             'hardware-diagnostics': 'js/pages/hardware-diagnostics-page.js',
             'aes67': 'js/pages/aes67-page.js',
@@ -230,7 +232,7 @@ class Router {
                 <meta charset="UTF-8">
                 <link rel="stylesheet" href="css/styles.css">
                 ${conditionalCssTags}
-                <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400&display=swap" rel="stylesheet">
+                <link rel="preload" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" onerror="this.remove()">
                 ${scriptTags}
             </head>
             <body class="bg-transparent text-slate-200" style="margin: 0; padding: 0; overflow-x: hidden;" data-module="${moduleName || ''}" data-page-id="${pageId}">
@@ -401,6 +403,7 @@ class Router {
             'automixer': 'AutomixerPage',
             'scene-builder': 'SceneBuilderPage',
             'ui24r-embed': 'Ui24rEmbedPage',
+            'mixer-report': 'MixerReportPage',
             'systems': 'SystemsPage',
             'hardware-diagnostics': 'HardwareDiagnosticsPage',
             'aes67': 'Aes67Page',

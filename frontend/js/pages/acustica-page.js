@@ -51,6 +51,7 @@
     var etcData = null;
     var etcCrosshairX = -1;
     var etcCrosshairY = -1;
+    var _resizeObserver = null;
 
     var ISO_BANDS = [31.5, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
     var THIRD_OCTAVE_BANDS = [
@@ -80,6 +81,11 @@
 
         window.removeEventListener('resize', _resizeEtcCanvas);
         window.addEventListener('resize', _resizeEtcCanvas);
+
+        if (typeof ResizeObserver !== 'undefined' && etcCanvas) {
+            _resizeObserver = new ResizeObserver(function () { _resizeEtcCanvas(); });
+            _resizeObserver.observe(etcCanvas);
+        }
 
         // Validação inline dos inputs de dimensões
         function _validateInput(id) {
@@ -322,14 +328,14 @@
     function _resizeEtcCanvas() {
         if (!etcCanvas) return;
         var dpr = window.devicePixelRatio || 1;
+        etcCanvas.style.width = '';
+        etcCanvas.style.height = '';
         var rect = etcCanvas.getBoundingClientRect();
         var w = Math.floor(rect.width * dpr);
         var h = Math.floor(rect.height * dpr);
         if (etcCanvas.width !== w || etcCanvas.height !== h) {
             etcCanvas.width = w;
             etcCanvas.height = h;
-            etcCanvas.style.width = rect.width + 'px';
-            etcCanvas.style.height = rect.height + 'px';
         }
         if (etcData) _redrawEtc();
     }
@@ -704,6 +710,7 @@
 
     function destroy() {
         pm.destroy();
+        if (_resizeObserver) { _resizeObserver.disconnect(); _resizeObserver = null; }
         (window.parent.document || document).removeEventListener('rt60-result', _onRt60Result);
         window.removeEventListener('resize', _resizeEtcCanvas);
     }

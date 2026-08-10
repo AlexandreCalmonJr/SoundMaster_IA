@@ -68,7 +68,8 @@ function _getFileHash(filePath) {
 
 function _pythonRuns(command, args) {
     try {
-        return spawnSync(command, args, { stdio: 'ignore', timeout: 5000 }).status === 0;
+        // Reduced timeout from 5000ms to 500ms to prevent massive event loop lag
+        return spawnSync(command, args, { stdio: 'ignore', timeout: 500 }).status === 0;
     } catch (_) {
         return false;
     }
@@ -419,7 +420,7 @@ function startPythonAI(rootDir, onExitCallback) {
             try {
                 Logger.getInstance().error('PYTHON', 'PYTHON_HEALTHCHECK_FAILED', error.message);
             } catch (_) {}
-            throw error;
+            // Removed throw error; to avoid UnhandledPromiseRejection
         });
         pythonProcess.healthCheck = () => healthPromise;
     } else {

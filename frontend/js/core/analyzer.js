@@ -73,6 +73,9 @@
     let _frameSkip = 2;
     let _lastWfSec = 0;
 
+    // ResizeObserver para redimensionar canvases quando o container muda de tamanho
+    let _resizeObserver = null;
+
     const _CLASS_ICON_MAP = [
         { match: /speech|voice|conversation|narration/i, icon: '🎤', label: 'Fala', detail: 'Voz/fala detectada' },
         { match: /music|song|instrument|guitar|piano|drum|bass/i, icon: '🎵', label: 'Música', detail: 'Conteúdo musical' },
@@ -734,6 +737,7 @@
                     document.removeEventListener('click', _audioResumeHandler);
                     _audioResumeHandler = null;
                 }
+                if (_resizeObserver) { _resizeObserver.disconnect(); _resizeObserver = null; }
                 canvas = null;
                 canvasCtx = null;
                 waterfallCanvasEl = null;
@@ -764,28 +768,28 @@
 
         canvases.forEach(({ el }) => {
             if (!el) return;
+            el.style.width = '';
+            el.style.height = '';
             const rect = el.getBoundingClientRect();
             const w = Math.floor(rect.width * dpr);
             const h = Math.floor(rect.height * dpr);
             if (el.width !== w || el.height !== h) {
                 el.width = w;
                 el.height = h;
-                el.style.width = rect.width + 'px';
-                el.style.height = rect.height + 'px';
             }
         });
 
         tfCanvases.forEach(id => {
             const el = _el(id);
             if (!el) return;
+            el.style.width = '';
+            el.style.height = '';
             const rect = el.getBoundingClientRect();
             const w = Math.floor(rect.width * dpr);
             const h = Math.floor(rect.height * dpr);
             if (el.width !== w || el.height !== h) {
                 el.width = w;
                 el.height = h;
-                el.style.width = rect.width + 'px';
-                el.style.height = rect.height + 'px';
             }
         });
     }
@@ -830,6 +834,7 @@
         canvasCtx = canvas.getContext('2d');
 
         window.removeEventListener('resize', _resizeCanvases);
+        if (_resizeObserver) { _resizeObserver.disconnect(); _resizeObserver = null; }
         canvas.removeEventListener('mousemove', _onRtaMouseMove);
         canvas.removeEventListener('mouseleave', _onRtaMouseLeave);
 
@@ -854,6 +859,15 @@
         _resizeCanvases();
         window.removeEventListener('resize', _resizeCanvases);
         window.addEventListener('resize', _resizeCanvases);
+
+        // ResizeObserver: redimensiona canvases quando o container do iframe muda de tamanho
+        // Isso é mais confiável que window.resize para canvases dentro de iframes
+        if (typeof ResizeObserver !== 'undefined') {
+            _resizeObserver = new ResizeObserver(function () { _resizeCanvases(); });
+            [canvas, waterfallCanvasEl, specCanvas].forEach(function (c) {
+                if (c) _resizeObserver.observe(c);
+            });
+        }
 
         // Inicializa serviços de controle modulares
         if (window.FeedbackDetectorModule) window.FeedbackDetectorModule.init();
@@ -1427,6 +1441,7 @@
             // (dados do analyser continuam a ser lidos todos os frames)
             _frameCount++;
             var _shouldRender = (_frameCount % _frameSkip === 0);
+
 
             if (canvas && canvasCtx && _shouldRender) {
                 const iecCenters = [

@@ -49,6 +49,7 @@
                 { id: 'mixer-fx',      label: 'Envios de Efeito' },
                 { id: 'voice-presets', label: 'Presets de Voz' },
                 { id: 'stage-plot',    label: 'Palco Virtual' },
+                { id: 'mixer-report',  label: 'Relatório da Mesa' },
                 { id: 'ui24r-embed',   label: 'Mesa Original' },
             ]
         },
