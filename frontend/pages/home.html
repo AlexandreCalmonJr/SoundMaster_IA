@@ -161,18 +161,11 @@
         }
     </style>
 
-    <!-- Header Padrão das Páginas (Idêntico ao RT60 e Analisador) -->
-    <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
-        <div class="flex items-center gap-4">
-            <span class="p-3 bg-cyan-900/40 border border-cyan-500/20 rounded-2xl text-2xl" aria-label="Dashboard IA">🤖</span>
-            <div>
-                <h2 class="text-3xl font-black text-white tracking-tighter">Dashboard IA</h2>
-                <p class="text-slate-400 font-medium">Assistente de Operação &amp; Telemetria do Sistema</p>
-            </div>
-        </div>
-
-        <!-- Telemetria Rápida no Topo Direito (Estilo Card RT60) -->
-        <div class="flex items-center gap-4 bg-slate-900/80 border border-white/10 px-5 py-3 rounded-2xl shadow-xl">
+    <!-- Header Compacto (Telemetria Rápida no Topo) -->
+    <header class="flex items-center justify-end gap-6 mb-6">
+        <div id="home-ai-ring" class="hidden"></div>
+        <!-- Telemetria Rápida no Topo Direito -->
+        <div class="flex items-center gap-4 bg-slate-900/80 border border-white/10 px-5 py-2.5 rounded-2xl shadow-xl">
             <button class="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer text-xs" data-target="analyzer" title="Analisador SPL">
                 <span class="text-[9px] uppercase font-black text-slate-500 tracking-wider">SPL:</span>
                 <span id="home-spl-val" class="font-mono font-bold text-cyan-400" aria-live="polite"><span class="skeleton-pulse"></span></span>
@@ -190,23 +183,11 @@
         </div>
     </header>
 
-    <!-- Workspace Principal (Full Width sem caixas estreitas centralizadas) -->
+    <!-- Workspace Principal -->
     <div id="home-workspace-wrapper" class="w-full space-y-6">
 
         <!-- Container de Apresentação / Sugestões (Início) -->
-        <div id="home-intro-container" class="border-t border-white/10 pt-6 flex flex-col items-center justify-center w-full text-center fade-in-up">
-            <!-- AI Avatar Core -->
-            <div class="relative w-16 h-16 flex items-center justify-center mb-3">
-                <div id="home-ai-ring" class="absolute inset-0 rounded-full border border-dashed border-cyan-500/30 ai-ring-outer spin-slow"></div>
-                <div class="absolute inset-1.5 rounded-full ai-pulse-core flex items-center justify-center border border-cyan-500/20 shadow-[0_0_16px_rgba(6,182,212,0.2)]">
-                    <div class="w-10 h-10 rounded-full bg-slate-950/90 flex items-center justify-center border border-cyan-500/30">
-                        <svg class="text-cyan-400 w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
+        <div id="home-intro-container" class="flex flex-col items-center justify-center w-full text-center fade-in-up py-4">
             <!-- Greeting Text -->
             <h1 class="text-2xl sm:text-3xl font-black text-white mb-1 tracking-tight">
                 Como posso ajudar no som hoje?
