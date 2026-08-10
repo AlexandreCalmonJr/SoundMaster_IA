@@ -1,6 +1,6 @@
 /**
- * SUITE DE TESTES - Sound Assist (PIBI)
- * Audita componentes, menus e submenus — valida contra o filesystem real.
+ * SUITE DE TESTES DE AUDITORIA - SoundMaster Pro / Sound Assist
+ * Audita componentes, menus, submenus e páginas HTML — valida contra o filesystem real.
  * 
  * Executar: npm test -- tests/audit.test.js
  */
@@ -12,7 +12,7 @@ import path from 'path';
 const FRONTEND_DIR = path.resolve(process.cwd(), 'frontend');
 
 // =============================================================================
-// 1. CONFIGURAÇÃO DE DADOS ESPERADOS (alinhado com ROUTE_MAP real)
+// 1. CONFIGURAÇÃO DE DADOS ESPERADOS (alinhado com layout.js e ROUTE_MAP real)
 // =============================================================================
 
 const EXPECTED_COMPONENTS = {
@@ -31,8 +31,10 @@ const EXPECTED_MENU_STRUCTURE = {
     icon: 'chart-line',
     submenus: [
       { id: 'rt60', name: 'RT60', file: 'pages/rt60.html' },
+      { id: 'acustica', name: 'Acústica', file: 'pages/acustica.html' },
       { id: 'benchmarking', name: 'Benchmarking', file: 'pages/benchmarking.html' },
-      { id: 'spl-heatmap', name: 'Mapa de Calor SPL', file: 'pages/spl-heatmap.html' }
+      { id: 'spl-heatmap', name: 'Mapa de Calor SPL', file: 'pages/spl-heatmap.html' },
+      { id: 'coverage-map', name: 'Mapa de Cobertura', file: 'pages/coverage-map.html' }
     ]
   },
   analysis: {
@@ -41,6 +43,9 @@ const EXPECTED_MENU_STRUCTURE = {
     icon: 'chart-area',
     submenus: [
       { id: 'analyzer', name: 'FFT & Waterfall', file: 'pages/analyzer.html' },
+      { id: 'analyzer-signals', name: 'Gerador de Sinais', file: 'pages/analyzer-signals.html' },
+      { id: 'analyzer-calibration', name: 'Calibração', file: 'pages/analyzer-calibration.html' },
+      { id: 'ir-measurement', name: 'Resposta ao Impulso', file: 'pages/ir-measurement.html' },
       { id: 'feedback-detector', name: 'Detector Feedback', file: 'pages/feedback-detector.html' },
       { id: 'eq-guide', name: 'Guia de EQ', file: 'pages/eq-guide.html' }
     ]
@@ -55,6 +60,7 @@ const EXPECTED_MENU_STRUCTURE = {
       { id: 'mixer-fx', name: 'Envios de Efeito', file: 'pages/mixer-fx.html' },
       { id: 'voice-presets', name: 'Presets de Voz', file: 'pages/voice-presets.html' },
       { id: 'stage-plot', name: 'Palco Virtual', file: 'pages/stage-plot.html' },
+      { id: 'mixer-report', name: 'Relatório da Mesa', file: 'pages/mixer-report.html' },
       { id: 'ui24r-embed', name: 'Mesa Original', file: 'pages/ui24r-embed.html' }
     ]
   },
@@ -64,7 +70,8 @@ const EXPECTED_MENU_STRUCTURE = {
     icon: 'sliders-h',
     submenus: [
       { id: 'eq', name: 'Equalização', file: 'pages/eq.html' },
-      { id: 'auto-eq', name: 'Auto-EQ / Target Curve', file: 'pages/auto-eq.html' }
+      { id: 'auto-eq', name: 'Auto-EQ / Target Curve', file: 'pages/auto-eq.html' },
+      { id: 'delay-align', name: 'Alinhamento Delay', file: 'pages/delay-align.html' }
     ]
   },
   automation: {
@@ -103,36 +110,63 @@ const EXPECTED_MENU_STRUCTURE = {
     type: 'direct',
     name: 'Testbed',
     icon: 'wrench'
+  },
+  tutorials: {
+    type: 'direct',
+    name: 'Tutoriais',
+    icon: 'help'
   }
 };
 
 const EXPECTED_PAGES = [
-  { id: 'home', file: 'pages/home.html', category: null },
+  // Medir (5)
   { id: 'rt60', file: 'pages/rt60.html', category: 'Medir' },
+  { id: 'acustica', file: 'pages/acustica.html', category: 'Medir' },
   { id: 'benchmarking', file: 'pages/benchmarking.html', category: 'Medir' },
   { id: 'spl-heatmap', file: 'pages/spl-heatmap.html', category: 'Medir' },
+  { id: 'coverage-map', file: 'pages/coverage-map.html', category: 'Medir' },
+
+  // Analisar (6)
   { id: 'analyzer', file: 'pages/analyzer.html', category: 'Analisar' },
+  { id: 'analyzer-signals', file: 'pages/analyzer-signals.html', category: 'Analisar' },
+  { id: 'analyzer-calibration', file: 'pages/analyzer-calibration.html', category: 'Analisar' },
+  { id: 'ir-measurement', file: 'pages/ir-measurement.html', category: 'Analisar' },
   { id: 'feedback-detector', file: 'pages/feedback-detector.html', category: 'Analisar' },
   { id: 'eq-guide', file: 'pages/eq-guide.html', category: 'Analisar' },
-  { id: 'eq', file: 'pages/eq.html', category: 'EQ' },
-  { id: 'auto-eq', file: 'pages/auto-eq.html', category: 'EQ' },
+
+  // Mixer (7)
   { id: 'mixer-input', file: 'pages/mixer-input.html', category: 'Mixer' },
   { id: 'mixer-aux', file: 'pages/mixer-aux.html', category: 'Mixer' },
   { id: 'mixer-fx', file: 'pages/mixer-fx.html', category: 'Mixer' },
   { id: 'voice-presets', file: 'pages/voice-presets.html', category: 'Mixer' },
   { id: 'stage-plot', file: 'pages/stage-plot.html', category: 'Mixer' },
+  { id: 'mixer-report', file: 'pages/mixer-report.html', category: 'Mixer' },
   { id: 'ui24r-embed', file: 'pages/ui24r-embed.html', category: 'Mixer' },
+
+  // EQ (3)
+  { id: 'eq', file: 'pages/eq.html', category: 'EQ' },
+  { id: 'auto-eq', file: 'pages/auto-eq.html', category: 'EQ' },
+  { id: 'delay-align', file: 'pages/delay-align.html', category: 'EQ' },
+
+  // Automação (3)
   { id: 'automixer', file: 'pages/automixer.html', category: 'Automação' },
   { id: 'scene-builder', file: 'pages/scene-builder.html', category: 'Automação' },
   { id: 'mixer-git', file: 'pages/mixer-git.html', category: 'Automação' },
+
+  // Sistema (5)
   { id: 'systems', file: 'pages/systems.html', category: 'Sistema' },
   { id: 'hardware-diagnostics', file: 'pages/hardware-diagnostics.html', category: 'Sistema' },
   { id: 'aes67', file: 'pages/aes67.html', category: 'Sistema' },
   { id: 'settings', file: 'pages/settings.html', category: 'Sistema' },
   { id: 'debug', file: 'pages/debug.html', category: 'Sistema' },
+
+  // Diretos / Independentes (6)
+  { id: 'home', file: 'pages/home.html', category: null },
+  { id: 'ai-chat', file: 'pages/ai-chat.html', category: null },
   { id: 'mobile', file: 'pages/mobile.html', category: null },
   { id: 'volunteer-mode', file: 'pages/volunteer-mode.html', category: null },
-  { id: 'testbed', file: 'pages/testbed.html', category: null }
+  { id: 'testbed', file: 'pages/testbed.html', category: null },
+  { id: 'tutorials', file: 'pages/tutorials.html', category: null }
 ];
 
 // =============================================================================
@@ -141,9 +175,9 @@ const EXPECTED_PAGES = [
 
 describe('📋 AUDITA - Estrutura de Menus', function() {
   
-  it('Deve ter 10 menus principais', function() {
+  it('Deve ter 11 menus principais (6 categorias + 5 diretos)', function() {
     const menuCount = Object.keys(EXPECTED_MENU_STRUCTURE).length;
-    assert.strictEqual(menuCount, 10, `Esperado 10 menus, encontrado ${menuCount}`);
+    assert.strictEqual(menuCount, 11, `Esperado 11 menus, encontrado ${menuCount}`);
   });
 
   it('Deve ter 6 menus de categoria com submenus', function() {
@@ -152,36 +186,36 @@ describe('📋 AUDITA - Estrutura de Menus', function() {
     assert.strictEqual(categories.length, 6, `Esperado 6 categorias, encontrado ${categories.length}`);
   });
 
-  it('Deve ter 4 menus diretos (links rápidos)', function() {
+  it('Deve ter 5 menus diretos (links rápidos)', function() {
     const directMenus = Object.values(EXPECTED_MENU_STRUCTURE)
       .filter(m => m.type === 'direct');
-    assert.strictEqual(directMenus.length, 4, `Esperado 4 menus diretos, encontrado ${directMenus.length}`);
+    assert.strictEqual(directMenus.length, 5, `Esperado 5 menus diretos, encontrado ${directMenus.length}`);
   });
 
-  it('Deve ter 22 submenus no total', function() {
+  it('Deve ter 29 submenus no total', function() {
     let submenuCount = 0;
     Object.values(EXPECTED_MENU_STRUCTURE).forEach(menu => {
       if (menu.submenus) {
         submenuCount += menu.submenus.length;
       }
     });
-    assert.strictEqual(submenuCount, 22, `Esperado 22 submenus, encontrado ${submenuCount}`);
+    assert.strictEqual(submenuCount, 29, `Esperado 29 submenus, encontrado ${submenuCount}`);
   });
 
-  it('Deve ter 3 submenus em "Medir"', function() {
-    assert.strictEqual(EXPECTED_MENU_STRUCTURE.measuring.submenus.length, 3, 'Medir deve ter 3 submenus');
+  it('Deve ter 5 submenus em "Medir"', function() {
+    assert.strictEqual(EXPECTED_MENU_STRUCTURE.measuring.submenus.length, 5, 'Medir deve ter 5 submenus');
   });
 
-  it('Deve ter 3 submenus em "Analisar"', function() {
-    assert.strictEqual(EXPECTED_MENU_STRUCTURE.analysis.submenus.length, 3, 'Analisar deve ter 3 submenus');
+  it('Deve ter 6 submenus em "Analisar"', function() {
+    assert.strictEqual(EXPECTED_MENU_STRUCTURE.analysis.submenus.length, 6, 'Analisar deve ter 6 submenus');
   });
 
-  it('Deve ter 6 submenus em "Mixer"', function() {
-    assert.strictEqual(EXPECTED_MENU_STRUCTURE.mixer.submenus.length, 6, 'Mixer deve ter 6 submenus');
+  it('Deve ter 7 submenus em "Mixer"', function() {
+    assert.strictEqual(EXPECTED_MENU_STRUCTURE.mixer.submenus.length, 7, 'Mixer deve ter 7 submenus');
   });
 
-  it('Deve ter 2 submenus em "EQ"', function() {
-    assert.strictEqual(EXPECTED_MENU_STRUCTURE.eq.submenus.length, 2, 'EQ deve ter 2 submenus');
+  it('Deve ter 3 submenus em "EQ"', function() {
+    assert.strictEqual(EXPECTED_MENU_STRUCTURE.eq.submenus.length, 3, 'EQ deve ter 3 submenus');
   });
 
   it('Deve ter 3 submenus em "Automação"', function() {
@@ -207,7 +241,7 @@ describe('🧩 AUDITA - Componentes Shell', function() {
     assert.strictEqual(
       Object.keys(EXPECTED_COMPONENTS).length,
       1,
-      'Deve haver exatamente 1 componentes shell'
+      'Deve haver exatamente 1 componente shell'
     );
   });
 });
@@ -218,11 +252,11 @@ describe('🧩 AUDITA - Componentes Shell', function() {
 
 describe('📄 AUDITA - Páginas e Views', function() {
   
-  it('Deve haver 26 páginas no total', function() {
+  it('Deve haver 35 páginas no total', function() {
     assert.strictEqual(
       EXPECTED_PAGES.length,
-      26,
-      `Esperado 26 páginas, encontrado ${EXPECTED_PAGES.length}`
+      35,
+      `Esperado 35 páginas, encontrado ${EXPECTED_PAGES.length}`
     );
   });
 
@@ -235,6 +269,16 @@ describe('📄 AUDITA - Páginas e Views', function() {
   it('Todas as páginas devem ter referência de arquivo', function() {
     EXPECTED_PAGES.forEach(page => {
       assert.ok(page.file, `Página ${page.id} sem arquivo definido`);
+    });
+  });
+
+  it('Todas as páginas físicas do diretório frontend/pages devem estar catalogadas', function() {
+    const pagesDir = path.resolve(FRONTEND_DIR, 'pages');
+    const files = fs.readdirSync(pagesDir).filter(f => f.endsWith('.html'));
+    assert.strictEqual(files.length, 35, `Existem ${files.length} páginas no disco, esperado 35`);
+    files.forEach(file => {
+      const cataloged = EXPECTED_PAGES.some(p => p.file === `pages/${file}`);
+      assert.ok(cataloged, `Página ${file} existe no disco mas não foi catalogada no teste de auditoria`);
     });
   });
 
@@ -311,7 +355,8 @@ describe('🗺️ AUDITA - Mapeamento Menu → Página', function() {
     const menuToPageMap = {
       'dashboard': 'home',
       'volunteerMode': 'volunteer-mode',
-      'testbed': 'testbed'
+      'testbed': 'testbed',
+      'tutorials': 'tutorials'
     };
     Object.entries(menuToPageMap).forEach(([menuId, pageId]) => {
       assert.ok(pageIds.includes(pageId), `Menu direto ${menuId} deveria ter página ${pageId}`);
@@ -325,24 +370,24 @@ describe('🗺️ AUDITA - Mapeamento Menu → Página', function() {
 
 describe('🏷️ AUDITA - Categorização de Páginas', function() {
   
-  it('Deve haver 3 páginas na categoria "Medir"', function() {
+  it('Deve haver 5 páginas na categoria "Medir"', function() {
     const count = EXPECTED_PAGES.filter(p => p.category === 'Medir').length;
-    assert.strictEqual(count, 3, `Esperado 3 páginas em Medir, encontrado ${count}`);
+    assert.strictEqual(count, 5, `Esperado 5 páginas em Medir, encontrado ${count}`);
   });
 
-  it('Deve haver 3 páginas na categoria "Analisar"', function() {
+  it('Deve haver 6 páginas na categoria "Analisar"', function() {
     const count = EXPECTED_PAGES.filter(p => p.category === 'Analisar').length;
-    assert.strictEqual(count, 3, `Esperado 3 páginas em Analisar, encontrado ${count}`);
+    assert.strictEqual(count, 6, `Esperado 6 páginas em Analisar, encontrado ${count}`);
   });
 
-  it('Deve haver 6 páginas na categoria "Mixer"', function() {
+  it('Deve haver 7 páginas na categoria "Mixer"', function() {
     const count = EXPECTED_PAGES.filter(p => p.category === 'Mixer').length;
-    assert.strictEqual(count, 6, `Esperado 6 páginas em Mixer, encontrado ${count}`);
+    assert.strictEqual(count, 7, `Esperado 7 páginas em Mixer, encontrado ${count}`);
   });
 
-  it('Deve haver 2 páginas na categoria "EQ"', function() {
+  it('Deve haver 3 páginas na categoria "EQ"', function() {
     const count = EXPECTED_PAGES.filter(p => p.category === 'EQ').length;
-    assert.strictEqual(count, 2, `Esperado 2 páginas em EQ, encontrado ${count}`);
+    assert.strictEqual(count, 3, `Esperado 3 páginas em EQ, encontrado ${count}`);
   });
 
   it('Deve haver 3 páginas na categoria "Automação"', function() {
@@ -463,14 +508,14 @@ describe('📈 RESUMO DA AUDITORIA', function() {
     console.log('╔════════════════════════════════════════════════════════╗');
     console.log('║          RESUMO DA AUDITORIA - Sound Assist           ║');
     console.log('╚════════════════════════════════════════════════════════╝');
-    console.log(`\n📊 ESTATÍSTICAS:`);
+    console.log(`\n📊 ESTATÍSTICAS REVISADAS & ATUALIZADAS:`);
     console.log(`   • Menus Principais:        ${stats.totalMenus}`);
     console.log(`   • Categorias:              ${stats.totalCategories}`);
     console.log(`   • Menus Diretos:           ${stats.totalDirectMenus}`);
     console.log(`   • Submenus:                ${stats.totalSubmenus}`);
-    console.log(`   • Páginas:                 ${stats.totalPages}`);
+    console.log(`   • Páginas Catalogadas:     ${stats.totalPages}`);
     console.log(`   • Componentes Shell:       ${stats.totalComponents}`);
-    console.log(`\n✅ TESTES VALIDADOS CONTRA FILESYSTEM REAL\n`);
+    console.log(`\n✅ 100% DAS 35 PÁGINAS VALIDADAS CONTRA O FILESYSTEM REAL\n`);
 
     assert.ok(true);
   });
