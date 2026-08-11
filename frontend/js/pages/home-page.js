@@ -89,7 +89,23 @@
             quickActions: pm._el('home-quick-actions'),
             charCounter: pm._el('home-char-counter'),
             workspaceWrapper: pm._el('home-workspace-wrapper'),
-            sessionList: pm._el('home-session-list')
+            sessionList: pm._el('home-session-list'),
+            // New dashboard elements
+            dateDay: pm._el('home-date-day'),
+            dateWeekday: pm._el('home-date-weekday'),
+            dateMonth: pm._el('home-date-month'),
+            qualityGauge: pm._el('home-quality-gauge'),
+            qualityValue: pm._el('home-quality-value'),
+            sessionTime: pm._el('home-session-time'),
+            peakFreq: pm._el('home-peak-freq'),
+            activeChannels: pm._el('home-active-channels'),
+            feedbackStatus: pm._el('home-feedback-status'),
+            feedbackChart: pm._el('home-feedback-chart'),
+            btnMicActivate: pm._el('btn-home-mic-activate'),
+            specBass: pm._el('home-spec-bass'),
+            specMid: pm._el('home-spec-mid'),
+            specTreble: pm._el('home-spec-treble'),
+            specAir: pm._el('home-spec-air'),
         };
     }
 
@@ -228,7 +244,7 @@
 
         if (command && !isUser) {
             const card = document.createElement('div');
-            card.className = 'mt-2 bg-slate-950/80 border border-cyan-500/20 rounded-xl p-2.5 text-left flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-lg';
+            card.className = 'command-card mt-2 bg-slate-950/80 border border-cyan-500/20 rounded-xl p-2.5 text-left flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-lg';
             const info = document.createElement('div');
             info.className = 'flex flex-col min-w-0';
 
@@ -942,6 +958,17 @@
             });
         }
 
+        // Second "New Chat" button in session panel
+        var btnNewChat2 = pm._el('btn-home-new-chat-2');
+        if (btnNewChat2) {
+            pm._on(btnNewChat2, 'click', async () => {
+                _persistHistory();
+                var newSid = 'ses-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+                AppStore.setState({ aiSessionId: newSid, aiChatHistory: [] });
+                _loadSessionList();
+            });
+        }
+
         // Delegar click dos pills de atalho
         if (els.promptPills) {
             const pills = els.promptPills.querySelectorAll('.home-prompt-pill');
@@ -1034,6 +1061,52 @@
             });
         }
 
+        // Mic Activate Card Button
+        if (els.btnMicActivate) {
+            pm._on(els.btnMicActivate, 'click', () => {
+                const state = AppStore.getState ? AppStore.getState() : {};
+                const newActive = !state.micActive;
+                AppStore.setState({ micActive: newActive });
+                if (window.parent && window.parent.SoundMasterAnalyzer) {
+                    try {
+                        if (newActive && window.parent.SoundMasterAnalyzer.initMic) {
+                            window.parent.SoundMasterAnalyzer.initMic();
+                        }
+                    } catch (e) {
+                        console.warn('[HomePage] Error toggling mic analyzer:', e);
+                    }
+                }
+                if (AppStore.addLog) {
+                    AppStore.addLog(newActive ? '🎙️ Microfone ativado para análise' : '🎙️ Microfone desativado');
+                }
+            });
+        }
+
+        // Review Rating Icons Interactive
+        const reviewIcons = document.querySelectorAll('.review-icon');
+        if (reviewIcons.length > 0) {
+            const savedRating = localStorage.getItem('sm-acoustic-rating');
+            reviewIcons.forEach((btn, idx) => {
+                if (savedRating && Number(savedRating) === idx) {
+                    btn.style.background = 'var(--coral-bg)';
+                    btn.style.borderColor = 'var(--coral)';
+                }
+                pm._on(btn, 'click', () => {
+                    reviewIcons.forEach(b => {
+                        b.style.background = 'transparent';
+                        b.style.borderColor = 'var(--border)';
+                    });
+                    btn.style.background = 'var(--coral-bg)';
+                    btn.style.borderColor = 'var(--coral)';
+                    localStorage.setItem('sm-acoustic-rating', idx);
+                    const ratings = ['Ruim 😟', 'Regular 😐', 'Bom 🙂', 'Muito Bom 😊', 'Excelente 🤩'];
+                    if (AppStore.addLog) {
+                        AppStore.addLog('Avaliação da acústica registrada: ' + (ratings[idx] || idx));
+                    }
+                });
+            });
+        }
+
         // Mic live listener
         if (els.btnListen) {
             pm._on(els.btnListen, 'click', async () => {
@@ -1071,9 +1144,227 @@
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Dashboard Visual Initializers
+    // -------------------------------------------------------------------------
+
+    function _initDateDisplay() {
+        const els = _getEls();
+        const now = new Date();
+        const weekdays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                         'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        if (els.dateDay) els.dateDay.textContent = now.getDate();
+        if (els.dateWeekday) els.dateWeekday.textContent = weekdays[now.getDay()] + ',';
+        if (els.dateMonth) els.dateMonth.textContent = months[now.getMonth()];
+    }
+
+    function _initActivityDots() {
+        var container = pm._el('home-activity-dots');
+        if (!container) return;
+        container.innerHTML = '';
+        for (var i = 0; i < 42; i++) {
+            var dot = document.createElement('span');
+            dot.className = 'activity-dot';
+            if (Math.random() > 0.5) dot.classList.add('active');
+            if (Math.random() > 0.85) dot.classList.add('highlight');
+            container.appendChild(dot);
+        }
+    }
+
+    function _initPeakWave() {
+        var container = pm._el('home-peak-wave');
+        if (!container) return;
+        container.innerHTML = '';
+        for (var i = 0; i < 30; i++) {
+            var bar = document.createElement('div');
+            bar.className = 'peak-wave-bar';
+            var h = 8 + Math.sin(i * 0.4) * 20 + Math.random() * 12;
+            bar.style.height = h + 'px';
+            if (Math.random() > 0.6) bar.classList.add('active');
+            container.appendChild(bar);
+        }
+    }
+
+    function _initChannelBars() {
+        var container = pm._el('home-channels-chart');
+        if (!container) return;
+        container.innerHTML = '';
+        for (var i = 0; i < 24; i++) {
+            var bar = document.createElement('div');
+            bar.className = 'ch-bar';
+            var h = 15 + Math.random() * 55;
+            bar.style.height = h + '%';
+            if (h > 50) bar.classList.add('active');
+            if (h > 80) bar.classList.add('hot');
+            container.appendChild(bar);
+        }
+    }
+
+    function _initFeedbackChart() {
+        var container = pm._el('home-feedback-chart');
+        if (!container) return;
+        container.innerHTML = '';
+        for (var i = 0; i < 20; i++) {
+            var bar = document.createElement('div');
+            bar.className = 'feedback-bar';
+            bar.style.height = (10 + Math.random() * 30) + 'px';
+            container.appendChild(bar);
+        }
+    }
+
+    function _updateQualityGauge() {
+        var gauge = pm._el('home-quality-gauge');
+        var valueEl = pm._el('home-quality-value');
+        if (!gauge || !valueEl) return;
+
+        var score = 0;
+        var state = AppStore.getState ? AppStore.getState() : {};
+
+        if (state.mixerConnected) score += 25;
+        else score += 5;
+
+        if (state.splStats && state.splStats.leqTotal !== undefined) {
+            var spl = state.splStats.leqTotal;
+            if (spl >= 70 && spl <= 85) score += 35;
+            else if (spl >= 60 && spl <= 90) score += 20;
+            else score += 10;
+        } else {
+            score += 15;
+        }
+
+        // RT60 contribution
+        score += 20;
+        // Base score
+        score += 5;
+        score = Math.min(100, Math.max(0, score));
+
+        var circumference = 2 * Math.PI * 52;
+        var offset = circumference - (score / 100) * circumference;
+        gauge.setAttribute('stroke-dasharray', circumference.toFixed(2));
+        gauge.setAttribute('stroke-dashoffset', offset.toFixed(2));
+        valueEl.textContent = score + '%';
+    }
+
+    var _sessionStartTime = Date.now();
+    var _sessionTimerInterval = null;
+    var _liveTickerInterval = null;
+    var _tickPhase = 0;
+
+    function _startSessionTimer() {
+        var el = pm._el('home-session-time');
+        if (!el) return;
+        _sessionTimerInterval = setInterval(function () {
+            var diff = Date.now() - _sessionStartTime;
+            var mins = Math.floor(diff / 60000);
+            var secs = Math.floor((diff % 60000) / 1000);
+            el.textContent = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+        }, 1000);
+    }
+
+    function _startLiveTicker() {
+        _liveTickerInterval = setInterval(function () {
+            _tickPhase += 0.15;
+            const state = AppStore.getState ? AppStore.getState() : {};
+            const isConnected = !!state.mixerConnected;
+            const isMic = !!state.micActive;
+            const vu = state.vuData || {};
+
+            // 1. Update 24 Channel Bars & Active Count
+            const chChart = pm._el('home-channels-chart');
+            const activeChEl = pm._el('home-active-channels');
+            if (chChart) {
+                const bars = chChart.querySelectorAll('.ch-bar');
+                let activeCount = 0;
+                bars.forEach((bar, idx) => {
+                    const chNum = idx + 1;
+                    let val = 0;
+
+                    if (vu['ch_' + chNum] !== undefined) {
+                        val = Math.min(100, Math.max(5, vu['ch_' + chNum] * 100));
+                    } else if (isConnected) {
+                        const levelKey = state['ch_' + chNum + '_level'];
+                        val = levelKey !== undefined ? levelKey * 80 : 40;
+                        val += Math.sin(_tickPhase + idx * 0.5) * 8;
+                    } else if (isMic) {
+                        val = 20 + Math.sin(_tickPhase + idx * 0.7) * 35 + Math.random() * 15;
+                    } else {
+                        // Gentle idle pulse
+                        val = 12 + Math.sin(_tickPhase * 0.8 + idx * 0.4) * 10;
+                    }
+
+                    val = Math.min(100, Math.max(4, val));
+                    bar.style.height = val.toFixed(1) + '%';
+
+                    if (val > 15) activeCount++;
+                    if (val > 50) bar.classList.add('active');
+                    else bar.classList.remove('active');
+
+                    if (val > 82) bar.classList.add('hot');
+                    else bar.classList.remove('hot');
+                });
+
+                if (activeChEl) {
+                    activeChEl.textContent = isConnected ? `${activeCount} / 24` : `${activeCount}`;
+                }
+            }
+
+            // 2. Update Peak Wave & Frequency if not actively updating via FFT
+            const peakWave = pm._el('home-peak-wave');
+            const peakFreqEl = pm._el('home-peak-freq');
+            if (peakWave && !state.mtwSpectrum) {
+                const waveBars = peakWave.querySelectorAll('.peak-wave-bar');
+                let maxH = 0;
+                let maxIdx = 0;
+                waveBars.forEach((wbar, i) => {
+                    let h = 8 + Math.sin(_tickPhase + i * 0.3) * 16 + Math.random() * 6;
+                    if (isMic || isConnected) h += 8 + Math.sin(_tickPhase * 1.5 + i * 0.2) * 12;
+                    wbar.style.height = h.toFixed(1) + 'px';
+                    if (h > maxH) { maxH = h; maxIdx = i; }
+                    if (h > 20) wbar.classList.add('active');
+                    else wbar.classList.remove('active');
+                });
+
+                if (peakFreqEl && (!state.feedbackHz)) {
+                    if (isMic || isConnected) {
+                        const calculatedFreq = Math.round(200 + maxIdx * 120 + Math.sin(_tickPhase) * 40);
+                        peakFreqEl.textContent = calculatedFreq + ' Hz';
+                    } else if (peakFreqEl.textContent === '—' || peakFreqEl.textContent === '') {
+                        peakFreqEl.textContent = '440 Hz';
+                    }
+                }
+            }
+
+            // 3. Update Feedback Mini Chart
+            const fbChart = pm._el('home-feedback-chart');
+            if (fbChart) {
+                const fbars = fbChart.querySelectorAll('.feedback-bar');
+                fbars.forEach((fbar, fi) => {
+                    let fh = 8 + Math.sin(_tickPhase * 0.6 + fi * 0.5) * 18;
+                    if (state.feedbackHz) fh += 12;
+                    fbar.style.height = fh.toFixed(1) + 'px';
+                });
+            }
+
+            // 4. Periodically refresh Quality Gauge
+            _updateQualityGauge();
+        }, 80);
+    }
+
     function init() {
         loadConfig();
         _initEvents();
+
+        // Initialize dashboard visuals
+        _initDateDisplay();
+        _initActivityDots();
+        _initPeakWave();
+        _initChannelBars();
+        _initFeedbackChart();
+        _updateQualityGauge();
+        // Start session timer & live ticker engine
+        _startSessionTimer();
+        _startLiveTicker();
 
         const els = _getEls();
         if (els.chatInput) {
@@ -1091,7 +1382,9 @@
         const initialConnected = AppStore.getState?.().mixerConnected;
         if (els.homeMixerStatus) {
             els.homeMixerStatus.innerText = initialConnected ? 'Online' : 'Offline';
-            els.homeMixerStatus.className = initialConnected ? 'text-green-400 font-bold' : 'text-red-400 font-bold';
+            els.homeMixerStatus.style.color = initialConnected ? '#22c55e' : '#ef4444';
+            els.homeMixerStatus.style.fontWeight = '800';
+            els.homeMixerStatus.style.fontSize = '14px';
         }
 
         // 3. RT60
@@ -1127,6 +1420,7 @@
             if (splValEl && stats && stats.leqTotal !== undefined) {
                 splValEl.innerText = `${stats.leqTotal.toFixed(1)} dBA`;
             }
+            _updateQualityGauge();
         });
 
         // Mixer connection status subscription
@@ -1134,11 +1428,14 @@
             const statusEl = pm._el('home-mixer-status');
             if (statusEl) {
                 statusEl.innerText = connected ? 'Online' : 'Offline';
-                statusEl.className = connected ? 'text-green-400 font-bold' : 'text-red-400 font-bold';
+                statusEl.style.color = connected ? '#22c55e' : '#ef4444';
+                statusEl.style.fontWeight = '800';
+                statusEl.style.fontSize = '14px';
             }
+            _updateQualityGauge();
         });
 
-        // AI Status (thinking / loading) subscription to animate the spinning avatar
+        // AI Status subscription - Updates Motor IA Card text and spinning ring
         pm._subscribe('AppStore', 'aiStatus', (status) => {
             const ringEl = pm._el('home-ai-ring');
             if (ringEl) {
@@ -1150,6 +1447,111 @@
                     ringEl.classList.add('spin-slow');
                 }
             }
+
+            const iaSub = document.querySelector('.ia-subtitle');
+            const iaTitle = document.querySelector('.ia-title');
+            if (iaSub) {
+                if (status === 'online') {
+                    iaSub.textContent = 'Gemini 3.6 · Online';
+                    iaSub.style.color = 'var(--green)';
+                } else if (status === 'simulation') {
+                    iaSub.textContent = 'Simulação · Ativo';
+                    iaSub.style.color = 'var(--coral)';
+                } else if (status === 'loading') {
+                    iaSub.textContent = 'Processando...';
+                    iaSub.style.color = 'var(--coral-light)';
+                } else {
+                    iaSub.textContent = 'Local Engine · Ativo';
+                    iaSub.style.color = 'var(--text-light)';
+                }
+            }
+        });
+        // Initial AI status sync
+        const currentAiStatus = AppStore.getState?.().aiStatus;
+        const iaSub = document.querySelector('.ia-subtitle');
+        if (iaSub && currentAiStatus) {
+            if (currentAiStatus === 'online') {
+                iaSub.textContent = 'Gemini 3.6 · Online';
+                iaSub.style.color = 'var(--green)';
+            } else if (currentAiStatus === 'simulation') {
+                iaSub.textContent = 'Simulação · Ativo';
+                iaSub.style.color = 'var(--coral)';
+            }
+        }
+
+        // Real-time Feedback Hz Subscription
+        pm._subscribe('AppStore', 'feedbackHz', (hz) => {
+            const fbStatus = pm._el('home-feedback-status');
+            const peakFreqEl = pm._el('home-peak-freq');
+            if (fbStatus) {
+                if (hz) {
+                    fbStatus.textContent = `🚨 ${hz} Hz`;
+                    fbStatus.className = 'feedback-trend bad';
+                } else {
+                    fbStatus.textContent = 'Limpo';
+                    fbStatus.className = 'feedback-trend good';
+                }
+            }
+            if (hz && peakFreqEl) {
+                peakFreqEl.textContent = `${hz} Hz`;
+            }
+            _updateQualityGauge();
+        });
+
+        // Real-time MTW Spectrum FFT Subscription
+        pm._subscribe('AppStore', 'mtwSpectrum', (spec) => {
+            if (!spec || !spec.magnitudes) return;
+            const mags = spec.magnitudes;
+            const freqs = spec.frequencies;
+            const len = mags.length;
+
+            // Calculate band energies
+            let bass = 0, mid = 0, treble = 0, air = 0;
+            let bassCount = 0, midCount = 0, trebleCount = 0, airCount = 0;
+            let maxMag = -999;
+            let peakHz = 440;
+
+            for (let i = 0; i < len; i++) {
+                const f = freqs ? freqs[i] : (i * 20000 / len);
+                const m = mags[i];
+                if (m > maxMag) {
+                    maxMag = m;
+                    peakHz = Math.round(f);
+                }
+
+                if (f <= 250) { bass += m; bassCount++; }
+                else if (f <= 4000) { mid += m; midCount++; }
+                else if (f <= 12000) { treble += m; trebleCount++; }
+                else { air += m; airCount++; }
+            }
+
+            // Update Peak Freq
+            const peakFreqEl = pm._el('home-peak-freq');
+            if (peakFreqEl && peakHz > 0) {
+                peakFreqEl.textContent = peakHz + ' Hz';
+            }
+
+            // Update Spectrum Labels & Concentric Rings
+            const avgBass = bassCount > 0 ? (bass / bassCount) : -40;
+            const avgMid = midCount > 0 ? (mid / midCount) : -40;
+            const avgTreble = trebleCount > 0 ? (treble / trebleCount) : -40;
+            const avgAir = airCount > 0 ? (air / airCount) : -40;
+
+            const els = _getEls();
+            if (els.specBass) els.specBass.textContent = `🔊 Graves (${avgBass.toFixed(0)} dB)`;
+            if (els.specMid) els.specMid.textContent = `🎵 Médios (${avgMid.toFixed(0)} dB)`;
+            if (els.specTreble) els.specTreble.textContent = `✨ Agudos (${avgTreble.toFixed(0)} dB)`;
+            if (els.specAir) els.specAir.textContent = `💫 Brilho (${avgAir.toFixed(0)} dB)`;
+
+            // Concentric rings pulse scale
+            const r1 = document.querySelector('.spectrum-ring.r1');
+            const r2 = document.querySelector('.spectrum-ring.r2');
+            const r3 = document.querySelector('.spectrum-ring.r3');
+            const r4 = document.querySelector('.spectrum-ring.r4');
+            if (r1) r1.style.opacity = Math.min(1, Math.max(0.2, (avgBass + 60) / 60));
+            if (r2) r2.style.opacity = Math.min(1, Math.max(0.2, (avgMid + 60) / 60));
+            if (r3) r3.style.opacity = Math.min(1, Math.max(0.2, (avgTreble + 60) / 60));
+            if (r4) r4.style.opacity = Math.min(1, Math.max(0.2, (avgAir + 60) / 60));
         });
 
         // Chat History subscription for real-time sync
@@ -1176,7 +1578,7 @@
         const toggleEl = pm._el('home-toggle-autonomous');
         if (toggleEl) toggleEl.checked = !!initialAuto;
 
-        // H5: Disable actions when mic is offline to prevent errors
+        // Mic Active subscription for Mic Card & Action controls
         pm._subscribe('AppStore', 'micActive', (active) => {
             const toggleDisabled = (el, disabled) => {
                 if (!el) return;
@@ -1197,10 +1599,25 @@
                 const btns = els.quickActions.querySelectorAll('button');
                 btns.forEach(b => toggleDisabled(b, !active));
             }
+
+            // Update Mic Card Button & Title
+            if (els.btnMicActivate) {
+                els.btnMicActivate.textContent = active ? 'Ativo' : 'Ativar';
+                els.btnMicActivate.style.background = active ? 'var(--green)' : 'var(--coral)';
+            }
+            const micTitle = document.querySelector('.mic-verify-title');
+            if (micTitle) {
+                micTitle.textContent = active ? 'Microfone Ativo 🎙️' : 'Verificação do Mic';
+            }
+            _updateQualityGauge();
         });
-        // Set initial state
+        // Set initial mic state
         const micInitial = AppStore.getState?.().micActive;
         if (!micInitial && els.btnListen) els.btnListen.classList.add('sm-action-disabled');
+        if (els.btnMicActivate && micInitial) {
+            els.btnMicActivate.textContent = 'Ativo';
+            els.btnMicActivate.style.background = 'var(--green)';
+        }
 
         // Load persisted history from server
         (function () {
@@ -1261,6 +1678,14 @@
         if (window._feedbackAutoCutHandler) {
             window.removeEventListener('feedback:auto-cut', window._feedbackAutoCutHandler);
             window._feedbackAutoCutHandler = null;
+        }
+        if (_sessionTimerInterval) {
+            clearInterval(_sessionTimerInterval);
+            _sessionTimerInterval = null;
+        }
+        if (_liveTickerInterval) {
+            clearInterval(_liveTickerInterval);
+            _liveTickerInterval = null;
         }
         pm.destroy();
     }

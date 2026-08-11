@@ -90,6 +90,7 @@ class Router {
 
         // Page-specific CSS mapping
         this.cssPerPage = {
+            'home':       ['css/home-dashboard.css'],
             'auto-eq':    ['css/auto-eq.css'],
             'mixer-git':  ['css/mixer-git.css'],
             'stage-plot': ['css/stage-plot.css'],
