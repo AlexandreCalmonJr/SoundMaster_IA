@@ -233,7 +233,8 @@ class Router {
                 <meta charset="UTF-8">
                 <link rel="stylesheet" href="css/styles.css">
                 ${conditionalCssTags}
-                <link rel="preload" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" onerror="this.remove()">
+                <link rel="stylesheet" href="css/design-system.css">
+                <link rel="preload" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" onerror="this.remove()">
                 ${scriptTags}
             </head>
             <body class="bg-transparent text-slate-200" style="margin: 0; padding: 0; overflow-x: hidden;" data-module="${moduleName || ''}" data-page-id="${pageId}">
@@ -314,6 +315,7 @@ class Router {
                 <html lang="pt-br">
                 <head>
                     <link rel="stylesheet" href="css/styles.css">
+                    <link rel="stylesheet" href="css/design-system.css">
                 </head>
                 <body class="bg-transparent text-slate-200" style="margin:0;padding:0;">
                     <div class="sm-error-page">

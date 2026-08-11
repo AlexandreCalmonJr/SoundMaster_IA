@@ -158,7 +158,7 @@ describe('Socket Handlers Integration', () => {
         }));
     });
 
-    it('should accept expanded AI command payload for aux level', async () => {
+    it('should block direct AI commands and require the confirmation flow', async () => {
         await registeredHandlers['connect_mixer']('simulado');
         await registeredHandlers['execute_ai_command']({
             action: 'set_aux_level',
@@ -168,9 +168,11 @@ describe('Socket Handlers Integration', () => {
             level: 0.7
         });
 
-        expect(mockSocket.emit).toHaveBeenCalledWith('feedback_cut_success', expect.objectContaining({
-            msg: expect.stringContaining('AUX 3')
+        expect(mockSocket.emit).toHaveBeenCalledWith('sound_assistant_action_rejected', expect.objectContaining({
+            status: 'rejected',
+            error: expect.stringContaining('confirmação')
         }));
+        expect(mockSocket.emit).not.toHaveBeenCalledWith('feedback_cut_success', expect.anything());
     });
 
     it('should reject raw messages outside whitelist', async () => {

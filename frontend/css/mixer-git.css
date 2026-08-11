@@ -1,11 +1,11 @@
 .mixer-git-page * { box-sizing:border-box; margin:0; padding:0; }
 .mixer-git-page {
-    --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;--border:#30363d;
-    --accent:#58a6ff;--green:#3fb950;--red:#f85149;--yellow:#e3b341;
-    --emerald:#34d399;--text:#c9d1d9;--sub:#8b949e;
-    background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif;
+    --bg:var(--sm-bg-canvas, #070b12);--surface:var(--sm-bg-panel, #101826);--surface2:var(--sm-bg-panel-raised, #151f2f);--border:var(--sm-border, rgba(148,163,184,.16));
+    --accent:var(--sm-accent, #22d3ee);--green:var(--sm-success, #4ade80);--red:var(--sm-danger, #fb7185);--yellow:var(--sm-warning, #fbbf24);
+    --emerald:var(--sm-success, #4ade80);--text:var(--sm-text-primary, #e5edf7);--sub:var(--sm-text-secondary, #a9b7c9);
+    background:var(--bg); color:var(--text); font-family:var(--sm-font-sans, 'Outfit', system-ui, sans-serif);
 }
-.mixer-git-page h1 { font-size:1.3rem; font-weight:700; margin-bottom:4px; }
+.mixer-git-page h1 { font-size:1.75rem; line-height:1.15; letter-spacing:-.025em; font-weight:750; margin-bottom:6px; }
 .mixer-git-page .subtitle { color:var(--sub); font-size:.8rem; margin-bottom:20px; }
 
 .mixer-git-page .layout { display:grid; grid-template-columns:280px 1fr; gap:16px; }
@@ -33,7 +33,7 @@
     display:flex; flex-direction:column; gap:3px; }
 .mixer-git-page .commit-item:hover { background:var(--surface2); }
 .mixer-git-page .commit-item.active { background:rgba(88,166,255,.08); border-left:3px solid var(--accent); }
-.mixer-git-page .commit-item.auto-badge::after { content:'auto'; font-size:.6rem; background:var(--surface2);
+.mixer-git-page .commit-item.auto-badge::after { content:'auto'; font-size:.65rem; background:var(--surface2);
     color:var(--sub); border:1px solid var(--border); border-radius:999px; padding:1px 6px; margin-left:6px; }
 .mixer-git-page .commit-hash { font-family:monospace; font-size:.72rem; color:var(--accent); }
 .mixer-git-page .commit-label { font-size:.82rem; font-weight:600; }

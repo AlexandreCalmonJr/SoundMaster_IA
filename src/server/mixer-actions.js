@@ -19,8 +19,8 @@ const AI_COMMAND_ALLOWLIST = new Set([
     'set_channel_level', 'channel_fader',
     'channel_mute', 'toggle_channel_mute',
     'change_channel_pan', 'set_channel_pan',
-    'eq_cut', 'apply_channel_hpf', 'apply_channel_gate',
-    'set_aux_level',
+    'eq_cut', 'apply_channel_hpf', 'apply_channel_gate', 'apply_channel_compressor',
+    'set_aux_level', 'master_mute', 'run_clean_sound_preset',
     'toggle_solo', 'set_solo',
     'set_master_level',
     'set_master_pan', 'change_master_pan',
@@ -663,23 +663,31 @@ function createMixerActions(getMixer) {
                 return `Mute do master ${on ? 'ativado' : 'desativado'}.`;
             },
             'run_master_ideal_curve': () => { const steps = [applyEqCut('master', null, 60, 3, 1.0, 1), applyEqCut('master', null, 400, -2, 1.2, 2), applyEqCut('master', null, 3000, 1, 1.0, 3)]; return `Curva ideal aplicada no Master: ${steps.join(' ')}`; },
-            'set_master_level': (c) => { mixer.master.setFaderLevel(clamp(c.level || 0.7, 0, 1)); return `Master ajustado para ${Math.round((c.level || 0.7) * 100)}%`; },
+            'set_master_level': (c) => {
+                const level = clamp(c.level ?? 0.7, 0, 1);
+                mixer.master.setFaderLevel(level);
+                mixerSingleton.updateMasterState({ level });
+                return `Master ajustado para ${Math.round(level * 100)}%`;
+            },
             'master_mute': (c) => {
                 // master.mute()/unmute() nao existem em soundcraft-ui-connection v6 (MasterBus nao implementa mute). Enviar OSC cru.
                 const on = c.enabled !== false && c.enabled !== 0;
                 safeOscSend(mixer, `SETD^m.mute`, on ? 1 : 0);
+                mixerSingleton.updateMasterState({ mute: on ? 1 : 0 });
                 return `Master ${on ? 'MUTADO' : 'DESMUTADO'}.`;
             },
             'set_channel_level': (c) => {
                 const target = resolveTarget(c);
-                const lvl = clamp(c.level || c.val || 0.7, 0, 1);
+                const lvl = clamp(c.level ?? c.val ?? 0.7, 0, 1);
                 target.setFaderLevel(lvl);
+                if (c.channel) mixerSingleton.updateChannelState(c.channel, { level: lvl });
                 return `${c.target || 'canal'} ajustado para ${Math.round(lvl * 100)}%`;
             },
             'channel_fader': (c) => {
                 const target = resolveTarget(c);
-                const lvl = clamp(c.level || c.val || 0.7, 0, 1);
+                const lvl = clamp(c.level ?? c.val ?? 0.7, 0, 1);
                 target.setFaderLevel(lvl);
+                if (c.channel) mixerSingleton.updateChannelState(c.channel, { level: lvl });
                 return `${c.target || 'canal'} ajustado para ${Math.round(lvl * 100)}%`;
             },
             'channel_mute': (c) => {
@@ -688,6 +696,7 @@ function createMixerActions(getMixer) {
                 if (target.setMute) target.setMute(mut ? 1 : 0);
                 else if (mut) target.mute();
                 else target.unmute();
+                if (c.channel) mixerSingleton.updateChannelState(c.channel, { mute: mut ? 1 : 0 });
                 return `${c.target || 'canal'} ${mut ? 'MUTADO' : 'DESMUTADO'}.`;
             },
             'toggle_channel_mute': (c) => {

@@ -271,7 +271,7 @@
             <div class="flex gap-1.5 justify-end shrink-0">
                 <button class="ignore-btn px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-400 hover:text-white transition-all">Ignorar</button>
                 <button class="exec-btn px-2.5 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-[10px] font-extrabold text-white transition-all flex items-center gap-1">
-                    Aplicar
+                    Revisar ajuste
                 </button>
             </div>
         `;
@@ -286,15 +286,14 @@
             btnIgnore.style.display = 'none';
         } else {
             pm._on(btnExec, 'click', function () {
-                const ok = MixerService.executeAICommand(command);
+                const ok = MixerService.executeAICommand(command, { origin: 'ai-chat' });
                 if (ok) {
-                    btnExec.innerHTML = '✓ Aplicado';
+                    btnExec.textContent = 'Aguardando confirmação';
                     btnExec.disabled = true;
-                    btnExec.className = 'exec-btn px-2.5 py-1 rounded bg-emerald-950/40 border border-emerald-500/30 text-[10px] font-bold text-emerald-400 flex items-center gap-1';
+                    btnExec.className = 'exec-btn px-2.5 py-1 rounded bg-cyan-950/40 border border-cyan-500/30 text-[10px] font-bold text-cyan-300 flex items-center gap-1';
                     btnIgnore.style.display = 'none';
-                    _markCommandExecutedInHistory(msgId);
                 } else {
-                    btnExec.innerText = '⚠️ Sem conexão';
+                    btnExec.textContent = 'Assistente indisponível';
                 }
             });
             pm._on(btnIgnore, 'click', function () {
@@ -438,6 +437,29 @@
     async function _autoLiveAnalysis(channel, userPrompt) {
         const stepCapture = _appendStep('Iniciando microfone...', '🎙️');
 
+        if (window.SoundAssistantService?.runTask) {
+            try {
+                const result = await window.SoundAssistantService.runTask('analyze', {
+                    origin: 'ai-chat',
+                    channel,
+                    prompt: userPrompt,
+                    label: 'Análise do Main L/R',
+                });
+                _updateStep(stepCapture, 'Análise concluída', '✓');
+                _appendBubble(result.text, false, null);
+                if (result.report) _appendBubble(result.report, false, null);
+                if (result.command && !['log', 'start_live_analysis', 'trigger_sweep'].includes(result.command.action)) {
+                    _appendBubble('O ajuste sugerido foi enviado à Central do Assistente e aguarda sua confirmação.', false, null);
+                    window.SoundAssistantCenter?.open?.();
+                }
+                return true;
+            } catch (err) {
+                _updateStep(stepCapture, 'Falha na análise', '❌');
+                _appendBubble('Erro na análise automática: ' + err.message, false, null);
+                return false;
+            }
+        }
+
         try {
             if (!window.SoundMasterAnalyzer) {
                 _updateStep(stepCapture, 'Analisador não disponível', '❌');
@@ -508,6 +530,29 @@
      */
     async function _autoRT60(channel, userPrompt) {
         const step = _appendStep('Iniciando medição RT60...', '📐');
+
+        if (window.SoundAssistantService?.runTask) {
+            try {
+                const result = await window.SoundAssistantService.runTask('measure', {
+                    origin: 'measure',
+                    channel,
+                    prompt: userPrompt,
+                    label: 'Medição RT60 por sweep',
+                });
+                _updateStep(step, 'Medição e interpretação concluídas', '✓');
+                _appendBubble(result.text, false, null);
+                if (result.report) _appendBubble(result.report, false, null);
+                if (result.command && !['log', 'start_live_analysis', 'trigger_sweep'].includes(result.command.action)) {
+                    _appendBubble('O ajuste sugerido foi enviado à Central do Assistente e aguarda sua confirmação.', false, null);
+                    window.SoundAssistantCenter?.open?.();
+                }
+                return true;
+            } catch (err) {
+                _updateStep(step, 'Falha na medição', '❌');
+                _appendBubble('Erro na medição RT60: ' + err.message, false, null);
+                return false;
+            }
+        }
 
         try {
             if (!window.SoundMasterAnalyzer) {
@@ -586,6 +631,25 @@
      */
     async function _autoClassify(channel, userPrompt) {
         const step = _appendStep('Capturando áudio para classificação...', '🎤');
+
+        if (window.SoundAssistantService?.runTask) {
+            try {
+                const result = await window.SoundAssistantService.runTask('classify', {
+                    origin: 'ai-chat',
+                    channel,
+                    prompt: userPrompt,
+                    label: 'Classificação do áudio',
+                });
+                _updateStep(step, 'Classificação concluída', '✓');
+                _appendBubble(result.text, false, null);
+                if (result.report) _appendBubble(result.report, false, null);
+                return true;
+            } catch (err) {
+                _updateStep(step, 'Falha na classificação', '❌');
+                _appendBubble('Erro na classificação: ' + err.message, false, null);
+                return false;
+            }
+        }
 
         try {
             if (!window.SoundMasterAnalyzer) {
@@ -675,14 +739,7 @@
                 } else if (result.command.action === 'trigger_sweep') {
                     await _autoRT60(channel, text.trim());
                 } else {
-                    const isAuto = AppStore.getState().aiAutonomousMode;
-                    if (isAuto) {
-                        const ok = MixerService.executeAICommand(result.command);
-                        if (ok) {
-                            AppStore.addLog('Automação IA: ' + result.command.desc + ' aplicada automaticamente.');
-                        }
-                    }
-                    _appendBubble(result.text, false, result.command, null, true, isAuto);
+                    _appendBubble(result.text, false, result.command, null, true, false);
                     if (result.report) _appendBubble(result.report, false, null);
                 }
             } else {

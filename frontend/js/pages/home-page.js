@@ -298,7 +298,7 @@
 
             const btnExec = document.createElement('button');
             btnExec.className = 'exec-btn px-3 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-[10px] font-extrabold text-white transition-all flex items-center gap-1';
-            btnExec.textContent = 'Aplicar';
+            btnExec.textContent = 'Revisar ajuste';
 
             actions.appendChild(btnIgnore);
             actions.appendChild(btnExec);
@@ -313,15 +313,14 @@
                 btnIgnore.style.display = 'none';
             } else {
                 pm._on(btnExec, 'click', function () {
-                    const ok = MixerService.executeAICommand(command);
+                    const ok = MixerService.executeAICommand(command, { origin: 'home' });
                     if (ok) {
-                        btnExec.textContent = 'Aplicado';
+                        btnExec.textContent = 'Aguardando confirmação';
                         btnExec.disabled = true;
-                        btnExec.className = 'exec-btn px-3 py-1 rounded bg-emerald-950/40 border border-emerald-500/30 text-[10px] font-bold text-emerald-400 flex items-center gap-1';
+                        btnExec.className = 'exec-btn px-3 py-1 rounded bg-cyan-950/40 border border-cyan-500/30 text-[10px] font-bold text-cyan-300 flex items-center gap-1';
                         btnIgnore.style.display = 'none';
-                        _markCommandExecutedInHistory(id);
                     } else {
-                        btnExec.innerText = '⚠️ Conecte-se à mesa';
+                        btnExec.textContent = 'Assistente indisponível';
                     }
                 });
 
@@ -570,6 +569,33 @@
     }
 
     async function _autoRunLiveAnalysisAndReport(channel) {
+        if (window.SoundAssistantService?.runTask) {
+            const assistantLoadingId = 'assistant-analysis-' + Date.now();
+            _saveMessageToHistory('O Assistente está capturando e analisando o Main L/R...', false, null, assistantLoadingId);
+            try {
+                const result = await window.SoundAssistantService.runTask('analyze', {
+                    origin: 'home',
+                    channel,
+                    prompt: 'Gerar relatório técnico completo com base no áudio capturado',
+                    label: 'Análise do Main L/R',
+                });
+                const history = (AppStore.getState().aiChatHistory || []).filter(function (msg) { return msg.id !== assistantLoadingId; });
+                AppStore.setState({ aiChatHistory: history });
+                _saveMessageToHistory(result.text, false, null, 'msg-' + Math.random().toString(36).substr(2, 9));
+                if (result.report) _saveMessageToHistory(result.report, false, null, 'msg-' + Math.random().toString(36).substr(2, 9));
+                if (result.command && !['log', 'start_live_analysis', 'trigger_sweep'].includes(result.command.action)) {
+                    _saveMessageToHistory('O ajuste sugerido aguarda confirmação na Central do Assistente.', false, null, 'msg-' + Date.now());
+                    window.SoundAssistantCenter?.open?.();
+                }
+                _persistHistory();
+            } catch (error) {
+                const history = (AppStore.getState().aiChatHistory || []).filter(function (msg) { return msg.id !== assistantLoadingId; });
+                AppStore.setState({ aiChatHistory: history });
+                _saveMessageToHistory('Erro ao executar análise: ' + error.message, false, null, 'msg-err-' + Date.now());
+            }
+            return;
+        }
+
         var analyzer = _getAnalyzer();
         if (!analyzer) {
             _saveMessageToHistory('O analisador de áudio não está disponível.', false, null, 'msg-err-' + Date.now());
@@ -736,6 +762,33 @@
     }
 
     async function _autoRunSweepAndReport(channel) {
+        if (window.SoundAssistantService?.runTask) {
+            const assistantLoadingId = 'assistant-measure-' + Date.now();
+            _saveMessageToHistory('O Assistente está executando a medição RT60 por sweep...', false, null, assistantLoadingId);
+            try {
+                const result = await window.SoundAssistantService.runTask('measure', {
+                    origin: 'measure',
+                    channel,
+                    prompt: 'Interprete a medição RT60 e gere recomendações seguras.',
+                    label: 'Medição RT60 por sweep',
+                });
+                const history = (AppStore.getState().aiChatHistory || []).filter(function (msg) { return msg.id !== assistantLoadingId; });
+                AppStore.setState({ aiChatHistory: history });
+                _saveMessageToHistory(result.text, false, null, 'msg-' + Math.random().toString(36).substr(2, 9));
+                if (result.report) _saveMessageToHistory(result.report, false, null, 'msg-' + Math.random().toString(36).substr(2, 9));
+                if (result.command && !['log', 'start_live_analysis', 'trigger_sweep'].includes(result.command.action)) {
+                    _saveMessageToHistory('O ajuste sugerido aguarda confirmação na Central do Assistente.', false, null, 'msg-' + Date.now());
+                    window.SoundAssistantCenter?.open?.();
+                }
+                _persistHistory();
+            } catch (error) {
+                const history = (AppStore.getState().aiChatHistory || []).filter(function (msg) { return msg.id !== assistantLoadingId; });
+                AppStore.setState({ aiChatHistory: history });
+                _saveMessageToHistory('Erro na medição RT60: ' + error.message, false, null, 'msg-err-' + Date.now());
+            }
+            return;
+        }
+
         var analyzer = _getAnalyzer();
         if (!analyzer) {
             _saveMessageToHistory('O analisador de áudio não está disponível.', false, null, 'msg-err-' + Date.now());
@@ -866,16 +919,8 @@
             const filtered = currentHistory.filter(msg => msg.id !== loadingId);
             AppStore.setState({ aiChatHistory: filtered });
             
-            const isAuto = result.command && result.command.action !== 'start_live_analysis' && result.command.action !== 'trigger_sweep' && AppStore.getState().aiAutonomousMode;
-            if (isAuto) {
-                const ok = MixerService.executeAICommand(result.command);
-                if (ok) {
-                    AppStore.addLog('Automação IA: ' + result.command.desc + ' aplicada automaticamente.');
-                }
-            }
-
             const aiMsgId = 'msg-' + Math.random().toString(36).substr(2, 9);
-            _saveMessageToHistory(result.text, false, result.command, aiMsgId, isAuto);
+            _saveMessageToHistory(result.text, false, result.command, aiMsgId, false);
             if (result.report) {
                 const reportMsgId = 'msg-' + Math.random().toString(36).substr(2, 9);
                 _saveMessageToHistory(result.report, false, null, reportMsgId);
@@ -1126,7 +1171,11 @@
                     AppStore.setState({ aiChatHistory: filtered });
                     
                     const aiMsgId = 'msg-' + Math.random().toString(36).substr(2, 9);
-                    _saveMessageToHistory(result.text, false, result.command, aiMsgId);
+                    _saveMessageToHistory(result.text, false, null, aiMsgId);
+                    if (result.command && !['log', 'start_live_analysis', 'trigger_sweep'].includes(result.command.action)) {
+                        _saveMessageToHistory('O ajuste sugerido aguarda confirmação na Central do Assistente.', false, null, 'msg-' + Date.now());
+                        window.SoundAssistantCenter?.open?.();
+                    }
                     if (result.report) {
                         const reportMsgId = 'msg-' + Math.random().toString(36).substr(2, 9);
                         _saveMessageToHistory(result.report, false, null, reportMsgId);

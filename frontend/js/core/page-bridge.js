@@ -42,6 +42,8 @@
             'AutoEQ',
             'AutoEqService',
             'FeedbackDetectorService',
+            'SoundAssistantService',
+            'SoundAssistantCenter',
             'MtwManager',
             'MtwManagerService',
             'SceneBuilderService',

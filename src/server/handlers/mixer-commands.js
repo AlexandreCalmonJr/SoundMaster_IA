@@ -88,11 +88,15 @@ const schemas = {
     channelMute: z.object({
         channel: z.number().min(1).max(24),
         mute: z.union([z.boolean(), z.number()]).transform(v => !!v)
+    }),
+    mtkSelect: z.object({
+        channel: z.number().int().min(1).max(24),
+        enabled: z.union([z.boolean(), z.number()]).transform(v => !!v)
     })
 };
 
 function registerMixerCommandHandlers(io, socket, deps) {
-    const { actions, logger, mixerSingleton, throttledSetMaster, rateLimiter, addToHistory, feedbackCooldowns, automaticCutState, canApplyAutomaticCut } = deps;
+    const { actions, logger, mixerSingleton, throttledSetMaster, rateLimiter, addToHistory } = deps;
 
     socket.on('set_master_level', (data) => {
         if (!rateLimiter(socket, 'set_master_level')) return;
@@ -113,35 +117,22 @@ function registerMixerCommandHandlers(io, socket, deps) {
 
     socket.on('cut_feedback', (data) => {
         if (!rateLimiter(socket, 'cut_feedback')) return;
-        try {
-            const { hz } = schemas.feedbackCut.parse(data);
-            const now = Date.now();
-            const lastCut = feedbackCooldowns.get(Math.round(hz)) || 0;
-            if (now - lastCut < 5000) {
-                logger.info(socket.id, 'FEEDBACK_CUT_COOLDOWN', { hz });
-                return;
-            }
-            feedbackCooldowns.set(Math.round(hz), now);
-            const result = actions.cutFeedback(hz);
-            io.emit('mixer_log', `[AUTO] ${result}`);
-        } catch (err) {
-            logger.error(socket.id, 'FEEDBACK_CUT_ERROR', err.message);
-        }
+        logger.warn(socket.id, 'DIRECT_FEEDBACK_CUT_BLOCKED', { hz: data?.hz || null });
+        socket.emit('sound_assistant_action_rejected', {
+            clientRequestId: null,
+            status: 'rejected',
+            error: 'O corte de feedback exige revisão e confirmação na Central do Assistente.',
+        });
     });
 
     socket.on('execute_ai_command', (cmd) => {
         if (!rateLimiter(socket, 'execute_ai_command')) return;
-        if (!actions.ensureMixer(socket)) return;
-        try {
-            const validated = schemas.aiCommand.parse(cmd);
-            const result = actions.executeMixerCommand(validated, { source: 'ai' });
-            addToHistory({ type: 'ai_command', data: validated });
-            logger.info(socket.id, 'AI_COMMAND_EXECUTED', { action: validated.action, result });
-            socket.emit('feedback_cut_success', { hz: validated.hz || 0, msg: `${validated.desc || 'Comando IA'}: ${result}` });
-        } catch (error) {
-            logger.error(socket.id, 'AI_COMMAND_ERROR', { error: error.message });
-            socket.emit('mixer_status', { connected: true, msg: `Erro IA: ${error.message}` });
-        }
+        logger.warn(socket.id, 'DIRECT_AI_COMMAND_BLOCKED', { action: cmd?.action || null });
+        socket.emit('sound_assistant_action_rejected', {
+            clientRequestId: null,
+            status: 'rejected',
+            error: 'Comandos da IA exigem proposta e confirmação pelo Assistente de Operação Sonora.',
+        });
     });
 
     socket.on('apply_channel_hpf', (data) => {
@@ -567,6 +558,22 @@ function registerMixerCommandHandlers(io, socket, deps) {
             const action_type = data?.action_type || data?.action;
             const val = data?.val !== undefined ? data?.val : data?.value;
             const msg = actions.executeMixerCommand({ action: 'mtk_cmd', action_type, val });
+            socket.emit('feedback_cut_success', { msg });
+        } catch (error) {
+            socket.emit('mixer_status', { connected: true, msg: error.message });
+        }
+    });
+
+    socket.on('mtk_select', (data) => {
+        if (!actions.ensureMixer(socket)) return;
+        try {
+            const validated = schemas.mtkSelect.parse(data);
+            const msg = actions.executeMixerCommand({
+                action: 'mtk_select',
+                channel: validated.channel,
+                enabled: validated.enabled ? 1 : 0,
+            });
+            mixerSingleton.updateChannelState(validated.channel, { multiTrackSelected: validated.enabled });
             socket.emit('feedback_cut_success', { msg });
         } catch (error) {
             socket.emit('mixer_status', { connected: true, msg: error.message });

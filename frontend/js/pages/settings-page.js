@@ -358,6 +358,58 @@ function _safeSetItem(key, value) {
         }
     }
 
+    // ─── Assistente de Operação Sonora ─────────────────────────────────────────
+
+    function _renderAssistantSettings() {
+        const assistant = window.SoundAssistantService;
+        if (!assistant) return;
+        const settings = assistant.getSettings();
+        const source = pm._el('sound-assistant-source');
+        const sensitivity = pm._el('sound-assistant-sensitivity');
+        if (source) source.value = settings.sourceMode;
+        if (sensitivity) sensitivity.value = settings.sensitivity;
+        document.querySelectorAll('[data-assistant-category]').forEach(function (input) {
+            input.checked = settings.categories[input.dataset.assistantCategory] !== false;
+        });
+        const state = assistant.getState();
+        const status = pm._el('sound-assistant-settings-status');
+        if (status) status.textContent = `${state.activeCount} alerta(s) ativo(s), ${state.pendingCount} ação(ões) pendente(s). Alterações da IA sempre exigem confirmação.`;
+    }
+
+    function _saveAssistantSettings() {
+        const assistant = window.SoundAssistantService;
+        if (!assistant) return;
+        const source = pm._el('sound-assistant-source');
+        const sensitivity = pm._el('sound-assistant-sensitivity');
+        const categories = {};
+        document.querySelectorAll('[data-assistant-category]').forEach(function (input) {
+            categories[input.dataset.assistantCategory] = input.checked;
+        });
+        assistant.updateSettings({
+            sourceMode: source?.value || 'main-lr',
+            sensitivity: sensitivity?.value || 'balanced',
+            confirmationPolicy: 'always',
+            categories,
+        });
+        _renderAssistantSettings();
+        if (window.SoundMasterUI) window.SoundMasterUI.showToast('Configurações do assistente salvas', 'success');
+    }
+
+    function _bindAssistantSettings() {
+        _renderAssistantSettings();
+        const source = pm._el('sound-assistant-source');
+        const sensitivity = pm._el('sound-assistant-sensitivity');
+        if (source) pm._on(source, 'change', _saveAssistantSettings);
+        if (sensitivity) pm._on(sensitivity, 'change', _saveAssistantSettings);
+        document.querySelectorAll('[data-assistant-category]').forEach(function (input) {
+            pm._on(input, 'change', _saveAssistantSettings);
+        });
+        const open = pm._el('btn-open-sound-assistant');
+        if (open) pm._on(open, 'click', function () { window.SoundAssistantCenter?.open?.(); });
+        pm._subscribe('AppStore', 'soundAssistantActiveCount', _renderAssistantSettings);
+        pm._subscribe('AppStore', 'soundAssistantPendingCount', _renderAssistantSettings);
+    }
+
     // ─── Settings Page Init ────────────────────────────────────────────────────
 
     function loadSavedSettings() {
@@ -383,6 +435,7 @@ function _safeSetItem(key, value) {
         loadSavedSettings();
         _loadOllamaConfig();
         _bindOllamaConfig();
+        _bindAssistantSettings();
 
         // Event delegation for model list
         var modelList = pm._el('ai-model-list');

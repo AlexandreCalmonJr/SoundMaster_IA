@@ -312,20 +312,48 @@
      * Executa um comando vindo da IA (objeto com action, desc, etc.).
      * @param {Object} command
      */
-    function executeAICommand(command) {
+    function executeAICommand(command, context) {
         if (!command || !command.action) {
-            AppStore.addLog('⚠️ Comando IA inválido recebido.');
+            AppStore.addLog('Comando IA inválido recebido.');
             return false;
         }
-        if (command.action === 'trigger_sweep') {
-            if (window.SoundMasterAnalyzer && typeof window.SoundMasterAnalyzer.startSweep === 'function') {
-                window.SoundMasterAnalyzer.startSweep();
-            }
-            _emit('execute_ai_command', command, 'Executando comando IA: ' + (command.desc || command.action));
+
+        const assistant = window.SoundAssistantService;
+        if (command.action === 'start_live_analysis') {
+            if (!assistant) return false;
+            assistant.runTask('analyze', {
+                origin: context?.origin || 'mixer',
+                channel: command.channel || 1,
+                prompt: command.desc || 'Analise o áudio do Main L/R.',
+            }).catch(function (error) { AppStore.addLog('Falha na análise: ' + error.message); });
             return true;
         }
-        return _emit('execute_ai_command', command,
-            'Executando comando IA: ' + (command.desc || command.action));
+        if (command.action === 'trigger_sweep') {
+            if (!assistant) return false;
+            assistant.runTask('measure', {
+                origin: context?.origin || 'measure',
+                channel: command.channel || 1,
+                prompt: command.desc || 'Interprete a medição RT60.',
+            }).catch(function (error) { AppStore.addLog('Falha na medição: ' + error.message); });
+            return true;
+        }
+        if (command.action === 'log') {
+            AppStore.addLog(command.desc || 'Registro solicitado pela IA.');
+            return true;
+        }
+        if (!assistant || typeof assistant.proposeAction !== 'function') {
+            AppStore.addLog('Assistente de confirmação indisponível. Nenhum comando foi executado.');
+            return false;
+        }
+
+        assistant.proposeAction(command, {
+            origin: context?.origin || 'mixer',
+            reason: context?.reason || command.desc || 'Ajuste sugerido pela IA.',
+            evidence: context?.evidence || {},
+        });
+        window.SoundAssistantCenter?.open?.();
+        AppStore.addLog('Ajuste da IA enviado para confirmação: ' + (command.desc || command.action));
+        return true;
     }
 
     /**
@@ -514,10 +542,7 @@
     function setMasterMute(enabled) {
         const state = enabled ? 1 : 0;
         AppStore.setState({ masterMute: !!enabled });
-        return _emit('execute_ai_command', {
-            action: 'master_mute',
-            enabled: state
-        }, enabled ? 'Master MUTADO.' : 'Master DESMUTADO.');
+        return _emit('set_master_mute', { mute: state }, enabled ? 'Master MUTADO.' : 'Master DESMUTADO.');
     }
 
     function setChannelMute(channel, enabled) {
@@ -525,11 +550,7 @@
         if (ch < 1) return false;
         const state = enabled ? 1 : 0;
         AppStore.setState({ [`mute_ch_${ch}`]: !!enabled });
-        return _emit('execute_ai_command', {
-            action: 'channel_mute',
-            channel: ch,
-            enabled: state
-        }, enabled ? `Canal ${ch} MUTADO.` : `Canal ${ch} DESMUTADO.`);
+        return _emit('set_channel_mute', { channel: ch, mute: state }, enabled ? `Canal ${ch} MUTADO.` : `Canal ${ch} DESMUTADO.`);
     }
 
     function setChannelLevel(channel, level) {
@@ -537,11 +558,7 @@
         if (ch < 1) return false;
         const clamped = _clamp(level, 0, 1);
         AppStore.setState({ [`ch_${ch}_level`]: clamped });
-        return _emit('execute_ai_command', {
-            action: 'channel_fader',
-            channel: ch,
-            level: clamped
-        }, `Canal ${ch} -> ${Math.round(clamped * 100)}%.`);
+        return _emit('set_channel_level', { channel: ch, level: clamped }, `Canal ${ch} -> ${Math.round(clamped * 100)}%.`);
     }
 
     // -------------------------------------------------------------------------

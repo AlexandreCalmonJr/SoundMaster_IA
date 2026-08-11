@@ -18,6 +18,7 @@
 'use strict';
 
 const { generateCorrections } = require('../acoustic-corrections');
+const REQUIRE_ASSISTANT_CONFIRMATION = true;
 
 function registerRt60MeasurementHandlers(io, socket, deps) {
     const { logger, mixerSingleton, actions, db } = deps;
@@ -55,6 +56,12 @@ function registerRt60MeasurementHandlers(io, socket, deps) {
 
     socket.on('rt60_apply_correction', async (data) => {
         const { actionId, action, channels } = data || {};
+
+        if (REQUIRE_ASSISTANT_CONFIRMATION) {
+            logger.warn(socket.id, 'RT60_DIRECT_APPLY_BLOCKED', { actionId });
+            socket.emit('rt60_error', { message: 'Correções RT60 devem ser revisadas e confirmadas na Central do Assistente.' });
+            return;
+        }
 
         if (!action) {
             socket.emit('rt60_error', { message: 'Ação inválida.' });
@@ -97,6 +104,11 @@ function registerRt60MeasurementHandlers(io, socket, deps) {
 
     socket.on('rt60_apply_all', async (data) => {
         const { plan, channels } = data || {};
+        if (REQUIRE_ASSISTANT_CONFIRMATION) {
+            logger.warn(socket.id, 'RT60_DIRECT_APPLY_ALL_BLOCKED', { count: plan?.actions?.length || 0 });
+            socket.emit('rt60_error', { message: 'O plano RT60 deve ser convertido em ações pendentes e confirmado na Central do Assistente.' });
+            return;
+        }
         if (!plan || !plan.actions?.length) {
             socket.emit('rt60_error', { message: 'Plano inválido ou sem ações.' });
             return;

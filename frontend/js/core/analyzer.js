@@ -66,6 +66,9 @@
     let _lastClassification = null;
     let _classifyCooldown = 0;
     let _feedbackCooldown = 0;
+    let _soundAssistantLastFrameAt = 0;
+    let _soundAssistantStereoMeter = null;
+    let _soundAssistantUnsubscribe = null;
     let _autoInitDone = false;
 
     // Throttle: salta rendering pesado a cada N frames (melhor em mobile)
@@ -241,6 +244,106 @@
             return;
         }
         el.innerHTML = html;
+    }
+
+    function _timeDomainRmsDb(samples) {
+        if (!samples || !samples.length) return -120;
+        let sumSq = 0;
+        for (let i = 0; i < samples.length; i++) {
+            sumSq += samples[i] * samples[i];
+        }
+        return 20 * Math.log10(Math.sqrt(sumSq / samples.length) + 1e-12);
+    }
+
+    function _localSpectralFloorDb(spectrum, peakIndex) {
+        if (!spectrum || !spectrum.length) return -120;
+        const span = Math.max(8, Math.min(64, Math.round(Math.max(1, peakIndex) * 0.08)));
+        const start = Math.max(0, peakIndex - span);
+        const end = Math.min(spectrum.length - 1, peakIndex + span);
+        const values = [];
+        for (let i = start; i <= end; i++) {
+            if (Math.abs(i - peakIndex) <= 2) continue;
+            if (Number.isFinite(spectrum[i])) values.push(spectrum[i]);
+        }
+        if (!values.length) return -120;
+        values.sort(function (a, b) { return a - b; });
+        return values[Math.floor(values.length / 2)];
+    }
+
+    function _formatAssistantEvidence(alert) {
+        const evidence = alert?.evidence || {};
+        const parts = [];
+        if (Number.isFinite(evidence.frequencyHz)) parts.push(Math.round(evidence.frequencyHz) + ' Hz');
+        if (Number.isFinite(evidence.truePeakDb)) parts.push(evidence.truePeakDb.toFixed(1) + ' dBFS pico');
+        if (Number.isFinite(evidence.peakDb)) parts.push(evidence.peakDb.toFixed(1) + ' dB pico');
+        if (Number.isFinite(evidence.prominenceDb)) parts.push('+' + evidence.prominenceDb.toFixed(1) + ' dB de destaque');
+        if (Number.isFinite(evidence.observedFrames)) parts.push(evidence.observedFrames + ' quadros');
+        return parts.join(' · ');
+    }
+
+    function _renderSoundAssistantState(_alert, state) {
+        const service = window.SoundAssistantService;
+        const snapshot = state || service?.getState?.();
+        if (!snapshot) return;
+
+        const status = _el('sound-assistant-status');
+        const count = _el('sound-assistant-active-count');
+        const container = _el('sound-assistant-alerts');
+        const empty = _el('sound-assistant-empty');
+        const active = (snapshot.alerts || []).filter(function (alert) { return alert.status === 'active'; });
+
+        if (status) status.textContent = 'Modo sombra · ' + (snapshot.sourceMode === 'main-lr' ? 'Main L/R USB' : 'Multicanal USB');
+        if (count) count.textContent = String(active.length);
+        if (empty) empty.classList.toggle('hidden', active.length > 0);
+        if (!container) return;
+
+        const doc = container.ownerDocument || document;
+        container.replaceChildren();
+        active.slice(0, 6).forEach(function (alert) {
+            const card = doc.createElement('article');
+            const critical = alert.severity === 'critical';
+            card.className = 'rounded-xl border p-3 ' + (critical
+                ? 'bg-red-950/30 border-red-500/30'
+                : 'bg-amber-950/20 border-amber-500/25');
+
+            const header = doc.createElement('div');
+            header.className = 'flex items-start justify-between gap-3';
+
+            const title = doc.createElement('strong');
+            title.className = 'text-[11px] font-black uppercase tracking-wide ' + (critical ? 'text-red-300' : 'text-amber-300');
+            title.textContent = alert.title;
+
+            const confidence = doc.createElement('span');
+            confidence.className = 'shrink-0 text-[9px] font-mono text-slate-400';
+            confidence.textContent = Math.round((alert.confidence || 0) * 100) + '% confiança';
+
+            header.append(title, confidence);
+
+            const message = doc.createElement('p');
+            message.className = 'mt-1.5 text-[11px] leading-relaxed text-slate-300';
+            message.textContent = alert.message;
+
+            const evidence = doc.createElement('p');
+            evidence.className = 'mt-2 text-[9px] font-mono text-slate-500';
+            evidence.textContent = _formatAssistantEvidence(alert) || 'Evidência em validação.';
+
+            const safety = doc.createElement('p');
+            safety.className = 'mt-2 text-[9px] font-bold text-cyan-400';
+            safety.textContent = 'Nenhum ajuste executado · confirmação será obrigatória';
+
+            card.append(header, message, evidence, safety);
+            container.appendChild(card);
+        });
+    }
+
+    function _bindSoundAssistant() {
+        const service = window.SoundAssistantService;
+        if (!service) return;
+
+        if (_soundAssistantUnsubscribe) _soundAssistantUnsubscribe();
+        _soundAssistantUnsubscribe = service.subscribe(_renderSoundAssistantState);
+        service.bindSocket?.();
+        _renderSoundAssistantState(null, service.getState());
     }
 
     // --- Ponderações acústicas (IEC 61672:2003) ---
@@ -872,6 +975,7 @@
         // Inicializa serviços de controle modulares
         if (window.FeedbackDetectorModule) window.FeedbackDetectorModule.init();
         if (window.SplDisplayModule) window.SplDisplayModule.init();
+        _bindSoundAssistant();
 
         // Inicializa Visualizador de Transfer Function
         if (window.SoundMasterVisualizer) window.SoundMasterVisualizer.init();
@@ -948,7 +1052,7 @@
                 deviceLabel = micSelect.selectedOptions?.[0]?.text || 'Padrão';
             }
 
-            const useStereo = deviceLabel.toLowerCase().includes('usb') || deviceLabel.toLowerCase().includes('interface');
+            const useStereo = /usb|interface|soundcraft|ui24/i.test(deviceLabel);
             const constraints = {
                 audio: {
                     deviceId: deviceId !== 'default' ? { exact: deviceId } : undefined,
@@ -992,6 +1096,21 @@
                 await audioCtx.audioWorklet.addModule(`js/core/min/transfer-function-processor.js?t=${Date.now()}`);
 
                 audioWorkletNode = new AudioWorkletNode(audioCtx, 'soundmaster-processor');
+                audioWorkletNode.port.onmessage = function (event) {
+                    if (event.data?.type !== 'meter-frame') return;
+                    const peakL = Number(event.data.peakL || 0);
+                    const peakR = Number(event.data.peakR || 0);
+                    const rmsL = Number(event.data.rmsL || 0);
+                    const rmsR = Number(event.data.rmsR || 0);
+                    _soundAssistantStereoMeter = {
+                        at: Date.now(),
+                        peakL,
+                        peakR,
+                        truePeakDb: 20 * Math.log10(Math.max(peakL, peakR) + 1e-12),
+                        rmsDb: 20 * Math.log10(Math.max(rmsL, rmsR) + 1e-12),
+                        isClipping: peakL >= 0.98 || peakR >= 0.98,
+                    };
+                };
 
                 transferFunctionNode = new AudioWorkletNode(audioCtx, 'transfer-function-processor', {
                     numberOfInputs: 2,
@@ -1025,7 +1144,7 @@
             source = audioCtx.createMediaStreamSource(stream);
             try {
                 source.channelCountMode = 'explicit';
-                source.channelCount = 1;
+                source.channelCount = useStereo ? 2 : 1;
                 source.channelInterpretation = 'discrete';
             } catch (e) {
                 console.warn('[Analyzer] Não foi possível forçar mono no source:', e);
@@ -1147,9 +1266,12 @@
         source = null;
 
         if (audioWorkletNode) {
+            audioWorkletNode.port.onmessage = null;
             try { audioWorkletNode.disconnect(); } catch (_) { }
             audioWorkletNode = null;
         }
+        _soundAssistantStereoMeter = null;
+        _soundAssistantLastFrameAt = 0;
         if (transferFunctionNode) {
             try { transferFunctionNode.disconnect(); } catch (_) { }
             transferFunctionNode = null;
@@ -1705,14 +1827,38 @@
                 }
             }
 
-            const peakHz = peakIndex * audioCtx.sampleRate / analyser.fftSize;
-            const neighborLeft = freqData[Math.max(0, peakIndex - 1)] || analyser.minDecibels;
-            const neighborRight = freqData[Math.min(bufferLength - 1, peakIndex + 1)] || analyser.minDecibels;
-            const neighborAvg = (neighborLeft + neighborRight) / 2;
+            const peakHz = currentFastPeakHz;
+            const localFloorDb = _localSpectralFloorDb(fastFreqData, peakIndex);
+            const neighborAvg = localFloorDb;
 
             const metrics = calculateAcousticMetrics(timeData, freqData, audioCtx.sampleRate);
             const rmsDb = metrics.rmsDb;
             const crestFactor = metrics.crestFactor;
+            const summary = buildAcousticSummary(freqData, timeData);
+
+            if (window.SoundAssistantService) {
+                const now = Date.now();
+                if (now - _soundAssistantLastFrameAt >= 80) {
+                    _soundAssistantLastFrameAt = now;
+                    const stereoMeter = _soundAssistantStereoMeter && now - _soundAssistantStereoMeter.at < 500
+                        ? _soundAssistantStereoMeter
+                        : null;
+                    window.SoundAssistantService.ingestFrame({
+                        timestamp: now,
+                        sourceMode: 'main-lr',
+                        truePeakDb: stereoMeter?.truePeakDb ?? metrics.peakDb,
+                        rmsDb: stereoMeter?.rmsDb ?? _timeDomainRmsDb(timeData),
+                        isClipping: Boolean(stereoMeter?.isClipping || isClipping),
+                        peakHz: currentFastPeakHz,
+                        peakDb,
+                        localFloorDb,
+                        classification: _lastClassification?.topClass || '',
+                        classificationScore: Number(_lastClassification?.topScore || 0),
+                        bands: summary.details?.bands || {},
+                        crestFactor: Number(summary.details?.crestFactor || 0),
+                    });
+                }
+            }
 
             window.currentGlobalRMS = Math.pow(10, rmsDb / 20);
 
@@ -1722,7 +1868,6 @@
                 SplDisplayModule.updateRmsBar(rmsDb, analyser.minDecibels, analyser.maxDecibels, isClipping);
             }
 
-            const summary = buildAcousticSummary(freqData, timeData);
             if (pinkMeasurementActive) {
                 if (!pinkMeasurementSum || pinkMeasurementSum.length !== bufferLength) {
                     pinkMeasurementSum = new Float32Array(bufferLength);
@@ -1850,12 +1995,18 @@
                 actionsArea.innerHTML = '';
                 const button = document.createElement('button');
                 button.className = 'px-3 py-1.5 bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 rounded-lg text-[10px] font-bold uppercase hover:bg-cyan-500 hover:text-white transition-all';
-                button.innerText = 'Executar Correção Sugerida';
+                button.innerText = 'Revisar correção sugerida';
                 button.addEventListener('click', () => {
                     if (window.MixerService && typeof MixerService.executeAICommand === 'function') {
-                        MixerService.executeAICommand(result.command);
+                        const queued = MixerService.executeAICommand(result.command, {
+                            origin: 'analyzer',
+                            reason: result.text,
+                            evidence: payload,
+                        });
+                        button.disabled = queued;
+                        if (queued) button.textContent = 'Aguardando confirmação';
                     } else {
-                        alert('Comando da IA recebido, mas o Mixer não está conectado.');
+                        alert('Assistente de confirmação indisponível. Nenhum comando foi executado.');
                     }
                 });
                 actionsArea.appendChild(button);

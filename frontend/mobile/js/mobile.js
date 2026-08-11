@@ -932,11 +932,61 @@ async function askAI(text, includeAnalysis = false) {
 
         if (data.command) {
             const btnCmd = aiRow.querySelector('button');
+            btnCmd.textContent = 'Revisar ajuste: ' + (data.command.desc || data.command.action);
             btnCmd.addEventListener('click', () => {
-                emitMobileTool('execute_ai_command', data.command, `Executado via IA: ${data.command.desc}`);
+                const actionId = btnCmd.dataset.actionId;
+                if (actionId) {
+                    socket.emit('sound_assistant_confirm_action', { actionId });
+                    btnCmd.disabled = true;
+                    btnCmd.textContent = 'Aplicando ajuste confirmado...';
+                    return;
+                }
+                if (btnCmd.dataset.proposing === 'true') return;
+
+                const clientRequestId = 'mobile-' + Date.now();
+                btnCmd.dataset.proposing = 'true';
                 btnCmd.disabled = true;
-                btnCmd.innerText = 'Aplicado ✅';
-                btnCmd.className = 'mt-3 w-full py-2 bg-green-500/20 text-green-400 border border-green-500/30 rounded-xl text-[10px] font-black uppercase tracking-widest';
+                btnCmd.textContent = 'Validando ajuste...';
+
+                const onPending = (entry) => {
+                    if (entry.clientRequestId !== clientRequestId) return;
+                    socket.off('sound_assistant_action_pending', onPending);
+                    btnCmd.dataset.actionId = entry.actionId;
+                    btnCmd.dataset.proposing = 'false';
+                    btnCmd.disabled = false;
+                    btnCmd.textContent = entry.risk === 'high' ? 'Confirmar ajuste de alto impacto' : 'Confirmar e aplicar';
+                };
+                const onRejected = (entry) => {
+                    if (entry.clientRequestId !== clientRequestId) return;
+                    socket.off('sound_assistant_action_rejected', onRejected);
+                    btnCmd.dataset.proposing = 'false';
+                    btnCmd.disabled = true;
+                    btnCmd.textContent = 'Ajuste bloqueado: ' + (entry.error || 'não permitido');
+                };
+                const onResult = (entry) => {
+                    if (!btnCmd.dataset.actionId || entry.actionId !== btnCmd.dataset.actionId) return;
+                    if (entry.status === 'completed') {
+                        socket.off('sound_assistant_action_result', onResult);
+                        btnCmd.disabled = true;
+                        btnCmd.textContent = 'Ajuste aplicado';
+                        btnCmd.className = 'mt-3 w-full py-2 bg-green-500/20 text-green-400 border border-green-500/30 rounded-xl text-[10px] font-black uppercase tracking-widest';
+                    } else if (entry.status === 'failed') {
+                        socket.off('sound_assistant_action_result', onResult);
+                        btnCmd.disabled = true;
+                        btnCmd.textContent = 'Falha: ' + (entry.error || 'não aplicado');
+                    }
+                };
+
+                socket.on('sound_assistant_action_pending', onPending);
+                socket.on('sound_assistant_action_rejected', onRejected);
+                socket.on('sound_assistant_action_result', onResult);
+                socket.emit('sound_assistant_propose_action', {
+                    clientRequestId,
+                    command: data.command,
+                    reason: data.text || data.command.desc,
+                    origin: 'ai-chat',
+                    evidence: { source: 'mobile' }
+                });
             });
         }
 

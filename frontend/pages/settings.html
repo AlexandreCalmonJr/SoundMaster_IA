@@ -45,6 +45,52 @@
             <audio-source-selector id="settings-audio-selector" show-channel="true" class="block"></audio-source-selector>
         </div>
 
+        <!-- Assistente de Operação Sonora -->
+        <div class="bg-slate-900/80 border border-cyan-500/20 rounded-2xl p-8">
+            <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
+                <div>
+                    <h3 class="text-xs font-black uppercase tracking-widest text-cyan-300">Assistente de Operação Sonora</h3>
+                    <p class="text-[11px] text-slate-500 mt-1">Alertas, análise, medições e ajustes da mesa com confirmação obrigatória.</p>
+                </div>
+                <button id="btn-open-sound-assistant" class="px-4 py-2 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-xs font-bold text-cyan-300 hover:bg-cyan-500/20">Abrir central</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <label class="block">
+                    <span class="text-[10px] uppercase font-bold text-slate-500">Fonte analisada</span>
+                    <select id="sound-assistant-source" class="mt-2 w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs text-white">
+                        <option value="main-lr">Main L/R via USB</option>
+                        <option value="multichannel" disabled>Canais separados via USB — próxima fase</option>
+                    </select>
+                </label>
+                <label class="block">
+                    <span class="text-[10px] uppercase font-bold text-slate-500">Sensibilidade</span>
+                    <select id="sound-assistant-sensitivity" class="mt-2 w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs text-white">
+                        <option value="conservative">Conservadora</option>
+                        <option value="balanced">Equilibrada</option>
+                        <option value="sensitive">Sensível</option>
+                    </select>
+                </label>
+                <div>
+                    <span class="text-[10px] uppercase font-bold text-slate-500">Política de execução</span>
+                    <div class="mt-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-300">Sempre pedir confirmação</div>
+                </div>
+            </div>
+
+            <div class="border-t border-white/5 pt-5">
+                <h4 class="text-[10px] uppercase font-black tracking-wider text-slate-500 mb-3">Categorias de alerta</h4>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" data-assistant-category="clipping"> Clipping</label>
+                    <label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" data-assistant-category="feedback"> Microfonia</label>
+                    <label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" data-assistant-category="noise"> Ruído e hum</label>
+                    <label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" data-assistant-category="signal"> Falhas de sinal</label>
+                    <label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" data-assistant-category="dynamics"> Ganho e dinâmica</label>
+                    <label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" data-assistant-category="eq"> EQ e inteligibilidade</label>
+                </div>
+                <p id="sound-assistant-settings-status" class="mt-4 text-[10px] text-slate-500" aria-live="polite">Carregando estado do assistente...</p>
+            </div>
+        </div>
+
         <!-- Geral -->
         <div class="bg-slate-900/80 border border-white/10 rounded-2xl p-8">
             <h3 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-8">Preferências de Interface</h3>

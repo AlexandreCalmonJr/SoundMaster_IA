@@ -42,6 +42,7 @@
     let localMuteState = {};
     let localSoloState = {};
     let localMtkState = {};
+    let _unmountAssistant = null;
 
     async function loadNames() {
         try {
@@ -118,7 +119,7 @@
                     var next = !localMtkState[i];
                     localMtkState[i] = next;
                     if (window.SocketService) {
-                        SocketService.emit('execute_ai_command', { action: 'mtk_select', channel: i, enabled: next ? 1 : 0 });
+                        SocketService.emit('mtk_select', { channel: i, enabled: next ? 1 : 0 });
                     }
                     AppStore.setState({ ['ch_' + i + '_mtk_selected']: next });
                     updateMtkUI(i, next);
@@ -235,6 +236,9 @@
     }
 
     function init() {
+        if (window.SoundAssistantCenter?.mountSummary) {
+            _unmountAssistant = window.SoundAssistantCenter.mountSummary(pm._el('mixer-assistant-summary'));
+        }
         const targetSelect = pm._el('mixer-target-select');
         if (targetSelect) {
             currentTarget = targetSelect.value || 'master';
@@ -275,6 +279,8 @@
     }
 
     function destroy() {
+        if (_unmountAssistant) _unmountAssistant();
+        _unmountAssistant = null;
         pm.destroy();
     }
 

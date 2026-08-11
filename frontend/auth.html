@@ -4,23 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SoundMaster Pro — Acesso</title>
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" onerror="this.remove()">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" onerror="this.remove()">
     <style>
         :root {
-            --bg: #07090f;
-            --surface: #0d1117;
-            --surface2: #141a24;
-            --border: rgba(255,255,255,0.07);
-            --border-active: rgba(6,182,212,0.45);
-            --accent: #06b6d4;
-            --accent-glow: rgba(6,182,212,0.2);
-            --accent-dim: rgba(6,182,212,0.12);
-            --text: #e2e8f0;
-            --text-sub: #64748b;
-            --danger: #ef4444;
-            --success: #22c55e;
-            --font: 'Outfit', sans-serif;
-            --mono: 'JetBrains Mono', monospace;
+            --bg: #070b12;
+            --surface: #101826;
+            --surface2: #151f2f;
+            --border: rgba(148,163,184,0.16);
+            --border-active: rgba(34,211,238,0.50);
+            --accent: #22d3ee;
+            --accent-glow: rgba(34,211,238,0.18);
+            --accent-dim: rgba(34,211,238,0.10);
+            --text: #f8fafc;
+            --text-sub: #a9b7c9;
+            --danger: #fb7185;
+            --success: #4ade80;
+            --font: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+            --mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
         }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -41,14 +41,12 @@
             content: '';
             position: fixed;
             inset: 0;
-            background-image:
-                linear-gradient(rgba(6,182,212,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(6,182,212,0.03) 1px, transparent 1px);
-            background-size: 40px 40px;
+            background: radial-gradient(circle at 50% 0%, rgba(34,211,238,0.06), transparent 38%);
             pointer-events: none;
         }
 
         .orb {
+            display: none;
             position: fixed;
             border-radius: 50%;
             filter: blur(100px);
@@ -70,8 +68,8 @@
             padding: 2.5rem;
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 1.5rem;
-            box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03) inset;
+            border-radius: 14px;
+            box-shadow: 0 18px 46px rgba(0,0,0,0.30);
             animation: slideUp 0.5s cubic-bezier(0.16,1,0.3,1) both;
         }
 
@@ -141,7 +139,7 @@
             padding: 0.75rem 1rem;
             background: var(--surface2);
             border: 1px solid var(--border);
-            border-radius: 0.75rem;
+            border-radius: 0.5rem;
             color: var(--text);
             font-family: var(--font);
             font-size: 0.9rem;
@@ -169,8 +167,8 @@
             padding: 0.875rem;
             background: var(--accent);
             border: none;
-            border-radius: 0.75rem;
-            color: #000;
+            border-radius: 0.5rem;
+            color: #041016;
             font-family: var(--font);
             font-size: 0.875rem;
             font-weight: 700;

@@ -1,8 +1,9 @@
-const CACHE = 'soundmaster-v1';
+const CACHE = 'soundmaster-v2-design-system';
 const STATIC = [
   '/',
   '/index.html',
   '/css/styles.css',
+  '/css/design-system.css',
   '/manifest.json',
   '/icons/icon-192.svg',
   '/icons/icon-512.svg',

@@ -10,6 +10,8 @@ Dependências: numpy, scipy
 Autor: Alexandre Calmon Jr.
 """
 
+from __future__ import annotations
+
 import numpy as np
 from scipy.stats import linregress
 import logging

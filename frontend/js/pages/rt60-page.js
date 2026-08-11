@@ -49,6 +49,7 @@
     var pm = createPageModule();
     var rt60Listener = null;
     var _currentPlan  = null;  // Plano de correções atual
+    var _unmountAssistant = null;
 
     function handleAcousticHistory(data) {
         var emptyVal = (data && data.benchmark && data.benchmark.empty && data.benchmark.empty.rt60) || 0;
@@ -244,21 +245,80 @@
     }
 
     function _applyAllCorrections() {
-        if (!_currentPlan) return;
+        if (!_currentPlan || !window.SoundAssistantService) return;
         var btn = document.getElementById('btn-apply-all-corrections');
-        if (btn) { btn.disabled = true; btn.innerHTML = '<span>⏳</span> Aplicando...'; }
+        var selectedChannel = window.MixerAudioSource ? window.MixerAudioSource.getSelectedChannel() : null;
+        var proposed = 0;
 
-        var socket = pm._call('SocketService', 'raw');
-        var channel = window.MixerAudioSource ? window.MixerAudioSource.getSelectedChannel() : null;
-        if (socket) {
-            socket.emit('rt60_apply_all', {
-                plan: _currentPlan,
-                channels: channel ? [channel] : []
+        (_currentPlan.actions || []).forEach(function (action, actionIndex) {
+            (action.changes || []).forEach(function (change, changeIndex) {
+                var command = null;
+                if (change.type === 'peaking' || change.type === 'shelf') {
+                    command = {
+                        action: 'eq_cut',
+                        desc: action.description,
+                        target: action.target === 'master' ? 'master' : 'channel',
+                        hz: Number(change.hz),
+                        gain: Number(change.gain),
+                        q: Number(change.q || 1),
+                        band: Math.min(4, (actionIndex + changeIndex) % 4 + 1)
+                    };
+                    if (command.target === 'channel') command.channel = Number(selectedChannel || action.affectedChannels?.[0]);
+                    if (command.target === 'channel' && !command.channel) command = null;
+                } else if (change.type === 'hpf' && selectedChannel) {
+                    command = {
+                        action: 'apply_channel_hpf',
+                        desc: action.description,
+                        channel: Number(selectedChannel),
+                        hz: Number(change.hz || 100)
+                    };
+                } else if (change.type === 'gate' && selectedChannel) {
+                    command = {
+                        action: 'apply_channel_gate',
+                        desc: action.description,
+                        channel: Number(selectedChannel),
+                        enabled: true,
+                        threshold: Number(change.threshold || -50)
+                    };
+                } else if (change.type === 'compressor' && selectedChannel && action.target !== 'master') {
+                    command = {
+                        action: 'apply_channel_compressor',
+                        desc: action.description,
+                        channel: Number(selectedChannel),
+                        ratio: Number(change.ratio || 2),
+                        threshold: Number(change.threshold || -18)
+                    };
+                }
+
+                if (command) {
+                    window.SoundAssistantService.proposeAction(command, {
+                        origin: 'measure',
+                        reason: action.explanation || action.description,
+                        evidence: {
+                            rt60: _currentPlan.metrics?.rt60,
+                            sti: _currentPlan.metrics?.sti,
+                            confidence: _currentPlan.confidence,
+                            correctionId: action.id
+                        }
+                    });
+                    proposed++;
+                }
             });
+        });
+
+        if (btn) {
+            btn.disabled = proposed === 0;
+            btn.textContent = proposed > 0
+                ? proposed + ' ajuste(s) aguardando confirmação'
+                : 'Nenhum ajuste seguro disponível';
         }
+        if (proposed > 0) window.SoundAssistantCenter?.open?.();
     }
 
     function init() {
+        if (window.SoundAssistantCenter?.mountSummary) {
+            _unmountAssistant = window.SoundAssistantCenter.mountSummary(pm._el('rt60-assistant-summary'));
+        }
         if (window.MixerAudioSource) {
             window.MixerAudioSource.init();
         }
@@ -417,6 +477,8 @@
             socket.off('rt60_error');
         }
         document.removeEventListener('rt60-result', rt60Listener);
+        if (_unmountAssistant) _unmountAssistant();
+        _unmountAssistant = null;
         pm.destroy();
     }
 

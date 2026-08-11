@@ -6,7 +6,7 @@ const PYTHON_PORT = parseInt(process.env.PYTHON_PORT || '3002', 10);
 const AI_API_KEY = process.env.AI_API_KEY;
 
 function registerDiagnosticHandlers(io, socket, deps) {
-    const { actions, logger, mixerSingleton, historyService, aiPredictor, feedbackCooldowns, automaticCutState, canApplyAutomaticCut } = deps;
+    const { logger, historyService, aiPredictor } = deps;
 
     socket.on('save_acoustic_snapshot', async (data) => {
         try {
@@ -41,18 +41,55 @@ function registerDiagnosticHandlers(io, socket, deps) {
 
     socket.on('analyze_feedback_risk', async (data) => {
         try {
-            const risk = await aiPredictor.predictRisk(data.hz, data.db, data.prevDb, data.gain || 0);
-            socket.emit('feedback_risk_result', { hz: data.hz, risk });
-            if (risk > 0.9) {
-                const gate = canApplyAutomaticCut(data.hz);
-                if (!gate.allowed) {
-                    logger.info(socket.id, 'AUTO_CUT_SKIPPED', { hz: data.hz, reason: gate.reason });
-                    return;
-                }
-                feedbackCooldowns.set(gate.roundedHz, Date.now());
-                automaticCutState.set(gate.roundedHz, { timestamp: Date.now() });
-                const msg = actions.applyEqCut('master', null, data.hz, -3, 10, 4);
-                socket.emit('feedback_cut_success', { hz: data.hz, msg: `[IA Preditiva] Corte preventivo de -3dB: ${msg}` });
+            const hz = Number(data?.hz);
+            const db = Number(data?.db);
+            const prevDb = Number(data?.prevDb);
+            const gain = Number(data?.gain || 0);
+            if (!Number.isFinite(hz) || hz < 20 || hz > 20000 ||
+                !Number.isFinite(db) || db < -160 || db > 12 ||
+                !Number.isFinite(prevDb) || !Number.isFinite(gain)) {
+                throw new Error('Dados de análise de feedback inválidos.');
+            }
+
+            const rawRisk = await aiPredictor.predictRisk(hz, db, prevDb, gain);
+            const risk = Number.isFinite(Number(rawRisk))
+                ? Math.max(0, Math.min(1, Number(rawRisk)))
+                : 0;
+            const timestamp = Date.now();
+            socket.emit('feedback_risk_result', { hz, risk, timestamp, mode: 'shadow' });
+
+            if (risk >= 0.75) {
+                const alert = {
+                    code: 'MAIN_FEEDBACK_RISK',
+                    category: 'feedback',
+                    severity: risk >= 0.92 ? 'critical' : 'warning',
+                    confidence: risk,
+                    timestamp,
+                    source: { mode: 'main-lr', target: 'main' },
+                    evidence: {
+                        frequencyHz: Math.round(hz),
+                        peakDb: db,
+                        previousPeakDb: prevDb,
+                        serverRisk: risk,
+                    },
+                    proposedAction: {
+                        type: 'apply_eq_cut',
+                        target: 'main',
+                        parameters: {
+                            frequencyHz: Math.round(hz),
+                            gainDb: -3,
+                            q: 10,
+                        },
+                        executable: false,
+                        requiresConfirmation: true,
+                    },
+                    message: 'Risco elevado detectado. Nenhum ajuste foi executado no modo sombra.',
+                };
+                io.emit('sound_assistant_alert', alert);
+                logger.info(socket.id, 'SOUND_ASSISTANT_SHADOW_ALERT', {
+                    hz: alert.evidence.frequencyHz,
+                    risk,
+                });
             }
         } catch (e) {
             logger.error(socket.id, 'AI_PREDICTION_ERROR', { error: e.message });

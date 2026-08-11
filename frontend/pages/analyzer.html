@@ -152,9 +152,9 @@
                     <span class="text-cyan-400" aria-hidden="true">🚨</span> Detector de Feedback
                 </h3>
                 <div class="flex items-center gap-2">
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Auto-Cut</span>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="btn-toggle-auto-cut" class="sr-only peer" aria-label="Ativar corte automático de feedback">
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Modo sombra</span>
+                    <label class="relative inline-flex items-center cursor-not-allowed" title="Ajustes automáticos bloqueados nesta fase">
+                        <input type="checkbox" id="btn-toggle-auto-cut" class="sr-only peer" aria-label="Corte automático bloqueado no modo sombra" disabled>
                         <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600"></div>
                     </label>
                 </div>
@@ -162,8 +162,8 @@
             <div id="feedback-alert" class="bg-green-900/20 border border-green-500/30 text-green-400 p-4 rounded-xl text-center font-bold text-xs uppercase tracking-wider" aria-live="polite">
                 Sem picos perigosos.
             </div>
-            <button id="btn-auto-cut" class="w-full mt-4 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold hidden shadow-lg shadow-red-900/40 text-xs uppercase tracking-wider transition-all">
-                ⚡ Cortar Frequência na Mesa
+            <button id="btn-auto-cut" class="w-full mt-4 py-3 bg-slate-700 text-slate-300 rounded-xl font-bold hidden text-xs uppercase tracking-wider cursor-not-allowed" disabled>
+                Ajuste bloqueado até confirmação
             </button>
         </div>
 
@@ -363,6 +363,23 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Assistente de operação sonora: primeira fase em modo sombra -->
+                <section id="sound-assistant-panel" class="bg-slate-950/70 border border-cyan-500/20 rounded-xl p-4" aria-labelledby="sound-assistant-heading">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h3 id="sound-assistant-heading" class="text-[11px] font-black uppercase tracking-widest text-cyan-300">Assistente de operação sonora</h3>
+                            <p id="sound-assistant-status" class="mt-1 text-[9px] font-mono text-slate-500">Modo sombra · Main L/R USB</p>
+                        </div>
+                        <div class="flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-1">
+                            <span class="text-[9px] uppercase tracking-wide text-slate-500">Alertas ativos</span>
+                            <span id="sound-assistant-active-count" class="text-xs font-black text-cyan-300">0</span>
+                        </div>
+                    </div>
+                    <p class="mt-3 text-[10px] leading-relaxed text-slate-400">Nesta fase o sistema apenas detecta e explica. Nenhum comando será enviado à mesa sem o futuro fluxo de validação e confirmação.</p>
+                    <p id="sound-assistant-empty" class="mt-3 rounded-lg border border-emerald-500/15 bg-emerald-950/20 px-3 py-2 text-[10px] text-emerald-300" role="status">Nenhum alerta crítico ativo.</p>
+                    <div id="sound-assistant-alerts" class="mt-3 grid gap-2" aria-live="polite" aria-relevant="additions text"></div>
+                </section>
                 
                 <ul id="acoustic-detail-list" class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[9px] text-slate-400 font-mono uppercase tracking-wider">
                     <!-- Preenchido via JS -->

@@ -18,6 +18,8 @@
 ## Arquitetura
 
 - Visão geral no [README](../README.md#estrutura-do-projeto)
+- [Assistente de Operação Sonora](ASSISTENTE_OPERACAO_SONORA.md) — captura Main L/R, detectores, modo sombra e contrato de segurança
+- [Design System](DESIGN_SYSTEM.md) — tokens, tipografia, cards, controles, acessibilidade e regras para novas telas
 - Fluxos de dados: diagramas Mermaid em cada tutorial de fluxo
 
 ---

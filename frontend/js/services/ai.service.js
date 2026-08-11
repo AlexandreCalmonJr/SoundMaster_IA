@@ -312,6 +312,15 @@
     }
 
     async function listenAndAnalyze(channel) {
+        if (window.SoundAssistantService?.runTask) {
+            return window.SoundAssistantService.runTask('analyze', {
+                origin: 'home',
+                channel: channel || 1,
+                prompt: 'Analise o áudio capturado pelo Main L/R e sugira melhorias seguras.',
+                label: 'Análise do Main L/R',
+            });
+        }
+
         if (!window.SoundMasterAnalyzer) {
             throw new Error('Analisador não disponível');
         }

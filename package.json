@@ -63,7 +63,7 @@
   "type": "commonjs",
   "dependencies": {
     "@seald-io/nedb": "^4.1.2",
-    "adm-zip": "^0.5.17",
+    "adm-zip": "^0.6.0",
     "axios": "^1.16.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",

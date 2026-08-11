@@ -24,7 +24,7 @@
     const PERSIST_KEYS = [
         'userMode', 'volunteerChannels', 'faderCeiling',
         'autoEqTarget', 'mtwWindow', 'splWeighting', 'aiChatHistory',
-        'aiAutonomousMode',
+        'soundAssistantSettings',
     ];
 
     function _loadPersisted(key, fallback) {
@@ -86,11 +86,26 @@
         aiStatus: 'offline',  // 'online' | 'offline' | 'loading'
         aiSuggestions: [],    // [{ desc, command }]
         aiChatHistory: _loadPersisted('aiChatHistory', []), // [{ text, isUser, command, id, ts }]
-        aiAutonomousMode: _loadPersisted('aiAutonomousMode', true),
+        aiAutonomousMode: false, // legado: execução autônoma desativada; confirmação é obrigatória
 
         // Analyzer
         micActive: false,
         feedbackHz: null,     // Hz do pico detectado ou null
+
+        // Assistente de operação sonora (modo sombra por padrão)
+        soundAssistantMode: 'shadow',
+        soundAssistantSource: 'main-lr',
+        soundAssistantAlerts: [],
+        soundAssistantActiveCount: 0,
+        soundAssistantActions: [],
+        soundAssistantPendingCount: 0,
+        soundAssistantTask: null,
+        soundAssistantSettings: _loadPersisted('soundAssistantSettings', {
+            sourceMode: 'main-lr',
+            sensitivity: 'balanced',
+            confirmationPolicy: 'always',
+            categories: { clipping: true, feedback: true, noise: true, signal: true, dynamics: true, eq: true }
+        }),
 
         // SPL Logger (IEC 61672)
         splWeighting: _loadPersisted('splWeighting', 'A'),    // 'A' | 'C' | 'Z'
