@@ -109,6 +109,86 @@
         };
     }
 
+    // -------------------------------------------------------------------------
+    // Chat Drawer Controls
+    // -------------------------------------------------------------------------
+
+    function _openChatDrawer() {
+        const backdrop = pm._el('home-chat-backdrop');
+        const drawer = pm._el('home-chat-drawer');
+        if (!backdrop || !drawer) return;
+        backdrop.hidden = false;
+        drawer.hidden = false;
+        requestAnimationFrame(() => {
+            backdrop.style.opacity = '1';
+            drawer.style.transform = 'translateX(0)';
+        });
+        drawer.setAttribute('aria-hidden', 'false');
+        const input = pm._el('home-chat-input');
+        if (input) pm._setTimeout(() => input.focus(), 250);
+    }
+
+    function _closeChatDrawer() {
+        const backdrop = pm._el('home-chat-backdrop');
+        const drawer = pm._el('home-chat-drawer');
+        if (!backdrop || !drawer) return;
+        backdrop.style.opacity = '0';
+        drawer.style.transform = 'translateX(100%)';
+        drawer.setAttribute('aria-hidden', 'true');
+        pm._setTimeout(() => {
+            backdrop.hidden = true;
+            drawer.hidden = true;
+        }, 250);
+    }
+
+    function _toggleChatDrawer() {
+        const drawer = pm._el('home-chat-drawer');
+        if (drawer && !drawer.hidden) {
+            _closeChatDrawer();
+        } else {
+            _openChatDrawer();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Theme Engine
+    // -------------------------------------------------------------------------
+
+    function _applyTheme(theme) {
+        const root = document.documentElement;
+        if (theme === 'light') {
+            root.setAttribute('data-theme', 'light');
+        } else {
+            root.removeAttribute('data-theme');
+        }
+        const btnToggleTheme = pm._el('btn-toggle-theme');
+        if (btnToggleTheme) {
+            btnToggleTheme.textContent = theme === 'light' ? '☀️' : '🌙';
+            btnToggleTheme.title = theme === 'light' ? 'Alternar para Tema Escuro' : 'Alternar para Tema Claro';
+        }
+        localStorage.setItem('sm-theme', theme);
+        try {
+            if (window.parent && window.parent.document && window.parent.document.documentElement) {
+                if (theme === 'light') {
+                    window.parent.document.documentElement.setAttribute('data-theme', 'light');
+                } else {
+                    window.parent.document.documentElement.removeAttribute('data-theme');
+                }
+            }
+        } catch (e) {}
+    }
+
+    function _initTheme() {
+        const savedTheme = localStorage.getItem('sm-theme') || 'dark';
+        _applyTheme(savedTheme);
+    }
+
+    function _toggleTheme() {
+        const currentTheme = localStorage.getItem('sm-theme') || 'dark';
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        _applyTheme(newTheme);
+    }
+
     async function loadConfig() {
         try {
             const res = await fetch('/api/config');
@@ -398,6 +478,30 @@
     // Session History Sidebar
     // -------------------------------------------------------------------------
 
+    async function _deleteSession(sid, e) {
+        if (e) e.stopPropagation();
+        if (!confirm('Deseja apagar esta conversa?')) return;
+        try {
+            let res = await fetch('/api/chat/session/' + encodeURIComponent(sid), { method: 'DELETE' });
+            if (!res.ok) {
+                // Fallback para servidor em execução sem a nova rota DELETE
+                res = await fetch('/api/chat/save/' + encodeURIComponent(sid), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ messages: [] })
+                });
+            }
+            const currentSid = _getSessionId();
+            if (sid === currentSid) {
+                var newSid = 'ses-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+                AppStore.setState({ aiSessionId: newSid, aiChatHistory: [] });
+            }
+            _loadSessionList();
+        } catch (err) {
+            console.warn('[HomePage] Error deleting session:', err);
+        }
+    }
+
     async function _loadSessionList() {
         const els = _getEls();
         if (!els.sessionList) return;
@@ -412,22 +516,43 @@
 
             // Current session always first
             const currentItem = document.createElement('div');
-            currentItem.className = 'hist-item active bg-slate-800/40 border border-cyan-500/20 rounded-xl px-3 py-2.5 cursor-pointer';
-            currentItem.innerHTML = '<div class="text-[10px] font-bold text-cyan-400 truncate">Conversa atual</div><div class="text-[9px] text-slate-500 mt-0.5">Agora</div>';
+            currentItem.className = 'hist-item active flex items-center justify-between cursor-pointer';
+            currentItem.innerHTML = '<div style="flex:1;min-width:0;">' +
+                '<div class="text-[10px] font-bold text-cyan-400 truncate">Conversa atual</div>' +
+                '<div class="text-[9px] text-slate-500 mt-0.5">Agora</div></div>' +
+                '<button class="hist-delete-btn" title="Limpar conversa atual" style="background:transparent;border:none;color:var(--text-light);padding:4px;font-size:12px;cursor:pointer;border-radius:4px;">🗑️</button>';
+            
+            var curDelBtn = currentItem.querySelector('.hist-delete-btn');
+            if (curDelBtn) {
+                pm._on(curDelBtn, 'click', function (evt) {
+                    _deleteSession(currentSid, evt);
+                });
+            }
             els.sessionList.appendChild(currentItem);
 
             sessions.forEach(function (s) {
                 if (s.id === currentSid) return; // skip current
                 var item = document.createElement('div');
-                item.className = 'hist-item bg-slate-900/30 border border-white/5 rounded-xl px-3 py-2.5 cursor-pointer';
+                item.className = 'hist-item flex items-center justify-between cursor-pointer';
                 var preview = s.preview || 'Conversa';
                 var date = s.timestamp ? new Date(s.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '';
                 var count = s.messageCount || 0;
-                item.innerHTML = '<div class="text-[10px] font-bold text-slate-300 truncate">' + _sanitizeHtml(preview) + '</div>' +
-                    '<div class="text-[9px] text-slate-500 mt-0.5 flex items-center gap-1.5"><span>' + _sanitizeHtml(date) + '</span><span>·</span><span>' + count + ' msgs</span></div>';
+                item.innerHTML = '<div style="flex:1;min-width:0;margin-right:8px;">' +
+                    '<div class="text-[10px] font-bold text-slate-300 truncate">' + _sanitizeHtml(preview) + '</div>' +
+                    '<div class="text-[9px] text-slate-500 mt-0.5 flex items-center gap-1.5"><span>' + _sanitizeHtml(date) + '</span><span>·</span><span>' + count + ' msgs</span></div>' +
+                    '</div>' +
+                    '<button class="hist-delete-btn" title="Apagar conversa" style="background:transparent;border:none;color:var(--text-light);padding:4px;font-size:12px;cursor:pointer;border-radius:4px;">🗑️</button>';
+                
                 pm._on(item, 'click', function () {
                     _switchToSession(s.id);
                 });
+
+                var delBtn = item.querySelector('.hist-delete-btn');
+                if (delBtn) {
+                    pm._on(delBtn, 'click', function (evt) {
+                        _deleteSession(s.id, evt);
+                    });
+                }
                 els.sessionList.appendChild(item);
             });
 
@@ -890,6 +1015,7 @@
 
     async function _sendMessage(text) {
         if (!text || !text.trim()) return;
+        _openChatDrawer();
         const els = _getEls();
         const channel = Number(els.targetChannel ? els.targetChannel.value : 1);
         
@@ -952,6 +1078,61 @@
 
     function _initEvents() {
         const els = _getEls();
+
+        // Header & Card triggers for Chat Drawer
+        const greetingTrigger = pm._el('greeting-trigger');
+        if (greetingTrigger) {
+            pm._on(greetingTrigger, 'click', () => {
+                _openChatDrawer();
+            });
+        }
+
+        const btnHomeToggleChat = pm._el('btn-home-toggle-chat');
+        if (btnHomeToggleChat) {
+            pm._on(btnHomeToggleChat, 'click', () => {
+                _toggleChatDrawer();
+            });
+        }
+
+        const btnOpenChatFromCard = pm._el('btn-open-chat-from-card');
+        if (btnOpenChatFromCard) {
+            pm._on(btnOpenChatFromCard, 'click', () => {
+                _openChatDrawer();
+            });
+        }
+
+        const btnCloseChatDrawer = pm._el('btn-close-chat-drawer');
+        if (btnCloseChatDrawer) {
+            pm._on(btnCloseChatDrawer, 'click', () => {
+                _closeChatDrawer();
+            });
+        }
+
+        const homeChatBackdrop = pm._el('home-chat-backdrop');
+        if (homeChatBackdrop) {
+            pm._on(homeChatBackdrop, 'click', () => {
+                _closeChatDrawer();
+            });
+        }
+
+        const btnToggleTheme = pm._el('btn-toggle-theme');
+        if (btnToggleTheme) {
+            pm._on(btnToggleTheme, 'click', () => {
+                _toggleTheme();
+            });
+        }
+
+        pm._on(document, 'keydown', (e) => {
+            if (e.key === 'Escape') _closeChatDrawer();
+        });
+
+        const btnToggleSessionList = pm._el('btn-toggle-session-list');
+        if (btnToggleSessionList) {
+            pm._on(btnToggleSessionList, 'click', () => {
+                const panel = pm._el('home-session-panel');
+                if (panel) panel.classList.toggle('collapsed');
+            });
+        }
 
         if (els.btnSend) {
             pm._on(els.btnSend, 'click', function() {
@@ -1402,6 +1583,7 @@
 
     function init() {
         loadConfig();
+        _initTheme();
         _initEvents();
 
         // Initialize dashboard visuals

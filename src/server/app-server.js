@@ -526,6 +526,29 @@ function createAppServer({ rootDir, localIp, port, dbDir }) {
         }
     });
 
+    expressApp.delete('/api/chat/session/:session_id', authenticateToken, (req, res) => {
+        try {
+            const { session_id } = req.params;
+            db.settings.remove({ type: 'chat_history_' + session_id }, { multi: true }, (err) => {
+                if (err) return res.status(500).json({ error: err.message });
+                res.json({ success: true, deleted: session_id });
+            });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    });
+
+    expressApp.delete('/api/chat/sessions/all', authenticateToken, (req, res) => {
+        try {
+            db.settings.remove({ type: /^chat_history_/ }, { multi: true }, (err) => {
+                if (err) return res.status(500).json({ error: err.message });
+                res.json({ success: true });
+            });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    });
+
     // Rota de Healthcheck (única)
     expressApp.get('/api/health', (req, res) => {
         res.json({ status: "online", message: "Healthy" });

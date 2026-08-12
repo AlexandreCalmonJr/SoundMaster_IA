@@ -226,9 +226,12 @@ class Router {
                 <script src="js/core/page-initializer.js?v=3"></script>
             `;
 
+            const currentTheme = localStorage.getItem('sm-theme');
+            const themeAttr = currentTheme === 'light' ? ' data-theme="light"' : '';
+
             const fullHtml = `
             <!DOCTYPE html>
-            <html lang="pt-br">
+            <html lang="pt-br"${themeAttr}>
             <head>
                 <meta charset="UTF-8">
                 <link rel="stylesheet" href="css/styles.css">

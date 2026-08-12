@@ -3,14 +3,39 @@
    home-dashboard.css — Loaded via Router cssPerPage for 'home'
    ═══════════════════════════════════════════════════════════════ */
 
-/* ── Base Reset ── */
+/* ── Base Reset & Theme Engine ── */
 body {
-    background: #f5f2ee !important;
-    color: #1a1a1a !important;
+    background: var(--bg-page) !important;
+    color: var(--text-dark) !important;
     overflow-x: hidden;
 }
 
+/* Tema Escuro (Padrão) */
 :root {
+    --coral: #c96b45;
+    --coral-light: #e8916e;
+    --coral-bg: rgba(201, 107, 69, 0.12);
+    --coral-dark: #e8916e;
+    --bg-page: #070b12;
+    --bg-card: #101826;
+    --text-dark: #f8fafc;
+    --text-mid: #a9b7c9;
+    --text-light: #8291a6;
+    --text-faint: #475569;
+    --border: rgba(148, 163, 184, 0.16);
+    --border-hover: rgba(148, 163, 184, 0.3);
+    --green: #22c55e;
+    --red: #ef4444;
+    --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.25);
+    --shadow-card-hover: 0 12px 36px rgba(0, 0, 0, 0.38);
+    --radius: 20px;
+    --radius-sm: 12px;
+    --radius-xs: 8px;
+}
+
+/* Tema Claro */
+[data-theme="light"],
+[data-theme="light"] body {
     --coral: #c96b45;
     --coral-light: #e8916e;
     --coral-bg: #fdf0eb;
@@ -27,9 +52,6 @@ body {
     --red: #ef4444;
     --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
     --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.03);
-    --radius: 20px;
-    --radius-sm: 12px;
-    --radius-xs: 8px;
 }
 
 /* Scrollbar Light */
@@ -178,6 +200,43 @@ body {
     font-style: italic;
 }
 
+.greeting-clickable {
+    cursor: pointer;
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    transition: all .2s ease;
+    user-select: none;
+    border: 1px solid transparent;
+}
+.greeting-clickable:hover {
+    background: var(--coral-bg);
+    border-color: var(--border-hover);
+    transform: translateY(-1px);
+}
+.greeting-clickable:hover h1 {
+    color: var(--coral);
+}
+
+.chat-fab {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all .25s;
+    min-height: 46px !important;
+    min-width: 46px !important;
+}
+.chat-fab:hover {
+    background: var(--coral-bg);
+    border-color: var(--coral);
+    transform: scale(1.08);
+}
+
 .mic-fab {
     width: 46px; height: 46px;
     border-radius: 50%;
@@ -251,7 +310,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f0ece8;
+    background: var(--coral-bg);
     border-radius: 10px;
     font-size: 14px;
 }
@@ -421,7 +480,7 @@ body {
 .card-ia { grid-column: span 2; animation-delay: .1s; text-align: center; }
 .ia-lock-icon {
     width: 50px; height: 50px;
-    background: #f0ece8;
+    background: var(--coral-bg);
     border-radius: 14px;
     display: flex;
     align-items: center;
@@ -552,8 +611,72 @@ body {
 .spectrum-label.l3 { left: 20%; bottom: 22%; }
 .spectrum-label.l4 { right: 20%; bottom: 8%; }
 
-/* ── Card: Chat IA (Activity Manager style) ── */
-.card-chat { grid-column: span 5; grid-row: span 2; animation-delay: .45s; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+/* ── Card: Sugestões de IA (Grid Card) ── */
+.card-prompts { grid-column: span 5; grid-row: span 2; animation-delay: .45s; display: flex; flex-direction: column; justify-content: space-between; }
+.quick-prompts-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+/* ── Chat Drawer Backdrop & Drawer ── */
+#home-chat-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.72);
+    backdrop-filter: blur(4px);
+    z-index: 99990;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+#home-chat-backdrop:not([hidden]) {
+    opacity: 1;
+}
+
+#home-chat-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(500px, 94vw);
+    background: var(--bg-card);
+    border-left: 1px solid var(--border);
+    box-shadow: var(--shadow-card-hover);
+    z-index: 99991;
+    transform: translateX(100%);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+#home-chat-drawer:not([hidden]) {
+    transform: translateX(0);
+}
+
+.drawer-close-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-mid);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+    min-height: 32px !important;
+    min-width: 32px !important;
+}
+.drawer-close-btn:hover {
+    background: var(--coral-bg);
+    color: var(--coral);
+    border-color: var(--coral);
+}
+
+/* ── Chat Components Inside Drawer ── */
 .chat-top-bar {
     display: flex;
     align-items: center;
@@ -688,7 +811,7 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 8px 20px;
-    background: #faf8f5;
+    background: var(--bg-card);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
 }
@@ -714,8 +837,9 @@ body {
     font-size: 13px;
 }
 .chat-assistant {
-    background: #f0ece8 !important;
+    background: var(--coral-bg) !important;
     color: var(--text-dark) !important;
+    border: 1px solid var(--border) !important;
     border-radius: 16px 16px 16px 4px !important;
     padding: 10px 16px !important;
     font-size: 13px;
@@ -730,7 +854,7 @@ body {
 .chat-assistant strong { color: var(--text-dark) !important; }
 .chat-assistant em { color: var(--text-mid) !important; }
 .chat-assistant code {
-    background: #e8e4e0 !important;
+    background: var(--bg-card) !important;
     color: var(--coral) !important;
 }
 .chat-assistant li { color: var(--text-mid) !important; }
@@ -756,8 +880,9 @@ body {
 .command-card .exec-btn:hover { background: var(--coral-dark) !important; }
 .command-card .ignore-btn,
 .chat-assistant .ignore-btn {
-    background: #f0ece8 !important;
+    background: var(--bg-card) !important;
     color: var(--text-mid) !important;
+    border: 1px solid var(--border) !important;
     border-radius: var(--radius-xs) !important;
 }
 .command-card .text-cyan-400 { color: var(--coral) !important; }
@@ -781,9 +906,19 @@ body {
 
 /* Prompt Pills */
 .prompt-pills-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    overflow-x: auto;
+    padding: 2px 2px 4px;
+    scrollbar-width: none;
     transition: all .25s ease;
-    max-height: 40px;
+    max-height: 44px;
     opacity: 1;
+}
+.prompt-pills-container::-webkit-scrollbar {
+    display: none;
 }
 .prompt-pills-container.collapsed {
     max-height: 0;
@@ -794,28 +929,38 @@ body {
     overflow: hidden;
 }
 .home-prompt-pill {
-    padding: 5px 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 13px;
     border-radius: 20px;
-    background: #f0ece8 !important;
+    background: var(--bg-card) !important;
     border: 1px solid var(--border) !important;
-    color: var(--text-mid) !important;
+    color: var(--text-dark) !important;
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
-    transition: all .2s;
+    transition: all .2s ease;
     white-space: nowrap;
-    min-height: auto !important;
+    min-height: 30px !important;
     min-width: auto !important;
+    flex-shrink: 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 .home-prompt-pill:hover {
     border-color: var(--coral) !important;
     background: var(--coral-bg) !important;
     color: var(--coral) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(201,107,69,.2);
+}
+.home-prompt-pill:active {
+    transform: translateY(0);
 }
 
 /* Input Composer */
 .input-composer {
-    background: #faf8f5;
+    background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 12px;
@@ -863,7 +1008,7 @@ body {
 
 /* Channel Select */
 #home-target-channel {
-    background: var(--bg-card) !important;
+    background: var(--bg-page) !important;
     border: 1px solid var(--border) !important;
     border-radius: var(--radius-xs);
     padding: 4px 8px;
@@ -880,11 +1025,11 @@ body {
 .qa-icon {
     padding: 4px 8px;
     border-radius: var(--radius-xs);
-    color: var(--text-light) !important;
+    color: var(--text-mid) !important;
     font-size: 11px;
     cursor: pointer;
     transition: all .15s;
-    border: none;
+    border: 1px solid transparent;
     background: transparent;
     min-height: auto !important;
     min-width: auto !important;
@@ -1055,10 +1200,18 @@ body {
 /* ── Session/History Panel (inside chat card) ── */
 .session-panel {
     border-top: 1px solid var(--border);
-    background: #faf8f5;
-    max-height: 140px;
+    background: var(--bg-card);
+    max-height: 160px;
     overflow-y: auto;
     flex-shrink: 0;
+    transition: max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.session-panel.collapsed {
+    max-height: 34px;
+    overflow: hidden;
+}
+.session-panel.collapsed #session-toggle-arrow {
+    transform: rotate(-90deg);
 }
 .session-panel-header {
     display: flex;
@@ -1067,14 +1220,14 @@ body {
     padding: 8px 20px;
     position: sticky;
     top: 0;
-    background: #faf8f5;
+    background: var(--bg-card);
     z-index: 2;
 }
 #home-session-list { padding: 0 16px 8px; }
 
 /* History items - override Tailwind dark classes */
 .hist-item {
-    background: var(--bg-card) !important;
+    background: var(--bg-page) !important;
     border: 1px solid var(--border) !important;
     border-radius: var(--radius-sm) !important;
     padding: 8px 12px !important;

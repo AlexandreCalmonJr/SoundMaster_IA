@@ -23,12 +23,16 @@
                 <span class="arrow">→</span>
             </button>
             <button class="calendar-btn" id="btn-toggle-ip" title="Acesso Remoto / QR Code">📅</button>
+            <button class="calendar-btn" id="btn-toggle-theme" title="Alternar Tema (Escuro/Claro)">🌙</button>
         </div>
         <div class="dash-header-right">
-            <div class="greeting">
+            <div class="greeting greeting-clickable" id="greeting-trigger" title="Clique para abrir o Chat IA">
                 <h1>Olá! Precisa de ajuda?👋</h1>
                 <p>Pergunte qualquer coisa ao SoundMaster!</p>
             </div>
+            <button class="chat-fab" id="btn-home-toggle-chat" title="Abrir Chat IA">
+                💬
+            </button>
             <button class="mic-fab" id="btn-home-listen" title="Escutar Áudio ao Vivo">
                 🎙️
             </button>
@@ -189,110 +193,18 @@
             </div>
         </div>
 
-        <!-- Card: Chat IA (Activity Manager style - MAIN card) -->
-        <div class="card card-chat" style="animation-delay:.5s">
-            <!-- Chat Top Bar -->
-            <div class="chat-top-bar">
-                <h2>Chat IA</h2>
-                <div class="chat-actions-bar">
-                    <div class="chat-filter-pills">
-                        <span class="filter-pill active">Geral</span>
-                        <span class="filter-pill">Análise</span>
-                        <span class="filter-pill">Mixer</span>
-                    </div>
-                    <button class="btn-ghost" id="btn-home-export-chat" title="Exportar Chat">📥</button>
-                    <span style="display:inline-flex;align-items:center;min-height:28px;padding:4px 9px;border:1px solid var(--sm-accent-border,rgba(34,211,238,.3));border-radius:999px;background:var(--sm-accent-soft,rgba(34,211,238,.1));font-size:10px;font-weight:700;color:var(--sm-accent,#22d3ee);text-transform:uppercase;letter-spacing:.5px;" title="Todo ajuste da IA exige confirmação explícita">Confirmação obrigatória</span>
-                </div>
+        <!-- Card: Sugestões de IA (compact grid card) -->
+        <div class="card card-prompts" style="animation-delay:.5s">
+            <div class="card-header">
+                <span class="card-label">Assistente IA · Sugestões</span>
+                <button class="btn-ghost" id="btn-open-chat-from-card" title="Abrir Chat Completo">💬 Abrir Chat</button>
             </div>
-
-            <div class="chat-body">
-                <!-- Intro Container (when no chat history) -->
-                <div id="home-intro-container">
-                    <h3>Como posso ajudar no som hoje?</h3>
-                    <p>Pergunte, analise ou controle a mesa — tudo por aqui.</p>
-                    <div id="home-suggestion-cards"></div>
-                    <button id="btn-cycle-suggestions" class="btn-ghost" style="margin-top:8px;">
-                        ↻ Mais sugestões
-                    </button>
-                </div>
-
-                <!-- Chat Container (when chatting) -->
-                <div id="home-chat-container" class="hidden">
-                    <div class="chat-header-inner">
-                        <div style="display:flex;align-items:center;gap:6px;">
-                            <span style="width:6px;height:6px;border-radius:50%;background:var(--green);"></span>
-                            <span style="font-size:10px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.5px;">Chat Ativo</span>
-                        </div>
-                        <button id="btn-home-new-chat" class="btn-ghost" title="Nova Conversa">+ Nova</button>
-                    </div>
-                    <div id="home-chat-messages" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px;"></div>
-                </div>
+            <div class="quick-prompts-grid" id="home-suggestion-cards">
+                <!-- Suggestion cards dynamically injected by home-page.js -->
             </div>
-
-            <!-- Session History Panel -->
-            <div class="session-panel">
-                <div class="session-panel-header">
-                    <span style="font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;">Conversas</span>
-                    <button id="btn-home-new-chat-2" class="btn-ghost" title="Nova Conversa">+ Nova</button>
-                </div>
-                <div id="home-session-list" style="padding:0 16px 8px;">
-                    <div class="hist-item active">
-                        <div style="font-size:11px;font-weight:700;color:var(--coral);">Nova conversa</div>
-                        <div style="font-size:10px;color:var(--text-light);margin-top:2px;">Agora</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Input Wrapper (always visible) -->
-            <div id="home-input-wrapper">
-                <!-- Prompt Pills -->
-                <div id="home-prompt-pills" class="prompt-pills-container" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;justify-content:center;scrollbar-width:none;margin-bottom:8px;">
-                    <button class="home-prompt-pill" data-prompt="auditar mixer">🔍 Auditar</button>
-                    <button class="home-prompt-pill" data-prompt="relatório acústico detalhado">📐 Acústica</button>
-                    <button class="home-prompt-pill" data-prompt="resolver apito microfonia">🚨 Microfonia</button>
-                    <button class="home-prompt-pill" data-prompt="clarear voz principal">🔊 Clarear Voz</button>
-                </div>
-
-                <!-- Composer -->
-                <div class="input-composer">
-                    <div style="position:relative;width:100%;">
-                        <textarea id="home-chat-input" rows="1"
-                            placeholder="Pergunte à IA ou ajuste a mesa... (Ex: clarear voz CH 01)"
-                            style="max-height:120px;overflow-y:auto;height:auto;"></textarea>
-                        <span id="home-char-counter" style="position:absolute;right:4px;bottom:0;">0/5000</span>
-                    </div>
-                    <div class="composer-bar">
-                        <div class="composer-left">
-                            <select id="home-target-channel">
-                                <option value="1">CH01</option><option value="2">CH02</option><option value="3">CH03</option><option value="4">CH04</option>
-                                <option value="5">CH05</option><option value="6">CH06</option><option value="7">CH07</option><option value="8">CH08</option>
-                                <option value="9">CH09</option><option value="10">CH10</option><option value="11">CH11</option><option value="12">CH12</option>
-                                <option value="13">CH13</option><option value="14">CH14</option><option value="15">CH15</option><option value="16">CH16</option>
-                                <option value="17">CH17</option><option value="18">CH18</option><option value="19">CH19</option><option value="20">CH20</option>
-                                <option value="21">CH21</option><option value="22">CH22</option><option value="23">CH23</option><option value="24">CH24</option>
-                            </select>
-                            <span style="width:1px;height:16px;background:var(--border);"></span>
-                            <button id="btn-home-send-analysis" class="composer-icon-btn" title="Análise Acústica">📎</button>
-                            <span style="width:1px;height:16px;background:var(--border);"></span>
-                            <div id="home-quick-actions" style="display:flex;align-items:center;gap:2px;">
-                                <button class="qa-icon quick-action-pill" data-action="clean" title="Som Limpo">🔧</button>
-                                <button class="qa-icon quick-action-pill" data-action="hpf" title="HPF 100Hz" style="font-family:'Outfit',monospace;font-weight:700;">HPF</button>
-                                <button class="qa-icon quick-action-pill" data-action="gate" title="Gate Leve" style="font-family:'Outfit',monospace;font-weight:700;">G</button>
-                                <button class="qa-icon quick-action-pill" data-action="eq250" title="EQ 250Hz" style="font-family:'Outfit',monospace;font-weight:700;">250</button>
-                                <button class="qa-icon quick-action-pill" data-action="eq3k" title="EQ 3.2kHz" style="font-family:'Outfit',monospace;font-weight:700;">3.2k</button>
-                                <button class="qa-icon quick-action-pill" data-action="afs" title="AFS On/Off" style="font-family:'Outfit',monospace;font-weight:700;">AFS</button>
-                            </div>
-                        </div>
-                        <div class="composer-right">
-                            <button id="btn-home-clear" class="composer-icon-btn" style="display:none;" title="Limpar">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                            </button>
-                            <button id="btn-home-send" aria-label="Enviar">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+                <button id="btn-cycle-suggestions" class="btn-ghost">↻ Mais sugestões</button>
+                <span style="font-size:10px;color:var(--text-light);">Clique em uma sugestão para abrir o Chat</span>
             </div>
         </div>
 
@@ -390,4 +302,113 @@
     </div>
 
 </div>
+
+<!-- ═══════════════════════════════════════════
+     CHAT DRAWER & BACKDROP
+     ═══════════════════════════════════════════ -->
+<div id="home-chat-backdrop" hidden></div>
+
+<aside id="home-chat-drawer" hidden aria-hidden="true" aria-label="Painel de Chat IA">
+    <!-- Drawer Header -->
+    <div class="chat-top-bar">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:18px;">💬</span>
+            <h2 style="font-size:16px;margin:0;">Chat IA SoundMaster</h2>
+        </div>
+        <div class="chat-actions-bar">
+            <button class="btn-ghost" id="btn-home-export-chat" title="Exportar Chat">📥</button>
+            <button class="drawer-close-btn" id="btn-close-chat-drawer" title="Fechar Chat">✕</button>
+        </div>
+    </div>
+
+    <!-- Chat Body -->
+    <div class="chat-body">
+        <!-- Intro Container (when no chat history) -->
+        <div id="home-intro-container">
+            <h3>Como posso ajudar no som hoje?</h3>
+            <p>Pergunte, analise ou controle a mesa — tudo por aqui.</p>
+        </div>
+
+        <!-- Chat Container (when chatting) -->
+        <div id="home-chat-container">
+            <div class="chat-header-inner">
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="width:6px;height:6px;border-radius:50%;background:var(--green);"></span>
+                    <span style="font-size:10px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.5px;">Chat Ativo</span>
+                </div>
+                <button id="btn-home-new-chat" class="btn-ghost" title="Nova Conversa">+ Nova</button>
+            </div>
+            <div id="home-chat-messages"></div>
+        </div>
+    </div>
+
+    <!-- Session History Panel -->
+    <div class="session-panel" id="home-session-panel">
+        <div class="session-panel-header" id="home-session-header">
+            <div style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;" id="btn-toggle-session-list" title="Clique para recolher/expandir conversas">
+                <span style="font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;">Conversas</span>
+                <span id="session-toggle-arrow" style="font-size:9px;color:var(--text-light);transition:transform .2s ease;display:inline-block;">▼</span>
+            </div>
+            <button id="btn-home-new-chat-2" class="btn-ghost" title="Nova Conversa">+ Nova</button>
+        </div>
+        <div id="home-session-list">
+            <div class="hist-item active">
+                <div style="font-size:11px;font-weight:700;color:var(--coral);">Nova conversa</div>
+                <div style="font-size:10px;color:var(--text-light);margin-top:2px;">Agora</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input Wrapper (always visible) -->
+    <div id="home-input-wrapper">
+        <!-- Prompt Pills -->
+        <div id="home-prompt-pills" class="prompt-pills-container">
+            <button class="home-prompt-pill" data-prompt="auditar mixer">🔍 Auditar</button>
+            <button class="home-prompt-pill" data-prompt="relatório acústico detalhado">📐 Acústica</button>
+            <button class="home-prompt-pill" data-prompt="resolver apito microfonia">🚨 Microfonia</button>
+            <button class="home-prompt-pill" data-prompt="clarear voz principal">🔊 Clarear Voz</button>
+        </div>
+
+        <!-- Composer -->
+        <div class="input-composer">
+            <div style="position:relative;width:100%;">
+                <textarea id="home-chat-input" rows="1"
+                    placeholder="Pergunte à IA ou ajuste a mesa... (Ex: clarear voz CH 01)"></textarea>
+                <span id="home-char-counter">0/5000</span>
+            </div>
+            <div class="composer-bar">
+                <div class="composer-left">
+                    <select id="home-target-channel" title="Selecione o canal alvo">
+                        <option value="1">CH01</option><option value="2">CH02</option><option value="3">CH03</option><option value="4">CH04</option>
+                        <option value="5">CH05</option><option value="6">CH06</option><option value="7">CH07</option><option value="8">CH08</option>
+                        <option value="9">CH09</option><option value="10">CH10</option><option value="11">CH11</option><option value="12">CH12</option>
+                        <option value="13">CH13</option><option value="14">CH14</option><option value="15">CH15</option><option value="16">CH16</option>
+                        <option value="17">CH17</option><option value="18">CH18</option><option value="19">CH19</option><option value="20">CH20</option>
+                        <option value="21">CH21</option><option value="22">CH22</option><option value="23">CH23</option><option value="24">CH24</option>
+                    </select>
+                    <span style="width:1px;height:16px;background:var(--border);"></span>
+                    <button id="btn-home-send-analysis" class="composer-icon-btn" title="Análise Acústica">📎</button>
+                    <span style="width:1px;height:16px;background:var(--border);"></span>
+                    <div id="home-quick-actions" style="display:flex;align-items:center;gap:2px;">
+                        <button class="qa-icon quick-action-pill" data-action="clean" title="Som Limpo">🔧</button>
+                        <button class="qa-icon quick-action-pill" data-action="hpf" title="HPF 100Hz" style="font-family:'Outfit',monospace;font-weight:700;">HPF</button>
+                        <button class="qa-icon quick-action-pill" data-action="gate" title="Gate Leve" style="font-family:'Outfit',monospace;font-weight:700;">G</button>
+                        <button class="qa-icon quick-action-pill" data-action="eq250" title="EQ 250Hz" style="font-family:'Outfit',monospace;font-weight:700;">250</button>
+                        <button class="qa-icon quick-action-pill" data-action="eq3k" title="EQ 3.2kHz" style="font-family:'Outfit',monospace;font-weight:700;">3.2k</button>
+                        <button class="qa-icon quick-action-pill" data-action="afs" title="AFS On/Off" style="font-family:'Outfit',monospace;font-weight:700;">AFS</button>
+                    </div>
+                </div>
+                <div class="composer-right">
+                    <button id="btn-home-clear" class="composer-icon-btn" style="display:none;" title="Limpar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                    <button id="btn-home-send" aria-label="Enviar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</aside>
+
 </section>

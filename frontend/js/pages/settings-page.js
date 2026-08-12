@@ -415,6 +415,7 @@ function _safeSetItem(key, value) {
     function loadSavedSettings() {
         const autoStartInput = pm._el('settings-auto-start');
         const highResInput = pm._el('settings-fft-highres');
+        const themeSelect = pm._el('theme-select');
         const unitSelect = pm._el('unit-select');
 
         if (autoStartInput) {
@@ -424,6 +425,10 @@ function _safeSetItem(key, value) {
         if (highResInput) {
             const val = localStorage.getItem('sm-settings-fft-highres');
             highResInput.checked = val === null ? true : val === 'true';
+        }
+        if (themeSelect) {
+            const val = localStorage.getItem('sm-theme');
+            themeSelect.value = val || 'dark';
         }
         if (unitSelect) {
             const val = localStorage.getItem('sm-settings-unit');
@@ -461,6 +466,30 @@ function _safeSetItem(key, value) {
                     window.SoundMasterAnalyzer.setHighResolution(e.target.checked);
                 }
                 if (window.SoundMasterUI) window.SoundMasterUI.showToast('Preferência salva', 'success');
+            });
+        }
+
+        // Bind theme select change
+        const themeSelect = pm._el('theme-select');
+        if (themeSelect) {
+            pm._on(themeSelect, 'change', (e) => {
+                const theme = e.target.value;
+                localStorage.setItem('sm-theme', theme);
+                if (theme === 'light') {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                }
+                try {
+                    if (window.parent && window.parent.document && window.parent.document.documentElement) {
+                        if (theme === 'light') {
+                            window.parent.document.documentElement.setAttribute('data-theme', 'light');
+                        } else {
+                            window.parent.document.documentElement.removeAttribute('data-theme');
+                        }
+                    }
+                } catch (ex) {}
+                if (window.SoundMasterUI) window.SoundMasterUI.showToast('Tema alterado para ' + (theme === 'light' ? 'Claro' : 'Escuro'), 'success');
             });
         }
 
